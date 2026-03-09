@@ -1,0 +1,25 @@
+{
+  "rtk-rewrite": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command|execute_command|Bash|view_file|Read|read_file|view_file_outline|write_to_file|write_file|create_file|Write|edit_file|replace_file_content|multi_replace_file_content|replace_string|replace|Edit|MultiEdit|grep_search|Grep|Glob|LS|list_dir|find_by_name|invoke_subagent|browser_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/orion.py rtk hook antigravity"
+          }
+        ]
+      }
+    ]
+  },
+  "omni-buffer-update": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python hooks/pre-agent-wake.py --hook"
+      }
+    ]
+  }
+}

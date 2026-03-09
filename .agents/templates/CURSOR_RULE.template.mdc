@@ -1,0 +1,8 @@
+---
+description: "Portable Brainvibing project-wide agent routing and verification"
+alwaysApply: true
+---
+
+Read and follow repository-root `AGENTS.md` as canonical project instructions.
+Load specialized workflows from `.agents/skills/<name>/SKILL.md` only when
+relevant. Use `.agents/scripts/` for deterministic verification.

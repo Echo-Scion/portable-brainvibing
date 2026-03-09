@@ -1,0 +1,38 @@
+id: no-empty-catch-py
+language: python
+rule:
+  pattern: |
+    try:
+      $$$BODY
+    except $$$ERR:
+      pass
+message: Empty exception catch block detected (Code Truth Guardrail violation).
+severity: error
+---
+id: no-raw-sql-concat-dart
+language: dart
+rule:
+  pattern: rawQuery($$$QUERY + $VAR)
+message: Raw SQL string concatenation detected (CWE-89 SQL Injection vulnerability).
+severity: error
+---
+id: no-insecure-crypto-md5-ts
+language: typescript
+rule:
+  pattern: createHash("md5")
+message: Broken cryptographic algorithm MD5 detected (CWE-327 Broken Crypto).
+severity: warning
+---
+id: no-shell-exec-kt
+language: kotlin
+rule:
+  pattern: Runtime.getRuntime().exec($CMD)
+message: Direct Runtime.exec command execution detected (CWE-78 Command Injection).
+severity: error
+---
+id: no-hardcoded-secret-rust
+language: rust
+rule:
+  pattern: let $KEY = "sk-$VALUE";
+message: Hardcoded API secret key detected in source code (CWE-798 Hardcoded Credentials).
+severity: error
