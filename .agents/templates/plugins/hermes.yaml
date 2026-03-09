@@ -1,0 +1,4 @@
+name: portable-brainvibing
+version: 0.0.1
+description: Turnkey Auto-Vibe Coding Brain Ecosystem
+skills_dir: .agents/skills

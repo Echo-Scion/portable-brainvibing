@@ -1,0 +1,11 @@
+{
+  "framework": "react",
+  "language": "typescript",
+  "extensions": [".ts", ".tsx", ".js", ".jsx", ".json", ".css"],
+  "ignore_dirs": [".git", "node_modules", "dist", "build", ".next", "coverage", ".agents", ".orion"],
+  "cli_audit": "npm audit --audit-level=high",
+  "cli_test": "npm test -- --run",
+  "cli_test_coverage": "npm test -- --coverage",
+  "cli_lint": "npm run lint",
+  "package_file": "package.json"
+}
