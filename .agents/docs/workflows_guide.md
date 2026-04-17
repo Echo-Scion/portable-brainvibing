@@ -24,4 +24,4 @@ description: [short title, e.g. how to deploy the application]
 - Use `// turbo-all` at the top of the file to auto-execute ALL tool calls in the workflow.
 
 ## 5. Registration
-After creating a new workflow, run `python scripts/build_graph.py` to index the new path into the system's brain.
+After creating a new workflow, run `@index-project` to index the new path into the system's brain.

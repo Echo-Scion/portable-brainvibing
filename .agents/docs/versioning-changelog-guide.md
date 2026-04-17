@@ -80,7 +80,7 @@ All notable changes documented here. Project adheres to [Semantic Versioning](ht
 
 ---
 
-## 4. Publication Workflow (`/update-sync`)
+### Publication Workflow (/update-sync)
 
 ### Pre-Flight (Verification)
 ```bash
@@ -93,10 +93,7 @@ All notable changes documented here. Project adheres to [Semantic Versioning](ht
 
 ### Sanitization & Sync
 ```bash
-# Step 2a: Update skills catalog
-python .agents/scripts/update_catalog.py
-
-# Step 2b: Publish with version bump
+# Step 2: Publish with version bump
 ```
 
 **What happens automatically**:
@@ -183,6 +180,7 @@ Also updated with new version reference and recent changelog entries.
 ```python
 BLACKLIST = {
     # Local/Personal
+    "knowledge_graph.json",
     
     # Maintenance Scripts
     
@@ -221,8 +219,9 @@ Developer updates `.agents/skills/backend-orchestrator/SKILL.md` in `_foundation
 ```bash
 # From _foundation/ root:
 
-# 1. Update catalog
-python .agents/scripts/update_catalog.py
+# 1. Update project indexing
+@index-project
+# Output: Updated catalog.json with 11 skills
 
 # 2. Publish changes
 # Output:

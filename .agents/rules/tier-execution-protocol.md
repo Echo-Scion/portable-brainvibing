@@ -28,6 +28,7 @@ trigger: model_decision
 | Tier | Label | Required Model Allocation | Practical Scope | When to Use |
 | :--- | :--- | :--- | :--- | :--- |
 | **Tier 0** | `BUDGET` | Claude Haiku / Gemini Flash | **Atomic / Stylistic** | Documentation, log updates, formatting, minor CSS/styling, single-file bug fixes (localized logic), basic boilerplate generation, basic unit test additions. |
+| **Tier 1** | `STANDARD` | Claude Sonnet / Gemini Pro Low | **Integrative / Feature** | Multi-file feature implementation, domain-specific state management, complex bug fixes spanning multiple modules. |
 | **Tier 2** | `PREMIUM` | Claude Opus / Gemini Pro High | **Architectural / Risky** | Global system refactors, security/Auth/RLS logic changes, high-risk infrastructure updates, deep performance bottleneck resolution. |
 
 ## 2. Infrastructure Special Note

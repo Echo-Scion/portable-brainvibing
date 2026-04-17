@@ -67,13 +67,13 @@ If conflict remains unresolved after precedence resolution:
 
 Silent conflict handling is a protocol violation.
 
-## 6. Memory Recall (Anti-Amnesia Protocol)
+## 6. Memory Recall & Knowledge Base Consultation (Anti-Amnesia Protocol)
 
 To prevent repetitive systemic failures and ensure continuous evolution, the agent MUST adhere to the following memory protocols:
 
-   - **If search returns empty**: This is a first-occurrence task. Proceed, but LOG it afterward — this is not a skip trigger.
-   - **Goal**: Identify past "gotchas", failed patterns, or brittle areas before proposing a solution.
-   - **Requirement**: Document not just the fix, but the "Why" behind any unexpected difficulty.
+1. **Pre-Flight Consultation (The QMD Protocol)**: For all `STANDARD` and `PREMIUM` tasks, or when encountering unfamiliar context, the agent MUST execute a semantic or keyword search using QMD.
+   - **Windows Mandate**: You MUST execute this search via `npx @tobilu/qmd query "your query"`.
+   - **Goal**: Identify past "gotchas", failed patterns, architectural constraints, or brittle areas before proposing a solution. Consult `.agents/rules/qmd-search-protocol.md` for full query formatting rules.
 
 ## 7. Evidence Contract (Done Gate)
 

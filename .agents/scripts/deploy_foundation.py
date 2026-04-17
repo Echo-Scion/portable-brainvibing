@@ -235,7 +235,6 @@ def verify_github_native_deployment(target_root: str, dry_run: bool = False) -> 
     
     # Check required rule files
     required_rules = [
-        ("_index.md", "Navigation index"),
         ("agent-core.md", "Core behavioral rules"),
         ("tier-execution.md", "Tier execution protocols"),
         ("security-gates.md", "Security gates"),
@@ -313,7 +312,6 @@ def deploy(source_root: str, target_root: str, selected_ais: list = None, dry_ru
     """
     Copies foundation skills and rules to the target project.
     Deploys AI configuration files for selected assistants.
-    After deploy, runs build_graph.py and update_catalog.py automatically.
     
     Args:
         source_root: Path to foundation root
@@ -474,9 +472,7 @@ def deploy(source_root: str, target_root: str, selected_ais: list = None, dry_ru
                 os.makedirs(tasks_dir, exist_ok=True)
             print("  Created workflows/tasks/ for project-specific tasks.")
 
-    # 3. Handle workspace_map.md and catalog.json (DEPRECATED PHYSICAL SYNC)
-    # These are now generated fresh locally via update_catalog.py post-deploy.
-    # Logic removed to prevent syncing outdated foundation maps.
+    # 3. Retrieve project name
     project_name = os.path.basename(os.path.abspath(target_root))
 
     # 4. Seed LEARNINGS.md if it doesn't exist
@@ -508,25 +504,15 @@ def deploy(source_root: str, target_root: str, selected_ais: list = None, dry_ru
     else:
         print("✅ GitHub native stack verified successfully")
 
-    # 6. Run build_graph and update_catalog automatically post-deploy
+    # 6. Post Deploy Hooks
     if not dry_run:
         scripts_dir = os.path.join(target_agents, "scripts")
-        build_graph_script = os.path.join(scripts_dir, "build_graph.py")
-        update_catalog_script = os.path.join(scripts_dir, "update_catalog.py")
-
-        if os.path.exists(build_graph_script):
-            print("\n🧠 Running build_graph.py to rebuild knowledge graph...")
-            subprocess.run([sys.executable, build_graph_script], cwd=target_root)
         
-        if os.path.exists(update_catalog_script):
-            print("\n📋 Running update_catalog.py to refresh catalog...")
-            subprocess.run([sys.executable, update_catalog_script], cwd=target_root)
-        
-        # Run sync_skill_discovery to auto-generate Copilot discovery mappings
-        sync_discovery_script = os.path.join(scripts_dir, "sync_skill_discovery.py")
+        # Run sync_ai_configs if needed
+        sync_discovery_script = os.path.join(scripts_dir, "sync_ai_configs.py")
         if os.path.exists(sync_discovery_script):
-            print("\n🎯 Running sync_skill_discovery.py to generate Copilot chat mentions...")
-            subprocess.run([sys.executable, sync_discovery_script, "--update-rules", "--update-workflows", "--verify"], cwd=target_root)
+            print("\n🎯 Running sync_ai_configs.py...")
+            # subprocess.run([sys.executable, sync_discovery_script], cwd=target_root)
 
     print(f"\n✅ Deployment finished{' (SIMULATED)' if dry_run else ''}.")
     return True
@@ -570,6 +556,24 @@ Available AIs: gemini, copilot, cursor, windsurf, cline, claude
     source = args.source
     if not source:
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        source = os.path.abspath(os.path.join(script_dir, "..", ".."))
+    
+    # Parse AI selection
+    if args.ai.lower() == "all":
+        selected_ais = list(AI_CONFIGS.keys())
+    else:
+        selected_ais = [ai.strip().lower() for ai in args.ai.split(",")]
+        # Validate AI names
+        invalid = [ai for ai in selected_ais if ai not in AI_CONFIGS]
+        if invalid:
+            print(f"❌ Error: Unknown AI(s): {', '.join(invalid)}")
+            print(f"Available: {', '.join(AI_CONFIGS.keys())}")
+            sys.exit(1)
+
+    deploy(source, args.target, selected_ais=selected_ais, dry_run=args.dry_run)
+
+if __name__ == "__main__":
+    main()ir = os.path.dirname(os.path.abspath(__file__))
         source = os.path.abspath(os.path.join(script_dir, "..", ".."))
     
     # Parse AI selection

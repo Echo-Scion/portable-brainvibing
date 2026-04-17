@@ -86,6 +86,7 @@ project-root/
 │   ├── workflows/
 │   ├── scripts/
 │   ├── templates/
+│   └── workspace_map.md
 │
 └── context/ (optional, user creates)
     ├── 00_Strategy/

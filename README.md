@@ -182,12 +182,22 @@ A: ~2-5% per session (depends on skill count active). Token Shield and Vibecode 
 
 ---
 
-## 9. Changelog
+## 9. External Reference Integration
 
-**Current Version**: **1.2.31** — *"Modular Synchronization & Ecosystem Polish"*
+This ecosystem achieves maximum token-efficiency and context-retrieval by integrating the following open-source tools:
+* **[rtk-ai/rtk](https://github.com/rtk-ai/rtk)**: Utilized to compress and optimize verbose shell command outputs.
+* **[tobi/qmd](https://github.com/tobi/qmd)**: Utilized as the local semantic search engine to dynamically discover project context without rigid file mapping.
+* **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**: Utilized for the extreme-terseness communication protocol, significantly reducing LLM output tokens.
+
+---
+
+## 10. Changelog
+
+**Current Version**: **1.3.1** — *"Modular Synchronization & Ecosystem Polish"*
 
 | Version | Date | Notes |
 | :--- | :--- | :--- |
+| **1.3.0** | 2026-04-18 | Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs. |
 | **1.2.0** | 2026-03-26 | Integrate 10 Prompt Patterns, Root GEMINI.md, and evals/docs folders |
 | **1.1.0** | 2026-03-20 | Unified Logic: Established a clear 4-pillar structure and the 82-file SaaS mapping protocol. |
 | **1.0.0** | 2026-03-19 | Clean Reset to V1.0.0 |

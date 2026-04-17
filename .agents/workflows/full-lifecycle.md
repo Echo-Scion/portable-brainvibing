@@ -8,6 +8,7 @@ This workflow is the **Master Orchestrator**. It leverages the entire `.agents` 
 
 ## PHASE 0: INGESTION (THE SOUL)
 > **Tier**: BUDGET — read-only context loading.
+- [ ] **Global Alignment**: Read `canons/global/` and `rules/core-guardrails.md`.
 - [ ] **Context Loading**: Read the current `BLUEPRINT.md` (if exists) or the project's intake brief.
 - [ ] **Skill Activation**: Identify and activate the necessary specialized skills for the project domain.
 - [ ] **Gate 0**: Confirm task tier and active constraints before any file write.
@@ -45,12 +46,10 @@ For each feature defined in the Roadmap:
 
 ## PHASE 5: MAINTENANCE & SYNC (THE HEALTH)
 > **Tier**: BUDGET — deterministic script execution, no reasoning required.
-> **Turbo Mode (Exclusive Exemption)**: Scripts in this phase are pre-authorized. They do NOT require `[DO: YES]` confirmation — they touch no source code, only registry/graph metadata. This is the ONLY exemption from the Universal Pre-Flight rule.
-- [ ] **Graph Update**: 
+> **Turbo Mode (Exclusive Exemption)**: Scripts in this phase are pre-authorized. They do NOT require `[DO: YES]` confirmation — they touch no source code. This is the ONLY exemption from the Universal Pre-Flight rule.
+- [ ] **Semantic Sync**: 
 // turbo
-Run `python .agents/scripts/build_graph.py` to update symbolic relationships.
-- [ ] **Catalog Sync**: 
-// turbo
+Run `@index-project` to update semantic indexing.
 - [ ] **Gate 5**: 
 // turbo
 Re-run `python .agents/scripts/verify_agents.py` and require PASS before closing lifecycle.

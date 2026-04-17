@@ -71,6 +71,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 ## 3. INITIALIZE LOCAL PROJECT BRAIN
 - [ ] **Local Evolution (MANDATORY)**: For project-specific rules or skills, **AI MUST** create folders and files with the `local-` prefix within the existing `rules/` and `skills/` directories.
     - *Rationale*: This prevents project-specific logic from being synced back to the global Foundation via `sync_to_foundation.py`.
+- [ ] **Sync Index**: Run `@index-project` to ensure the project is searchable.
 
 ---
 

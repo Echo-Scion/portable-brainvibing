@@ -19,7 +19,7 @@ FOUNDATION_AGENTS = os.path.join(FOUNDATION_ROOT, ".agents")
 EVOLVABLE_FOLDERS = ["skills", "rules", "workflows", "canons", "templates", "scripts", "evals", "docs"]
 
 # Root-level files in .agents that may evolve and should be propagated upstream.
-ROOT_SYNC_FILES = ["workspace_map.md", "DEPLOY_ME.md"]
+ROOT_SYNC_FILES = ["DEPLOY_ME.md"]
 
 # Only these files are eligible for automatic version bump.
 VERSION_BUMP_FILES = {"SKILL.md"}
@@ -230,25 +230,7 @@ def sync_upstream(project_root, dry_run=False):
             print(f"Total versions bumped: {status.version_bumps}")
         
         if not dry_run:
-            # Trigger Neural Graph Update
-            graph_script = os.path.join(target_foundation_agents, "scripts", "build_graph.py")
-            if os.path.exists(graph_script):
-                print("Regenerating Knowledge Graph...")
-                try:
-                    subprocess.run([sys.executable, graph_script], cwd=os.path.dirname(target_foundation_agents), check=True)
-                except Exception as e:
-                    print(f"[WARNING] Failed to update Knowledge Graph: {e}")
-
-            # Trigger Catalog Update in Foundation
-            catalog_script = os.path.join(target_foundation_agents, "scripts", "update_catalog.py")
-            if os.path.exists(catalog_script):
-                print("Updating Foundation Catalog...")
-                try:
-                    # We run it using the foundation's own script to ensure context
-                    subprocess.run([sys.executable, catalog_script], cwd=os.path.dirname(target_foundation_agents), check=True)
-                    print("Foundation Catalog & Workspace Map updated.")
-                except Exception as e:
-                    print(f"[WARNING] Failed to auto-update catalog: {e}")
+            print("\nSync completed successfully.")
         else:
             print("\n[DRY RUN] Would trigger graph and catalog updates in foundation.")
     else:

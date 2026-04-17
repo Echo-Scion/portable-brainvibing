@@ -25,7 +25,7 @@ Do not guess implementation details. Determine the exact nature of the problem b
 - **loop_design_patterns** (`references/loop_design_patterns.md`)
   - *Purpose*: Contains domain execution details for Loop Design Patterns. Context: - **Planning**: Breaking down the objective.
 - **system-admin** (`references/system-admin.md`)
-  - *Purpose*: Use this skill to manage, evolve, and maintain the .agents/ infrastructure itself. This includes creating new skills, updating rules, modifying workflows, managing the catalog, and running system scripts (update_catalog.py, build_graph.py, deploy_foundation.py). Proactively suggest this when the user wants to modify the agent system, add a new skill, or resolve structural drift in the foundation. AT THE SAME TIME, you MUST also load `rules/context-standards.md` contextually.
+  - *Purpose*: Use this skill to manage, evolve, and maintain the .agents/ infrastructure itself. This includes creating new skills, updating rules, modifying workflows, and running system scripts (deploy_foundation.py, setup_qmd.py). Proactively suggest this when the user wants to modify the agent system, add a new skill, or resolve structural drift in the foundation. AT THE SAME TIME, you MUST also load `rules/context-standards.md` contextually.
 - **tech-writer** (`references/tech-writer.md`)
   - *Purpose*: Use this skill to generate developer documentation, READMEs, and technical tutorials. It ensures that project documentation matches current code behavior 1:1. Proactively suggest this immediately after a feature is merged or code is shipped.
 
@@ -48,6 +48,7 @@ Do not guess implementation details. Determine the exact nature of the problem b
     - **Workflows**: Sequential Procedures. MUST comply with `antigravity.google` spec (in system-admin).
     - **Canons**: Identity, Standards & Static Truth. "What is the standard?" (e.g., "Auth Pattern").
 4. **Proposal (Synthesis)**: Present draft updates.
+5. **Implementation**: Create files following the **100% Compliance Standards**, update `workspace_map.md`, and increment `CHANGELOG.md`.
 
 ## 🛠️ Key Capabilities
 - **Pattern Recognition**: Finding shared constraints across projects.

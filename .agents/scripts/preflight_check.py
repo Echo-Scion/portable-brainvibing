@@ -7,14 +7,12 @@ import subprocess
 # Configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
-CATALOG_FILE = os.path.join(BASE_DIR, 'catalog.json')
 
 def load_valid_skills():
-    if not os.path.exists(CATALOG_FILE):
+    skills_dir = os.path.join(BASE_DIR, 'skills')
+    if not os.path.exists(skills_dir):
         return set()
-    with open(CATALOG_FILE, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-        return {skill['id'] for skill in data.get('skills', [])}
+    return {d for d in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, d))}
 
 def get_all_valid_files():
     valid_files = set()
@@ -128,4 +126,6 @@ if __name__ == "__main__":
     if sys.platform == 'win32':
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    run_preflight()
+fer, encoding='utf-8')
     run_preflight()

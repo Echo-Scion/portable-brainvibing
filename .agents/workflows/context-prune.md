@@ -53,7 +53,7 @@ This workflow prevents context window exhaustion on long-running projects by sur
 
 ## 5. VERIFICATION & REPORT
 - [ ] **Deleted Scratchpads**: List deleted temporary files.
-- [ ] **Infrastructure Sync**: Run `python .agents/scripts/build_graph.py` to update the knowledge graph.
+- [ ] **Infrastructure Sync**: Run `@index-project` to update the semantic index.
 
 ---
 

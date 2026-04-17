@@ -222,43 +222,7 @@ def check_links(res: AuditResult, verbose: bool = True):
         except Exception as e:
             res.add_error("IO", f"Could not read file: {str(e)}", rel_path)
 
-def check_index_sync(res: AuditResult, verbose: bool = True):
-    if verbose: print("\n--- SCANNING _index.md SYNCHRONIZATION ---")
-    
-    index_path = os.path.join(SKILLS_DIR, "_index.md")
-    if not os.path.exists(index_path):
-        res.add_warning("SYNC", "Routing table not found: skills/_index.md", severity="LOW")
-        return
-        
-    try:
-        content = read_text(index_path)
-        
-        # Get actual skills from folder
-        all_skills = set([str(d) for d in os.listdir(SKILLS_DIR) if os.path.isdir(os.path.join(SKILLS_DIR, d))]) if os.path.exists(SKILLS_DIR) else set()
-        
-        # Extract skills wrapped in backticks from table rows (e.g. `skill-name`)
-        index_folder_names = set()
-        for line in content.splitlines():
-            if line.strip().startswith("|") and "`" in line:
-                for match in re.findall(r'`([a-z0-9\-]+)`', line):
-                    # We assume any backticked item that looks like a valid folder is a referenced skill
-                    index_folder_names.add(match)
-        
-        # Check for missing in index
-        missing_in_index = all_skills - index_folder_names
-        for s in missing_in_index:
-            res.add_error("SYNC", f"Skill '{s}' exists in directory but absent from _index.md", "skills/_index.md")
-            
-        # Check for ghost in index
-        ghost_in_index = index_folder_names - all_skills
-        for s in ghost_in_index:
-            # Skip if it's just a general term or not meant to be a folder, 
-            # but in _index.md all backticked items in tables are typically orchestrators.
-            res.add_error("SYNC", f"Skill '{s}' referenced in _index.md but directory missing", "skills/_index.md")
 
-    except Exception as e:
-        res.add_error("IO", f"Could not read _index.md: {str(e)}", "skills/_index.md")
-                    
 def check_protocol_compliance(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR PROTOCOL COMPLIANCE ERRORS ---")
     
@@ -313,7 +277,6 @@ def run_audit(output_json: bool = False):
     check_foundation_sync(res, verbose=verbose)
     check_mechanical_integrity(res, verbose=verbose)
     check_links(res, verbose=verbose)
-    check_index_sync(res, verbose=verbose)
     check_protocol_compliance(res, verbose=verbose)
     
     if output_json:

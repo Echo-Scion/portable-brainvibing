@@ -3,6 +3,7 @@
 The `metrics/` directory tracks the health, performance, and evolution of the agentic foundation.
 
 ## 1. Purpose
+Metrics provide quantitative data to the `@integrity-sentinel` skill, allowing for data-driven refinements. Add `metrics/` to `workspace_map.md` if it's missing from the directory index.
 
 ## 2. Key Metrics
 - **Context Density**: Tracks token usage across different model tiers (M36 vs M47).

@@ -7,9 +7,12 @@ description: Guidelines for optimizing application performance and context token
 
 ## 1. The Lean Protocol (Efficiency Standards)
 - **Zero-Theater Policy**: For routine tasks (boilerplate, styling, fixes), skip long narrative explanations. Perform `replace` or `write_file` as soon as the strategy is understood.
-- **Tiered Context Ingestion (L0-L2)**:
-    - **L1 (Header-Only)**: Use `read_file` with `end_line: 25` to see metadata/front matter before full ingestion.
-    - **L2 (Surgical Read)**: Use `grep_search` with `context: 5` to read ONLY the relevant code block. Avoid full file reads unless refactoring the entire file.
+- **Dynamic Context Ingestion (QMD-First)**:
+    - **L0 (Semantic Index)**: ALWAYS use QMD (`npx @tobilu/qmd query`) first to semantically map dependencies and find relevant files instead of relying on outdated manual catalogs (`catalog.json` or `workspace_map.md`).
+    - **L1 (Surgical Read)**: Use `grep_search` with `context: 5` to read ONLY the relevant code block. Avoid full file reads unless refactoring the entire file.
+- **Command Output Optimization (The RTK Mandate)**:
+    - **Rule**: You MUST use the `rtk` proxy when executing shell commands (e.g., `rtk git status`, `rtk cargo build`, `rtk npm test`).
+    - **Why**: RTK (Rust Token Killer) filters, groups, and truncates massive CLI outputs, saving 60-90% of tokens and keeping the context window clean. Never execute raw builds/tests without it if `rtk` is available.
 - **Turn Minimization**: Prioritize parallel tool calls. Aim for **"One-Turn Execution"** for simple and clear directives.
 
 ## 2. LLM Model Tiers (Experimental Routing)

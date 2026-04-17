@@ -23,6 +23,7 @@
 - `[DONT]` Modify `GEMINI.md` or any structural system rules without a Binary Oratory pre-flight.
 
 ## 3. MASTER ROUTING INDEX
+> Rely on dynamic discovery rather than hardcoded paths. Use QMD (`npx @tobilu/qmd query`) to semantically search for the relevant architectural knowledge, canons, or context documents you need.
 
 ### 3.1 CORE RULES & CANONS (Constraints)
 Instead of relying on fixed directories, search for these core filenames across the workspace when their focus area is triggered:

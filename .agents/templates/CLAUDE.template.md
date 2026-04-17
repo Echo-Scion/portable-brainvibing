@@ -16,6 +16,7 @@
 - `[DONT]` Modify `GEMINI.md` or `rules/` without a Binary Oratory pre-flight.
 
 ## 3. MASTER ROUTING INDEX
+> Use QMD (npx @tobilu/qmd query) for semantic discovery.
 
 ### 3.1 CORE RULES (Constraints)
 | Focus Area | Rule File to Load |
@@ -65,12 +66,14 @@ context/
 Core files: `BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`
 
 ## 6. SURGICAL MUNCHING (Context Economy)
+- Read only what's needed (lazy-load via QMD semantic search)
 - Use search on `.agents/rules/` for domain-specific guidance
 
 ## 7. CRITICAL FILES
 
 ### Always Read First
 - `.agents/rules/core-guardrails.md` - Core protocols, reasoning standards
+- `.agents/workspace_map.md` - Orchestration entry point
 - `GEMINI.md` - Workspace mandates (if exists)
 
 ### Never Modify Without Binary Oratory
@@ -83,8 +86,8 @@ Located in `.agents/scripts/`:
 
 | Script | Purpose | When to Use |
 | `verify_agents.py` | Structural integrity check | Before publishing changes |
-| `build_graph.py` | Update knowledge graph | After structural changes |
 | `deploy_foundation.py` | Deploy foundation to project | Setting up new project |
+| `setup_qmd.py` | Project indexing | When starting new project |
 
 Run verification before any .agents/ changes:
 ```bash
@@ -114,3 +117,5 @@ For PREMIUM tasks, list every technical assumption before proceeding
 
 ## PROJECT-SPECIFIC INSTRUCTIONS
 <!-- Add your custom Claude instructions here. They will be preserved during foundation updates. -->
+ion updates. -->
+->

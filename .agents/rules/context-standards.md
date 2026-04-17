@@ -106,16 +106,16 @@ Only extract what is absolutely essential for the task. If the task is merely ch
 
 ---
 trigger: model_decision
-description: Mandatory naming policy for context files to ensure architectural consistency.
+description: Mandatory naming policy for context files combined with QMD semantic search.
 ---
 
-# Rule: Context Naming Policy (The 82-File Mandate)
+# Rule: Context Naming Policy (The 82-File Mandate) & QMD Retrieval
 
 > **Scope Guard**: This rule applies ONLY to **target deployment projects** (SaaS apps built using this foundation). It does NOT apply to `_foundation` itself, which is a tooling project. If working within `_foundation/.agents/`, ignore the 82-file mapping requirement.
 
 To prevent architectural drift and naming inconsistency, all files created within the `context/` directory MUST follow a deterministic naming convention.
 
-## 1. The Mapping Requirement
+## 1. The Mapping Requirement (Structural Organization)
 - AI **MUST NOT** invent arbitrary file names for context or knowledge items.
 - If a new piece of context or domain knowledge is provided, the AI must first map it to the **82 SaaS Startup Files** defined in `.agents/templates/SAAS_STARTUP_STRUCTURE.md`.
 - **Naming Source**: Use only the identifiers listed in `SAAS_STARTUP_STRUCTURE.md`.
@@ -125,7 +125,11 @@ To prevent architectural drift and naming inconsistency, all files created withi
 2. **Expansion Match**: If the knowledge is an expansion of an idea, append it to the relevant existing file rather than creating a "shadow" file.
 3. **Zero Creation Tolerance**: The AI **MUST NOT** propose or create new file names. If the knowledge cannot be mapped exactly to one of the 82 files in the baseline, the system MUST return an error and reject the operation. No exceptions.
 
-## 3. Unstructured-to-Surgical (U2S) Mapping
+## 3. Retrieval & Discovery (The QMD Protocol)
+- While the 82-File structure enforces **organization and scaffolding**, **retrieval** is managed dynamically via QMD semantic search.
+- When you need to read architectural decisions or project context, do NOT guess the path or rely on manual catalogs (`workspace_map.md`). Instead, use QMD (`npx @tobilu/qmd query`) to semantically search for the relevant information.
+
+## 4. Unstructured-to-Surgical (U2S) Mapping
 - When a user provides an **Info-Dump** or a **Monolithic Master Blueprint** (single-file specs), the AI **MUST NOT** simply store it as a single file.
 - AI MUST taxonomize the input and distribute it across the **82 SaaS Startup Files** baseline.
 - **Protocol**: 
@@ -134,35 +138,23 @@ To prevent architectural drift and naming inconsistency, all files created withi
     3. Update `00_Strategy/BLUEPRINT.md` as the index.
     4. Interpolate missing details to ensure "Zero N/A" compliance.
 
-## 4. Lean-to-Startup Evolution (Just-In-Time Expansion)
+## 5. Lean-to-Startup Evolution (Just-In-Time Expansion)
 - **Anti-Paralysis**: Do NOT generate all 82 SaaS files upfront. Start with the minimal files needed for the current sprint.
 - The 82 files in `SAAS_STARTUP_STRUCTURE.md` act as a **dictionary of allowed names**, not a mandate to create empty files.
 - Even in **Lean** or **Startup** projects, any NEW idea or feature MUST trigger a **Surgical Expansion (JIT)**.
 - Instead of creating random files, the AI "promotes" the relevant category from the 82-file baseline. 
 - *Example*: Adding a "Referral Program" to a project results in the creation of `context/01_Product/Growth_Referral_Programs.md`, initializing that specific file ONLY when needed.
 
-## 5. Monorepo Distribution (Double Lean)
+## 6. Monorepo Distribution (Double Lean)
 - In a monorepo, context is **split** between the root and the apps.
 - **Dynamic Anchor Mapping**: Paths like `apps/[app]/context/` and `packages/[pkg]/context/` are declared as **Valid Base Anchors**. The 82-file *Exact Match* rule applies *relative to these anchors*, not just the workspace root.
 - **Discrimination Matrix (Strict Isolation)**:
     - **Root `/context/` ONLY for**: `03_Tech/Infra_*` (Melos, Docker, CI/CD), `02_Creative/Design_Design_System.md` (Global Theme), and `00_Strategy/BLUEPRINT.md` (Main Vision).
     - **App `apps/[app]/context/` ONLY for**: Anything with `01_Product` prefix, app-specific UI/UX, and `03_Tech/Dev_*`.
     - Any attempt to violate this isolation MUST immediately trigger a **Circuit Breaker Error**.
-- **The "Bridge Context" Protocol (Cross-Boundary Sync)**: For cross-app features (e.g., frontend + backend), the AI MUST use **Index Linking**. Write the Core Contract in the root or a shared package, and place a reference pointer in the app context (e.g., `--> See: packages/shared_api/context/03_Tech/Dev_APIs.md`). DO NOT duplicate context data across silos.
+- **The "Bridge Context" Protocol (Cross-Boundary Sync)**: For cross-app features (e.g., frontend + backend), the AI MUST use QMD Semantic Search. DO NOT duplicate context data across silos.
 
-## 6. Enforcement
-- All initialization (`/project-init`) and migration tasks MUST verify that the `context/` topography matches the selected baseline (Lean, Startup, or Double Lean).
-- Standardized naming is the core driver for this rule to prevent naming inconsistency. Consistency is prioritized over brevity.
-
-## 7. Surgical Context Eviction (Token Efficiency)
-- **Rule**: Upon completion of ANY task (Tier-0+) or a major architectural phase, the agent MUST perform "Context Offloading."
-- **Protocol**:
-    1. **Declare Closure**: State explicitly which phase or atomic task is now FINAL in the session handoff or task log.
-    2. **Evict**: Explicitly declare in the handoff: "Phase [X] is FINAL. Sub-sequent sessions MUST NOT read raw files from [directory/path] unless a bug is explicitly found."
-    3. **Cleanup**: Close all tabs related to the finished phase before ending the session.
-- **Goal**: Maintain 100% focus and prevent the "Context Bloat" that leads to AI hallucinations.
-
-## 8. Safe Context Refactoring (Archivist & Quarantine Protocol)
+## 7. Safe Context Refactoring (Archivist & Quarantine Protocol)
 To prevent accidental data loss ("Lossy Compression Hazard") when cleaning up or migrating malformed context files, the system enforces the following anti-destructive laws:
 
 ### 1. The "Quarantine" Rule (Proactive Rejection)

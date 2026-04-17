@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-04-18
+### Changed
+- Final cleanup of stale documentation and workflow references.
+
+
+## [1.3.0] - 2026-04-18
+### Changed
+- Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs.
+
+
 ## [1.2.31] - 2026-03-31
 ### Changed
 - solve deploy problem & Dual Lean naming policy
