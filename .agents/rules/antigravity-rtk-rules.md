@@ -1,6 +1,6 @@
 ---
-description: RTK - Rust Token Killer rules for minimizing token consumption via shell proxies.
-activation: always on
+description: Token-optimized CLI proxy rules for Google Antigravity.
+activation: when using shell commands
 ---
 # RTK - Rust Token Killer (Google Antigravity)
 

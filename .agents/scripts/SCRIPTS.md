@@ -10,6 +10,8 @@ This directory contains global utilities and automation scripts for the **Portab
 | [context_naming_lint.py](file:///<ROOT>/.agents/scripts/context_naming_lint.py) | Validates `context/` naming against 82-file registry + required master anchors. | **PORTABLE** |
 | [sync_ai_configs.py](file:///<ROOT>/.agents/scripts/sync_ai_configs.py) | Synchronizes AI mandates across deployed config files (`GEMINI.md`, etc.). | **PORTABLE** |
 | [track_budget.py](file:///<ROOT>/.agents/scripts/track_budget.py) | Tracks and reports "Small Model Superiority" KPIs and budget telemetry. | **PORTABLE** |
+| [token_audit.py](file:///<ROOT>/.agents/scripts/token_audit.py) | Ghost Token Auditor (detects memory bloat, redundancy, and RTK savings). | **PORTABLE** |
+| [code_map.py](file:///<ROOT>/.agents/scripts/code_map.py) | Structural Code Mapper (generates lightweight skeleton of the codebase). | **PORTABLE** |
 | [deploy_foundation.py](file:///<ROOT>/.agents/scripts/deploy_foundation.py) | Physically deploys/syncs Foundation to a local project. | **PORTABLE** |
 
 ## 📐 Organization Policy

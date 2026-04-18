@@ -17,7 +17,8 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
   "technical_info": {
     "stack": "Primary languages/frameworks",
     "detected_state": "fresh | legacy | blueprint",
-    "features": ["Core features list"]
+    "features": ["Core features list"],
+    "token_optimization": "Strategies for lean context (e.g., telegraphic, symbol-only)"
   },
   "inferred_logic": {
     "etymology": "Derived meaning of the project name",

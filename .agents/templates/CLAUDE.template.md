@@ -65,9 +65,13 @@ context/
 
 Core files: `BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`
 
-## 6. SURGICAL MUNCHING (Context Economy)
-- Read only what's needed (lazy-load via QMD semantic search)
-- Use search on `.agents/rules/` for domain-specific guidance
+## 6. TOKEN-EFFICIENT PROTOCOL (Context Economy)
+- **Telegraphic Communication**: Short sentences (8-10 words max). No filler, no preamble, no pleasantries.
+- **English Compression**: Code stays normal. English gets compressed.
+- **Surgical Execution**: Think before acting. Read once. Prefer editing over rewriting.
+- **Size Limits**: Skip files >100KB unless explicitly required.
+- **Tool-First**: Result first. No explanation unless asked. Avoid parenthetical clauses.
+- **Surgical Munching**: Lazy-load via QMD. Check LEARNIGNS before PREMIUM tasks.
 
 ## 7. CRITICAL FILES
 

@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-04-18
+### Changed
+- feat(token): integrated Rank 1-3 token optimization tools (rtk, caveman, code_map, token_audit)
+
+
+## [1.3.3] - 2026-04-18
+### Changed
+- Fix missing YAML frontmatter in rules and sync setup_qmd.py
+
+
+## [1.3.2] - 2026-04-18
+### Changed
+- Update setup_qmd.py with improved QMD path resolution and sanitization
+
+
 ## [1.3.1] - 2026-04-18
 ### Changed
 - Final cleanup of stale documentation and workflow references.

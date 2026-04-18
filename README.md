@@ -57,10 +57,12 @@ This system is built for teams that need:
 
 **Required:**
 * **Antigravity IDE** or compatible AI-native environment (VS Code Copilot, Gemini CLI, or similar).
+* **RTK (Rust Token Killer)**: Install via `cargo install rtk-ai` or download binary to PATH. (Essential for terminal optimization).
+* **QMD**: Ensure Node.js is installed to run `npx @tobilu/qmd`. (Essential for semantic search).
 * **Flutter SDK ≥ 3.0** (primary target).
 * **Dart ≥ 3.0** (ships with Flutter).
 * **Python ≥ 3.9** (for `.agents/scripts/` utilities).
-* **Node.js ≥ 18** (optional, for advanced scripting).
+* **Node.js ≥ 18** (for QMD and advanced scripting).
 * **Git** (recommended for rollbacks).
 
 **Optional but recommended:**
@@ -184,16 +186,21 @@ A: ~2-5% per session (depends on skill count active). Token Shield and Vibecode 
 
 ## 9. External Reference Integration
 
-This ecosystem achieves maximum token-efficiency and context-retrieval by integrating the following open-source tools:
-* **[rtk-ai/rtk](https://github.com/rtk-ai/rtk)**: Utilized to compress and optimize verbose shell command outputs.
-* **[tobi/qmd](https://github.com/tobi/qmd)**: Utilized as the local semantic search engine to dynamically discover project context without rigid file mapping.
-* **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**: Utilized for the extreme-terseness communication protocol, significantly reducing LLM output tokens.
+This ecosystem achieves maximum token-efficiency by integrating or porting logic from the following open-source projects:
+
+*   **[rtk-ai/rtk](https://github.com/rtk-ai/rtk)**: (Active Binary) Utilized to compress and filter verbose terminal outputs.
+*   **[tobi/qmd](https://github.com/tobi/qmd)**: (Native Engine) Powers the local semantic search for dynamic context discovery.
+*   **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)**: (Active Skill) Provides the telegraphic communication protocol for 75% output reduction.
+*   **[drona23/claude-token-efficient](https://github.com/drona23/claude-token-efficient)**: (Rules) Integrated into core mandates for terse response patterns.
+*   **[nadimtuhin/claude-token-optimizer](https://github.com/nadimtuhin/claude-token-optimizer)**: (Templates) Optimized project setup patterns in `.agents/templates`.
+*   **[alexgreensh/token-optimizer](https://github.com/alexgreensh/token-optimizer)**: (Logic Ported) Powers the `token_audit.py` for ghost token detection.
+*   **[tirth8205/code-review-graph](https://github.com/tirth8205/code-review-graph)**: (Logic Ported) Powers the `code_map.py` for structural code skeleton mapping.
 
 ---
 
 ## 10. Changelog
 
-**Current Version**: **1.3.1** — *"Modular Synchronization & Ecosystem Polish"*
+**Current Version**: **1.3.4** — *"Modular Synchronization & Ecosystem Polish"*
 
 | Version | Date | Notes |
 | :--- | :--- | :--- |

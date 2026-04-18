@@ -100,9 +100,9 @@ This rule covers it by:
 ## References
 
 Link to related documentation:
-- [Parent Rule](../../../.agents/rules/core-guardrails.md) — If this rule refines another rule
-- [Related Skill](../../../.agents/skills/integrity-sentinel/SKILL.md) — If implemented by a skill
-- [Reference Doc](../../../.agents/canons/global/core-architecture.md) — If you're implementing architectural pattern
+- [Parent Rule](../agent-core.md) — If this rule refines another rule
+- [Related Skill](../../agents/skills/skill-name/SKILL.md) — If implemented by a skill
+- [Reference Doc](../../ARCHITECTURE.md) — If you're implementing architectural pattern
 
 ## Maintenance
 

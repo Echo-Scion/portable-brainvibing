@@ -1,70 +1,119 @@
 import os
 import subprocess
 import sys
+import shutil
 from pathlib import Path
+import argparse
+
+def find_project_root():
+    """Traverses up from current file to find the project root based on markers."""
+    markers = [".git", ".agents", "pubspec.yaml", "package.json"]
+    # Get the directory where this script is located
+    current = Path(__file__).resolve().parent
+    
+    # Start searching from the script location up to root
+    for parent in [current] + list(current.parents):
+        if any((parent / marker).exists() for marker in markers):
+            return parent
+    return Path.cwd() # Fallback to CWD
 
 def get_qmd_path():
-    """Locate the global QMD executable directly to bypass Windows shell errors."""
+    """Locate the global QMD executable cross-platform."""
+    # 1. Check if 'qmd' is in PATH (standard approach)
+    qmd_bin = shutil.which("qmd")
+    if qmd_bin:
+        return qmd_bin
+
+    # 2. Check common global npm paths
+    paths_to_check = []
+    
+    # Windows
     appdata = os.environ.get('APPDATA')
     if appdata:
-        qmd_js = Path(appdata) / 'npm' / 'node_modules' / '@tobilu' / 'qmd' / 'dist' / 'cli' / 'qmd.js'
-        if qmd_js.exists():
-            return str(qmd_js)
+        paths_to_check.append(Path(appdata) / 'npm' / 'node_modules' / '@tobilu' / 'qmd' / 'dist' / 'cli' / 'qmd.js')
+    
+    # Unix/macOS
+    paths_to_check.append(Path('/usr/local/lib/node_modules/@tobilu/qmd/dist/cli/qmd.js'))
+    
+    # Fallback to a local qmd-main if it exists (for dev/bootstrap)
+    root = find_project_root()
+    paths_to_check.append(root / 'qmd-main' / 'dist' / 'cli' / 'qmd.js')
+    
+    for p in paths_to_check:
+        if p.exists():
+            return str(p)
     return None
 
 def main():
+    root = find_project_root()
+    
+    parser = argparse.ArgumentParser(description="Agnostic QMD Setup for any AI-engineered project.")
+    parser.add_argument("--with-embed", action="store_true", help="Trigger embedding (downloads ~2GB model if not present)")
+    parser.add_argument("--name", type=str, default=root.name, help=f"Collection name (default: {root.name})")
+    parser.add_argument("--path", type=str, default=str(root), help=f"Path to index (default: {root})")
+    args = parser.parse_args()
+
+    project_name = args.name
+    project_path = Path(args.path).resolve()
+
     print("==================================================")
-    print("🚀 Automating QMD Setup for Current Project...")
+    print("🚀 Automating QMD Setup (Project Agnostic)...      ")
     print("==================================================")
     
-    # 1. Automatically detect current directory and project name
-    cwd = Path.cwd()
-    # Sanitize project name for QMD collection (alphanumeric and underscores)
-    raw_name = cwd.name.lower().replace(' ', '_').replace('-', '_')
-    project_name = ''.join(c for c in raw_name if c.isalnum() or c == '_')
+    print(f"📁 Project Name : {project_name}")
+    print(f"📍 Root Path    : {project_path}")
     
-    print(f"📁 Detected Project Name : {project_name}")
-    print(f"📍 Detected Path         : {cwd}")
+    qmd_exe = get_qmd_path()
     
-    # 2. Find the executable
-    qmd_js_path = get_qmd_path()
-    
-    if qmd_js_path:
-        print(f"✅ Found QMD executable  : {qmd_js_path}")
-        base_cmd = ["node", qmd_js_path]
+    if qmd_exe:
+        if qmd_exe.endswith('.js'):
+            print(f"✅ Found QMD script : {qmd_exe}")
+            base_cmd = ["node", qmd_exe]
+        else:
+            print(f"✅ Found QMD binary : {qmd_exe}")
+            base_cmd = [qmd_exe]
     else:
-        print("⚠️ Direct QMD executable not found in AppData. Falling back to NPX.")
-        print("   (This might fail on Windows depending on your npm setup).")
-        base_cmd = ["npx", "@tobilu/qmd"]
+        print("⚠️ Direct QMD not found in PATH or APPDATA. Falling back to NPX.")
+        base_cmd = ["npx", "-y", "@tobilu/qmd"]
         
     print("-" * 50)
     
-    # 3. Add Collection
-    add_cmd = base_cmd + ["collection", "add", ".", "--name", project_name]
-    print(f"⏳ [1/2] Adding collection '{project_name}' to QMD Index...")
+    # 1. Add Collection
+    add_cmd = base_cmd + ["collection", "add", str(project_path), "--name", project_name]
+    print(f"⏳ Indexing collection '{project_name}'...")
+    
     try:
-        subprocess.run(add_cmd, check=True)
-        print("✅ Collection added successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to add collection: {e}")
+        # Run from project_path to ensure relative paths inside QMD are correct
+        result = subprocess.run(add_cmd, capture_output=True, text=True, cwd=str(project_path))
+        if result.returncode == 0:
+            print("✅ Collection added successfully!")
+        elif "already exists" in result.stdout or "already exists" in result.stderr:
+            print(f"ℹ️ Collection '{project_name}' already exists. Skipping registration.")
+        else:
+            print(f"❌ Failed to add collection: {result.stderr or result.stdout}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
         sys.exit(1)
         
     print("-" * 50)
     
-    # 4. Embed (Downloads 2GB model on first run)
-    embed_cmd = base_cmd + ["embed"]
-    print(f"⏳ [2/2] Generating embeddings...")
-    print("   (NOTE: If this is your FIRST TIME running QMD globally,")
-    print("    it will download a ~2GB AI Model. Please wait until 100%.)")
-    print("-" * 50)
+    # 2. Conditional Embed
+    if args.with_embed:
+        embed_cmd = base_cmd + ["embed"]
+        print(f"⏳ Generating embeddings (this may take a while)...")
+        try:
+            subprocess.run(embed_cmd, check=True, cwd=str(project_path))
+            print("✅ Embedding complete!")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to generate embeddings: {e}")
+            sys.exit(1)
+    else:
+        print("💡 Skipping 'qmd embed' (Keyword search active).")
+        print(f"   To generate vectors, run: qmd embed")
     
-    try:
-        # We don't capture output here so the progress bar prints directly to the user's terminal
-        subprocess.run(embed_cmd, check=True)
-        print("\n✅ Embedding complete! QMD is fully operational for this project.")
-    except subprocess.CalledProcessError as e:
-        print(f"\n❌ Failed to generate embeddings: {e}")
-        sys.exit(1)
+    print("-" * 50)
+    print(f"🏁 Setup complete. QMD is ready for '{project_name}'.")
 
 if __name__ == "__main__":
     main()

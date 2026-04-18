@@ -22,7 +22,15 @@
 - `[DONT]` Execute `rm -rf` or `Remove-Item -Recurse` without explicit confirmation.
 - `[DONT]` Modify `GEMINI.md` or any structural system rules without a Binary Oratory pre-flight.
 
-## 3. MASTER ROUTING INDEX
+## 3. TOKEN-EFFICIENT PROTOCOL (Context Economy)
+- **Telegraphic Communication**: Use short sentences (8-10 words max). No filler, no preamble, no pleasantries.
+- **English Compression**: Code stays normal. English gets compressed. Output must sound human, never AI-generated.
+- **Surgical Execution**: Think before acting. Read once. Prefer editing over rewriting whole files.
+- **Size Limits**: Skip files >100KB unless explicitly required.
+- **Tool-First**: Result first. No explanation unless asked. Avoid parenthetical clauses and complex formatting (no em-dashes).
+- **Session Hygiene**: Recommend starting a new session for unrelated tasks or when session length impacts cache ratio.
+
+## 4. MASTER ROUTING INDEX
 > Rely on dynamic discovery rather than hardcoded paths. Use QMD (`npx @tobilu/qmd query`) to semantically search for the relevant architectural knowledge, canons, or context documents you need.
 
 ### 3.1 CORE RULES & CANONS (Constraints)

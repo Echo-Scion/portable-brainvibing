@@ -151,8 +151,10 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 HANDOFF
+- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
 - [ ] **Crucial Handoff to Lifecycle**: AI strictly states: *"Initial scaffolding complete. The project is raw. You MUST now command me to run `/full-lifecycle` to enter PHASE 1: Viability & Strategic Blueprint."*
 - [ ] DO NOT proceed to feature building until the Viability Gate in `/full-lifecycle` is passed
+- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
 
 ---
 
