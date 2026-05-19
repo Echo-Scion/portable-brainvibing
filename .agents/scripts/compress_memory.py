@@ -47,7 +47,7 @@ def generate_fractal_shorthand():
             
         with open(HANDOFF_FILE, 'w', encoding='utf-8') as f:
             f.write(new_handoff)
-        print(f"✅ Generated Fractal Shorthand: {shorthand}")
+        print(f"[OK] Generated Fractal Shorthand: {shorthand}")
         return True
     return False
 
@@ -92,7 +92,7 @@ def compress_handoff():
     with open(HANDOFF_FILE, 'w', encoding='utf-8') as f:
         f.write(new_handoff_content)
         
-    print(f"✅ Handoff memory successfully compressed.")
+    print(f"[OK] Handoff memory successfully compressed.")
     return True
 
 def compress_tasks():
@@ -116,21 +116,21 @@ def compress_tasks():
         if is_done:
             dest = os.path.join(ARCHIVE_DIR, file)
             shutil.move(path, dest)
-            print(f"✅ Archived completed task: {file}")
+            print(f"[OK] Archived completed task: {file}")
             compressed = True
     return compressed
             
 
 def compress_memory():
-    print("🧹 Surgical Memory Compression starting...")
+    print("[CLEAN] Surgical Memory Compression starting...")
     generate_fractal_shorthand()
     handoff_compressed = compress_handoff()
     tasks_compressed = compress_tasks()
     
     if not handoff_compressed and not tasks_compressed:
-        print("✅ No compressable context found. System memory is lean and efficient.")
+        print("[OK] No compressable context found. System memory is lean and efficient.")
     else:
-        print(f"✅ Memory compression complete. Stale memories moved to {ARCHIVE_DIR}")
+        print(f"[OK] Memory compression complete. Stale memories moved to {ARCHIVE_DIR}")
 
 if __name__ == "__main__":
     compress_memory()
