@@ -17,9 +17,11 @@ Determine the nature of the validation required and load the corresponding refer
 2. **Quality & Reality Engineering (QA/TDD):**
    - Read `references/qa.md` and related `references/flutter_testing_patterns.md` / `references/load_testing_tactics.md`.
 3. **System Auditing & Architecture Integrity:**
-   - Read `references/audit.md` and related `references/audit.md` (if conflicts exist, parse context).
+   - Read `references/audit.md` (if conflicts exist, parse context).
 4. **LLM Evaluation & Prompts:**
    - Read `references/eval.md`.
+5. **Offensive Deep Audits:**
+   - Read `../../rules/offensive-audit-protocol.md` and `../../workflows/offensive-audit.md` for extreme stress-testing.
 
 ## 🛡️ Unified Core Principles
 - **Evidence-Based Approval**: NEVER state "looks good" without proof (screenshots, test results, regression metrics).
@@ -28,6 +30,9 @@ Determine the nature of the validation required and load the corresponding refer
 
 ## 🔒 Security Guardrails
 Load `rules/security-guardrails.md`. These are non-negotiable hard boundaries for all validation tasks.
+
+## 💥 Offensive Audit Trigger
+If the user requests a "deep audit", "offensive audit", or implies the codebase is fundamentally flawed, you MUST load and execute `../../workflows/offensive-audit.md`. You will assume the role of Lead Quant Security Auditor and actively hunt for Logic, Performance, Security, and Concurrency bugs via the required Temporal Simulations.
 
 ## ⚖️ The Critic Role (Harness Feedback Loop)
 When acting within a Code Harness loop (e.g., Action-Verifier), your primary role is the **Critic**.
