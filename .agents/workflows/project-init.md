@@ -46,7 +46,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 - [ ] **Lock the Vision**: Isolate the Vision Invariant from Q2. This will carry over to the Viability Gate.
 - [ ] **Synthesize Local Canons (The Physics)**: 
     - Deduce specific rules based on the tech stack from Q4 (e.g., if Next.js App Router, enforce server components; if Flutter, enforce chosen state management).
-    - AI **MUST** write these specific technical rules into `.agents/canons/local/architecture.md` and `.agents/canons/local/ui_state.md`.
+    - AI **MUST** write these specific technical rules into `context/03_Tech/ARCHITECTURE.md` and `context/02_Creative/STYLE_GUIDE.md`.
 - [ ] **The "Anti-Feature" Mandate**: AI must deduce and list 3 "Anti-Features" (things this app will explicitly NOT do to survive against the Goliath mentioned in Q3).
 - [ ] **Presentation**: AI presents a "Harsh Conceptual Summary" to the user: *"I've locked your Vision Invariant. To beat [Competitor], we will strictly NOT build [Anti-Feature]. Proceed to scaffolding?"*
 - [ ] AI **WAITS** for user confirmation.
@@ -151,10 +151,8 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 HANDOFF
-- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
 - [ ] **Crucial Handoff to Lifecycle**: AI strictly states: *"Initial scaffolding complete. The project is raw. You MUST now command me to run `/full-lifecycle` to enter PHASE 1: Viability & Strategic Blueprint."*
 - [ ] DO NOT proceed to feature building until the Viability Gate in `/full-lifecycle` is passed
-- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
 
 ---
 

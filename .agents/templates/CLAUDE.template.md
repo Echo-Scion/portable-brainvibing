@@ -79,7 +79,6 @@ Core files: `BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`
 
 ### Always Read First
 - `.agents/rules/core-guardrails.md` - Core protocols, reasoning standards
-- `.agents/workspace_map.md` - Orchestration entry point
 - `GEMINI.md` - Workspace mandates (if exists)
 
 ### Never Modify Without Binary Oratory

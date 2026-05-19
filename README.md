@@ -68,7 +68,7 @@ This system is built for teams that need:
 **Optional but recommended:**
 * **Supabase/Postgres** (if using RLS rules from `integrity-sentinel`).
 
-**Not supported:**
+**Not supported out-of-the-box (requires custom skills):**
 * CLI-only projects (no UI/widget context).
 * Non-Dart mobile frameworks (React Native, Kotlin).
 * Projects without an AI assistant integrated.
@@ -91,7 +91,7 @@ In Antigravity IDE (or your AI chat), run:
 ```
 run /project-init
 ```
-The system scans your codebase and auto-configures.
+The system initializes your configuration.
 
 #### Step 3: Verify Skills Active (10 seconds)
 Type `@` in chat. You should see skills like `@backend-orchestrator`, `@ui-finish`, `@api-contract`.
@@ -199,15 +199,15 @@ This ecosystem achieves maximum token-efficiency by integrating or porting logic
 
 | Version | Date | Notes |
 | :--- | :--- | :--- |
-| **1.3.0** | 2026-04-18 | Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs. |
-| **1.2.0** | 2026-03-26 | Integrate 10 Prompt Patterns, Root GEMINI.md, and evals/docs folders |
-| **1.1.0** | 2026-03-20 | Unified Logic: Established a clear 4-pillar structure and the 82-file SaaS mapping protocol. |
-| **1.0.0** | 2026-03-19 | Clean Reset to V1.0.0 |
-| **0.9.0** | 2026-03-15 | Initial baseline |
+| **1.3.0** | 2024-04-18 | Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs. |
+| **1.2.0** | 2024-03-26 | Integrate 10 Prompt Patterns, Root GEMINI.md, and evals/docs folders |
+| **1.1.0** | 2024-03-20 | Unified Logic: Established a clear 4-pillar structure and the 82-file SaaS mapping protocol. |
+| **1.0.0** | 2024-03-19 | Clean Reset to V1.0.0 |
+| **0.9.0** | 2024-03-15 | Initial baseline |
 
 ---
 
-## 10. License
+## 11. License
 
 Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
 

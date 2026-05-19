@@ -47,7 +47,7 @@ Load `rules/context-standards.md` to resolve rule conflicts correctly and map co
 - **Handover**: Institute "Three Amigos" alignment between Dev, QA, and PM.
 
 ### 4. Surgical Canon Synthesis (Auto-Population)
-- **Mandate**: When running `/project-init` or scaffolding a new project from a `BLUEPRINT.md`, you MUST automatically generate local canons (e.g., `canons/local/ui_patterns.md`, `auth.md`, `state_management.md`).
+- **Mandate**: When running `/project-init` or scaffolding a new project from a `BLUEPRINT.md`, you MUST automatically generate local context documentation in `context/03_Tech/` and `context/02_Creative/`.
 - **Aesthetic Anchor**: Read and adhere strictly to global canons or available UX/UI skills (like `ui-finish`) for UI/UX concepts. 
 ## 📋 Technical Reference (Platforms)
 - **iOS**: SwiftUI, Combine, Core Data.
