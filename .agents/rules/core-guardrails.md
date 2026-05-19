@@ -111,3 +111,7 @@ To prevent protocol drift and stale constraints:
 - When replacing a rule, keep a deprecation note for one release cycle.
 - Periodically prune or merge duplicated rules to avoid semantic overlap.
 - If two rules repeatedly collide, promote a dedicated arbitration clause instead of relying on ad-hoc interpretation.
+## 6. Token Efficiency (Token Optimizer Integration)
+- Ensure terse response patterns from `drona23/claude-token-efficient` are observed at all times (Telegraphic communication, minimal pleasantries).
+- Utilize `alexgreensh/token-optimizer` logic via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
+- Utilize `tirth8205/code-review-graph` logic via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.

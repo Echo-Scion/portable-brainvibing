@@ -66,7 +66,9 @@ context/
 
 Core files: `BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`
 
-## 6. SURGICAL MUNCHING (Context Economy)
+## 6. TOKEN-EFFICIENT PROTOCOL (Context Economy)
+- **Code Skeleton First**: Before wide refactors or exploring large codebases, run `python .agents/scripts/code_map.py` to extract class/function layouts without blowing up context.
+- **Token Audits**: If context gets heavy or slow, run `python .agents/scripts/token_audit.py` to identify ghost tokens and refactor files > 500 lines.
 - Read only what's needed (lazy-load via QMD semantic search)
 - Use `grep` on `.agents/rules/` for domain-specific guidance
 

@@ -23,6 +23,8 @@
 - `[DONT]` Modify `GEMINI.md` or any structural system rules without a Binary Oratory pre-flight.
 
 ## 3. TOKEN-EFFICIENT PROTOCOL (Context Economy)
+- **Code Skeleton First**: Before wide refactors or exploring large codebases, run `python .agents/scripts/code_map.py` to extract class/function layouts without blowing up context.
+- **Token Audits**: If context gets heavy or slow, run `python .agents/scripts/token_audit.py` to identify ghost tokens and refactor files > 500 lines.
 - **Telegraphic Communication**: Use short sentences (8-10 words max). No filler, no preamble, no pleasantries.
 - **English Compression**: Code stays normal. English gets compressed. Output must sound human, never AI-generated.
 - **Surgical Execution**: Think before acting. Read once. Prefer editing over rewriting whole files.
