@@ -7,6 +7,7 @@ import re
 import sys
 import argparse
 import json
+import hashlib
 from typing import Set, Dict, Any, List, Optional, Iterable, Tuple
 
 # Smart Root Discovery
@@ -35,6 +36,27 @@ DOC_METADATA_KEYS = {"param", "return", "type", "description", "activation", "tr
 RULE_DIR_TOKENS = {"rules", "common", "flutter", "web", "canons", "auth", "notifications", "ui-patterns"}
 FRONTMATTER_RE = re.compile(r'\A---\s*\n(.*?)\n---\s*(?:\n|$)', re.DOTALL)
 FRONTMATTER_KEY_RE = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*:\s*(.*?)\s*$', re.MULTILINE)
+
+
+def get_folder_hashes(folder_path: str) -> Dict[str, str]:
+    """
+    Computes MD5 hashes for all files in a folder, normalized for CRLF to prevent sync false positives.
+    """
+    hashes = {}
+    for root, _, files in os.walk(folder_path):
+        for f in files:
+            if f.endswith(('.md', '.json', 'SKILL.md')):
+                full_path = os.path.join(root, f)
+                rel_path = os.path.relpath(full_path, folder_path).replace("\\", "/")
+                try:
+                    with open(full_path, "rb") as file_obj:
+                        content = file_obj.read()
+                        # Normalize CRLF to LF to avoid cross-OS discrepancies
+                        normalized = content.replace(b"\r\n", b"\n")
+                        hashes[rel_path] = hashlib.md5(normalized).hexdigest()
+                except Exception:
+                    pass
+    return hashes
 
 
 def iter_files(base_dir: str, extensions: Tuple[str, ...]) -> Iterable[str]:
@@ -109,14 +131,23 @@ def check_foundation_sync(res: AuditResult, verbose: bool = True):
             found_folder = os.path.join(foundation_agents, folder)
             if not os.path.exists(found_folder): continue
             
-            local_files = {f for r, d, files in os.walk(local_folder) for f in files if f.endswith(('.md', '.json', 'SKILL.md'))}
-            found_files = {f for r, d, files in os.walk(found_folder) for f in files if f.endswith(('.md', '.json', 'SKILL.md'))}
+            local_hashes = get_folder_hashes(local_folder)
+            found_hashes = get_folder_hashes(found_folder)
             
-            if local_files != found_files:
-                diff_count = len(found_files - local_files)
-                if diff_count > 0:
-                    res.add_warning("SYNC", f"Folder {folder} is out of sync with foundation. Foundation has {diff_count} new/different items.")
-                    if verbose: print(f"[SYNC] OUT-OF-SYNC ({folder}): Foundation has {diff_count} new/different items.")
+            if local_hashes != found_hashes:
+                local_keys = set(local_hashes.keys())
+                found_keys = set(found_hashes.keys())
+                
+                missing = found_keys - local_keys
+                extra = local_keys - found_keys
+                modified = {k for k in local_keys & found_keys if local_hashes[k] != found_hashes[k]}
+                
+                if missing or modified or extra:
+                    diff_count = len(missing) + len(modified)
+                    if diff_count > 0:
+                        res.add_warning("SYNC", f"Folder {folder} is out of sync with foundation. {len(missing)} missing, {len(modified)} modified, {len(extra)} extra items.")
+                        if verbose:
+                            print(f"[SYNC] OUT-OF-SYNC ({folder}): {len(missing)} missing, {len(modified)} modified, {len(extra)} extra.")
                 
         if verbose and len(res.warnings) > 0:
             print("👉 Run 'python .agents/scripts/deploy_foundation.py' to update your local agents.")
@@ -128,9 +159,9 @@ def check_foundation_sync(res: AuditResult, verbose: bool = True):
 def check_mechanical_integrity(res: AuditResult, verbose: bool = True):
     if verbose: print("--- SCANNING FOR MECHANICAL INTEGRITY ERRORS ---")
     
-    header_bug_pat = re.compile(r'^#+ [^#\n]+#+', re.MULTILINE)
+    header_bug_pat = re.compile(r'^#+ [^#\n]+#+(?!\s*$)', re.MULTILINE)
     double_header_pat = re.compile(r'^#+ #+ ', re.MULTILINE)
-    abs_path_pat = re.compile(r'[a-zA-Z]:\\[Uu]sers\\[a-zA-Z0-9_\-\.]+')
+    abs_path_pat = re.compile(r'(?:[a-zA-Z]:\\[Uu]sers\\[a-zA-Z0-9_\-\.]+)|(?:\/(?:home|[Uu]sers)\/[a-zA-Z0-9_\-\.]+)')
     
     for filepath in iter_files(BASE_DIR, (".md", ".py")):
         file = os.path.basename(filepath)
@@ -207,13 +238,19 @@ def check_links(res: AuditResult, verbose: bool = True):
                         res.add_error("LINK", f"Broken skill reference: @{m}", rel_path)
                     continue
 
-                if m in all_skills:
+                if m.startswith("rules/"):
+                    rule_stem = m[len("rules/"):]
+                    if rule_stem not in all_rule_stems:
+                        res.add_error("LINK", f"Broken rule reference: @{m}", rel_path)
                     continue
-                if m in all_rule_stems:
+
+                if m.startswith("canons/"):
+                    canon_stem = m[len("canons/"):]
+                    if canon_stem not in all_rule_stems:
+                        res.add_error("LINK", f"Broken canon reference: @{m}", rel_path)
                     continue
-                if m.startswith("rules/") and m[len("rules/"):] in all_rule_stems:
-                    continue
-                if m.startswith("canons/") and m[len("canons/"):] in all_rule_stems:
+
+                if m in all_skills or m in all_rule_stems:
                     continue
 
                 # Keep implicit mentions permissive to reduce false positives.
@@ -233,20 +270,23 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
             if not os.path.isdir(skill_path): continue
             res.stats["skills"] += 1
             skill_md = os.path.join(skill_path, "SKILL.md")
-            if os.path.exists(skill_md):
-                try:
-                    content = read_text(skill_md)
-                    frontmatter = parse_frontmatter_keys(content)
-                    if not frontmatter:
-                        rel = os.path.relpath(skill_md, BASE_DIR)
-                        res.add_error("PROTOCOL", "Missing YAML frontmatter block", rel)
-                        continue
+            if not os.path.exists(skill_md):
+                res.add_error("PROTOCOL", "Missing SKILL.md in skill directory", f"skills/{skill_name}")
+                continue
+            
+            try:
+                content = read_text(skill_md)
+                frontmatter = parse_frontmatter_keys(content)
+                if not frontmatter:
+                    rel = os.path.relpath(skill_md, BASE_DIR)
+                    res.add_error("PROTOCOL", "Missing YAML frontmatter block", rel)
+                    continue
 
-                    # Check required metadata keys in frontmatter only.
-                    if "name" not in frontmatter or "description" not in frontmatter:
-                        res.add_error("PROTOCOL", "Missing essential metadata (name/description)", f"skills/{skill_name}/SKILL.md")
-                except Exception as e:
-                    res.add_error("IO", f"Could not read {skill_md}: {str(e)}")
+                # Check required metadata keys in frontmatter only.
+                if "name" not in frontmatter or "description" not in frontmatter:
+                    res.add_error("PROTOCOL", "Missing essential metadata (name/description)", f"skills/{skill_name}/SKILL.md")
+            except Exception as e:
+                res.add_error("IO", f"Could not read {skill_md}: {str(e)}")
 
     # 2. Rules Metadata
     if os.path.exists(RULES_DIR):

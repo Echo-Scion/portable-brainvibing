@@ -38,4 +38,11 @@ These are mandatory guardrails to prevent AI from making typical Large Language 
 * **SECURITY BUGS:** Weak cryptography (e.g., XOR ciphers); logging private keys.
 * **CONCURRENCY BUGS:** Double-deployments; state corruption.
 
+## 4. LLM Execution Safety & Isolated Subagent Mandate (Anti-Degradation)
+
+To prevent the AI from succumbing to **Context Window Degradation (Memory Loss)** or **Lazy Generation (checklists summarizing/cutting corners)** during audits:
+1. **No Manual Long-Session Audits**: The agent is strictly PROHIBITED from manually reading and auditing more than 2 files sequentially in the same chat history thread.
+2. **Mandatory Subagent Isolation**: For multi-file codebases, the Agent MUST use the Subagent orchestration mechanism (`invoke_subagent`) to spawn a clean, isolated Subagent for EACH file being audited.
+3. **Pristine Instruction Injection**: Every Subagent MUST be launched with this protocol loaded directly as its primary system prompt alongside the target file content. This guarantees the attention mechanism has 100% focus on the rules without cognitive dilution.
+
 *See `workflows/offensive-audit.md` for execution mandates, loops, and checklists.*
