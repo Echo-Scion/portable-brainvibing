@@ -1,6 +1,9 @@
 ---
-description: Comprehensive rules for Context Management, Context Hierarchy, Token Economy, and Skeleton-first loading.
+description: Comprehensive rules for Context Management, Context Hierarchy, Token Economy, Skeleton-first loading, and Context Naming Policy (The 82-File Mandate) with QMD Retrieval.
 activation: always on
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # 1. Context Hierarchy & Resolution Layer
@@ -50,11 +53,11 @@ Beyond rules and behaviors, this system uses **Canons** (`canons/`) to store the
 - **Lazy-Loading**: The agent MUST lazy-load relevant `.md` files from the `canons/` directory based on the task domain to minimize context usage while maintaining high fidelity to standards.
 - **BUDGET Restriction**: `BUDGET` tasks are **prohibited** from loading canons unless the canon is explicitly referenced by name in the user's request. Canons are architectural context; atomic tasks do not require them.
 
-## 4. Override Logic
+## 5. Override Logic
 - **Local Overrides Global**: If a rule exists in `.agents/rules/local/`, it automatically overrides the same rule in `.agents/rules/`.
 - **Skill Priority**: The agent always checks for a local version of a skill in `.agents/skills/` before execution.
 
-## 5. Initialization
+## 6. Initialization
 - **Active Discovery**: At start, the agent checks for the `.agents/` folder in the project root.
 
 # 2. Context Economy (Surgical Munching)
@@ -87,15 +90,15 @@ Beyond rules and behaviors, this system uses **Canons** (`canons/`) to store the
 Small/Budget Models hallucinate when fed too much raw code. If a model reads an 800-line file just to find one method, its context window gets "poisoned" by irrelevant noise, dropping reasoning accuracy drastically.
 
 ## 2. The Skeleton-First Law
-If the agent is operating on **[TIER: BUDGET]**, the agent is **STRICTLY PROHIBITED** from using the `read_file` tool on long files (>200 lines) as a first step.
+If the agent is operating on **[TIER: BUDGET]**, the agent is **STRICTLY PROHIBITED** from using the `view_file` tool on long files (>200 lines) as a first step.
 
 **Circuit Breaker (Strict Parameters):**
-The agent MUST automatically reject (Abort) any attempt to use `read_file` on target files (>200 lines) if the `startLine` and `endLine` parameters are missing or cover the entire file.
+The agent MUST automatically reject (Abort) any attempt to use `view_file` on target files (>200 lines) if the `startLine` and `endLine` parameters are missing or cover the entire file.
 
 **Mandatory File Navigation Order:**
 1. **Grep/Search Skeleton:** Use `grep_search` to find the target function name, class, or file *header*.
    *Example:* `grep_search` with pattern `class |function |interface ` to get a structural overview.
-2. **Targeted Read:** Once the target line is found, the agent may ONLY read that specific block (e.g., lines 45-80) using the line range parameters in `read_file`.
+2. **Targeted Read:** Once the target line is found, the agent may ONLY read that specific block (e.g., lines 45-80) using the line range parameters in `view_file`.
 3. **No Blind Full-Reads:** A *blind full-read* without line constraints triggers an immediate block to prevent context poisoning.
 
 ## 3. Surgical Munching
@@ -104,12 +107,9 @@ Only extract what is absolutely essential for the task. If the task is merely ch
 *This rule guarantees that Small Models remain sharp, focused, and undistracted by irrelevant variables.*
 
 
----
-trigger: model_decision
-description: Mandatory naming policy for context files combined with QMD semantic search.
----
 
-# Rule: Context Naming Policy (The 82-File Mandate) & QMD Retrieval
+
+# 4. Context Naming Policy (The 82-File Mandate) & QMD Retrieval
 
 > **Scope Guard**: This rule applies ONLY to **target deployment projects** (SaaS apps built using this foundation). It does NOT apply to `_foundation` itself, which is a tooling project. If working within `_foundation/.agents/`, ignore the 82-file mapping requirement.
 

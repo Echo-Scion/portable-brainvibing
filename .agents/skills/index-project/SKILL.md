@@ -21,7 +21,7 @@ To automatically register the current project directory as a collection in the l
 When this skill is triggered, the agent MUST perform the following steps automatically:
 
 1. **Locate the Script**: Ensure the script `.agents/scripts/setup_qmd.py` exists in the workspace.
-2. **Execute the Script**: Run the script using the `run_shell_command` tool.
+2. **Execute the Script**: Run the script using the `run_command` tool.
    
    ```bash
    python .agents/scripts/setup_qmd.py

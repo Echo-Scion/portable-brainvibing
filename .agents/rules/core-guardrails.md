@@ -1,6 +1,9 @@
 ---
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 # Agent Protocols
 
@@ -10,7 +13,7 @@ activation: always on
 
 > **IDE / Antigravity Mode (Fail-Closed Check)**: Because the IDE lacks a built-in pre-tool-use blocker, you, the Agent, MUST act as a Fail-Closed Policy Engine. 
 > 1. You are **OBLIGATED** to write `[TIER]` (along with a model recommendation) in your first message.
-> 2. You **MUST STOP COMPLETELY** after presenting your plan. Do not invoke `replace_string_in_file`, `create_file`, or write-action `run_in_terminal` tools.
+> 2. You **MUST STOP COMPLETELY** after presenting your plan. Do not invoke `replace_file_content`, `write_to_file`, or write-action `run_in_terminal` tools.
 > 3. Only proceed when the user replies with `[DO: YES]`. If the user does not, you must remind them to confirm.
 
 Before executing **ANY task (Tier 0, 1, or 2)** that modifies the filesystem (write, delete, refactor) or infrastructure (deploy, migrate) via CLI chat, the agent MUST declare:
@@ -32,7 +35,7 @@ Before executing **ANY task (Tier 0, 1, or 2)** that modifies the filesystem (wr
 - **Anti-Laziness Mandate**: Do not assume the codebase state. Ingest relevant files via `view_file` or `grep_search` first.
 - **Root Cause Analysis**: Find the "Why" (5 Whys), not just the "What". Surface-level fixes are unacceptable for Tier-1+ tasks.
 - **The Evidence Mandate (No Assumptions)**: Do not assume a feature works because the code looks correct. For Tier-1+ tasks, implementation is only "DONE" when verified through empirical reproduction or testing evidence.
-- **Edge-Case Tax**: Before finalizing any feature, you MUST list 2-3 potential failure modes (e.g., poor network, invalid state) and document how they are handled gracefully.
+- **Edge-Case Tax**: Before finalizing any feature, you MUST list 2-3 potential failure modes (e.g., poor network, invalid state) and document how they are handled gracefully. (Note: Mandatory for STANDARD/PREMIUM tiers, optional for BUDGET tier).
 - **Assumption Audit (Pattern 8)**: For PREMIUM tasks, you MUST list every technical or architectural assumption you are making before providing a recommendation.
 - **Specificity Ladder (Pattern 10)**: When explaining claims or technical fixes, make them 3x more specific than your first instinct (e.g., instead of "improve performance", use "reduce main thread blocking by 50ms through lazy-loading of the Auth module").
 
@@ -71,9 +74,7 @@ Silent conflict handling is a protocol violation.
 
 To prevent repetitive systemic failures and ensure continuous evolution, the agent MUST adhere to the following memory protocols:
 
-1. **Pre-Flight Consultation (The QMD Protocol)**: For all `STANDARD` and `PREMIUM` tasks, or when encountering unfamiliar context, the agent MUST execute a semantic or keyword search using QMD.
-   - **Windows Mandate**: You MUST execute this search via `npx @tobilu/qmd query "your query"`.
-   - **Goal**: Identify past "gotchas", failed patterns, architectural constraints, or brittle areas before proposing a solution. Consult `.agents/rules/qmd-search-protocol.md` for full query formatting rules.
+1. **Pre-Flight Consultation (The QMD Protocol)**: For all `STANDARD` and `PREMIUM` tasks, or when encountering unfamiliar context, the agent MUST execute a semantic or keyword search using QMD. See `.agents/rules/qmd-search-protocol.md` for full query formatting and execution rules.
 
 ## 7. Evidence Contract (Done Gate)
 
@@ -111,7 +112,7 @@ To prevent protocol drift and stale constraints:
 - When replacing a rule, keep a deprecation note for one release cycle.
 - Periodically prune or merge duplicated rules to avoid semantic overlap.
 - If two rules repeatedly collide, promote a dedicated arbitration clause instead of relying on ad-hoc interpretation.
-## 6. Token Efficiency (Token Optimizer Integration)
-- Ensure terse response patterns from `drona23/claude-token-efficient` are observed at all times (Telegraphic communication, minimal pleasantries).
-- Utilize `alexgreensh/token-optimizer` logic via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
-- Utilize `tirth8205/code-review-graph` logic via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.
+## 10. Token Efficiency (Token Optimizer Integration)
+- Ensure terse response patterns from `.agents/rules/caveman-activate.md` are observed at all times (Telegraphic communication, minimal pleasantries).
+- Utilize token auditing via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
+- Utilize skeleton extraction via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.

@@ -120,6 +120,3 @@ For PREMIUM tasks, list every technical assumption before proceeding
 
 ## PROJECT-SPECIFIC INSTRUCTIONS
 <!-- Add your custom Copilot instructions here. They will be preserved during foundation updates. -->
-->
-ion updates. -->
-->

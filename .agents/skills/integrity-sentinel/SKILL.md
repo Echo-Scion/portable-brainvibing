@@ -1,6 +1,6 @@
 ---
 name: integrity-sentinel
-description: "MANDATORY TRIGGER: Load this skill whenever the user explicitly types 'audit', 'evaluate', 'test', 'security check', 'qa', or 'verify'. This is a fail-closed gatekeeper. The overarching Gatekeeper for security, quality assurance, system audits, and evaluation. Replaces individual QA, security, audit, and eval skills. Proactively suggest this before deployment or when enforcing zero-trust principles. Encompasses sub-domains: Audit, Eval, Flutter Testing Patterns, Load Testing Tactics, Qa, Security."
+description: "MANDATORY TRIGGER: Load this skill whenever the user explicitly types 'audit', 'evaluate', 'security audit', 'security check', 'qa validations', or 'verify'. This is a fail-closed gatekeeper. The overarching Gatekeeper for security, quality assurance, system audits, and evaluation. Replaces individual QA, security, audit, and eval skills. Proactively suggest this before deployment or when enforcing zero-trust principles. Encompasses sub-domains: Audit, Eval, Flutter Testing Patterns, Load Testing Tactics, Qa, Security."
 tags: ['security', 'eval', 'threat modeling', 'audit', 'validation', 'qa', 'load testing', 'regression', 'testing']
 portable: true
 ---
@@ -21,18 +21,18 @@ Determine the nature of the validation required and load the corresponding refer
 4. **LLM Evaluation & Prompts:**
    - Read `references/eval.md`.
 5. **Offensive Deep Audits:**
-   - Read `../../rules/offensive-audit-protocol.md` and `../../workflows/offensive-audit.md` for extreme stress-testing.
+   - Read `rules/offensive-audit-protocol.md` and `workflows/offensive-audit.md` for extreme stress-testing.
 
 ## 🛡️ Unified Core Principles
 - **Evidence-Based Approval**: NEVER state "looks good" without proof (screenshots, test results, regression metrics).
 - **Default to Deny**: If it lacks tests, security headers, or eval suites, it fails.
-- **Surgical Context**: Do not guess file contents. Use `read_file` to verify actual code.
+- **Surgical Context**: Do not guess file contents. Use `view_file` to verify actual code.
 
 ## 🔒 Security Guardrails
 Load `rules/security-guardrails.md`. These are non-negotiable hard boundaries for all validation tasks.
 
 ## 💥 Offensive Audit Trigger
-If the user requests a "deep audit", "offensive audit", or implies the codebase is fundamentally flawed, you MUST load and execute `../../workflows/offensive-audit.md`. You will assume the role of Lead Quant Security Auditor and actively hunt for Logic, Performance, Security, and Concurrency bugs via the required Temporal Simulations.
+If the user requests a "deep audit", "offensive audit", or implies the codebase is fundamentally flawed, you MUST load and execute `workflows/offensive-audit.md`. You will assume the role of Lead Quant Security Auditor and actively hunt for Logic, Performance, Security, and Concurrency bugs via the required Temporal Simulations.
 
 ## ⚖️ The Critic Role (Harness Feedback Loop)
 When acting within a Code Harness loop (e.g., Action-Verifier), your primary role is the **Critic**.

@@ -1,25 +1,24 @@
 ---
-trigger: model_decision
+activation: model_decision
 description: Guidelines for optimizing application performance and context token usage.
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Performance & LLM Model Tiers (The Lean Protocol)
 
 ## 1. The Lean Protocol (Efficiency Standards)
-- **Zero-Theater Policy**: For routine tasks (boilerplate, styling, fixes), skip long narrative explanations. Perform `replace` or `write_file` as soon as the strategy is understood.
+- **Telegraphic Mandate**: For routine tasks (boilerplate, styling, fixes), skip long narrative explanations. Perform `replace` or `write_file` as soon as the strategy is understood. See `.agents/rules/caveman-activate.md`.
 - **Dynamic Context Ingestion (QMD-First)**:
-    - **L0 (Semantic Index)**: ALWAYS use QMD (`npx @tobilu/qmd query`) first to semantically map dependencies and find relevant files instead of relying on outdated manual catalogs (`catalog.json` or `workspace_map.md`).
+    - **L0 (Semantic Index)**: See `.agents/rules/qmd-search-protocol.md` for mandatory QMD usage.
     - **L1 (Surgical Read)**: Use `grep_search` with `context: 5` to read ONLY the relevant code block. Avoid full file reads unless refactoring the entire file.
 - **Command Output Optimization (The RTK Mandate)**:
-    - **Rule**: You MUST use the `rtk` proxy when executing shell commands (e.g., `rtk git status`, `rtk cargo build`, `rtk npm test`).
-    - **Why**: RTK (Rust Token Killer) filters, groups, and truncates massive CLI outputs, saving 60-90% of tokens and keeping the context window clean. Never execute raw builds/tests without it if `rtk` is available.
-- **Turn Minimization**: Prioritize parallel tool calls. Aim for **"One-Turn Execution"** for simple and clear directives.
+    - See `.agents/rules/antigravity-rtk-rules.md` for mandatory `rtk` proxy usage.
+- **Turn Minimization**: Prioritize parallel tool calls. Aim for **"One-Turn Execution"** for simple and clear directives. (Note: Parallel tool calls are NOT allowed under the BUDGET tier Bento-Box workflow).
 
 ## 2. LLM Model Tiers (Experimental Routing)
-Optimizing cost and speed without sacrificing quality:
-- **Budget (Atomic/Stylistic)**: Single-file fixes, docs, formatting, basic boilerplate. Apply Micro-Harness Protocol. Max 1 file read. No Sequential Thinking.
-- **Standard (Integrative/Feature)**: Multi-file features, state management, registry maintenance. Adversarial Twin validation mandatory before marking done.
-- **Premium (Architectural/Risky)**: Refactors, security audits, RLS. Full Sequential Thinking (≥3 steps) mandatory.
+- See `.agents/rules/tier-execution-protocol.md` for official Tier definitions and routing rules.
 
 ## 3. Application Performance
 - **Caching**: Use Redis or local caching for frequently accessed, slow-changing data.

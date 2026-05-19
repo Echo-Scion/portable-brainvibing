@@ -1,6 +1,9 @@
 ---
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
-trigger: model_decision
+activation: model_decision
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # 1. Model Tier Classification & Routing
@@ -26,29 +29,30 @@ trigger: model_decision
 
 ---
 
-## 1. The Six Tiers (Calibrated)
+## 1. The 6-Tier Model Queues (Calibrated)
 
-| Tier | Queue | Required Model Allocation | Characteristic | When to Use |
-| :--- | :--- | :--- | :--- | :--- |
-| **Tier 1** | `LOW` | Gemini 3.5 Flash (Low Queue) | **Multimodal / Speed** | Background indexing, non-critical telemetry, batch validations, and scheduled tasks. |
-| **Tier 2** | `HIGH` | Gemini 3.5 Flash (High Queue) | **Multimodal / Speed** | Ultra-fast agentic workflows, long-context code execution, and high-frequency real-time interactive tasks. |
-| **Tier 3** | `LOW` | Gemini 3.1 Pro (Low Queue) | **Deep Reasoning** | Automated unit test runs, scheduled linting, and low-priority regression testing. |
-| **Tier 4** | `HIGH` | Gemini 3.1 Pro (High Queue) | **Deep Reasoning** | Complex STEM problem solving, advanced coding, and comprehensive dataset analysis. |
-| **Tier 5** | `HIGH` | Claude 4.6 Sonnet (Thinking Enabled) | **Balanced Reasoning** | High-quality app prototyping, advanced code generation, and nuanced instruction following. |
-| **Tier 6** | `HIGH` | Claude 4.6 Opus (Thinking Enabled) | **Max Intelligence** | Enterprise planning, deep conceptual reasoning, and highly meticulous multi-step problem solving. |
+| Task Tier | Queue / Model | Type | Capabilities & Practical Scope |
+| :--- | :--- | :--- | :--- |
+| **BUDGET** | **1. Gemini 3.5 Flash (Low Queue)** | `Multimodal / Speed` | Background indexing, non-critical telemetry, batch validations, and scheduled tasks. |
+| **BUDGET** | **2. Gemini 3.5 Flash (High Queue)** | `Multimodal / Speed` | Ultra-fast agentic workflows, long-context code execution, and high-frequency real-time tasks. |
+| **STANDARD** | **3. Gemini 3.1 Pro (Low Queue)** | `Deep Reasoning` | Automated unit test runs, scheduled linting, and low-priority regression testing. |
+| **STANDARD** | **4. Claude 4.6 Sonnet (Thinking Enabled)** | `Balanced Reasoning` | High-quality app prototyping, advanced code generation, and nuanced instruction following. |
+| **PREMIUM** | **5. Gemini 3.1 Pro (High Queue)** | `Deep Reasoning` | Complex STEM problem solving, advanced coding, and comprehensive dataset analysis. |
+| **PREMIUM** | **6. Claude 4.6 Opus (Thinking Enabled)** | `Max Intelligence` | Enterprise planning, deep conceptual reasoning, and highly meticulous multi-step problem solving. |
+| **OSS** | **7. GPT-OSS 120B** | `Medium Effort` | High-performance open-weights execution with broad domain knowledge at a balanced processing speed. |
 
 ## 2. Infrastructure Special Note
 - **Don't Over-Classify**: Modifying files inside `.agents/` is NOT automatically `Tier 6`.
 - If the change is purely about keeping the registry/map up to date, use `Tier 4`.
 - If the change modifies the *logic* of how agents operate (e.g., changing `core-guardrails.md`), use `Tier 6`.
 
-## 3. Mandatory Declaration & Manual Routing (Anigravity IDE)
-- Because **Anigravity IDE** does not have an *auto-routing* feature, switching models must be done **MANUALLY** by the user.
+## 3. Mandatory Declaration & Manual Routing (Antigravity IDE)
+- Because **Antigravity IDE** does not have an *auto-routing* feature, switching models must be done **MANUALLY** by the user.
 - Sebelum mengeksekusi **TUGAS APAPUN** (Tier 1-6) yang memanipulasi file/sistem, agent **WAJIB** mengevaluasi tier apa yang **SEHARUSNYA (TARGET TIER)** dipakai berdasarkan heuristik, BUKAN tier atau model yang sedang dipakai saat ini.
 - **Auto-Abort Pre-Execution (Strict Safety Gate)**: Agent WAJIB membandingkan *Current Model* (model AI yang sedang aktif/berjalan) dengan *Target Tier* hasil rekomendasi. Jika tidak sesuai (terutama jika kapabilitas model saat ini di bawah *Target Tier*), agent **WAJIB** mengeluarkan sinyal berikut dan **BERHENTI SEPENUHNYA**:
   `[ABORT: TIER MISMATCH. TARGET TIER: <NAMA TIER YANG DIWAJIBKAN>. PLEASE SWITCH MODEL AND REPEAT PROMPT]`
 - **Zero-Action on Abort**: Setelah mengeluarkan sinyal ABORT di atas, agent harus BERHENTI seketika (hentikan chat). Dilarang memanggil *tools* apa pun, dilarang memberi penjelasan tambahan, dan dilarang melanjutkan eksekusi.
-- **In IDE/Anigravity mode**: Jika tier sudah sesuai (atau user memaksa lanjut), tulislah deklarasi `[TIER: <TARGET TIER>]` beserta *Required Model Allocation* di awal pesan atau `implementation_plan.md`, lalu tunggu konfirmasi `[DO: YES]` dari user (jika bukan workflow otomatis).
+- **In IDE/Antigravity mode**: Jika tier sudah sesuai (atau user memaksa lanjut), tulislah deklarasi `[TIER: <TARGET TIER>]` beserta *Required Model Allocation* di awal pesan atau `implementation_plan.md`, lalu tunggu konfirmasi `[DO: YES]` dari user (jika bukan workflow otomatis).
 - **Zero Exemptions**: Tugas `Tier 1` sekalipun TIDAK BOLEH dieksekusi secara langsung. Mereka wajib melewati gerbang *pre-flight* ini agar *user* selalu memegang kendali absolut atas *routing* model.
 
 ## 4. Forced Intelligence Per Tier (Capability Harness)
@@ -60,7 +64,7 @@ Even simple tasks MUST satisfy the following Lightweight Validation Gate before 
 1. **Scope Confirmation** (1 sentence): State what the task is in plain English. No more, no less.
 2. **Constraint Declaration** (1-3 bullets): What CANNOT be changed or broken. Serves as a self-injected guardrail.
 3. **Mandatory Pre-Flight**: Output the Binary Oratory/Implementation Plan and **WAIT** for `[DO: YES]`. "Act first" is strictly prohibited.
-4. **Zero-Theater Execution**: After confirmation, perform the action immediately without narrative justification.
+4. **Telegraphic Execution**: After confirmation, perform the action immediately without narrative justification.
 5. **Self-Verification Micro-Check**: After execution, confirm the output satisfies the original scope (e.g., "File updated. Key: X changed to Y. No other lines modified.").
 - **Token Ceiling**: Tier 1/2 tasks MUST NOT read more than 1 file in full. Use `grep_search` for targeted extraction.
 - **Prohibited Actions**: No Sequential Thinking calls, no multi-file reads, no architectural scope expansion.

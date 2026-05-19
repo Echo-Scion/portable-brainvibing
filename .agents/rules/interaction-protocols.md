@@ -1,6 +1,9 @@
 ---
 description: Standards for how the agent communicates with the user.
 activation: always on
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 # Interaction Protocols
 

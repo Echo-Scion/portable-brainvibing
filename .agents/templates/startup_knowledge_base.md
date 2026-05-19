@@ -5,31 +5,31 @@ This resource provides high-density, domain-specific instructions for auto-popul
 ---
 
 ## 💰 1. Revenue & Monetization (Files: Strategy, Pricing, Invoicing, etc.)
-*Expertise from: billing-automation, payment-integration, stripe-integration*
+*Expertise from: saas-strategist*
 - **Strategy**: Define the "Freemium-to-Pro" transition points.
 - **Invoicing**: Must include Tax-compliance (VAT/GST) and automated reconciliation logic.
 - **Subscriptions**: Define Dunning logic (how to handle failed payments) and Grace Periods.
 
 ## 📣 2. Marketing & Growth (Files: SEO, Social Media, Content Plan, etc.)
-*Expertise from: seo-structure-architect, content-marketer, sales-automator*
+*Expertise from: saas-strategist*
 - **SEO**: Define the "Semantic Core" and Pillar-Page architecture.
 - **Content Plan**: Use the "Educational Email Course" (EEC) funnel logic.
 - **Social Media**: Define the "Cross-Pollination" strategy (e.g., Twitter threads to LinkedIn articles).
 
 ## 🛡️ 3. Legal & Compliance (Files: GDPR, Terms, Privacy, etc.)
-*Expertise from: gdpr-data-handling, pci-compliance, legal-advisor*
+*Expertise from: integrity-sentinel*
 - **GDPR**: Define the Data Mapping (RPA), Right-to-be-Forgotten (RTBF) flows, and DPO requirements.
 - **Privacy**: Implement "Privacy by Design" (PbD) principles.
 - **Compliance**: Define the audit trail requirements for PCI-DSS (if handling payments).
 
 ## 🚀 4. Scaling & Engineering (Files: Infrastructure, CI/CD, Performance, etc.)
-*Expertise from: cloud-architect, performance-engineer, observability-monitoring*
+*Expertise from: backend-orchestrator, project-operator*
 - **Infrastructure**: Define the "Multi-Region" failover strategy and IaC (Terraform/Pulumi) modules.
 - **Performance**: Set strict "Budget Latency" (e.g., <200ms for TTFB).
 - **Observability**: Define the SLIs (Service Level Indicators) and SLOs (Service Level Objectives).
 
 ## 🤝 5. Product & Operations (Files: Roadmap, Hiring, Backlog, etc.)
-*Expertise from: startup-analyst, sprint-planner, hr-pro*
+*Expertise from: project-architect*
 - **Roadmap**: Use the "Now-Next-Later" framework.
 - **Hiring**: Define the "Candidate Scorecard" and technical interview rubrics.
 - **Prioritization**: Use the RICE (Reach, Impact, Confidence, Effort) scoring system.

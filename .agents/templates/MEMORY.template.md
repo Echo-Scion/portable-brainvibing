@@ -1,5 +1,5 @@
 # FRACTAL SHORTHAND
-[ARCH: Flutter] [STATE: Riverpod] [DB: Supabase] [UI: LiqGlass]
+[ARCH: {{arch_framework}}] [STATE: {{state_management}}] [DB: {{database}}] [UI: {{ui_framework}}]
 
 # {{project_name}} — Neural Project Memory
 

@@ -2,9 +2,11 @@ import os
 import sys
 import argparse
 
-# Simple heuristic token estimator (approx 4 chars per token)
+# Heuristic token estimator (approx 3.2 chars per token for code/configs, 4 chars for plain prose)
 def estimate_tokens(text):
-    return len(text) // 4
+    # Code and structured markdown contain more symbols/formatting,
+    # leading to higher token density. 3.2 is a much better empirical average than 4.
+    return int(len(text) / 3.2)
 
 def audit_directory(dir_path, exclude_dirs):
     token_counts = {}

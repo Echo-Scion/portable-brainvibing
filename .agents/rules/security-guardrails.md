@@ -1,6 +1,9 @@
 ---
 description: Security guardrails, negative boundaries, and prompt injection defenses.
 activation: always on
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 # Security Guardrails
 

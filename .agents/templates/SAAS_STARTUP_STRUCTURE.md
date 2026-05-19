@@ -1,6 +1,6 @@
-# SaaS Startup Context Registry (82 Files, 4 Pillars)
+# SaaS Startup Context Registry (82 Sub-files, 4 Masters)
 
-This document defines the naming convention and location for the 82 granular SaaS files. **Critically: These files reside directly inside the 4 Lean Pillar folders using category prefixes.**
+This document defines the naming convention and location for the 82 granular SaaS files. **Critically: These 82 files (87 total including Masters) reside directly inside the 4 Lean Pillar folders using category prefixes.**
 
 ## 1. Pillar: `00_Strategy/` (Master: `BLUEPRINT.md`)
 Contains files related to Idea, Validation, and Scaling.

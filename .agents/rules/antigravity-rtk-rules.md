@@ -1,6 +1,9 @@
 ---
 description: Token-optimized CLI proxy rules for Google Antigravity.
 activation: when using shell commands
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 # RTK - Rust Token Killer (Google Antigravity)
 

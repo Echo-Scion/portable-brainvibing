@@ -1,7 +1,10 @@
 ---
-trigger: glob
+activation: glob
 description: Web Development Standards for frontend excellence, API safety, and Node.js logic.
-globs: *.ts, *.html, *.css.
+globs: *.ts, *.html, *.css
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Web Development Standards (Antigravity)

@@ -1,6 +1,9 @@
 ---
 description: "Core Mindset, Offensive Engineering Principles, AI Antidotes, and Deep Audit Taxonomy for AI code auditing."
 activation: "when auditing, reviewing code, or enforcing security & stability"
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # 🔍 AI Engineering Discipline & Sequential Offensive Deep Audit Protocol

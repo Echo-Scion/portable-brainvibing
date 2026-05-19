@@ -231,6 +231,7 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
         for skill_name in os.listdir(SKILLS_DIR):
             skill_path = os.path.join(SKILLS_DIR, skill_name)
             if not os.path.isdir(skill_path): continue
+            res.stats["skills"] += 1
             skill_md = os.path.join(skill_path, "SKILL.md")
             if os.path.exists(skill_md):
                 try:
@@ -252,6 +253,7 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
         for root, _, files in os.walk(RULES_DIR):
             for file in files:
                 if not file.endswith(".md"): continue
+                res.stats["rules"] += 1
                 filepath = os.path.join(root, file)
                 rel_path = os.path.relpath(filepath, RULES_DIR)
                 try:
@@ -267,6 +269,13 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
                         res.add_error("PROTOCOL", "Incomplete YAML header", rel_path)
                 except Exception as e:
                     res.add_error("IO", f"Could not read {file}: {str(e)}")
+
+    # 3. Canons Count
+    if os.path.exists(CANONS_DIR):
+        for root, _, files in os.walk(CANONS_DIR):
+            for file in files:
+                if not file.endswith(".md"): continue
+                res.stats["canons"] += 1
 
 def run_audit(output_json: bool = False):
     res = AuditResult()

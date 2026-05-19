@@ -18,4 +18,4 @@ Rather than relying purely on an agent's internal reasoning (which is prone to "
 - **Harness-as-Policy**: A purely deterministic script that codifies a fully verified agent policy, removing the need for LLM inference at runtime.
 
 ## Files
-- `base_action_verifier.py`: A boilerplate template for creating a new custom action-verifier. Use this when synthesizing a new harness for a complex task.
+- [`base_action_verifier.py`](base_action_verifier.py): A boilerplate template for creating a new custom action-verifier. Use this when synthesizing a new harness for a complex task.

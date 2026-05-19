@@ -3,11 +3,11 @@
 The `metrics/` directory tracks the health, performance, and evolution of the agentic foundation.
 
 ## 1. Purpose
-Metrics provide quantitative data to the `@integrity-sentinel` skill, allowing for data-driven refinements. Add `metrics/` to `workspace_map.md` if it's missing from the directory index.
+Metrics provide quantitative data to the `@skills/integrity-sentinel` skill, allowing for data-driven refinements.
 
 ## 2. Key Metrics
-- **Context Density**: Tracks token usage across different model tiers (M36 vs M47).
-- **Execution Velocity**: Average time taken for `/project-init` or `/verify-loop`.
+- **Context Density**: Tracks token usage across different model tiers (e.g., Premium vs Budget, Opus vs Flash).
+- **Execution Velocity**: Average time taken for `/project-init` or `/strict-tdd`.
 - **Logic Drift**: Qualitative score of how well agents adhere to `rules/` during complex tasks.
 - **Success Rate**: Ratio of completed vs. aborted workflows.
 

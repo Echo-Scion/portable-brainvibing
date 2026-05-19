@@ -16,7 +16,7 @@ def generate_skeleton(file_path):
         re.compile(r'^\s*(class\s+\w+.*?):?\s*$'), # Python/JS/Dart classes
         re.compile(r'^\s*(def\s+\w+\s*\(.*?\).*?):?\s*$'), # Python functions
         re.compile(r'^\s*((?:export\s+)?(?:async\s+)?function\s+\w+\s*\(.*?\).*?)\s*[{]?\s*$'), # JS functions
-        re.compile(r'^\s*((?:[a-zA-Z<>\[\]]+\s+)?\w+\s*\([^)]*\)\s*(?:async)?\s*[{=>])'), # Dart methods/functions loosely
+        re.compile(r'^\s*(?!(?:if|for|while|catch|switch)\s*\()((?:[a-zA-Z<>\[\]_]+\s+)?\w+\s*\([^)]*\)\s*(?:async\*?|sync\*)?\s*[{=>])'), # Dart methods/functions
     ]
 
     try:
@@ -29,8 +29,8 @@ def generate_skeleton(file_path):
                         sig = match.group(1).strip().rstrip('{:').strip()
                         skeleton.append(f"  Line {line_num}: {sig}")
                         break
-    except Exception:
-        pass # Skip unreadable files
+    except (OSError, UnicodeDecodeError) as e:
+        sys.stderr.write(f"⚠️ Warning: Could not read {file_path}: {e}\n")
 
     return skeleton
 

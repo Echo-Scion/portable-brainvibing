@@ -73,7 +73,7 @@ Core files: `BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`
 - **Surgical Execution**: Think before acting. Read once. Prefer editing over rewriting.
 - **Size Limits**: Skip files >100KB unless explicitly required.
 - **Tool-First**: Result first. No explanation unless asked. Avoid parenthetical clauses.
-- **Surgical Munching**: Lazy-load via QMD. Check LEARNIGNS before PREMIUM tasks.
+- **Surgical Munching**: Lazy-load via QMD. Check LEARNINGS before PREMIUM tasks.
 
 ## 7. CRITICAL FILES
 
@@ -123,5 +123,3 @@ For PREMIUM tasks, list every technical assumption before proceeding
 
 ## PROJECT-SPECIFIC INSTRUCTIONS
 <!-- Add your custom Claude instructions here. They will be preserved during foundation updates. -->
-ion updates. -->
-->

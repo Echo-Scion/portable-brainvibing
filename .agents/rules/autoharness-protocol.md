@@ -1,7 +1,10 @@
 ---
 description: Protocol for synthesizing and using verification harnesses before high-risk actions.
-trigger: always_on
+activation: always_on
 activation: model_decision
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Rule: AutoHarness Protocol
@@ -19,16 +22,12 @@ When tackling a complex, rigid, or highly-constrained task, synthesize one of th
 - **Harness-as-Action-Filter**: A script that computes and enumerates all *valid* actions in a given state, forcing the agent to rank or select only from a verified subset.
 - **Harness-as-Policy**: For repetitive tasks or deterministic state transitions, synthesize a pure algorithmic script that executes the task without further LLM intervention.
 
-## 4. The Synthesis Loop & Asymmetric Delegation (Antigravity IDE)
-The concept of *Small Model Superiority* using *manual routing* relies on asymmetric delegation:
-1. **Budget Model as The Scout & Harness-Writer**: If faced with a *Tier-1+ (Standard/Premium)* task, the Budget Model is **STRICTLY PROHIBITED** from touching the main *production* file. Its exclusive task is to: read the context, write `implementation_plan.md`, and create the *Harness* script (verifier/test).
-2. **Handoff (Manual Model Switch)**: After the *Harness* is written, the Budget Model triggers a *Binary Oratory Auto-Abort* with the message: `[ABORT: HARNESS READY. PLEASE SWITCH TO PREMIUM MODEL THEN PROVIDE THE EXECUTION COMMAND]`.
-3. **Premium Model as The Heavy Lifter**: The Premium Model takes over. Its only task is: Write the real code until the *Harness* script created by the Budget Model evaluates to `True / Pass`.  
-4. **Identify Failure Taxonomy**: If the Harness rejects the action, categorize the rejection reason before trying again:
-   - *Syntax Error*: (JSON format, YAML, Typo) ➔ Easily resolved by a small model.
-   - *Logic/State Error*: (Calling a non-existent function, incorrect state) ➔ Requires reading extra files/context.
-   - *System/Architecture Error*: (Violating RLS, Security Boundary) ➔ **High Risk Trigger**.
-5. **Execute**: Once the harness validates the action, safely execute the actual task.
+## 4. The Synthesis Loop & Asymmetric Delegation
+*Refer to `tier-execution-protocol.md` for the strict Auto-Abort loop between Budget (Harness-Writer) and Premium (Heavy Lifter) models.*
+If the Harness rejects the action, categorize the rejection reason before trying again:
+- *Syntax Error*: (JSON format, YAML, Typo) ➔ Easily resolved by a small model.
+- *Logic/State Error*: (Calling a non-existent function, incorrect state) ➔ Requires reading extra files/context.
+- *System/Architecture Error*: (Violating RLS, Security Boundary) ➔ **High Risk Trigger**.
 
 ## 5. Storage
 Store reusable and generic harnesses in `.agents/canons/global/harnesses/` so other agents can reuse them across sessions.

@@ -17,7 +17,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## ⚡ STEP 0: INTAKE GATE (Auto-Population) — MANDATORY (OR SKIP IF BLUEPRINT DETECTED)
+## 1. INTAKE GATE (Auto-Population) — MANDATORY (OR SKIP IF BLUEPRINT DETECTED)
 > [!IMPORTANT]
 > The AI MUST complete this step before creating ANY files or directories.
 > Do NOT scaffold anything until the user answers the intake questions.
@@ -39,7 +39,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## ⚡ STEP 0.3: THE DEEPENING (Architectural Synthesis)
+## 2. THE DEEPENING (Architectural Synthesis)
 > [!IMPORTANT]
 > To ensure survival in Phase 1 (Viability Gate), the AI MUST now expand the user answers into hard constraints. No generic filler allowed.
 
@@ -53,14 +53,14 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## 1. ENVIRONMENT DETECTION
+## 3. ENVIRONMENT DETECTION
 - [ ] **Check Directory**: Does the current directory already contain a `.agents/` folder?
   - **YES**: This is a **Root Project**. Skip to Step 3.
   - **NO**: This is a **Sub-project**. Proceed to Step 2.
 
 ---
 
-## 2. PROJECT SETUP (Plug & Play Deployment)
+## 4. PROJECT SETUP (Plug & Play Deployment)
 - [ ] **Agentic Deployment (Preferred)**: Ask the AI to read `.agents/DEPLOY_ME.md` and use its own tools to copy the foundation files to the local `.agents/` directory.
   - *Rationale*: No Python or external dependencies required.
 - [ ] **Scripted Deployment (Fallback)**: If the agent is unable to perform file operations directly:
@@ -68,14 +68,14 @@ This workflow consolidates the initialization logic for both "Root Projects" and
   - Run: `python [GlobalPath]\.agents\scripts\deploy_foundation.py --target .`
 - [ ] **Verification**: Confirm that `@` mentions and clickable file links work in the local environment.
 
-## 3. INITIALIZE LOCAL PROJECT BRAIN
+## 5. INITIALIZE LOCAL PROJECT BRAIN
 - [ ] **Local Evolution (MANDATORY)**: For project-specific rules or skills, **AI MUST** create folders and files with the `local-` prefix within the existing `rules/` and `skills/` directories.
     - *Rationale*: This prevents project-specific logic from being synced back to the global Foundation via `sync_to_foundation.py`.
 - [ ] **Sync Index**: Run `@index-project` to ensure the project is searchable.
 
 ---
 
-## 4. GENERATE CONTEXT HIERARCHY
+## 6. GENERATE CONTEXT HIERARCHY
 - [ ] **Infrastructure**: Create the `context/` parent directory first.
 - [ ] **Standard Pillar Hierarchy (ALWAYS ACTIVE)**: Create the 4 Master Pillars:
     - `00_Strategy/`
@@ -89,7 +89,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## 5. SCAFFOLDING (Auto-Populated via Slot-Fill)
+## 7. SCAFFOLDING (Auto-Populated via Slot-Fill)
 > [!IMPORTANT]
 > Do NOT create blank files. For each template:
 > 1. Load and enforce `project-architect/references/` (Pillars & Rigor).
@@ -126,7 +126,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## 6. MIGRATION (Density Upgrade)
+## 8. MIGRATION (Density Upgrade)
 - [ ] **Scenario**: Upgrading an existing "Lean" project to Startup density:
   - Agent scans existing folders (`00_Strategy`, `01_Product`, etc.).
   - AI informs user: *"Using Prefix-Based Expansion for the 82 SaaS categories. I'll maintain the 4-pillar hierarchy for better AI context retention."*
@@ -135,7 +135,7 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## 7. LEGACY INGESTION (Half-Finished Projects)
+## 9. LEGACY INGESTION (Half-Finished Projects)
 - [ ] **Scenario**: Existing codebase detected:
   - **⚡ STEP 7.1: DEEP AUDIT**: AI reverse-engineers specs from code.
   - **⚡ STEP 7.2: REVERSE-ENGINEERED MAPPING**: AI creates Prefix-based context files for everything already built.
@@ -143,18 +143,16 @@ This workflow consolidates the initialization logic for both "Root Projects" and
 
 ---
 
-## 8. TASK INJECTION (Lifecycle Tracking)
+## 10. TASK INJECTION (Lifecycle Tracking)
 - [ ] **Atomic Task Injection (MANDATORY)**: 
   - Create a new file in `.agents/workflows/tasks/task-[project_name]-planning.md`.
   - Set `Status: TODO`.
   - Fill the `Objective` with: "Blueprint & PRD Completion for [Project Name]".
 
 ---
-HANDOFF
-- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
+## 11. HANDOFF
 - [ ] **Crucial Handoff to Lifecycle**: AI strictly states: *"Initial scaffolding complete. The project is raw. You MUST now command me to run `/full-lifecycle` to enter PHASE 1: Viability & Strategic Blueprint."*
 - [ ] DO NOT proceed to feature building until the Viability Gate in `/full-lifecycle` is passed
-- [ ] **Workspace Map**: Update `.agents/workspace_map.md`.
 
 ---
 

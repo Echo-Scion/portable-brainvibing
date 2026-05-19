@@ -69,7 +69,7 @@
 ---
 
 ## CHAPTER 7: SYSTEM INTEGRATION (The Symphony)
-**Data Alur (Hooks)**: {{data_flow_hooks}}
+**Data Flow (Hooks)**: {{data_flow_hooks}}
 **Project Sovereignty**: {{sovereignty_notes}}
 
 ---

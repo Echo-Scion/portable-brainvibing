@@ -1,25 +1,59 @@
 {
-  "skill_name": "integrity-sentinel",
-  "evals": [
+  "skills": [
     {
-      "id": 1,
-      "prompt": "I need to evaluate a new 'react-dev' skill. Create an evaluation plan including 3 test cases, expected outputs, and specific assertions following the agentskills.io standard.",
-      "expected_output": "A structured evaluation plan with realistic prompts, human-readable success criteria, and at least 3 verifiable assertions per case.",
-      "assertions": [
-        "Output contains an 'evals' array or section with 3 distinct cases",
-        "Each case has a 'prompt', 'expected_output', and 'assertions'",
-        "Assertions are specific (e.g., 'JSON is valid') rather than vague ('Output is good')",
-        "Includes at least one edge case (e.g., malformed code, ambiguous request)"
+      "skill_name": "integrity-sentinel",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "I need to evaluate a new 'react-dev' skill. Create an evaluation plan including 3 test cases, expected outputs, and specific assertions following the agentskills.io standard.",
+          "expected_output": "A structured evaluation plan with realistic prompts, human-readable success criteria, and at least 3 verifiable assertions per case.",
+          "assertions": [
+            "Output contains an 'evals' array or section with 3 distinct cases",
+            "Each case has a 'prompt', 'expected_output', and 'assertions'",
+            "Assertions are specific (e.g., 'JSON is valid') rather than vague ('Output is good')",
+            "Includes at least one edge case (e.g., malformed code, ambiguous request)"
+          ]
+        },
+        {
+          "id": 2,
+          "prompt": "Here are the results of an eval run. The pass rate is 0.4 and the model keeps failing on 'formatting' assertions. Suggest 3 improvements to the SKILL.md to fix this.",
+          "expected_output": "3 actionable improvements to SKILL.md focused on reducing formatting errors (e.g., enforcing JSON mode, adding Zod schemas, or providing examples).",
+          "assertions": [
+            "Recommendations are based on the reported failure (formatting)",
+            "Includes at least one example of 'explaining the why' for instructions",
+            "Suggests concrete technical constraints (e.g., JSON mode, schemas)"
+          ]
+        }
       ]
     },
     {
-      "id": 2,
-      "prompt": "Here are the results of an eval run. The pass rate is 0.4 and the model keeps failing on 'formatting' assertions. Suggest 3 improvements to the SKILL.md to fix this.",
-      "expected_output": "3 actionable improvements to SKILL.md focused on reducing formatting errors (e.g., enforcing JSON mode, adding Zod schemas, or providing examples).",
-      "assertions": [
-        "Recommendations are based on the reported failure (formatting)",
-        "Includes at least one example of 'explaining the why' for instructions",
-        "Suggests concrete technical constraints (e.g., JSON mode, schemas)"
+      "skill_name": "api-contract",
+      "evals": [
+        {
+          "id": 3,
+          "prompt": "Create an API schema for user registration.",
+          "expected_output": "Strict runtime validation schema (e.g., Zod, Pydantic) enforcing input hygiene.",
+          "assertions": [
+            "Schema strips unknown keys",
+            "Password has length constraints",
+            "Uses proper HTTP status codes for errors"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "cost-optimizer",
+      "evals": [
+        {
+          "id": 4,
+          "prompt": "Optimize this background batch job's cloud footprint.",
+          "expected_output": "Recommendation to downgrade to a budget model tier or use serverless functions.",
+          "assertions": [
+            "Mentions explicit tiers (Premium vs Budget)",
+            "Suggests caching or batching to reduce tokens",
+            "Advises against long-running expensive VM instances"
+          ]
+        }
       ]
     }
   ]

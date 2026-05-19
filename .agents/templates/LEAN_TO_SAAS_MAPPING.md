@@ -17,7 +17,7 @@ This document defines how the 82 granular SaaS files map to the 4 Lean Master Fi
 When a project "upgrades" to Startup mode:
 1.  **Keep Masters**: Master files (`BLUEPRINT`, `ROADMAP`, etc.) remain in place.
 2.  **JIT Generation**: AI generates Prefix-based detail files (e.g., `Rev_Pricing_Strategy.md`) only when the task requires it.
-3.  **Cross-Linking**: Master files MUST include clickable links (`[[Prefix_Filename.md]]`) to their children for navigation.
+3.  **Cross-Linking**: Master files MUST include standard Markdown links (e.g., `[Prefix_Filename.md](./Prefix_Filename.md)`) to their children for navigation.
 
 ## 3. Migration (SaaS to Lean)
 When "downgrading" or simplifying:

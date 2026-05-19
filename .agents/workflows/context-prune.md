@@ -7,7 +7,7 @@ description: Surgical eviction of stale context, logs, and memory bloat to preve
 This workflow prevents context window exhaustion on long-running projects by surgically compressing, archiving, and evicting stale information.
 
 > [!IMPORTANT]
-> Run this workflow when `MEMORY.md` exceeds 200 lines, or when more than 5 completed tasks exist in `workflows/tasks/`.
+> Run this workflow when memory files (`MEMORY.md`, `CLAUDE.md`) exceed 200 lines, or when more than 5 completed tasks exist in `workflows/tasks/`.
 
 ## 0. PRE-FLIGHT
 - [ ] Verify Binary Oratory compliance via `rules/core-guardrails.md`.
@@ -17,7 +17,7 @@ This workflow prevents context window exhaustion on long-running projects by sur
 ---
 
 ## 1. MEMORY COMPRESSION
-- [ ] **Read** `context/00_Strategy/MEMORY.md`.
+- [ ] **Read** `MEMORY.md` and/or `CLAUDE.md`.
 - [ ] **Identify Stale Entries**: Any implementation log entry older than 2 sprints or marked `[DONE]` is a candidate.
 - [ ] **Compress**: Replace verbose implementation logs with a single-line summary per entry.
   - *Before*: 15 lines describing step-by-step how auth was implemented.
@@ -28,10 +28,11 @@ This workflow prevents context window exhaustion on long-running projects by sur
 
 ## 2. TASK ARCHIVAL
 - [ ] **Scan** `workflows/tasks/` for files with `Status: DONE` or `Status: CANCELLED`.
-  - // turbo
-  ```
+- [ ] **Archive**: Append the core details of these tasks into a single `workflows/tasks/ARCHIVE.md` file using the format:
+  ```markdown
   - [task-id] | [date] | [objective summary] | [outcome: DONE/CANCELLED]
   ```
+- [ ] **Delete**: Delete the original completed/cancelled task files to clean up the directory.
 
 ---
 
@@ -45,6 +46,7 @@ This workflow prevents context window exhaustion on long-running projects by sur
 ---
 
 ## 4. SESSION HANDOFF RESET
+- [ ] **Generate Handoff**: Create or update `HANDOFF.md` (or the equivalent context file) with a concise state summary containing only:
   1. Current atomic task status (max 3 active items)
   2. Next-step directives
   3. Critical blockers (if any)
@@ -58,4 +60,4 @@ This workflow prevents context window exhaustion on long-running projects by sur
 ---
 
 > [!TIP]
-> Schedule this workflow after every 3rd `/verify-loop` run, or whenever the AI reports slow context loading times.
+> Schedule this workflow after every 3rd `/strict-tdd` or `/app-builder` run, or whenever the AI reports slow context loading times.

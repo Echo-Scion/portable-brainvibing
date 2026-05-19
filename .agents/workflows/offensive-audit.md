@@ -20,13 +20,13 @@ You MUST NOT skip ahead. You MUST follow this exact lifecycle for EVERY Phase:
 
 When auditing, you MUST actively try to break the code using these specific scenarios:
 
-* **Temporal Simulation (T=0s, T=15s, T=30s) & Collisions:** Simulate split-second collisions between components (e.g., Discovery and PnL Watcher). Example: T=0s price drops to SL limit (`daemon.py` triggers), T=15s Cron LLM wakes up and reads stale state, T=30s daemon wakes up to confirm close.
-* **Precision Truncation / Sub-Penny:** Check for division by zero in Yield Arbitrage math. What if a meme token trades at $0.00000012? Does `round(price, 4)` collapse the price to $0.0000 and cause Zero Division?
-* **Systemic Failure Cascades / API Rate Limits:** Check if 429 errors block the entire event loop. What if Telegram API returns `Retry-After: 3600`? Does the entire thread hang for an hour? What if Pandas Dataframes are not garbage collected (`gc.collect()`), causing an OOM kill?
-* **Orphaned Promises:** Hunt for floating Promises in background loops.
-* **NaN Poisoning:** What if a coin is only 2 hours old? Does a 100-candle rolling window return NaN, poisoning the perceptron math?
-* **Leverage Type Coercion:** What if CCXT returns leverage as a string "10"? Does the math concatenate strings instead of multiplying?
-* **Funding Rate Inversion:** If funding flips from massive positive to negative instantly, does the hedging logic break?
+* **Temporal Simulation (T=0s, T=15s, T=30s) & Collisions:** Simulate split-second collisions between components (e.g., Webhook listeners and DB Sync). Example: T=0s user deletes account, T=15s scheduled cron attempts to read user data, T=30s cache invalidates.
+* **Precision Truncation / Edge Maths:** Check for division by zero or precision loss in analytics/pricing math. What if a floating-point calculation drops sub-decimals or divides by zero?
+* **Systemic Failure Cascades / API Rate Limits:** Check if 429 errors block the entire event loop. What if a 3rd-party API returns `Retry-After: 3600`? Does the entire thread hang for an hour? What if large JSON payloads are not garbage collected, causing an OOM kill?
+* **Orphaned Promises:** Hunt for floating Promises or unawaited async calls in background loops that swallow errors silently.
+* **Data Poisoning / Malformed Inputs:** What if a user submits a massive payload or an unexpected array? Does an edge case return `NaN` or `null`, poisoning downstream logic?
+* **Type Coercion:** What if an external API returns a number as a string `"10"`? Does the math concatenate strings instead of multiplying?
+* **State Inversion / Race Conditions:** If boolean states flip instantly (e.g., active -> suspended -> active), does the state management or hedging logic break?
 
 ## 3. Audit Checklists
 

@@ -41,7 +41,7 @@ def generate_fractal_shorthand():
             handoff = f.read()
             
         if "# FRACTAL SHORTHAND" in handoff:
-            new_handoff = re.sub(r'(?<=# FRACTAL SHORTHAND\n).*?(?=\n\n)', shorthand, handoff, flags=re.DOTALL)
+            new_handoff = re.sub(r'(# FRACTAL SHORTHAND\r?\n).*?(?=\n\n)', r'\1' + shorthand, handoff, flags=re.DOTALL)
         else:
             new_handoff = f"# FRACTAL SHORTHAND\n{shorthand}\n\n" + handoff
             

@@ -9,6 +9,8 @@ description: >
 
 # Caveman Compress
 
+**Disambiguation (Cost/Token Optimization)**: Use `caveman-compress` for compressing memory files. For real-time chat output compression, use `caveman`. For infrastructure-level model routing and token economy, use `cost-optimizer`.
+
 ## Purpose
 
 Compress natural language files (CLAUDE.md, todos, preferences) into caveman-speak to reduce input tokens. Compressed version overwrites original. Human-readable backup saved as `<filename>.original.md`.
@@ -23,7 +25,7 @@ Compress natural language files (CLAUDE.md, todos, preferences) into caveman-spe
 
 2. Run:
 
-python3 -m .agents.skills.caveman-compress.scripts <absolute_filepath>
+python .agents/skills/caveman-compress/scripts/cli.py <absolute_filepath>
 
 3. The CLI will:
 - detect file type (no tokens)

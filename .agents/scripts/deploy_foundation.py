@@ -2,6 +2,7 @@
 # requires-python = ">=3.10"
 # dependencies = []
 # ///
+from __future__ import annotations
 import os
 import shutil
 import subprocess
@@ -26,27 +27,7 @@ AI_CONFIGS = {
         "format": "markdown",
         "merge_strategy": "marker"
     },
-    "cursor": {
-        "template": "CURSORRULES.template",
-        "target_path": ".cursorrules",
-        "target_dir": "",  # Root
-        "format": "rules",
-        "merge_strategy": "marker"
-    },
-    "windsurf": {
-        "template": "WINDSURFRULES.template",
-        "target_path": ".windsurfrules",
-        "target_dir": "",  # Root
-        "format": "rules",
-        "merge_strategy": "marker"
-    },
-    "cline": {
-        "template": "CLINERULES.template",
-        "target_path": ".clinerules",
-        "target_dir": "",  # Root
-        "format": "rules",
-        "merge_strategy": "marker"
-    },
+
     "claude": {
         "template": "CLAUDE.template.md",
         "target_path": "CLAUDE.md",
@@ -512,6 +493,9 @@ def deploy(source_root: str, target_root: str, selected_ais: list = None, dry_ru
         sync_discovery_script = os.path.join(scripts_dir, "sync_ai_configs.py")
         if os.path.exists(sync_discovery_script):
             print("\n🎯 Running sync_ai_configs.py...")
+            # NOTE: Automatically executing downstream scripts during deployment is disabled 
+            # by default to prevent unwanted side-effects on the target project's local workspace.
+            # If a full configuration sync is required, run sync_ai_configs.py explicitly.
             # subprocess.run([sys.executable, sync_discovery_script], cwd=target_root)
 
     print(f"\n✅ Deployment finished{' (SIMULATED)' if dry_run else ''}.")

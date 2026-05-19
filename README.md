@@ -177,7 +177,7 @@ A: Run `@meta-agent-admin` and navigate to the `system-admin` reference file. It
 A: No. The system only reads what you explicitly provide to the AI agent. Source code scanning is opt-in via the `grep_search` or `semantic_search` tools.
 
 **Q: Can I remove skills I don't use?**
-A: Yes. Delete the skill folder and run `python .agents/scripts/update_catalog.py`. The system will update the index.
+A: Yes. Delete the skill folder and run `python .agents/scripts/verify_agents.py`. The system will update the index.
 
 **Q: What's the token overhead of using this infrastructure?**
 A: ~2-5% per session (depends on skill count active). Token Shield and Vibecode Limit mechanisms keep this minimal.

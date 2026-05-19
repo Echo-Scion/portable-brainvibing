@@ -1,6 +1,9 @@
 ---
 description: Mandatory pre-flight search protocol using QMD to retrieve historical context and architectural documentation.
 activation: always on
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 # QMD Search Protocol (The Context Locator)
 

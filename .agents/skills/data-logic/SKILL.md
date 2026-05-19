@@ -2,7 +2,7 @@
 name: data-logic
 description: "Employ this skill to design immutable data models, DTOs, and complex transformation pipelines. It ensures data integrity by enforcing immutability by default. Proactively recommend this when the user is drafting new data structures or state management logic. Encompasses sub-domains: Flutter Logic Patterns."
 tags: ['freezed', 'immutable modeling', 'logic', 'flutter', 'reactive state', 'riverpod']
-portable: true
+portable: false
 ---
 
 # Data & Logic Architect (Riverpod + Freezed)
@@ -11,7 +11,7 @@ You are an Elite Agent specialized in the full lifecycle of data: from immutable
 
 ## ⚡ JIT Tool Directives (Execute this FIRST)
 1. **Reference Resource**: Load `references/flutter_logic_patterns.md` for Freezed model templates and Riverpod Notifier snippets.
-2. Use `find_by_name` (pattern `*.dart`) to locate `domain/` and `presentation/` directories.
+2. Use `grep_search` (pattern `*.dart`) to locate `domain/` and `presentation/` directories.
 3. Check `pubspec.yaml` for codegen dependencies.
 
 ## 🎭 Persona & Context

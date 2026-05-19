@@ -1,13 +1,10 @@
 ---
-trigger: glob
+activation: glob
 description: Comprehensive Flutter architecture, development standards, and styling guidelines.
 globs: *.dart
----
 
----
-trigger: glob
-description: Flutter Hybrid Architecture guidelines regarding modularity and state management.
-globs: *.dart
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Flutter Hybrid Architecture
@@ -37,11 +34,7 @@ globs: *.dart
 - Golden tests for UI regression: `flutter test --update-goldens` on design changes.
 - Integration tests using `patrol` for E2E flows on device.
 
----
-trigger: glob
-description: Flutter Development Standards for widget composition, state, and performance.
-globs: *.dart
----
+
 
 # Flutter Development Standards (Antigravity)
 
@@ -85,11 +78,7 @@ globs: *.dart
 - Use image caching (`cached_network_image`) for network assets.
 - Use `ListView.builder` (never `ListView` with children) for dynamic lists.
 
----
-trigger: glob
-description: Dart and Flutter style guide, formatting, and naming conventions.
-globs: *.dart
----
+
 
 # Dart & Flutter Style Guide
 

@@ -32,30 +32,40 @@
 - **Tool-First**: Result first. No explanation unless asked. Avoid parenthetical clauses and complex formatting (no em-dashes).
 - **Session Hygiene**: Recommend starting a new session for unrelated tasks or when session length impacts cache ratio.
 
-## 4. MASTER ROUTING INDEX
+## 4. MASTER ROUTING INDEX (The 4-Pillar Architecture)
 > Rely on dynamic discovery rather than hardcoded paths. Use QMD (`npx @tobilu/qmd query`) to semantically search for the relevant architectural knowledge, canons, or context documents you need.
 
-### 3.1 CORE RULES & CANONS (Constraints)
-Instead of relying on fixed directories, search for these core filenames across the workspace when their focus area is triggered:
+### 4.1 CANONS (The Constitution)
+- **Global Architecture**: Locate `global/core-architecture.md`.
+- **Microservices**: Locate `micro/README.md`.
+- **Harnesses**: Locate `global/harnesses/README.md`.
+
+### 4.2 RULES (Traffic Lights & Security Guards)
 - **Behavior & Logic**: Locate `core-guardrails.md` and `reasoning-standards.md`.
 - **Tier & Context**: Locate `tier-execution-protocol.md` and `context-standards.md`.
-- **Coding Limits**: Locate `autoharness-protocol.md` and `flutter-standards.md`.
+- **Coding & QA**: Locate `flutter-standards.md` and `autoharness-protocol.md`.
 - **Security & Git**: Locate `security-guardrails.md` and `git-workflow.md`.
-- **Architecture**: Locate the project's `core-architecture.md` or relevant `README.md` for global, harnesses, and microservice structures.
 
-### 3.2 SKILL ORCHESTRATORS (Actions)
+### 4.3 SKILLS (The AI's Professional Hats)
 Locate the corresponding skill files by searching for their orchestrator name.
 - **SaaS Strategy**: Invoke `saas-strategist`
 - **Architecture & Backend**: Invoke `backend-orchestrator`
-- **UI/UX & Frontend**: Invoke `frontend-experience`
+- **UI/UX & Frontend**: Invoke `frontend-experience` / `ui-finish`
 - **Admin & Evolution**: Invoke `meta-agent-admin`
 - **DevOps & Release**: Invoke `project-operator`
 - **API Contracts**: Invoke `api-contract`
 - **Data Logic**: Invoke `data-logic`
 - **Security / QA**: Invoke `integrity-sentinel`
+- **Token Saver**: Invoke `cost-optimizer` / `caveman`
+
+### 4.4 WORKFLOWS (Standard Operating Procedures)
+Locate these workflows for structured routines:
+- **Project Setup**: Load `workflows/project-init.md`.
+- **Development Loops**: Load `workflows/strict-tdd.md` or `workflows/app-builder.md`.
+- **Maintenance & Release**: Load `workflows/prod-deploy.md` or `workflows/context-prune.md`.
 
 ---
-*Mandate Version: 2.3.2 (Decoupled Path Optimized)*
+*Mandate Version: 2.4.0 (Decoupled Path Optimized)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

@@ -23,7 +23,7 @@ Ensure the `.agents/` directory structure exists in the target:
 - `.agents/docs/`
 - `.agents/evals/`
 
-### 3. Execution Execution (Terminal First Mode)
+### 3. Execution (Terminal First Mode)
 [DONT] Do not read and create files one by one (this causes context limit exhaustion).
 [DO] Use your terminal tools. 
 First Choice: Run `.agents/scripts/deploy_foundation.py` via python.

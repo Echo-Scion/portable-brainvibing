@@ -1,11 +1,9 @@
 ---
 description: Unified standards for analytical rigor, reasoning depth per tier, and internal validation (Adversarial Twin).
-trigger: model_decision
----
+activation: model_decision
 
----
-trigger: model_decision
-description: Standards for analytical rigor and evidence-based decision making.
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Analytical Standards
@@ -17,7 +15,7 @@ description: Standards for analytical rigor and evidence-based decision making.
 ## 2. Causal Enforcement (The "No-Fix" Policy)
 - **Iron Law**: No code modifications are permitted until the root cause of an issue is isolated and a hypothesis is verified.
 - **Protocol**: If a bug is reported, the agent MUST first demonstrate the failure (via test or reproduction script) and trace the data flow before proposing a fix.
-- **Circuit Breaker**: If three consecutive fix attempts fail, the agent MUST stop and return to the research phase to re-evaluate the core hypothesis.
+- **Circuit Breaker**: See `.agents/rules/core-guardrails.md` Section 4 for failure thresholds.
 
 ## 3. Value-Density Analysis (Scope Guard)
 - **MVC Principle**: Prioritize Minimum Viable Complexity. Always seek the simplest implementation that fulfills the core requirement.
@@ -35,13 +33,10 @@ When auditing or designing a system, apply these lenses:
 4. **What adversary could exploit this?** (Threat modeling)
 5. **Does intent match behavior?** (Verify the system does what the docs claim)
 
-## 3. Anti-Halucination Guard
+## 5. Anti-Hallucination Guard
 - Never invent file contents. If a file has not been read via `view_file`, assume its contents are unknown.
 - Never assume library APIs. If unsure, use Context7 or pub.dev search first.
 
----
-description: Mandated reasoning depth and sequential thinking protocol per task tier.
-activation: model decision
 ---
 # Reasoning Protocols
 
@@ -82,9 +77,6 @@ Missing this block means reasoning is not auditable.
 
 
 ---
-description: Protocol for internal validation using a dual-agent structure (Builder vs. Breaker).
-activation: mandatory for STANDARD and PREMIUM tiers; exempt for BUDGET (atomic scope too narrow to warrant a Breaker pass)
----
 
 # Adversarial Twin Protocol
 
@@ -101,7 +93,7 @@ When a task is implemented but not yet verified:
    - Does this violate any architectural boundaries (e.g., UI directly calling DB)?
 4. **Dynamic Harness Generation**: For the chosen attack vector, the Breaker must formulate a failing condition (or pseudo-unit test) using principles from `autoharness-protocol.md`.
 5. **Synthesis & Loop**: The Builder must then modify the original code until the Breaker's attack is neutralized.
-6. **Auto-Abort (Post-Execution Circuit Breaker)**: If during this Synthesis phase the fix continues to fail to satisfy the *Breaker* after **3 consecutive attempts** (due to the limitations of a *Small Model*), the agent **MUST AUTO-ABORT**. Output the message `[CIRCUIT BREAKER: 3X FAIL - TASK TOO HEAVY. PLEASE SWITCH TO A PREMIUM MODEL AND CONTINUE FROM THIS POINT]`. Do not attempt to guess (hallucinate) further.
+6. **Auto-Abort (Post-Execution Circuit Breaker)**: See `.agents/rules/core-guardrails.md` Section 4 for the 3X Fail auto-abort protocol.
 
 *Never blindly trust the first draft of the code. Always let the Twin attack it first.*
 

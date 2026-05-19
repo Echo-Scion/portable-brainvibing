@@ -22,7 +22,7 @@ PILLAR_MASTERS: Dict[str, str] = {
 # Transitional compatibility: these are still used by active workflows/docs.
 TRANSITIONAL_ALLOWED: Dict[str, Set[str]] = {
     "00_Strategy": {"MEMORY.md"},
-    "01_Product": {"PRD.md", "SNIPER_STRATEGY.md", "Scionlog_Nextra_Scoring_Blueprint.md"},
+    "01_Product": {"PRD.md"},
     "02_Creative": set(),
     "03_Tech": set(),
 }

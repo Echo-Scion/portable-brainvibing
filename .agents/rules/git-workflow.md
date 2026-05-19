@@ -1,6 +1,9 @@
 ---
-trigger: model_decision
+activation: model_decision
 description: Standardized Git workflow, commit messages, and branching strategy.
+
+version: 2.4.0
+last_updated: 2026-05-20
 ---
 
 # Git Workflow & Conventional Commits
