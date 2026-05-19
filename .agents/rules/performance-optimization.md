@@ -34,3 +34,6 @@ Optimizing cost and speed without sacrificing quality:
 
 ## 5. Tooling & MCP Awareness
 - **Pre-Flight Check**: Verify the status of active MCP servers (Dart, Supabase, GitHub, etc.). If a required server is missing, notify the USER before taking technical action.
+## 6. Structural Mapping & Audit
+- **Skeleton Map First**: Before beginning broad refactors or when exploring new, unfamiliar directories, you MUST execute `python .agents/scripts/code_map.py --dir <target_directory>`. This generates a lightweight, structural skeleton of classes and functions, saving thousands of tokens compared to reading full files.
+- **Ghost Token Defense**: If the AI feels that context is becoming diluted or responses are sluggish, execute `python .agents/scripts/token_audit.py`. This script identifies "ghost tokens" (files exceeding acceptable length limits). Any file flagged by this audit must be slated for immediate modularization to preserve the context window.

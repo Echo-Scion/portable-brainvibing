@@ -573,22 +573,4 @@ Available AIs: gemini, copilot, cursor, windsurf, cline, claude
     deploy(source, args.target, selected_ais=selected_ais, dry_run=args.dry_run)
 
 if __name__ == "__main__":
-    main()ir = os.path.dirname(os.path.abspath(__file__))
-        source = os.path.abspath(os.path.join(script_dir, "..", ".."))
-    
-    # Parse AI selection
-    if args.ai.lower() == "all":
-        selected_ais = list(AI_CONFIGS.keys())
-    else:
-        selected_ais = [ai.strip().lower() for ai in args.ai.split(",")]
-        # Validate AI names
-        invalid = [ai for ai in selected_ais if ai not in AI_CONFIGS]
-        if invalid:
-            print(f"❌ Error: Unknown AI(s): {', '.join(invalid)}")
-            print(f"Available: {', '.join(AI_CONFIGS.keys())}")
-            sys.exit(1)
-
-    deploy(source, args.target, selected_ais=selected_ais, dry_run=args.dry_run)
-
-if __name__ == "__main__":
     main()
