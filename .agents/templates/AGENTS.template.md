@@ -37,6 +37,7 @@ You MUST trigger `view_file` on the specific skill/workflow ONLY IF the user's p
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
 | **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
 | **Frontend UI, Layout, Flutter, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/global/liquid-glass-widgets.md` |
+| **Web/React UX, Accessibility, ARIA, Micro-Interactions**| `.agents/skills/palette/SKILL.md` |
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/global/flutter-tests.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
 | **API Contracts, Zod, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |

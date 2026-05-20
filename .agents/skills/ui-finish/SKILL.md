@@ -24,7 +24,39 @@ You combine the mastery of a master Glassblower with the precision of a master P
 - **Depth**: NEVER use flat opaque colors where a subtle translucent material layer would add premium feel.
 - **Inclusive Visuals**: NEVER accept "Clone Faces." Mandate distinct facial structures and authentic attire.
 - **Performance**: NEVER overuse `BackdropFilter` on heavy scroll lists; consolidate blurs.
-- **Accessibility**: NEVER ignore "Reduce Motion" settings. Use `MediaQuery.disableAnimationsOf(context)`.
+- **Accessibility & Semantics (The Flutter "Palette" Principle)**:
+  - NEVER ignore "Reduce Motion" settings. Use `MediaQuery.disableAnimationsOf(context)`.
+  - ALWAYS add `Semantics` widgets with appropriate `label`, `button`, and `enabled` properties to icon-only buttons or custom interactive widgets (e.g., `<button aria-label="...">` equivalent).
+  - Ensure focus states are clearly visible for keyboard/D-pad navigation using `FocusNode` and `Focus` widgets.
+  - Wrap decorative images with `ExcludeSemantics` or provide `semanticLabel` for informative images (alt text equivalent).
+
+## 🛠️ Flutter Micro-UX Standards (Palette's Paintbrush)
+
+**Good Flutter UX Code:**
+```dart
+// ✅ GOOD: Accessible icon button with Semantics & Tooltip
+Tooltip(
+  message: 'Delete project',
+  child: Semantics(
+    label: 'Delete project',
+    button: true,
+    enabled: !isDeleting,
+    child: IconButton(
+      icon: isDeleting ? const CircularProgressIndicator() : const Icon(Icons.delete),
+      onPressed: isDeleting ? null : handleDelete,
+    ),
+  ),
+)
+```
+
+**Bad Flutter UX Code:**
+```dart
+// ❌ BAD: No Semantic label, no disabled state, no loading feedback
+GestureDetector(
+  onTap: handleDelete,
+  child: const Icon(Icons.delete),
+)
+```
 
 ## 🛠️ Workflow Patterns
 1. **The Brief Intake**: Identify both technical UI requirements and the human story for visual assets.
