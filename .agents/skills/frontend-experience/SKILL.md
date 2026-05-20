@@ -32,3 +32,13 @@ Widget build(BuildContext context, WidgetRef ref) {
 ```
 
 If you submit a PR or code snippet that only handles the `data` state, you have failed.
+
+## Micro-UX & Form Interaction Standards (The "Palette" Extension)
+When auditing interactions, ensure that the user experience is smooth and informative.
+
+**Mandatory UX Checks:**
+- **Actionable Error Clarity:** `ErrorDisplayWidget` must not show raw stack traces to the user. Provide actionable steps (e.g., "Network error. Tap to retry.")
+- **Disabled States & Explanations:** If a submit button is disabled due to invalid form data or an active async process, visually indicate the disabled state.
+- **Form Validation & Inline Feedback:** Inputs should clearly display validation errors beneath them (e.g., `errorText` on `InputDecoration`). Ensure "required" indicators are present.
+- **Destructive Actions:** Ensure destructive actions (e.g., Delete, Remove) have a confirmation dialog (`showDialog`) to prevent accidental data loss.
+- **Success/Error Notifications:** Trigger appropriate `SnackBar` or Toast notifications after form submissions or critical operations.
