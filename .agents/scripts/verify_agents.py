@@ -43,7 +43,8 @@ def get_folder_hashes(folder_path: str) -> Dict[str, str]:
     Computes MD5 hashes for all files in a folder, normalized for CRLF to prevent sync false positives.
     """
     hashes = {}
-    for root, _, files in os.walk(folder_path):
+    for root, dirs, files in os.walk(folder_path):
+        dirs[:] = [d for d in dirs if not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
         for f in files:
             if f.endswith(('.md', '.json', 'SKILL.md')):
                 full_path = os.path.join(root, f)
@@ -60,9 +61,8 @@ def get_folder_hashes(folder_path: str) -> Dict[str, str]:
 
 
 def iter_files(base_dir: str, extensions: Tuple[str, ...]) -> Iterable[str]:
-    for root, _, files in os.walk(base_dir):
-        if any(marker in root for marker in EXCLUDED_PATH_MARKERS):
-            continue
+    for root, dirs, files in os.walk(base_dir):
+        dirs[:] = [d for d in dirs if not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
         for file_name in files:
             if file_name.endswith(extensions):
                 yield os.path.join(root, file_name)
