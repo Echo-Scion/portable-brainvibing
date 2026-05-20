@@ -1,2 +1,9 @@
 # LLM Wiki local state and temporary index
 /.wiki/
+
+# Session and AI Memory Logs
+HANDOFF.md
+session_handoff.md
+.agents/LEARNINGS.md
+.copilot-memory.md
+
