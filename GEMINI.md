@@ -44,7 +44,6 @@ You MUST trigger `view_file` on the specific skill/workflow ONLY IF the user's p
 - Do not mark the task as complete unless the script returns a PASS.
 
 ---
-*Mandate Version: 3.0.0 (Active Router Pattern)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

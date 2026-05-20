@@ -1,33 +1,61 @@
 ---
 activation: glob
-description: Web Development Standards for frontend excellence, API safety, and Node.js logic.
-globs: *.ts, *.html, *.css
+description: Concrete Web Development Standards: Zod, ESLint, CSP, and Component States.
+globs: *.ts, *.tsx, *.js, *.jsx, *.html, *.css
 
-version: 2.4.0
+version: 3.0.0
 last_updated: 2026-05-20
 ---
 
 # Web Development Standards (Antigravity)
 
-## 1. Backend & API (The "Defensive Shell" Principle)
-- **Safety Gate**: Use `zod` or equivalent for strict input validation and schema parsing. Never trust raw request bodies.
-- **Service Layer Pattern**: Decouple logic from Express/FastAPI routes. Use dedicated Service classes/functions for business logic.
-- **Atomic Database Operations**: Use transactions for multi-step database writes to prevent partial data state.
-- **API Documentation**: Provide comprehensive documentation for all endpoints (OpenAPI/Swagger).
+## 1. Security (Concrete Implementation)
 
-## 2. Frontend (The "Component Harmony" Principle)
-- **Premium Craftsmanship**: Every layout and architecture choice must be intentional. Avoid basic boilerplate; use professional patterns (e.g., compound components, render props).
-- **Visual State Mapping**: Every component MUST account for and implement all states: Loading, Empty, Success, and Error.
-- **Accessibility (A11y)**: All code MUST be compliant with WCAG 2.1 AA standards. Use semantic HTML, ARIA attributes, and ensure full keyboard navigation support.
-- **Type Safety**: Mandatory TypeScript for all React/Angular components.
-- **Atomic UI Components**: Keep components small (<150 lines) and focused on a single responsibility.
+### Content Security Policy (CSP)
+You MUST include a CSP header in the web server response or `<meta>` tag in HTML.
+**Pattern:**
+```html
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://trusted.cdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;">
+```
 
-## 3. Performance & Security
-- **Optimization**: Target initial load times under 1.5 seconds. Implement lazy loading for routes and heavy visual assets.
-- **Static Analysis**: Enforce strict ESLint/Prettier rules before every commit.
-- **Token Hygiene**: Use HttpOnly/Secure cookies for JWT storage. Never store secrets in `localStorage`.
-- **Vulnerability Protection**: Protect against common web vulnerabilities (XSS, CSRF, SQL Injection).
+### XSS Protection
+Never use `dangerouslySetInnerHTML` in React or `innerHTML` in Vanilla JS without sanitizing first.
+**Pattern:**
+```javascript
+// DO:
+element.textContent = userInput;
+// DONT:
+element.innerHTML = userInput; // XSS Vector
+```
 
-## 4. Dependency Management
-- **Audit**: Regularly update libraries to include latest security fixes and audit performance impact.
-- **Pruning**: Avoid over-reliance on large, monolithic frameworks; prefer modular, tree-shakable libraries.
+## 2. Component Harmony (The 4-State Map)
+
+Every UI component that fetches data MUST explicitly handle these 4 states. Do not write the success path only.
+
+```tsx
+// MANDATORY 4-STATE PATTERN
+function UserProfile({ userId }) {
+  const { data, isLoading, error } = useUserData(userId);
+
+  // State 1: Loading
+  if (isLoading) return <SkeletonLoader />;
+  
+  // State 2: Error
+  if (error) return <ErrorMessage message={error.message} />;
+  
+  // State 3: Empty
+  if (!data) return <EmptyState icon="user" text="User not found" />;
+  
+  // State 4: Success
+  return <ProfileCard user={data} />;
+}
+```
+
+## 3. Static Analysis (ESLint)
+Ensure strict typing and linting. Always fix lint errors before committing.
+If lint rules are missing, enforce this baseline:
+- `@typescript-eslint/no-explicit-any`: `error`
+- `react-hooks/exhaustive-deps`: `error`
+
+## 4. API Safety (Zod)
+See `api-connector-protocols.md` for the mandatory Zod schema validation pattern for all incoming request payloads.

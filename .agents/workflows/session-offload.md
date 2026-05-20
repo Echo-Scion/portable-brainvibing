@@ -1,43 +1,43 @@
 ---
-description: Mandatory checklist for ending a session smoothly. Triggers LEARNINGS updates, precise handoff state collection, and memory compression.
+description: Mandatory checklist for ending a session smoothly. Collects precise handoff state.
 ---
 # /session-offload
 
-This workflow is the **strict, mandatory shutdown sequence** for all AI agents finishing a session. It is designed to prevent "cold starts" and memory bloat.
+This workflow is the strict shutdown sequence for all AI agents finishing a session.
 
-You MUST execute the following steps precisely:
+## 1. Worktree Cleanup & Commit
+If you have uncommitted changes, you MUST commit them before generating the handoff.
+```bash
+git add .
+git commit -m "chore: session offload state save"
+```
 
-## 1. Post-Mortem & Insight Reflection
-> **Action**: Reflect on the current session. Did you encounter any profound bugs, systemic failures, or design constraints that future agents must know?
-> ```markdown
-> > **[DATE]** | **[TASK_ID/ISSUE]** | **[TIER]**
-> > - **Issue**: Brief description of the complexity.
-> > - **Root Cause**: The foundational reason for the failure.
-> > - **Solution**: The specific pattern or fix that worked.
-> > - **Debt/Warning**: Future considerations or brittle areas discovered.
-> ```
-> **No?** Proceed to Step 2. Do NOT hallucinate trivial learnings.
-
-## 2. Generate Precise Handoff State
-> **Action**: Read `.agents/templates/SESSION_HANDOFF.template.md`. 
-> **MANDATE**: You must fill out EVERY field with high fidelity context. Do not use placeholders.
-> - **Resume Point**: Exactly what the next agent should do first.
-> - **Technical State**: Which files were actively being edited.
-> - **Anti-Goals**: What the next agent should NOT do.
-
-## 3. Worktree Cleanup & Merge Check (If Applicable)
-> **Action**: If you are operating inside an isolated git worktree branch (not `main`), you MUST handle cleanup before closing the session.
-> 1. Check `git status` for uncommitted changes. If any, commit them (`git add . && git commit -m "chore: session offload commit"`).
-> 2. Execute merge sequence: `git checkout main`, `git merge <branch>`, `git worktree remove <path>`.
-> 3. If conflict occurs during merge, ABORT automation immediately. Present conflict diff to user. Wait for manual resolution or explicit override. NEVER force-overwrite.
-
-## 4. Atomic Memory Compression (Optional but Recommended)
-> **Action**: Run the memory compression tool. 
-> Execute the following terminal command (do NOT ask for permission unless the user prompt demands it):
+## 2. Atomic Memory Compression
+Run the compression tool to prevent token bloat for the next session:
 ```bash
 python .agents/scripts/compress_memory.py
 ```
 
-## 5. Formal Closure
-> **Action**: Output a final response to the user confirming:
-> 1. Give a 1-sentence summary of the next task the user (or new AI) should initiate later.
+## 3. Generate Precise Handoff State (MANDATORY FORMAT)
+Output this exact markdown block for the user to copy/paste, or save it to `HANDOFF.md`. Do not leave fields empty.
+
+```markdown
+# SESSION HANDOFF
+
+## 1. Resume Point
+[Exactly what the next agent should do first. Provide exact file paths.]
+
+## 2. Technical State
+- **Active Files**: [List the 1-3 files actively being edited]
+- **Current Blocker**: [Any unresolved errors or pending test results]
+- **Pending Migrations**: [Any unapplied SQL changes?]
+
+## 3. Anti-Goals
+- [What the next agent should NOT do or attempt to change]
+
+## 4. Post-Mortem Insights
+- [Any brittle architectural areas discovered during this session]
+```
+
+## 4. Formal Closure
+Give a 1-sentence summary of the task completion and confirm that `HANDOFF.md` is ready.

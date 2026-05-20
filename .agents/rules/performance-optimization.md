@@ -1,38 +1,54 @@
 ---
 activation: model_decision
-description: Guidelines for optimizing application performance and context token usage.
+description: Decision trees for performance optimization and context token usage.
 
-version: 2.4.0
+version: 3.0.0
 last_updated: 2026-05-20
 ---
 
-# Performance & LLM Model Tiers (The Lean Protocol)
+# Performance & LLM Token Optimization
 
-## 1. The Lean Protocol (Efficiency Standards)
-- **Telegraphic Mandate**: For routine tasks (boilerplate, styling, fixes), skip long narrative explanations. Perform `replace` or `write_file` as soon as the strategy is understood. See `.agents/rules/caveman-activate.md`.
-- **Dynamic Context Ingestion (QMD-First)**:
-    - **L0 (Semantic Index)**: See `.agents/rules/qmd-search-protocol.md` for mandatory QMD usage.
-    - **L1 (Surgical Read)**: Use `grep_search` with `context: 5` to read ONLY the relevant code block. Avoid full file reads unless refactoring the entire file.
-- **Command Output Optimization (The RTK Mandate)**:
-    - See `.agents/rules/antigravity-rtk-rules.md` for mandatory `rtk` proxy usage.
-- **Turn Minimization**: Prioritize parallel tool calls. Aim for **"One-Turn Execution"** for simple and clear directives. (Note: Parallel tool calls are NOT allowed under the BUDGET tier Bento-Box workflow).
+## 1. Code Modularity (The 500-Line Decision Tree)
 
-## 2. LLM Model Tiers (Experimental Routing)
-- See `.agents/rules/tier-execution-protocol.md` for official Tier definitions and routing rules.
+Context bloat kills AI capability. Use this decision tree when modifying files:
 
-## 3. Application Performance
-- **Caching**: Use Redis or local caching for frequently accessed, slow-changing data.
-- **Lazy Loading**: In Flutter, use `ListView.builder` for long lists.
-- **Tree Shaking**: Ensure unused dependencies are removed from production builds.
+```
+Q1. Does the file exceed 500 lines?
+    ├── YES -> MANDATORY REFACTOR. Proceed to Q2.
+    └── NO -> Safe to edit.
 
-## 4. Modularization & Context Integrity (Vibecode)
-- **Modularity over Line Counts**: Prioritize Single Responsibility Principle (SRP), but respect the AI token window.
-- **Vibecode Hard Cap (500 Lines)**: No single file should exceed 500 lines. This is a STRICT architectural boundary to prevent token overflow and context loss.
-- **Mandatory Splitting**: If a feature naturally pushes a file past 500 lines, you MUST pause feature development and refactor immediately (extract widgets, helper classes, or state logic to separate files).
-- **Optimization**: Extract private widgets, helper classes, or providers into separate files when they represent distinct sub-responsibilities. Use barrel exports (`export 'file.dart';`) to maintain a clean public API.
+Q2. How should the file be split?
+    ├── Is it a UI file? -> Extract sub-widgets (e.g., `_HeaderWidget`) into separate files in a `widgets/` folder.
+    ├── Is it logic + UI? -> Extract logic into a controller/provider file.
+    └── Is it a mega-service? -> Split by domain (e.g., `AuthService`, `UserService`).
+```
 
-## 5. Tooling & MCP Awareness
-- **Pre-Flight Check**: Verify the status of active MCP servers (Dart, Supabase, GitHub, etc.). If a required server is missing, notify the USER before taking technical action.
-## 6. Structural Mapping & Audit
-- **Skeleton Map First**: Before beginning broad refactors or when exploring new, unfamiliar directories, you MUST execute `python .agents/scripts/code_map.py --dir <target_directory>`. This generates a lightweight, structural skeleton of classes and functions, saving thousands of tokens compared to reading full files.
-- **Ghost Token Defense**: If the AI feels that context is becoming diluted or responses are sluggish, execute `python .agents/scripts/token_audit.py`. This script identifies "ghost tokens" (files exceeding acceptable length limits). Any file flagged by this audit must be slated for immediate modularization to preserve the context window.
+*Actionable Command*: Run `python .agents/scripts/token_audit.py` to identify ghost tokens.
+
+## 2. Application Performance Decision Tree
+
+Before adding complexity for "performance", consult this tree:
+
+```
+Q1. Is the UI list long or dynamic?
+    ├── YES -> MUST use lazy loading (`ListView.builder` in Flutter, `react-window` in Web).
+    └── NO -> Standard column/row is fine.
+
+Q2. Is the data fetching slow or repetitive?
+    ├── Does the data change < 1 time per minute? -> Implement Caching (Redis/In-memory).
+    ├── Does the data change constantly? -> Use WebSockets/Realtime.
+    └── Is it a single user lookup? -> Simple DB query is fine.
+```
+
+## 3. QMD Surgical Loading (Token Diet)
+
+Never read a full file to understand a codebase structure.
+
+**ALGORITHM:**
+1. **Map First**: Run `python .agents/scripts/code_map.py --dir <target>` to get AST/Skeleton.
+2. **Search Second**: Run `grep_search` to find the exact line numbers.
+3. **Surgical Read**: If `view_file` is needed, use `StartLine` and `EndLine` to read only the target 50-line block.
+
+## 4. One-Turn Execution (Turn Minimization)
+- Group independent tool calls into a single response (Parallel Tool Calling).
+- Do not ask for permission to run read-only tools (`list_dir`, `grep_search`). Just run them.

@@ -1,216 +1,138 @@
-# 🧠 Portable AI-Surgical Infrastructure (.agents)
+# Portable Brainvibing — AI-Surgical Infrastructure
 
-**"The Decoupled Outer-Brain for High-Fidelity Software Engineering"**
+> **v3.0.0 — Algorithmic Upgrade**
 
-![Status](https://img.shields.io/badge/Status-Stable-success?style=flat-square)
-![Stack](https://img.shields.io/badge/Stack-Flutter%20%7C%20Dart%20%7C%20Node.js-blueviolet?style=flat-square)
-![Context](https://img.shields.io/badge/Context-L0--L2%20Optimized-blue?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-
-> ⚡ **PRIMARY TARGET**: **Flutter** projects with **Antigravity IDE** (AI-native environment).  
-> **Secondary**: Node.js backends, cross-platform hybrid apps.  
-> **Not Recommended**: CLI-only projects, non-Dart ecosystems without MCP integration.
+A plug-and-play `.agents` ecosystem that turns any AI coding assistant into a **precision instrument** instead of a generic chatbot. Works with Gemini, Claude, Cursor, Windsurf, Copilot, and Cline.
 
 ---
 
-## 1. What This Is
+## The Problem
 
-This infrastructure is a specialized, plug-and-play intelligence layer designed to reside within your project as the `.agents` directory. It provides surgical architectural precision for **Flutter** and **Node.js** projects through:
+AI coding assistants ignore rules written as prohibitions ("Don't commit secrets"). They hallucinate syntax, skip error states, and forget instructions placed deep in secondary files. Generic "system prompts" do not change model behavior — they're cosmetic.
 
-* **Strict context management** — AI logic, rules, and skills are isolated from your source code for portability.
-* **Automated governance** — Identifies risks, expands documentation, and proposes industry-standard features during initialization.
-* **Specialized agent personas** — 11 dedicated AI skills (e.g., `backend-orchestrator`, `ui-finish`) ready for activation.
+## The Solution
 
-Built to the [AgentSkills.io](https://agentskills.io/) standard. **Native for Antigravity IDE** (AI-native development environments).
+This foundation replaces **prohibitions** with **algorithms**:
 
-> [!WARNING]
-> **State-of-the-Art / Experimental**: This infrastructure is 100% AI-engineered. While it represents the frontier of agentic workflows, its mechanics are currently being stress-tested in diverse production environments.
-
----
-
-## 2. Who This Is For
-
-This system is built for teams that need:
-* **Proactive Technical Consultants**: AI agents that don't just "write code" but identify risks and propose architecture *before* you ask.
-* **Portable Intelligence**: Your AI logic moves with your project, independent of framework changes.
-* **Surgical Evolution**: Project expansions that scale from "Lean" prototypes to full "Enterprise" structures while maintaining perfect architectural integrity.
+| Traditional Prompt | This Foundation |
+| :--- | :--- |
+| "Don't commit API keys" | `python secrets_scan_verifier.py` → `[PASS]` or `[FAIL]` with file:line |
+| "Act like an elite architect" | Mandatory 6-section Blueprint Template (fill it or task fails) |
+| "Be concise" | Caveman Protocol with 3 Before/After transformation examples |
+| "Use the right model" | Auto-Router Decision Tree that predicts the optimal model tier |
 
 ---
 
-## 3. Scope and Non-Goals
+## Quick Start
 
-### ✅ What This Does
-* Provides 11 core skill routers (backend, frontend, API, security, SaaS strategy, etc.).
-* Enforces binary execution gates (Binary Oratory) for safe filesystem mutations.
-* Integrates with MCP for Flutter widget inspection, Postgres schema management, and documentation ingestion.
-* Automatically promotes repetitive patterns into permanent rules.
-
-### ❌ What This Does NOT Do
-* Replace your source code or project structure.
-* Generate code without explicit user confirmation.
-* Override domain-specific project decisions.
-* Work outside AI-agent environments (CLI-only projects are not supported).
-
----
-
-## 4. Prerequisites
-
-**Required:**
-* **Antigravity IDE** or compatible AI-native environment (VS Code Copilot, Gemini CLI, or similar).
-* **RTK (Rust Token Killer)**: Install via `cargo install rtk-ai` or download binary to PATH. (Essential for terminal optimization).
-* **QMD**: Ensure Node.js is installed to run `npx @tobilu/qmd`. (Essential for semantic search).
-* **Flutter SDK ≥ 3.0** (primary target).
-* **Dart ≥ 3.0** (ships with Flutter).
-* **Python ≥ 3.9** (for `.agents/scripts/` utilities).
-* **Node.js ≥ 18** (for QMD and advanced scripting).
-* **Git** (recommended for rollbacks).
-
-**Optional but recommended:**
-* **Supabase/Postgres** (if using RLS rules from `integrity-sentinel`).
-
-**Not supported:**
-* CLI-only projects (no UI/widget context).
-* Non-Dart mobile frameworks (React Native, Kotlin).
-* Projects without an AI assistant integrated.
-
----
-
-## 5. Quick Start
-
-**The automation handles 95% of setup. You do 3 things:**
-
-#### Step 1: Copy & Deploy (30 seconds)
-Copy the `.agents` folder into your project's root directory. This folder contains all AI rules, skills, and workflows—no installation needed.
+### 1. Deploy to a New Project
 ```bash
-cp -r .agents /path/to/your/project/
-```
-You can also download from GitHub releases or extract online if preferred.
-
-#### Step 2: Trigger Auto-Init (2-5 minutes)
-In Antigravity IDE (or your AI chat), run:
-```
-run /project-init
-```
-The system scans your codebase and auto-configures.
-
-#### Step 3: Verify Skills Active (10 seconds)
-Type `@` in chat. You should see skills like `@backend-orchestrator`, `@ui-finish`, `@api-contract`.
-
-**Done.** Your `.agents` infrastructure is live.
-
-### Cognitive Decoupling
-AI logic, rules, and skills are isolated from your source code. Your "Intelligence" is now portable.
-
-### The Ecosystem at a Glance
-The `.agents` folder is organized into foundational pillars:
-
-* **🏛️ Canons (L1)**: The "Constitution" — defines architecture and harnesses.
-* **🛡️ Rules (L0)**: The "How" — absolute behavioral constraints and security protocols.
-* **🎯 Skills (L2)**: The "Who" — 11 specialized personas ready for activation.
-* **🔄 Workflows**: The "Muscles" — automated, repeatable sequences for development and deployment.
-* **⚙️ Scripts & Templates**: The "Tools" — deterministic memory scaffolding, system auditing, and sync automations.
-
-### Integrated Infrastructure (MCP)
-Powered by the **Model Context Protocol (MCP)**, giving your AI agents direct "hands" to manipulate the environment:
-
-* **Dart & Flutter**: Deep widget tree inspection via the Dart Tooling Daemon (DTD).
-* **Supabase/Postgres**: Direct schema management, RLS auditing, and migrations.
-* **Context7**: Just-in-time documentation ingestion for frontier libraries.
-
----
-
-> [!NOTE]
-> For detailed documentation of skills, directory structure, workflows, and advanced configurations, see [AGENTS.md](AGENTS.md).
-
----
-
-## 6. Rules and Safety Model
-
-### High-Precision Anchors (Agentic Mechanics)
-These high-precision mechanisms ensure efficiency and prevent "Logic Drift":
-
-| Mechanism | Purpose | Benefit |
-| :--- | :--- | :--- |
-| **🛡️ Token Shield** | Block-level ingestion | Minimizes token overhead by avoiding full-file reads. |
-| **📐 Vibecode Limit** | 500-line atomic cap | Prevents context loss by enforcing modular file structures. |
-| **🕸️ Neural Linkage** | Knowledge graph mapping | Predicts impact before refactoring. |
-| **✨ Binary Oratory** | Execution firewall | Mandatory [DO]/[DONT] before filesystem mutations. |
-| **📈 Agentic Evolution** | Habit promotion | Converts repetitive corrections into permanent rules. |
-| **🧠 Session Handoff** | State recovery | Resumes from last known milestone on every boot. |
-| **🔍 Harmony Sentinel** | Integrity auditing | Validates architectural links automatically. |
-
----
-
-## 7. The "Zero to Hero" Seamless Guide
-
-This infrastructure is designed for a continuous, unbroken loop from idea to launched product, eliminating manual prompt-chaining.
-
-### Phase 1: Deep Interrogation (`/project-init`)
-Start by invoking the initialization workflow. The AI won't just ask generic questions; it will extract your **Vision Invariant** (the core goal that cannot change) and **Anti-Features** (what the product must *not* be).
-```text
-run /project-init
+python .agents/scripts/deploy_foundation.py --target /path/to/your/project
 ```
 
-### Phase 2: Recursive Viability
-Before writing code, the system runs a SaaS viability check. If the idea scores low, the AI automatically proposes pivots to the tech stack, monetization, or audience while keeping the Vision Invariant locked until a 15/15 score is achieved.
+### 2. Verify Integrity
+```bash
+python .agents/scripts/verify_agents.py
+```
 
-### Phase 3: The GPS Handoff (`/full-lifecycle`)
-Development enters the full lifecycle module. Because of the **GPS Handoff** protocol, the AI will *never* leave you guessing. At the end of every response, you will receive a `🚦 LIFECYCLE CHECKPOINT` detailing:
-1. Current phase state.
-2. Next action required from the user (e.g., `[DO: YES]`).
-3. The exact next workflow step to be executed.
-
-### Phase 4: Continuous Auditing & Scaling
-As your app grows, invoke `@integrity-sentinel` to verify security/RLS, or `@project-architect` to safely scale from "Lean" to "Enterprise" architecture. All stages remain seamlessly connected through checkpoints.
+### 3. Start Coding
+The AI will automatically pick up `GEMINI.md` (or `CLAUDE.md`, `.cursorrules`, etc.) and begin following the JIT routing table, loading skills on-demand.
 
 ---
 
-## 8. FAQ
+## Architecture
 
-**Q: Can I use this with non-Flutter/Node.js projects?**
-A: The skill system is architecture-agnostic. You can custom-create skills for other stacks; see `meta-agent-admin` skill for guidance.
-
-**Q: How do I add a new skill?**
-A: Run `@meta-agent-admin` and navigate to the `system-admin` reference file. It contains the full workflow for adding skills.
-
-**Q: Is my source code scanned by the `.agents` system?**
-A: No. The system only reads what you explicitly provide to the AI agent. Source code scanning is opt-in via the `grep_search` or `semantic_search` tools.
-
-**Q: Can I remove skills I don't use?**
-A: Yes. Delete the skill folder and run `python .agents/scripts/verify_agents.py`. The system will update the index.
-
-**Q: What's the token overhead of using this infrastructure?**
-A: ~2-5% per session (depends on skill count active). Token Shield and Vibecode Limit mechanisms keep this minimal.
-
----
-
-## 9. External Reference Integration
-
-This ecosystem achieves maximum token-efficiency by integrating or porting logic from the following open-source projects:
-
-*   **[rtk-ai/rtk](https://github.com/rtk-ai/rtk)**: (Active Binary) Utilized to compress and filter verbose terminal outputs.
-*   **[tobi/qmd](https://github.com/tobi/qmd)**: (Native Engine) Powers the local semantic search for dynamic context discovery.
+```
+.agents/
+├── canons/              # Immutable laws (architecture + harnesses)
+│   ├── global/          # Core architecture + Python verification harnesses
+│   │   └── harnesses/   # secrets_scan_verifier.py, migration_verifier.py
+│   └── micro/           # Budget-model cheat sheets (Flutter, Supabase, Git)
+├── rules/               # Algorithmic guardrails & decision trees (17 files)
+├── skills/              # Domain expertise with mandatory output templates (15 skills)
+├── workflows/           # Step-by-step pipelines with exact commands (10 workflows)
+├── scripts/             # Runnable Python utilities (13 scripts)
+├── templates/           # Multi-AI config templates (Gemini, Claude, Cursor, etc.)
+├── docs/                # Human-readable deployment manuals
+└── evals/               # AI compliance benchmarks
+```
 
 ---
 
-## 10. Changelog
+## Key Features
 
-**Current Version**: **1.3.4** — *"Modular Synchronization & Ecosystem Polish"*
+### 🧠 JIT Auto-Pilot Router
+The root `GEMINI.md` acts as an **Active Router**. The AI only loads the skill/rule it needs based on keyword triggers — no token bloat from reading 59 files upfront.
+
+### 🔧 Python Verification Harnesses
+External enforcement via runnable scripts, not "AI willpower":
+- **`secrets_scan_verifier.py`** — Regex-based scan for API keys, tokens, passwords
+- **`migration_verifier.py`** — Blocks `DROP TABLE`, `TRUNCATE`, open RLS policies
+- **`verify_agents.py`** — Master integrity checker for the `.agents` ecosystem
+
+### 📋 Mandatory Output Templates
+Every skill forces the AI to fill a concrete template:
+- **Project Architect** → 6-section Blueprint with "The Cut List"
+- **Integrity Sentinel** → Audit Report (Severity + Reproduction + Code Fix)
+- **SaaS Strategist** → Context File + Viability Scorecard
+- **API Contract** → Zod Schemas for Auth, Pagination, Strict Updates
+
+### 🌳 Decision Trees (Not Opinions)
+Rules use branching logic instead of generic advice:
+- File > 500 lines? → Mandatory refactor
+- Data changes < 1x/min? → Cache it
+- Command outputs text stream? → Use RTK proxy
+
+### 🗣️ Multi-AI Support
+Deploy consistent rules across 6 AI assistants:
+
+| AI | Config File | Format |
+|---|---|---|
+| Gemini | `GEMINI.md` | Markdown |
+| Claude | `CLAUDE.md` | Markdown |
+| Cursor | `.cursorrules` | Rules |
+| Windsurf | `.windsurfrules` | Rules |
+| Copilot | `.github/copilot-instructions.md` | Markdown |
+| Cline | `.clinerules` | Rules |
+
+---
+
+## Philosophy
+
+This ecosystem treats the AI as a **statistical model**, not a human employee.
+
+- ❌ "Don't be lazy" → AI has no concept of laziness
+- ✅ `Decision Tree + Output Template + Python Harness` → Mechanically enforced
+
+See [EXPLAIN.md](EXPLAIN.md) for the full ecosystem guide with file-by-file documentation.
+
+---
+
+## Scripts Reference
+
+| Script | Purpose |
+| :--- | :--- |
+| `verify_agents.py` | Master integrity checker (broken links, frontmatter, compliance) |
+| `deploy_foundation.py` | Deploy `.agents` to any project |
+| `code_map.py` | AST skeleton map (~300 tokens vs ~5000 for full read) |
+| `token_audit.py` | Find files exceeding 500-line ghost token limit |
+| `compress_memory.py` | Compress memory files to save input tokens |
+| `sync_ai_configs.py` | Sync AI configs after foundation updates |
+
+---
+
+## Changelog
 
 | Version | Date | Notes |
 | :--- | :--- | :--- |
-| **1.3.0** | 2026-04-18 | Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs. |
-| **1.2.0** | 2026-03-26 | Integrate 10 Prompt Patterns, Root GEMINI.md, and evals/docs folders |
-| **1.1.0** | 2026-03-20 | Unified Logic: Established a clear 4-pillar structure and the 82-file SaaS mapping protocol. |
-| **1.0.0** | 2026-03-19 | Clean Reset to V1.0.0 |
-| **0.9.0** | 2026-03-15 | Initial baseline |
+| **3.0.0** | 2026-05-20 | Algorithmic Upgrade: Decision Trees, Output Templates, Python harnesses, JIT Router, predictive Binary Oratory |
+| **1.3.0** | 2026-04-18 | RTK, QMD, Caveman adoption |
+| **1.2.0** | 2026-03-26 | 10 Prompt Patterns, Root GEMINI.md |
+| **1.1.0** | 2026-03-20 | 4-pillar structure, 82-file SaaS mapping |
+| **1.0.0** | 2026-03-19 | Clean Reset |
 
 ---
 
-## 10. License
+## License
 
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-
-*AI-crafted, modular, and ready for evolution.*
+MIT
