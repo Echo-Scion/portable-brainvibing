@@ -77,7 +77,7 @@ def run_preflight():
             potential_skills = re.findall(r'`([a-z0-9]+-[a-z0-9-]+)`', content)
             for ps in set(potential_skills):
                 # Ignore common hyphenated terms that aren't skills
-                ignore_terms = ["fail-fast", "anti-goals", "no-sweetwords", "high-fidelity", "pre-flight", "session-handoff", "zero-trust", "multi-agent", "front-end", "back-end", "try-catch"]
+                ignore_terms = ["fail-fast", "anti-goals", "no-sweetwords", "high-fidelity", "pre-flight", "session-handoff", "zero-trust", "multi-agent", "front-end", "back-end", "try-catch", "react-window"]
                 if ps not in valid_skills and ps not in ignore_terms and len(ps) > 5:
                     print(f"⚠️  [WARNING] Possible broken skill reference '{ps}' in {rel_src_path}")
                     warnings += 1

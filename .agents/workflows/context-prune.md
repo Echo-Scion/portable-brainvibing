@@ -24,9 +24,7 @@ Remove-Item -Path "tmp\*", "__debug__\*" -Recurse -Force -ErrorAction SilentlyCo
 ```
 
 ## 3. TASK ARCHIVAL
-If `workflows/tasks/` contains more than 3 `DONE` files, archive them:
-1. Copy the summaries of the `DONE` tasks into `workflows/tasks/ARCHIVE.md`.
-2. Delete the original `DONE` task markdown files.
+The `compress_memory.py` script automatically archives any tasks marked as `DONE` into the `.agents/archive/` directory. Verify that no obsolete task files remain in `workflows/tasks/`.
 
 ## 4. CONTEXT HANDOFF GENERATION
 Run the Session Offload workflow to finalize the context state:

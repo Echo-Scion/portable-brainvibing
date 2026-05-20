@@ -13,6 +13,19 @@ This directory contains global utilities and automation scripts for the **Portab
 | [token_audit.py](file:///<ROOT>/.agents/scripts/token_audit.py) | Ghost Token Auditor (detects memory bloat, redundancy, and RTK savings). | **PORTABLE** |
 | [code_map.py](file:///<ROOT>/.agents/scripts/code_map.py) | Structural Code Mapper (generates lightweight skeleton of the codebase). | **PORTABLE** |
 | [deploy_foundation.py](file:///<ROOT>/.agents/scripts/deploy_foundation.py) | Physically deploys/syncs Foundation to a local project. | **PORTABLE** |
+| [sync_to_foundation.py](file:///<ROOT>/.agents/scripts/sync_to_foundation.py) | Syncs local agent evolution back to the Global Foundation. | **PORTABLE** |
+| [preflight_check.py](file:///<ROOT>/.agents/scripts/preflight_check.py) | Pre-flight diagnostic (Self-Healing Routing). | **PORTABLE** |
+| [compress_memory.py](file:///<ROOT>/.agents/scripts/compress_memory.py) | Compresses episodic memory into Caveman format. | **PORTABLE** |
+| [find_audit_targets.py](file:///<ROOT>/.agents/scripts/find_audit_targets.py) | Identifies targets for the Offensive Audit protocol. | **PORTABLE** |
+
+## 🧠 Wiki & QMD Integration Scripts
+
+| Script | Purpose | Availability |
+| :--- | :--- | :--- |
+| [bootstrap_wiki.py](file:///<ROOT>/.agents/scripts/bootstrap_wiki.py) | Initializes the `.wiki/` infrastructure for memory persistence. | **PORTABLE** |
+| [ingest_wiki.py](file:///<ROOT>/.agents/scripts/ingest_wiki.py) | Ingests `.agents` rules and contexts into the `.wiki/` graph. | **PORTABLE** |
+| [setup_qmd.py](file:///<ROOT>/.agents/scripts/setup_qmd.py) | Project-agnostic auto-setup for QMD semantic search & embeddings. | **PORTABLE** |
+| [qmd_wiki_graph.py](file:///<ROOT>/.agents/scripts/qmd_wiki_graph.py) | Automates linking `.wiki` nodes into a QMD vector database. | **PORTABLE** |
 
 ## 📐 Organization Policy
 
