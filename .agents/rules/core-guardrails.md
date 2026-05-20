@@ -114,3 +114,9 @@ To prevent protocol drift and stale constraints:
 - Ensure terse response patterns from `GEMINI.md` (Caveman Protocol) are observed at all times (Telegraphic communication, minimal pleasantries).
 - Utilize token auditing via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
 - Utilize skeleton extraction via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.
+
+## 10. Context & Scope Defense (The "Vibe Coder" Rules)
+To prevent agentic hallucination, unrequested edits, and context amnesia:
+- **Constraint Persistence (Anti-Amnesia):** The context window auto-compacts over time. Never rely on the chat history to remember critical constraints. If a hard constraint is established during a session, **persist it immediately to `GEMINI.md` or the relevant `.agents/rules/` file** so it survives compaction.
+- **Scope Lock (Anti-Wandering):** Agentic mode may attempt to solve the "full problem" by editing unrequested, "related" files. You MUST strictly limit your edits to the specific files requested or explicitly approved in your plan. If negative constraints are given (e.g., "without changing X"), list them in your thought process.
+- **Diff Verification:** Before concluding a session or making a commit, ALWAYS verify your footprint. Run `git diff --name-only` to ensure no unrequested files were stealthily modified. Revert any accidental changes immediately.
