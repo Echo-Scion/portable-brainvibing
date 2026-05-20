@@ -56,9 +56,9 @@ EVERY technical response MUST END with this block. It provides GPS orientation, 
 ```markdown
 ---
 🚦 **CHECKPOINT**: [What just happened — 1 short sentence]
-📋 **EVIDENCE**: [File changed / test result / command output. If no test, say why]
-🧠 **EVALUATION**: [Root cause analysis of errors faced, or what was learned to avoid future mistakes. If none, state "Execution smooth, no new friction patterns."]
-🔮 **NEXT TASK**: [MUST be the EXACT command to trigger the next agent/skill based on the workflow, e.g. "view_file .agents/skills/project-architect/SKILL.md"]
+📋 **EVIDENCE**: [State the EXACT Exit Code or output status. If Exit Code > 0, you MUST NOT claim success.]
+🧠 **EVALUATION**: [If Exit Code > 0: State root cause and mandatory learning. If 0: "Execution smooth".]
+🔮 **NEXT TASK**: [If Error: MUST queue "Log error to LEARNINGS.md". If Success: Next workflow step.]
 ⚡ **[RECOMMENDED TIER: BUDGET|STANDARD|PREMIUM]** — Reply `[DO: YES]` to execute, or describe next task.
 ---
 ```

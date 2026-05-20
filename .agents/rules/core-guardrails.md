@@ -121,6 +121,7 @@ To prevent protocol drift and stale constraints:
 To ensure the AI system learns from its mistakes and prevents recurring errors, the agent MUST perform a Post-Mortem Reflection after successfully resolving a bug, encountering execution friction, or recovering from a 3x Circuit Breaker failure.
 
 **The Post-Task Learning Workflow:**
-1. **Identify Root Cause**: Determine *why* the initial failure occurred (e.g., outdated syntax assumption, missing import, architectural conflict).
-2. **Persistent Logging**: The agent MUST actively write a brief summary of the failure and the successful resolution pattern into the `Repetitive Friction & Patterns` section of `context/00_Strategy/MEMORY.md` (or the corresponding App Local memory in a monorepo).
-3. **Rule Evolution**: If the error was caused by a contradiction in the agent's instructions or a recurring bad habit, the agent should propose adding a new global rule to `.agents/rules/` (via the `meta-agent-admin` skill) to permanently fix its behavior across future sessions.
+1. **Strict Error Recognition (No Hallucinated Success)**: If a tool call returns an Exit Code > 0 or an error stack trace, the agent is **STRICTLY FORBIDDEN** from writing "Execution smooth" in its Evaluation block. It MUST state the exact exit code.
+2. **Identify Root Cause**: Determine *why* the failure occurred (e.g., outdated syntax assumption, missing import, architectural conflict, hardware constraint).
+3. **Persistent Logging**: The agent MUST queue updating `.agents/LEARNINGS.md` (or `context/00_Strategy/MEMORY.md`) as its IMMEDIATE `NEXT TASK`. Do not wait for the user to remind you.
+4. **Rule Evolution**: If the error was caused by a contradiction in the agent's instructions or a recurring bad habit, the agent should propose adding a new global rule to `.agents/rules/` (via the `meta-agent-admin` skill) to permanently fix its behavior across future sessions.
