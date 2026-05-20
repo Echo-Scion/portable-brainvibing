@@ -1,0 +1,3 @@
+## 2024-05-20 - [Performance Optimization in verify_agents.py]
+**Learning:** `os.walk` was needlessly descending into ignored directories like `node_modules` before filtering them out in `get_folder_hashes` and `iter_files`, causing massive performance overhead when testing large projects with many dependencies. Modifying `dirs` in-place using `dirs[:] = [d for d in dirs if d not in EXCLUDED_PATH_MARKERS]` effectively prunes the search tree.
+**Action:** Always verify if `os.walk` is pruned during directory traversal for any recursive operations to avoid catastrophic I/O performance on massive repositories.
