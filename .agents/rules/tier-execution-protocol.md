@@ -19,7 +19,7 @@ last_updated: 2026-05-20
 | Does it involve enterprise planning, complex STEM logic, core architecture, or deep debugging? | `PREMIUM` |
 | Am I unsure which tier applies? | Escalate to `PREMIUM`, declare why. |
 
-**Golden Rule**: When defaulting to `PREMIUM`, you MUST explicitly state which heuristic forced it. Silent default is a protocol violation.
+**Golden Rule (Mechanical Artifact)**: When escalating or defaulting to `PREMIUM`, you MUST output a strict JSON block `{"tier_decision": "PREMIUM", "heuristic_triggered": "<exact_reason>"}` in your response before executing tools.
 
 > **Anti-Deliberation Clause**: If you need to *read a file to determine* whether the task qualifies as BUDGET, the task is already STANDARD. BUDGET classification must be immediately obvious from the task description alone.
 
@@ -53,16 +53,17 @@ The following constraints are **mandatory per tier**, not optional.
 ### BUDGET: Micro-Harness Protocol
 Even simple tasks MUST satisfy the following Validation Gate before output is accepted:
 1. **Telegraphic Execution**: Perform the action immediately without narrative justification.
-2. **Self-Verification Micro-Check**: After execution, confirm the output satisfies the original scope (e.g., "File updated. Key: X changed to Y.").
+2. **Self-Verification Micro-Check**: After execution, mechanically assert that the target file contains the expected state (e.g., run `grep_search` to verify string substitution).
 - **Token Ceiling**: BUDGET tasks MUST NOT read more than 1 file in full. Use `grep_search` for targeted extraction.
 - **Prohibited Actions**: No Sequential Thinking calls, no architectural scope expansion.
 
 ### STANDARD: Lightweight Planning Gate
 Before any execution:
-1. State the implementation approach in ≤3 sentences.
-2. List files to be touched.
-3. Identify 1-2 risk points.
-After implementation, **before marking as done**: apply the Adversarial Twin Protocol (`reasoning-standards.md`). Run at least 1 attack vector against the output.
+1. Write a temporary file `.wiki/standard_plan.md` containing `[Approach, Files, Risks]`.
+2. Do not execute implementation until this file exists.
+After implementation, **before marking as done**: 
+a) Mechanically execute a test script (`test_adversarial.dart` or `pytest`) targeting the logic. Task is only done if exit code is 0.
+b) Run `python .agents/scripts/track_budget.py --tier STANDARD` to log telemetry.
 
 ### PREMIUM: Full Sequential Thinking Mandate
 See `reasoning-standards.md` for the full protocol. Sequential Thinking with minimum 3 thought steps is **mandatory, not optional**.

@@ -31,19 +31,19 @@ This workflow defines the precision implementation cycle for individual features
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute Adversarial Twin Protocol`
 
 ## 3.5 ADVERSARIAL TWIN PROTOCOL (PRE-VERIFICATION)
-- [ ] **Self-Attack**: Execute `@reasoning-standards.md`. Force a "Breaker Agent" perspective to find at least 1 critical edge case (null data, race condition, network drop) in the implemented logic.
-- [ ] **Defend**: Fix the vulnerability identified by the Twin before moving to final tests.
+- [ ] **Self-Attack**: Execute `@reasoning-standards.md`. Write a unit test `test_edge_case.dart` specifically targeting null data, race conditions, or network drops for the new logic. Run the test.
+- [ ] **Defend**: Modify the core logic until the `test_edge_case.dart` test passes (Exit Code 0).
 
 ## 4. VERIFICATION & AUDIT (CERTIFICATION & HARNESS LOOP)
-- [ ] **Completeness Integrity (Zero-Shortcut Mandate)**: Ensure the implementation is 100% complete. If a full solution (including all error paths and edge cases) only adds minimal AI overhead, using "shortcuts" or delaying tests is strictly prohibited.
+- [ ] **Completeness Integrity (Coverage Gate)**: Run `flutter test --coverage` (or equivalent). Verify all edge cases and error paths are covered by tests. "Shortcuts" (leaving TODOs in error paths) are strictly prohibited.
 - [ ] **Iterative Refinement (Thompson Sampling Logic)**: 
     - Treat unit tests as the "Action-Verifier" Harness.
-    - **Mutation**: If a test fails, the agent must treat the error log as environment feedback, mutate the code to fix the specific failure, and re-run the test.
-    - **Exploration vs Exploitation**: Try new logic structures if the current approach repeatedly fails, or refine the existing code if it's close to passing.
-    - Loop this process automatically until the "heuristic" (Legal Action Rate / Test Pass Rate) reaches exactly 1.0 (100%).
+    - **Mutation**: If a test fails (Exit Code > 0), parse the error log, mutate the code to fix the failure, and re-run.
+    - **Exploration vs Exploitation**: Try new logic structures if the current approach fails 3 times, or refine the existing code if it's close to passing.
+    - Loop this process automatically until the Test Pass Rate reaches exactly 1.0 (100%).
 - [ ] **TDD Loop**: Invoke `@skills/integrity-sentinel`. Write and run tests (`flutter test`). Do not proceed until the Refinement Loop reaches 1.0.
-- [ ] **Logical Audit**: Invoke `@skills/integrity-sentinel` to certify the feature's mechanical integrity.
-- [ ] **Regressive Evaluation**: Invoke `@skills/integrity-sentinel` to confirm no core logic was broken during the build.
+- [ ] **Logical Audit**: Invoke `@skills/integrity-sentinel` to run static analysis (`flutter analyze` or equivalent). Zero warnings allowed.
+- [ ] **Regressive Evaluation**: Run the entire test suite (`flutter test`) to confirm no existing core logic was broken.
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Update Memory and Propose Next Task`
 
 ## 5. WRAP-UP

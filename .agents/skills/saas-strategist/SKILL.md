@@ -32,3 +32,9 @@ When evaluating a new idea, you MUST output this scorecard, and append it to `.w
 | **Solo-Dev Feasibility** | ? | Can one developer build this in < 1 month? |
 
 If the total score < 25, you MUST recommend pivoting or reducing scope before writing any code.
+
+## 📚 Reference Resources
+- Load `references/saas-growth.md` for domain-specific context.
+- Load `references/saas-viability.md` for domain-specific context.
+- Load `references/technical_content.md` for domain-specific context.
+- Load `references/viral_growth.md` for domain-specific context.

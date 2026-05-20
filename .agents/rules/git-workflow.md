@@ -37,6 +37,7 @@ last_updated: 2026-05-20
 - Keep commits atomic and descriptive.
 
 ## 6. The "Save Point" Protocol (Micro-Commits)
+> **MICRO-CANON MANDATE**: For exact commands and cheatsheet, load `view_file .agents/canons/micro/git-workflow.md`.
 - **Rule**: Treat Git commits like save points in a game. **Do not wait for a task to be "done" before committing.**
 - **Why**: Context windows drop details. Re-reading a file later can cause the AI to accidentally revert previous changes due to state misinterpretation.
 - **Action**: Commit immediately after *every* successful, significant sub-step or logic addition. If the task is complex, you should have multiple small commits.

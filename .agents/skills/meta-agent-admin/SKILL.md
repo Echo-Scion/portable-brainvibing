@@ -21,3 +21,12 @@ When modifying any file inside `.agents/` (e.g., adding a new rule or modifying 
 ## Ecosystem Principles
 - **Modularity**: Never merge files. 59 files are better than 1 monolith because we use JIT loading (`view_file` only when triggered).
 - **Algorithmic Instruction**: Never write "cosmetic" rules like "Don't do X". Always write actionable rules: "Run script X to verify Y" or "Use this exact code template Z".
+
+## 📚 Reference Resources
+- Load `references/agent-architect.md` for domain-specific context.
+- Load `references/agent-evolution.md` for domain-specific context.
+- Load `references/context-manager.md` for domain-specific context.
+- Load `references/knowledge.md` for domain-specific context.
+- Load `references/loop_design_patterns.md` for domain-specific context.
+- Load `references/system-admin.md` for domain-specific context.
+- Load `references/tech-writer.md` for domain-specific context.

@@ -3,6 +3,9 @@ import re
 import sys
 import argparse
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # The script functions as a CI/CD Gatekeeper for the "Creative Technologist"
 # It specifically rejects generic solutions in UI files to enforce high-fidelity output.
 

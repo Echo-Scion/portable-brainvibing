@@ -135,6 +135,11 @@ If compatibility checks fail, do not deploy partial foundation state.
 
 If the AI or user prefers to use the Python script:
 
+### Preflight Check (Recommended)
+```bash
+python .agents/scripts/preflight_check.py
+```
+
 ### Deploy All AIs (Default)
 ```bash
 python .agents/scripts/deploy_foundation.py --target /path/to/project
@@ -179,6 +184,16 @@ python .agents/scripts/sync_ai_configs.py --target /path/to/project --ai gemini,
 ### Preview Sync Changes
 ```bash
 python .agents/scripts/sync_ai_configs.py --target /path/to/project --dry-run
+```
+
+---
+
+## 🔼 Reverse Sync (Project to Foundation)
+
+If you modify rules or agents inside a specific project and want to push those improvements back up to the master Foundation:
+
+```bash
+python .agents/scripts/sync_to_foundation.py --source /path/to/project
 ```
 
 ---

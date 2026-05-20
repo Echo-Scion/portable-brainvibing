@@ -36,3 +36,6 @@ export const UpdateProfileSchema = z.object({
 ```
 
 Never proceed with an API implementation without defining the Zod schema first.
+
+## 📚 Reference Resources
+- Load `references/api_safety_patterns.md` for domain-specific context.

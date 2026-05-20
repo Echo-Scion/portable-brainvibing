@@ -34,3 +34,9 @@ Your output MUST contain these 6 sections exactly, and be saved to `.wiki/BLUEPR
 ```
 
 If you do not provide "The Cut List", you have failed your role as Architect.
+
+## 📚 Reference Resources
+- Load `references/architectural_standards.md` for domain-specific context.
+- Load `references/startup_growth.md` for domain-specific context.
+- Load `references/strategic_rigor.md` for domain-specific context.
+- Load `references/structural_pillars.md` for domain-specific context.

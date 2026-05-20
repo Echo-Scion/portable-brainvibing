@@ -127,7 +127,7 @@ To prevent architectural drift and naming inconsistency, all files created withi
 
 ## 3. Retrieval & Discovery (The QMD Protocol)
 - While the 82-File structure enforces **organization and scaffolding**, **retrieval** is managed dynamically via QMD semantic search.
-- When you need to read architectural decisions or project context, do NOT guess the path or rely on manual catalogs (`workspace_map.md`). Instead, use QMD (`npx @tobilu/qmd query`) to semantically search for the relevant information.
+- When you need to read architectural decisions or project context, do NOT guess the path or rely on manual catalogs (`workspace_map.md`). Instead, use QMD (`npx @tobilu/qmd search`) to semantically search for the relevant information.
 
 ## 4. Unstructured-to-Surgical (U2S) Mapping
 - When a user provides an **Info-Dump** or a **Monolithic Master Blueprint** (single-file specs), the AI **MUST NOT** simply store it as a single file.

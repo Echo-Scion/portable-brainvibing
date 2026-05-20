@@ -13,7 +13,6 @@ INDEX_PATH = os.path.join(WIKI_DIR, "index.md")
 FRONTMATTER_RE = re.compile(r'\A---\s*\n(.*?)\n---\s*(?:\n|$)', re.DOTALL)
 
 def compute_sha256(content: bytes) -> str:
-    # Normalize CRLF to LF to keep hashes consistent across OSes
     normalized = content.replace(b"\r\n", b"\n")
     return hashlib.sha256(normalized).hexdigest()
 
@@ -30,16 +29,9 @@ def parse_frontmatter(content: str) -> dict:
             frontmatter[k.strip().lower()] = v.strip().strip('"').strip("'")
     return frontmatter
 
-def get_body(content: str) -> str:
-    match = FRONTMATTER_RE.match(content)
-    if not match:
-        return content
-    return content[match.end():]
-
 def classify_file(filepath: str, content: str) -> tuple:
     filepath_normalized = filepath.replace("\\", "/")
     
-    # Defaults
     category = "project-doc"
     confidence = "authoritative"
     pillar = "cross-cutting"
@@ -69,6 +61,40 @@ def classify_file(filepath: str, content: str) -> tuple:
         
     return category, confidence, pillar
 
+def prune_orphans() -> int:
+    if not os.path.exists(MANIFEST_PATH):
+        return 0
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
+            manifest = json.load(mf)
+            
+        pruned_count = 0
+        for layer in list(manifest.get("layers", {}).keys()):
+            valid_entries = []
+            for entry in manifest["layers"][layer]:
+                original_path = entry.get("filepath")
+                wiki_file = entry.get("wiki_file")
+                
+                # Cek jika file asli masih ada di sistem (kecuali jika pathnya memang dihapus)
+                if original_path and not os.path.exists(original_path):
+                    pruned_count += 1
+                    print(f"🗑️ Pruning orphan from wiki: {original_path}")
+                    if wiki_file:
+                        full_wiki_path = os.path.join(WIKI_DIR, wiki_file.replace("/", os.sep))
+                        if os.path.exists(full_wiki_path):
+                            os.remove(full_wiki_path)
+                else:
+                    valid_entries.append(entry)
+            manifest["layers"][layer] = valid_entries
+            
+        if pruned_count > 0:
+            with open(MANIFEST_PATH, "w", encoding="utf-8") as mf:
+                json.dump(manifest, mf, indent=2)
+        return pruned_count
+    except Exception as e:
+        print(f"Failed during orphan pruning: {e}")
+        return 0
+
 def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
     if not os.path.exists(filepath):
         print(f"File not found: {filepath}")
@@ -85,8 +111,6 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             content_str = raw_bytes.decode("latin-1")
             
         existing_frontmatter = parse_frontmatter(content_str)
-        body = get_body(content_str)
-        
         category, confidence, pillar = classify_file(filepath, content_str)
         
         basename = os.path.basename(filepath)
@@ -132,8 +156,11 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
         fm_lines.append("---")
         fm_text = "\n".join(fm_lines)
         
+        # IMPROVEMENT 2: Anti-Bloat Pointer (No duplicate body text)
+        pointer_body = f"\n> **Original Source**: `{filepath}`\n> *Content body excluded from Wiki to prevent storage bloat and duplicate QMD embeddings.*\n"
+        
         with open(target_path, "w", encoding="utf-8") as wf:
-            wf.write(fm_text + "\n" + body)
+            wf.write(fm_text + "\n" + pointer_body)
             
         log_entry = f"- [{updated_date}] [{action_type}] Ingested {filepath} -> sources/{wiki_filename}\n"
         with open(LOG_PATH, "a", encoding="utf-8") as lf:
@@ -243,10 +270,17 @@ def main():
     if not os.path.exists(sources_dir):
         os.makedirs(sources_dir)
         
+    # IMPROVEMENT 3: Garbage Collection
+    pruned = prune_orphans()
+        
     ingested_count = 0
     for path in args.paths:
         if os.path.isdir(path):
-            for root, _, files in os.walk(path):
+            for root, dirs, files in os.walk(path):
+                # IMPROVEMENT 1: Exclude .wiki recursion
+                if '.wiki' in root.replace('\\', '/').split('/'):
+                    continue
+                    
                 for f in files:
                     if f.endswith(".md"):
                         full_path = os.path.join(root, f)
@@ -259,12 +293,13 @@ def main():
             import glob
             for g in glob.glob(path, recursive=True):
                 if os.path.isfile(g) and g.endswith(".md"):
-                    if ingest_file(g, args.autonomy):
-                        ingested_count += 1
+                    if '.wiki' not in g.replace('\\', '/').split('/'):
+                        if ingest_file(g, args.autonomy):
+                            ingested_count += 1
                         
-    if ingested_count > 0:
+    if ingested_count > 0 or pruned > 0:
         rebuild_index()
-        print(f"Batch ingestion complete. Total files processed: {ingested_count}")
+        print(f"\nBatch execution complete. Processed: {ingested_count} | Pruned: {pruned}")
         
         # Trigger QMD Harmonization
         print("\n⏳ Triggering QMD index and embed for harmonization...")
@@ -273,7 +308,7 @@ def main():
             import sys, subprocess
             subprocess.run([sys.executable, setup_script, "--with-embed"])
     else:
-        print("No new or updated markdown files found to ingest.")
+        print("No new or updated markdown files found to ingest. Graph is up to date.")
 
 if __name__ == "__main__":
     main()

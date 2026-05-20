@@ -38,3 +38,13 @@ WITH CHECK ( auth.uid() = user_id );
 ```
 
 Before committing backend changes, run the migration verifier harness.
+
+## 📚 Reference Resources
+- Load `../../canons/micro/supabase.md` for specific Supabase constraints and rules.
+- Load `references/backend-architect.md` for domain-specific context.
+- Load `references/backend-optimizer.md` for domain-specific context.
+- Load `references/cache-optimizer.md` for domain-specific context.
+- Load `references/db-expert.md` for domain-specific context.
+- Load `references/enterprise_patterns.md` for domain-specific context.
+- Load `references/node_performance_tuning.md` for domain-specific context.
+- Load `references/postgres_patterns.md` for domain-specific context.

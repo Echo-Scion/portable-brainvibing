@@ -13,7 +13,7 @@ last_updated: 2026-05-20
 
 > **IDE / Antigravity Mode (Fail-Closed Check)**: Because the IDE lacks a built-in pre-tool-use blocker, you, the Agent, MUST act as a Fail-Closed Policy Engine. 
 > 1. You are **OBLIGATED** to write the `[TIER: X]` Light Header in your first message.
-> 2. You MUST define negative boundaries (what you will NOT do) in your thought process before executing.
+> 2. You MUST output a JSON or XML block `<negative_boundaries>` stating exactly which files/domains you will NOT touch before executing.
 > 3. You MUST end your response with the Unified Response Footer (`🚦 CHECKPOINT`, `📋 EVIDENCE`, `🔮 NEXT TASK`, `⚡ RECOMMENDED TIER`).
 
 Before executing **ANY task** that modifies the filesystem (write, delete, refactor) or infrastructure (deploy, migrate) via CLI chat, the agent MUST pause and wait for an explicit `[DO: YES]` from the user in the footer, unless it's a read-only or investigatory task.
@@ -26,15 +26,29 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 > 1. If the workspace root is `_foundation` (or any purely tooling/infrastructure repo), the 82-file mapping and context naming policies MUST BE ABORTED.
 > 2. The 82-file SaaS naming policy applies EXACTLY AND ONLY to Target Deployment Projects (SaaS apps). Enforcing them within `.agents/` or foundation directories is a violation.
 
-## 2. Reasoning Standards
+## 2. Reasoning Standards (Deterministic Flow)
 - **AI Engineering Compliance**: Adhere strictly to the algorithms in `rules/ai-engineering-standards.md` (e.g., Assertion Matrix, Confidence Gates).
-- **Think Before Doing**: Always reason through the problem before writing the first line of code.
-- **Anti-Laziness Mandate**: Do not assume the codebase state. Ingest relevant files via `view_file` or `grep_search` first.
-- **Root Cause Analysis**: Find the "Why" (5 Whys), not just the "What". Surface-level fixes are unacceptable for Tier-1+ tasks.
-- **The Evidence Mandate (No Assumptions)**: Do not assume a feature works because the code looks correct. For Tier-1+ tasks, implementation is only "DONE" when verified through empirical reproduction or testing evidence.
-- **Edge-Case Tax**: Before finalizing any feature, you MUST list 2-3 potential failure modes (e.g., poor network, invalid state) and document how they are handled gracefully. (Note: Mandatory for STANDARD/PREMIUM tiers, optional for BUDGET tier).
-- **Assumption Audit (Pattern 8)**: For PREMIUM tasks, you MUST list every technical or architectural assumption you are making before providing a recommendation.
-- **Specificity Ladder (Pattern 10)**: When explaining claims or technical fixes, make them 3x more specific than your first instinct (e.g., instead of "improve performance", use "reduce main thread blocking by 50ms through lazy-loading of the Auth module").
+- **Think Before Doing (Plan Protocol)**:
+  1. Create or update `plan.md` outlining exact files to modify.
+  2. Do not execute `write_file` or `replace` until `plan.md` is complete.
+- **Anti-Laziness Mandate (Verification Gate)**:
+  1. Run `grep_search` or `glob` to verify target paths.
+  2. If file path is unverified, `ABORT` modification.
+- **Root Cause Analysis (The 5-Why Script)**:
+  1. Write a reproduction script or unit test to trigger the reported issue.
+  2. Verify the script returns `Exit Code > 0`.
+  3. If `Exit Code == 0`, `ABORT` fix (cannot reproduce).
+- **The Evidence Mandate (No Assumptions)**:
+  1. Execute implementation.
+  2. Run `flutter test` or equivalent harness.
+  3. Task is "DONE" ONLY if `Exit Code == 0` for the harness.
+- **Edge-Case Tax (Matrix Generation)**:
+  1. For STANDARD/PREMIUM tasks, generate an `EDGE_CASE_MATRIX` in the task log.
+  2. Format: `[Failure Mode] -> [Handling Mechanism] -> [Test Case Name]`.
+- **Assumption Audit (Pattern 8)**:
+  1. For PREMIUM tasks, output an `<assumptions>` XML block listing architectural dependencies before recommendations.
+- **Specificity Ladder (Pattern 10)**:
+  1. When explaining fixes, reference exact line numbers, exact variable names, and exact execution times (e.g., "Line 45: `authModule` lazily loaded, saving 50ms").
 
 ## 3. Advanced Prompting Patterns (For Sub-Agent Orchestration)
 When delegating to sub-agents or creating internal prompts, follow these patterns:
@@ -82,7 +96,7 @@ To prevent repetitive systemic failures and ensure continuous evolution, the age
 > **CRITICAL WINDOWS EXECUTION RULE**: Due to an ABI/shell compatibility issue on this Windows machine, the agent **MUST NEVER** call `qmd` directly via the shell. 
 > Instead, the agent **MUST ALWAYS** invoke QMD using NPX:
 > ```bash
-> npx @tobilu/qmd query "your search query"
+> npx @tobilu/qmd search "your search query"
 > npx @tobilu/qmd get "#docid"
 > ```
 
@@ -116,12 +130,17 @@ To prevent protocol drift and stale constraints:
 - Utilize token auditing via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
 - Utilize skeleton extraction via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.
 
-## 11. Post-Task Reflection & Learning Loop (Anti-Repetition Protocol)
+## 11. Post-Task Reflection & Learning Loop (Deterministic Self-Evolution)
 
-To ensure the AI system learns from its mistakes and prevents recurring errors, the agent MUST perform a Post-Mortem Reflection after successfully resolving a bug, encountering execution friction, or recovering from a 3x Circuit Breaker failure.
+To ensure the AI system mechanically learns from its mistakes, the agent MUST execute the following deterministic sequence after resolving a bug, encountering execution friction, or hitting a Circuit Breaker.
 
-**The Post-Task Learning Workflow:**
-1. **Strict Error Recognition (No Hallucinated Success)**: If a tool call returns an Exit Code > 0 or an error stack trace, the agent is **STRICTLY FORBIDDEN** from writing "Execution smooth" in its Evaluation block. It MUST state the exact exit code.
-2. **Identify Root Cause**: Determine *why* the failure occurred (e.g., outdated syntax assumption, missing import, architectural conflict, hardware constraint).
+**The Mechanical Evolution Workflow:**
+1. **Strict Error Extraction**: If a tool call fails (Exit Code > 0), you MUST mechanically extract the error trace into an XML block `<error_trace>`.
+2. **Synchronous Memory Write**: Do NOT "queue" an update. You MUST immediately execute `write_file` or `replace` to append the finding to `.agents/LEARNINGS.md` within the *same* execution turn.
+3. **Rule Compilation (Anti-Drift)**: 
+   - If the error stems from a missing or contradictory rule, you MUST output a JSON block `{"action": "evolve_rule", "target": ".agents/rules/...", "proposed_addition": "..."}`.
+   - You MUST mechanically execute the `replace` tool to inject this new constraint into the target rule file before declaring the task `DONE`.
+   - *Probabilistic suggestions ("I should propose...") are prohibited.*
+t, architectural conflict, hardware constraint).
 3. **Persistent Logging**: The agent MUST queue updating `.agents/LEARNINGS.md` (or `context/00_Strategy/MEMORY.md`) as its IMMEDIATE `NEXT TASK`. Do not wait for the user to remind you.
 4. **Rule Evolution**: If the error was caused by a contradiction in the agent's instructions or a recurring bad habit, the agent should propose adding a new global rule to `.agents/rules/` (via the `meta-agent-admin` skill) to permanently fix its behavior across future sessions.

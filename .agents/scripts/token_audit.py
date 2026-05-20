@@ -2,6 +2,9 @@ import os
 import sys
 import argparse
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Heuristic token estimator (approx 3.2 chars per token for code/configs, 4 chars for plain prose)
 def estimate_tokens(text):
     # Code and structured markdown contain more symbols/formatting,

@@ -64,7 +64,7 @@ The AI will automatically pick up the root instructions and begin following the 
 ├── skills/              # Domain expertise with mandatory output templates
 ├── workflows/           # Step-by-step pipelines with Auto-Chain Triggers
 ├── scripts/             # Runnable Python utilities (Deployment, Verification)
-├── templates/           # Single AGENTS.template.md (100% DRY multi-AI deployment)
+├── templates/           # Master blueprints, multi-AI DRY source, and scaffolding
 ├── docs/                # Human-readable deployment manuals
 └── evals/               # AI compliance benchmarks
 ```

@@ -23,3 +23,7 @@ python .agents/scripts/token_audit.py
 ```
 
 If ANY of these scripts return a non-zero exit code or flag a warning, the release is BLOCKED. You must fix the underlying issue and run the script again until it passes.
+
+## 📚 Reference Resources
+- Load `references/chaos-engineer.md` for domain-specific context.
+- Load `references/release-manager.md` for domain-specific context.

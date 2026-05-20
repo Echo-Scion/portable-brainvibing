@@ -42,3 +42,7 @@ When auditing interactions, ensure that the user experience is smooth and inform
 - **Form Validation & Inline Feedback:** Inputs should clearly display validation errors beneath them (e.g., `errorText` on `InputDecoration`). Ensure "required" indicators are present.
 - **Destructive Actions:** Ensure destructive actions (e.g., Delete, Remove) have a confirmation dialog (`showDialog`) to prevent accidental data loss.
 - **Success/Error Notifications:** Trigger appropriate `SnackBar` or Toast notifications after form submissions or critical operations.
+
+## 📚 Reference Resources
+- Load `references/flutter-debugger.md` for domain-specific context.
+- Load `references/ux-designer.md` for domain-specific context.

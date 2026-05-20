@@ -12,7 +12,8 @@ description: Step-by-step procedures for operating the LLM Wiki (Ingest, Query, 
    - `[NEW]`, `[EXTEND]`: Execute auto-commit.
    - `[CONTRADICT]`, `[VIOLATION]`: Pause and emit a `TRIAGE_REPORT`. Wait for user approval.
 5. Create/update files in `.wiki/` with Typed Relationships in frontmatter.
-6. Update `.wiki/index.md` and `.wiki/log.md`.
+6. **Mandatory Script Execution**: Run `python .agents/scripts/ingest_wiki.py <path>` to build the mechanical graph, copy sources, and trigger QMD embeddings.
+7. (Optional) Run `python .agents/scripts/qmd_wiki_graph.py` to generate visual relationship graphs.
 
 ## 2. `/wiki-lint`
 1. Read `.wiki/sources/` to get all registered `source_sha256`.

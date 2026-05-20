@@ -7,8 +7,8 @@
 EVERY technical response MUST begin with this light header declaring the tier of the CURRENT task:
 `[TIER: BUDGET|STANDARD|PREMIUM]`
 
-## 2. CAVEMAN PROTOCOL (ALWAYS ACTIVE)
-ALL natural language communication MUST use "Caveman Mode".
+## 2. CAVEMAN PROTOCOL & LANGUAGE GATE (ALWAYS ACTIVE)
+ALL natural language communication MUST be in **ENGLISH ONLY** and use "Caveman Mode". If the user prompts in another language, you MUST respond in English.
 - **Rule**: Be terse. Drop articles, filler, pleasantries. Fragments are OK.
 - **Exception**: Code, PR descriptions, and architectural blueprints must be written normally.
 
@@ -26,8 +26,8 @@ ALL natural language communication MUST use "Caveman Mode".
 - **Circuit Breaker**: If you fail the same operation 3 times, ABORT immediately and ask the user for help.
 
 ## 4. JIT (JUST-IN-TIME) KNOWLEDGE ROUTING (THE AUTO-PILOT)
-DO NOT load all `.agents` files. Treat them as a passive library.
-You MUST trigger `view_file` on the specific skill/workflow ONLY IF the user's prompt matches the triggers below:
+DO NOT rely on your internal LLM memory for how to execute these tasks. You suffer from Agentic Amnesia.
+**MANDATORY ACTION**: If the user's prompt matches a trigger below, your VERY FIRST action MUST be to execute a `view_file` tool call on the target path. NEVER skip this step.
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
@@ -37,18 +37,17 @@ You MUST trigger `view_file` on the specific skill/workflow ONLY IF the user's p
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
 | **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
 | **Frontend UI, Layout, Flutter, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/global/liquid-glass-widgets.md` |
-| **Web/React UX, Accessibility, ARIA, Micro-Interactions**| `.agents/skills/palette/SKILL.md` |
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/global/flutter-tests.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
 | **API Contracts, Zod, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
 | **Wiki, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/llm-wiki/SKILL.md` |
 | **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` |
 | **Deployment, Build, Release, CI/CD, DevOps** | `.agents/workflows/flutter-release.md` & `.agents/skills/project-operator/SKILL.md` |
-| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/SKILL.md` |
+| **Cost Analysis, Token Budget, LLM Costs** | `.agents/scripts/token_audit.py` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **Agent System Modification, .agents/ Edits** | `.agents/skills/meta-agent-admin/SKILL.md` |
 | **Code Review, PR Review** | `.agents/workflows/code-review.md` |
 
-*Note: Once you load the skill file, follow its internal instructions and reference links.*
+*Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run.*
 
 ## 5. UNIFIED RESPONSE FOOTER (MANDATORY)
 EVERY technical response MUST END with this block. It provides GPS orientation, evidence, and pre-flight validation for the NEXT step.
@@ -63,9 +62,12 @@ EVERY technical response MUST END with this block. It provides GPS orientation, 
 ---
 ```
 
-## 6. MECHANICAL VERIFICATION HOOK
-- Whenever you modify `.agents/` files or finish a scaffolding phase, you MUST run: `python .agents/scripts/verify_agents.py`
-- Do not mark the task as complete unless the script returns a PASS.
+## 6. AUTOMATION HOOKS (NEVER SKIP)
+You are FORCED to physically run these scripts in the terminal (`run_command`) when the corresponding condition is met:
+1. **System Mod/Scaffold**: Modifying `.agents/` or finishing a scaffold? MUST run `python .agents/scripts/verify_agents.py`
+2. **UI Modification**: Finishing any UI task or widget edit? MUST run `python .agents/evals/audit_aesthetics.py --dir <path>`
+3. **High Context Load**: User asks about context/tokens? MUST run `python .agents/scripts/token_audit.py`
+- Do not mark the task as complete unless the terminal output confirms success.
 
 ---
 *Mandate Version: 3.0.0 (Active Router Pattern)*

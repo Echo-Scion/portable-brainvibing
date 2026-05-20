@@ -117,10 +117,10 @@ Omit to search all collections.
 > **CRITICAL**: On Windows, you MUST prefix all commands with `npx @tobilu/qmd` to avoid shell script errors.
 
 ```bash
-npx @tobilu/qmd query "question"              # Auto-expand + rerank
-npx @tobilu/qmd query $'lex: X\nvec: Y'       # Structured
-npx @tobilu/qmd query $'expand: question'     # Explicit expand
-npx @tobilu/qmd query --json --explain "q"    # Show score traces (RRF + rerank blend)
+npx @tobilu/qmd search "question"              # Auto-expand + rerank
+npx @tobilu/qmd search $'lex: X\nvec: Y'       # Structured
+npx @tobilu/qmd search $'expand: question'     # Explicit expand
+npx @tobilu/qmd search --json --explain "q"    # Show score traces (RRF + rerank blend)
 npx @tobilu/qmd search "keywords"             # BM25 only (no LLM)
 npx @tobilu/qmd get "#abc123"                 # By docid
 npx @tobilu/qmd multi-get "journals/2026-*.md" -l 40  # Batch pull snippets by glob

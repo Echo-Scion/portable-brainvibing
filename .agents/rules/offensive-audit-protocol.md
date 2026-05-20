@@ -12,24 +12,24 @@ last_updated: 2026-05-20
 
 ## 1. Core Mindset & Offensive Engineering Principles
 
-* **Assumption of Fragility & Bug-Ridden Assumption (CRITICAL):** ALWAYS assume the codebase is a minefield and full of bugs. Approach every file with extreme suspicion. Logic failures exist until proven otherwise. You must actively hunt for 4 specific types of bugs: Logic, Performance, Security, and Concurrency Bugs.
-* **Anti Second-System Effect (CRITICAL):** Do not fall for "cosmetic engineering". Never prioritize syntax elegance or heavy abstractions (e.g., complex OOP hierarchies, over-engineered async wrappers, or replacing simple JSON state with heavy databases) if they degrade or disconnect the core trading math, the deterministic execution speed of `daemon.py`, or the simplicity of SQLite WAL mode. The system's intelligence is its ability to generate profit and manage risk swiftly, not its ability to look sophisticated.
-* **The Decoupling Paradox:** Assume the LLM Brain and Python Muscle are desynchronized. Validate state safety at the exact millisecond they overlap.
-* **The "Good Enough" Principle:** Your goal is system stability, not theoretical perfection. If the Risk Engine can handle an anomaly gracefully, it passes.
-* **KISS & YAGNI:** Keep it simple. Seek the simplest, "dumbest" solutions. Trim code that is too clever. Remove EXTRA features and do not write code for an uncertain "future" or future-proofing that was not requested.
-* **DRY, Fail-Fast & Idempotency:** A single source of truth is mandatory. Failures must occur loudly. All actions interacting with the outside world (sending Telegrams, executing trades) must be retry-safe even if executed twice or more.
+* **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and security linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
+* **Anti Second-System Effect (Complexity Gate):** If a proposed refactor increases cyclomatic complexity or lines of code by >20% without measurable performance gain (proven via benchmark script), ABORT the refactor.
+* **The Decoupling Paradox (State Lock):** Validate state safety by writing a concurrent test script (e.g., spawning 10 parallel requests) to verify atomic overlapping limits.
+* **The "Good Enough" Principle:** If an anomaly is caught and logged safely without crashing the main process (exit code 0), it passes the audit.
+* **KISS & YAGNI:** Mechanically delete any code/feature block not explicitly defined in `.wiki/BLUEPRINT.md`.
+* **DRY, Fail-Fast & Idempotency:** Execute external calls (e.g., HTTP POST) twice in tests. Verify the database state does not duplicate entries on the second call.
 
 ## 2. AI Antidotes (Anti-Hallucination Guardrails)
 
 These are mandatory guardrails to prevent AI from making typical Large Language Model mistakes:
 
-* **Anti-Confirmation Bias:** Start every audit by stating: *"I assume this code is broken and I will prove it."* Do not simply agree that the code "looks fine".
-* **Silent Fail Detection (Highly Critical):** Treat ALL `catch(e)` or `except Exception:` blocks that hide errors (e.g., returning `None`, `{}`, `[]`, or `pass`) as CRITICAL VULNERABILITIES. API wrappers (CCXT, Deribit, RSS) and parsers MUST NOT swallow errors to return blind fallbacks (e.g., 0.0 for correlation). Swallowing errors = Blind Trading. You MUST `logger.error` and `raise` so that Cron Jobs or PM2 halt rather than executing risky blind trades.
-* **Sequential, Not Random:** Read foundation → consumer. Trace every import explicitly.
-* **The Hallucination Gap:** Assume the LLM Screener is lying or hallucinating narrative justifications. Verify EVERY claim (e.g., Change of Character, Order Blocks) against the strict mathematical bounds of market data tools.
-* **The Ouroboros Effect (Darwinian Failures):** Assume loops (e.g., hyperopt) will eventually optimize themselves into a corner (negating textual rules).
-* **Anti-Tunnel Vision:** For every surgical fix, you MUST analyze the "Blast Radius" in at least two other unrelated files.
-* **Anti-State Blindness (Concurrency):** Specifically hunt for Race Conditions, state-bleed in async logic, background jobs, and variables written to the database without correct transaction isolation.
+* **Anti-Confirmation Bias (Proof of Concept):** Before declaring any file 'safe', you MUST write a unit test or fixture that intentionally injects malformed data. The file is only 'safe' if the test fails predictably and gracefully.
+* **Silent Fail Detection (Grep Gate):** Run `grep -rn "catch" .` or `grep -rn "except Exception" .`. Manually inspect each result. If a block returns a blind fallback without raising an alert/logger, treat as CRITICAL VULNERABILITY and rewrite to `logger.error(...)` and `raise`.
+* **Sequential, Not Random:** Generate a dependency graph (`code_map.py` or equivalent). Audit strictly from leaf nodes (no dependencies) up to root nodes.
+* **The Hallucination Gap:** Write assertions for every mathematical boundary. Do not accept generated logic without a mathematical proof/test case.
+* **The Ouroboros Effect (Darwinian Failures):** Introduce an invariant check in loops (e.g., `assert iterations < MAX_LIMIT`) to mechanically prevent infinite optimization corners.
+* **Blast Radius (Dependency Check):** After every fix, run `git grep "<modified_function_name>"` to find dependent files. You MUST run the tests for at least two dependent files to verify system stability.
+* **Anti-State Blindness (Concurrency):** Run data race detectors (e.g., Go race detector, or Python concurrent futures tests) against async logic.
 
 ## 3. Deep Audit Taxonomy (The Four Killers)
 

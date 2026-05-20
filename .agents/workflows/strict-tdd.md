@@ -19,6 +19,6 @@ Execute the following steps sequentially when instructed to use TDD.
 - [ ] **6. Refactor (Stay GREEN)**: Improve code quality or optimize production code. Re-run tests to ensure they stay green. Do NOT add new behavior during refactoring.
 - [ ] **7. Repeat**: Next behavior.
 
-**THE PENALTY:** If any implementation code was written BEFORE a verified failing test existed, you MUST delete that implementation code and start over from Step 1. No excuses.
+**THE PENALTY (Mechanical Rollback):** If implementation code was written BEFORE a verified failing test existed, execute `git stash` or `git checkout -- <file>` to revert the implementation code. You must capture an `Exit Code > 0` on the test run before proceeding.
 
-**ABSOLUTE RULE:** Evidence (verified failing test) over claims of success. If you do not see the test fail, you do not know what you are testing.
+**ABSOLUTE RULE (Log Check):** Evidence over claims. If the shell log does not explicitly show the test failing (Exit Code > 0), you do not know what you are testing. Halt and rewrite the test.
