@@ -27,3 +27,8 @@ Set up the mechanical verifiers.
 ## 5. First-Pass Semantic Indexing
 Ensure the new project is searchable.
 - **Command**: Trigger the `@index-project` skill or run `python .agents/scripts/index_project.py` (if available).
+
+## 6. Bootstrap LLM Wiki (Optional)
+- **Command**: `python .agents/scripts/bootstrap_wiki.py`
+- **Action**: Scaffolds `.wiki/` + scans all layers into `_manifest.json`
+- **Note**: Does NOT auto-ingest. User triggers `/wiki-ingest` when ready.

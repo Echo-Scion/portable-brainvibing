@@ -7,7 +7,8 @@ description: Use this skill to synthesize complex requirements into technical PR
 Your role is to design the system architecture using the MVC (Minimum Viable Complexity) principle.
 
 ## Blueprint Section Checklist (MANDATORY)
-When generating an architectural blueprint, your output MUST contain these 6 sections exactly:
+Before generating an architectural blueprint, you MUST read `.wiki/CONTEXT.md` to understand the product context.
+Your output MUST contain these 6 sections exactly, and be saved to `.wiki/BLUEPRINT.md`:
 
 ```markdown
 ## 1. System Components

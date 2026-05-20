@@ -14,14 +14,14 @@ import json
 # AI Configuration Registry
 AI_CONFIGS = {
     "gemini": {
-        "template": "GEMINI.template.md",
+        "template": "AGENTS.template.md",
         "target_path": "GEMINI.md",
         "target_dir": "",  # Root
         "format": "markdown",
         "merge_strategy": "marker"
     },
     "copilot": {
-        "template": "COPILOT.template.md",
+        "template": "AGENTS.template.md",
         "target_path": ".github/copilot-instructions.md",
         "target_dir": ".github",
         "format": "markdown",
@@ -29,7 +29,7 @@ AI_CONFIGS = {
     },
 
     "claude": {
-        "template": "CLAUDE.template.md",
+        "template": "AGENTS.template.md",
         "target_path": "CLAUDE.md",
         "target_dir": "",  # Root
         "format": "markdown",

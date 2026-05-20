@@ -21,6 +21,10 @@ python .agents/scripts/compress_memory.py
 ## 3. Generate Precise Handoff State (MANDATORY FORMAT)
 Output this exact markdown block for the user to copy/paste, or save it to `HANDOFF.md`. Do not leave fields empty.
 
+## 3.5. Wiki Session Log (If `.wiki/` exists)
+- Append session summary to `.wiki/log.md`
+- Archive HANDOFF.md content as episodic entry
+
 ```markdown
 # SESSION HANDOFF
 

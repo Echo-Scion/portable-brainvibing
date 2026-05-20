@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-20
+### Changed
+- feat: MetaGPT Pattern Injection (Output-as-Input, State Machine Persistence, Auto-Chain Trigger)
+- refactor: Unified Response Footer, simplified 3-Tier model (BUDGET, STANDARD, PREMIUM), and removed redundant "always on" rules
+- feat: Introduced Flutter Code Recipes (init, feature, liquid-glass, tests, release) and mapped them into the JIT router
+- fix: Consolidated AI template into a single AGENTS.template.md for true DRY deployment
+
 ## [1.3.4] - 2026-04-18
 ### Changed
 - feat(token): integrated Rank 1-3 token optimization tools (rtk, caveman, code_map, token_audit)

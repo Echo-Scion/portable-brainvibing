@@ -1,6 +1,5 @@
 ---
 description: Protocol for synthesizing and using verification harnesses before high-risk actions.
-activation: always_on
 activation: model_decision
 
 version: 2.4.0

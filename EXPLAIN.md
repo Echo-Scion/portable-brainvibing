@@ -1,154 +1,89 @@
-# AGENTS: The `.agents` Ecosystem Guide
+# The `.agents` Ecosystem Explained (A Layman's Guide)
 
-Welcome to the **Portable Brainvibing AI-Surgical Infrastructure** (v3.0.0 — Algorithmic Upgrade).
+Welcome to the **Portable Brainvibing AI-Surgical Infrastructure** (v1.4.0). 
 
-This ecosystem treats the AI as a **statistical model**, not a human employee. Every file contains **executable algorithms** (decision trees, output templates, Python harnesses) rather than vague prohibitions. The AI does not need willpower; it needs structured constraints.
+If you've ever used an AI coding assistant (like Gemini, Claude, or Copilot) for a complex project, you've probably noticed that it eventually "loses its mind." It forgets your architecture rules, ignores your security warnings, and hallucinates code that doesn't fit your project. 
 
----
+This happens because AI models don't have willpower. If you give them a list of 50 rules to read every time they answer, they get exhausted (Attention Decay) and start ignoring them.
 
-## 🧠 Core Philosophy (v3.0)
-
-| Principle | Old (v1–v2) | New (v3.0) |
-| :--- | :--- | :--- |
-| **Instruction Type** | "Don't commit secrets" (prohibition) | `python secrets_scan_verifier.py` (external enforcement) |
-| **Skill Activation** | "Adopt the persona of an elite auditor" | Mandatory Output Template (fill these fields or task fails) |
-| **Routing** | Load all files upfront (token bloat) | JIT Auto-Pilot Router in `GEMINI.md` (load only when triggered) |
-| **Verification** | Trust AI self-discipline | Python harnesses with exit codes |
+**This ecosystem fixes that.** We treat the AI not as a human employee who needs "guidance," but as a machine that needs an **Autonomous Pipeline** (a conveyor belt).
 
 ---
 
-## 📡 GEMINI.md (The Active Router)
+## 🏭 The Epic Scenario: From Zero to Production
 
-The root `GEMINI.md` is the **Master BIOS** — an Active Router that the AI reads on every session. It contains:
+To understand how **every single skill, rule, and workflow** in the `.agents` ecosystem works together, let's walk through an epic, end-to-end scenario: **You want to build and launch a new SaaS application from scratch.**
 
-1. **Binary Oratory Template**: `[RECOMMENDED TIER] [RECOMMENDED MODEL] [DO] [DONT] [CONFIRM]` — forces the AI to predict the right model tier *before* executing, not echo the current one.
-2. **Caveman Protocol**: Ultra-compressed communication (drop articles, filler, pleasantries) to save tokens.
-3. **JIT Routing Table**: Keyword-triggered `view_file` commands that load the correct skill/workflow on-demand.
-4. **Inline Micro-Rules**: Circuit Breaker (3x fail → abort), Anti-Affirmation, Code Skeleton First.
+Here is the exact journey the AI takes, step-by-step.
 
----
+### Phase 1: Inception & Initialization
+You type: *"Let's build a new SaaS app for booking meeting rooms."*
+1. **The Traffic Cop (`GEMINI.md`)**: The Master BIOS reads your prompt, catches the keyword "new app", and triggers the `/project-init` workflow.
+2. **Indexing (`index-project`)**: The AI runs setup scripts and uses the **QMD** integration to build a semantic search index of your empty workspace.
+3. **Reading Protocol (`context-standards.md`)**: The AI is forbidden from reading massive files blindly. It uses `code_map.py` to structurally scan the directory and understand the layout.
 
-## 🏛️ CANONS (`canons/`)
-**The Constitution — Immutable Architectural Laws**
+### Phase 2: Strategy & Data Modeling
+You type: *"Define the core data models for the bookings."*
+1. **The Strategist (`saas-strategist`)**: The AI switches to Business Mode. It writes a viability scorecard and saves the business context into `.wiki/CONTEXT.md`.
+2. **Data Integrity (`data-logic`)**: The AI designs the data models. A rule strictly forces it to use immutable patterns (e.g., Freezed in Flutter) so data cannot be accidentally mutated in memory.
+3. **Adversarial Thinking (`reasoning-standards.md`)**: Before finalizing the model, the AI is forced to argue against itself (the "Adversarial Twin Attack") to find flaws in its own data structure.
 
-- **`global/core-architecture.md`**: Overarching rules for how application layers communicate.
-- **`global/harnesses/`**: Runnable Python verification scripts:
-  - `secrets_scan_verifier.py` — Scans for hardcoded API keys, tokens, and passwords using regex patterns. Returns `[PASS]` or `[FAIL]` with exact file:line locations.
-  - `migration_verifier.py` — Scans SQL migration files for dangerous operations (`DROP TABLE`, `TRUNCATE`, open RLS policies). Blocks deployment on failure.
-  - `base_action_verifier.py` — Abstract base class for creating new harnesses.
-- **`micro/`**: Budget-model cheat sheets with DO/DONT syntax patterns:
-  - `flutter.md` — Riverpod 2.x, GoRouter, Freezed, common pitfalls.
-  - `supabase.md` — Auth v2, RLS policy syntax, Edge Functions.
-  - `git-workflow.md` — Commit format, branching model, pre-commit checklist.
+### Phase 3: Architecture & API Contracts
+You type: *"Design the API and database schema."*
+1. **The Architect (`project-architect`)**: The AI reads `.wiki/CONTEXT.md` and generates a strict `.wiki/BLUEPRINT.md` containing the entire system design.
+2. **The Contract (`api-contract`)**: The AI defines the API endpoints. It is forced by the `api-connector-protocols.md` rule to write strict Zod/OpenAPI validation schemas for every request.
+3. **The Database (`backend-orchestrator`)**: The AI writes the SQL schema. It checks `performance-optimization.md` to decide if a query needs caching or indexing. 
 
----
+### Phase 4: Building the Application
+You type: *"Build the booking feature."*
+1. **The Conveyor Belt (`/app-builder`)**: The AI launches the State Machine. It creates `.wiki/task.md` and marks the "Model Setup" phase as `[/]` (In Progress).
+2. **Frontend Coding (`frontend-experience`)**: The AI writes the UI code. It references `flutter-standards.md` to ensure it uses the correct state management (Riverpod).
+3. **Visual Polish (`ui-finish`)**: The AI doesn't just write functional code; it applies "Liquid Glass" aesthetics, micro-interactions, and handles Empty/Loading/Error states gracefully.
+4. **Terminal Optimization (`antigravity-rtk-rules.md`)**: When the AI needs to run `npm install` or `flutter pub get`, it proxies the command through **RTK (Rust Token Killer)** so the massive terminal output doesn't flood its brain and waste your tokens.
 
-## 🛡️ RULES (`rules/`)
-**Algorithmic Guardrails & Decision Trees**
+### Phase 5: Debugging & Testing
+You encounter a bug: *"The UI is overflowing on small screens."*
+1. **Visual Debugging (`/flutter-debug`)**: The AI requests a screenshot, uses MCP tools to inspect the widget tree, and fixes the overflow.
+2. **Strict Testing (`/strict-tdd`)**: You ask for unit tests. The AI enters a forced RED -> GREEN -> REFACTOR loop, ensuring the test fails first before writing the fix.
 
-Each rule file contains concrete, machine-executable instructions:
+### Phase 6: Security Audit
+You type: *"Audit the codebase before we deploy."*
+1. **The Attacker (`/offensive-audit`)**: The AI switches into Red Team mode.
+2. **The Sentinel (`integrity-sentinel`)**: The AI reads `offensive-audit-protocol.md` and attempts to break its own code (checking for SQL injection, XSS). 
+3. **Mechanical Enforcement**: The AI is forced to run `secrets_scan_verifier.py`. If it left a hardcoded API key in the code, the Python script yells `[FAIL]` and blocks the pipeline until the AI removes it.
+4. **Web Security (`web.md`) & Backend Security (`security-guardrails.md`)**: The AI ensures strict CSP headers are applied and Row Level Security (RLS) policies are active on the database.
 
-| File | What It Does (v3.0) |
-| :--- | :--- |
-| `core-guardrails.md` | Binary Oratory gate + Circuit Breaker (3x fail → abort) |
-| `tier-execution-protocol.md` | 6-Tier model classification with Auto-Router heuristics and Bento-Box workflow |
-| `reasoning-standards.md` | **Mandatory Output Templates**: 5 Structural Questions + Adversarial Twin Attack block |
-| `security-guardrails.md` | **Grep patterns** for secrets detection + Destructive Gate + RLS examples |
-| `flutter-standards.md` | Architecture standards with **cross-reference to `canons/micro/flutter.md`** |
-| `web.md` | Concrete CSP header pattern, XSS protection code, **4-State Component Map** |
-| `api-connector-protocols.md` | **Zod validation snippets** + API Response Contract template + Idempotency algorithm |
-| `performance-optimization.md` | **Decision Trees** for file splitting (>500 lines), caching, lazy loading |
-| `caveman-activate.md` | Caveman mode with **3 Before/After transformation examples** |
-| `antigravity-rtk-rules.md` | **RTK Decision Tree** (when to use `rtk` vs raw commands) |
-| `context-standards.md` | Skeleton-First reading protocol, Surgical Munching |
-| `interaction-protocols.md` | GPS Checkpoint format |
-| `offensive-audit-protocol.md` | Attack vector checklist for security audits |
-| `qmd-search-protocol.md` | QMD semantic search command syntax |
-| `autoharness-protocol.md` | Action-Verifier loop definition |
-| `git-workflow.md` | Commit conventions and branching rules |
+### Phase 7: Optimization & Memory Management
+You type: *"The context is getting too long."*
+1. **Memory Compression (`/context-prune` & `caveman-compress`)**: The AI runs a Python script to compress `.wiki/task.md` and other logs.
+2. **Caveman Mode (`caveman`)**: The AI drops all pleasantries and switches to telegraphic communication ("Bug fixed. Tests pass. Deploy next?") to save 75% of your output tokens.
+3. **Cost Control (`cost-optimizer`)**: The AI calculates the token budget and warns you if a planned massive refactor is too expensive.
 
----
+### Phase 8: Production Release
+You type: *"Deploy to production."*
+1. **The Operator (`project-operator`)**: The AI takes the wheel for deployment.
+2. **Pre-flight Checks (`/prod-deploy` & `/flutter-release`)**: The AI runs `migration_verifier.py` to ensure no database migrations contain dangerous `DROP TABLE` commands. It then compiles the release bundle.
 
-## 🎯 SKILLS (`skills/`)
-**Domain Expertise with Mandatory Output Templates**
-
-Each skill now contains **concrete templates** the AI must fill out (not personas to "adopt"):
-
-| Skill | Mandatory Output |
-| :--- | :--- |
-| `project-architect` | **Blueprint Checklist** (6 sections including "The Cut List" for scope reduction) |
-| `backend-orchestrator` | **DB Schema Decision Tree** (SQL vs jsonb) + **RLS Policy SQL template** |
-| `frontend-experience` | **Component State Map** (Loading/Empty/Error/Success Dart code) |
-| `integrity-sentinel` | **Audit Report Template** (Severity, Reproduction Steps, Code Fix) |
-| `saas-strategist` | **Context File Template** (`CONTEXT.md`) + **Viability Scorecard** (4-dimension scoring) |
-| `api-contract` | **Zod Schema Templates** for Auth, Pagination, and Strict Update endpoints |
-| `cost-optimizer` | **Token Budget Calculator** (action → estimated tokens → risk level) |
-| `project-operator` | **Release Checklist** calling `secrets_scan_verifier.py` and `migration_verifier.py` |
-| `meta-agent-admin` | **Ecosystem Update Protocol** (format validation → verify_agents.py → revert on fail) |
-| `data-logic` | Freezed immutability patterns, `copyWith` mutation rules |
-| `ui-finish` | Liquid Glass aesthetics, micro-interactions, shimmer loading states |
-| `caveman` | Ultra-compressed communication mode with intensity levels |
-| `caveman-compress` | File compression tool for memory files |
-| `qmd` | QMD semantic search query types and command syntax |
-| `index-project` | Project indexing automation for QMD |
+### Phase 9: Meta-Maintenance (Updating the AI Itself)
+You type: *"Update our internal AI rules to disallow Provider."*
+1. **The Admin (`meta-agent-admin`)**: The AI modifies the `.agents` ecosystem itself.
+2. **Knowledge Base (`llm-wiki`)**: The AI updates the internal documentation.
+3. **Self-Healing**: The AI runs `verify_agents.py` to ensure the rules it just edited aren't broken. If the script fails, the AI reverts its own changes.
 
 ---
 
-## 🔄 WORKFLOWS (`workflows/`)
-**Step-by-Step Pipelines with Exact Commands**
+## ⚖️ The 3-Tier Execution Engine
 
-Each workflow now contains **runnable terminal commands** at every step:
+Through all of these phases, the AI doesn't treat every prompt equally. To save money and time, the Master BIOS forces the AI to classify every task into one of three tiers before it starts working:
 
-| Workflow | Trigger | Key Commands |
-| :--- | :--- | :--- |
-| `/project-init` | New project scaffold | `view_file` per skill, `mkdir -p`, `verify_agents.py` |
-| `/full-lifecycle` | End-to-end feature build | 6-phase pipeline: Strategy → Architecture → TDD → UI → Audit → Offload |
-| `/strict-tdd` | Test-driven development | RED → GREEN → REFACTOR loop |
-| `/app-builder` | Feature creation | Model → Provider → UI → Test pipeline |
-| `/prod-deploy` | Production deployment | `secrets_scan_verifier.py`, `migration_verifier.py`, `npm audit` |
-| `/context-prune` | Memory cleanup | `compress_memory.py`, scratchpad eviction, task archival |
-| `/session-offload` | End-of-session | `git commit`, `compress_memory.py`, inline `SESSION_HANDOFF` template |
-| `/code-review` | Pre-commit review | Code quality and security checklist |
-| `/flutter-debug` | UI bug fixing | Screenshot + MCP tools |
-| `/offensive-audit` | Security audit | Iterative Audit-Then-Patch loop |
+1. **BUDGET**: "Fix a typo in this button." (The AI does it instantly, no complex planning).
+2. **STANDARD**: "Add a new field to the database." (The AI does a quick check of the schema, writes the code, and verifies it).
+3. **PREMIUM**: "Build a new authentication system." (The AI uses the full Conveyor Belt: Strategist → Architect → Builder → Auditor).
+
+By declaring the Tier upfront, the AI knows exactly how much "brainpower" and time to spend on your request.
 
 ---
 
-## ⚙️ MECHANICAL TOOLING
+## Summary
 
-### Scripts (`scripts/`)
-Runnable Python utilities:
-
-| Script | Purpose |
-| :--- | :--- |
-| `verify_agents.py` | **Master Verifier** — scans for broken links, missing frontmatter, protocol violations |
-| `code_map.py` | AST/Skeleton map of a directory (~300 tokens vs ~5000 for full read) |
-| `token_audit.py` | Identifies "ghost token" files exceeding 500-line limit |
-| `compress_memory.py` | Compresses memory/log files to save input tokens |
-| `deploy_foundation.py` | Deploys `.agents` to a new project |
-| `sync_ai_configs.py` | Syncs AI config files after foundation updates |
-| `track_budget.py` | Tracks Tier 1/2 task resolution rates |
-| `preflight_check.py` | Pre-flight environment validation |
-| `find_audit_targets.py` | Identifies files needing security audit |
-| `context_naming_lint.py` | Lints context file naming conventions |
-| `setup_qmd.py` | Sets up QMD semantic search |
-| `sync_to_foundation.py` | Syncs changes back to the foundation repo |
-
-### Templates (`templates/`)
-Standardized file molds for session handoffs, architecture blueprints, and multi-AI config files.
-
-### Evals & Docs (`evals/`, `docs/`)
-Benchmarking tools and human-readable deployment manuals.
-
----
-
-## Changelog
-
-| Version | Date | Notes |
-| :--- | :--- | :--- |
-| **3.0.0** | 2026-05-20 | **Algorithmic Upgrade**: Transformed 21 cosmetic/referential files into executable algorithms. Added Decision Trees, Output Templates, Python harnesses, Zod snippets, and JIT Auto-Pilot Router. Binary Oratory upgraded to predictive model recommendation. |
-| **1.3.0** | 2026-04-18 | Modernize foundation: adopt RTK, QMD, and Caveman. Remove obsolete manual catalogs. |
-| **1.2.0** | 2026-03-26 | Integrate 10 Prompt Patterns, Root GEMINI.md, and evals/docs folders |
-| **1.1.0** | 2026-03-20 | Unified Logic: Established a clear 4-pillar structure and the 82-file SaaS mapping protocol. |
-| **1.0.0** | 2026-03-19 | Clean Reset to V1.0.0 |
-| **0.9.0** | 2026-03-15 | Initial baseline |
+The `.agents` ecosystem is not a list of prompts. It is an **assembly line for software development**. By forcing the AI to pass physical files down a conveyor belt, track its state, and run Python verification scripts, we turn a generic chatbot into a relentless, high-precision engineering team.

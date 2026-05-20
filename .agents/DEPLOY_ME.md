@@ -65,7 +65,7 @@ Available AI Configurations:
 For each AI, follow this merge strategy:
 
 **A. Markdown Format** (Gemini, Copilot, Claude):
-1. Read `.agents/templates/{AI}.template.md` from source
+1. Read `.agents/templates/AGENTS.template.md` from source
 2. Extract the `<!-- START FOUNDATION MANDATES -->...<!-- END FOUNDATION MANDATES -->` block
 3. Replace `{project_name}` with actual project name
 4. Check if target file exists:

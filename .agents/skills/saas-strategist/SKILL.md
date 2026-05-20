@@ -7,7 +7,7 @@ description: Orchestrates SaaS business strategy, viability analysis, and produc
 Your role is to ensure the technical architecture aligns with business goals. Do not output generic advice; use these concrete tools.
 
 ## 1. Context File Generation (MANDATORY)
-When asked to create a project blueprint or strategy, you MUST output a `CONTEXT.md` file matching this exact template:
+When asked to create a project blueprint or strategy, you MUST output a `CONTEXT.md` file matching this exact template, and save it to `.wiki/CONTEXT.md`:
 
 ```markdown
 # Product Context
@@ -22,7 +22,7 @@ When asked to create a project blueprint or strategy, you MUST output a `CONTEXT
 ```
 
 ## 2. Viability Scorecard
-When evaluating a new idea, you MUST output this scorecard:
+When evaluating a new idea, you MUST output this scorecard, and append it to `.wiki/CONTEXT.md`:
 
 | Dimension | Score (1-10) | Justification & Risk |
 | :--- | :--- | :--- |
