@@ -27,6 +27,7 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 > 2. The 82-file SaaS naming policy applies EXACTLY AND ONLY to Target Deployment Projects (SaaS apps). Enforcing them within `.agents/` or foundation directories is a violation.
 
 ## 2. Reasoning Standards
+- **AI Engineering Compliance**: Adhere strictly to the algorithms in `rules/ai-engineering-standards.md` (e.g., Assertion Matrix, Confidence Gates).
 - **Think Before Doing**: Always reason through the problem before writing the first line of code.
 - **Anti-Laziness Mandate**: Do not assume the codebase state. Ingest relevant files via `view_file` or `grep_search` first.
 - **Root Cause Analysis**: Find the "Why" (5 Whys), not just the "What". Surface-level fixes are unacceptable for Tier-1+ tasks.
@@ -115,8 +116,11 @@ To prevent protocol drift and stale constraints:
 - Utilize token auditing via `python .agents/scripts/token_audit.py` whenever files grow beyond 500 lines or context appears too heavy.
 - Utilize skeleton extraction via `python .agents/scripts/code_map.py` to extract code skeletons before ingesting large directories to preserve token bandwidth.
 
-## 10. Context & Scope Defense (The "Vibe Coder" Rules)
-To prevent agentic hallucination, unrequested edits, and context amnesia:
-- **Constraint Persistence (Anti-Amnesia):** The context window auto-compacts over time. Never rely on the chat history to remember critical constraints. If a hard constraint is established during a session, **persist it immediately to `GEMINI.md` or the relevant `.agents/rules/` file** so it survives compaction.
-- **Scope Lock (Anti-Wandering):** Agentic mode may attempt to solve the "full problem" by editing unrequested, "related" files. You MUST strictly limit your edits to the specific files requested or explicitly approved in your plan. If negative constraints are given (e.g., "without changing X"), list them in your thought process.
-- **Diff Verification:** Before concluding a session or making a commit, ALWAYS verify your footprint. Run `git diff --name-only` to ensure no unrequested files were stealthily modified. Revert any accidental changes immediately.
+## 11. Post-Task Reflection & Learning Loop (Anti-Repetition Protocol)
+
+To ensure the AI system learns from its mistakes and prevents recurring errors, the agent MUST perform a Post-Mortem Reflection after successfully resolving a bug, encountering execution friction, or recovering from a 3x Circuit Breaker failure.
+
+**The Post-Task Learning Workflow:**
+1. **Identify Root Cause**: Determine *why* the initial failure occurred (e.g., outdated syntax assumption, missing import, architectural conflict).
+2. **Persistent Logging**: The agent MUST actively write a brief summary of the failure and the successful resolution pattern into the `Repetitive Friction & Patterns` section of `context/00_Strategy/MEMORY.md` (or the corresponding App Local memory in a monorepo).
+3. **Rule Evolution**: If the error was caused by a contradiction in the agent's instructions or a recurring bad habit, the agent should propose adding a new global rule to `.agents/rules/` (via the `meta-agent-admin` skill) to permanently fix its behavior across future sessions.
