@@ -2,7 +2,7 @@
 name: custom-rule
 description: "Template for creating a custom behavioral rule"
 scope: project-specific
-target_path: universal/.agents/rules/custom/
+target_path: .github/rules/custom/
 ---
 
 # Custom Rule Template
@@ -10,7 +10,7 @@ target_path: universal/.agents/rules/custom/
 Use this template to create project-specific behavioral rules. Each rule should focus on ONE behavioral domain specific to your project.
 
 ## File Naming
-- **Location**: `universal/.agents/rules/custom/<rule-name>.md`
+- **Location**: `.github/rules/custom/<rule-name>.md`
 - **Format**: kebab-case (e.g., `my-custom-rule.md`)
 
 ## Template
@@ -32,7 +32,7 @@ One or two sentences explaining why this rule exists and what problem it solves.
 ## Scope
 
 Describe the extent of this rule:
-- What scenarmobile trigger this rule?
+- What scenarios trigger this rule?
 - When should agents follow this rule vs. override it?
 - Are there exceptions?
 
