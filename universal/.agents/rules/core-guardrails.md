@@ -141,6 +141,6 @@ To ensure the AI system mechanically learns from its mistakes, the agent MUST ex
    - If the error stems from a missing or contradictory rule, you MUST output a JSON block `{"action": "evolve_rule", "target": ".agents/rules/...", "proposed_addition": "..."}`.
    - You MUST mechanically execute the `replace` tool to inject this new constraint into the target rule file before declaring the task `DONE`.
    - *Probabilistic suggestions ("I should propose...") are prohibited.*
-t, architectural conflict, hardware constraint).
+
 3. **Persistent Logging**: The agent MUST queue updating `.agents/LEARNINGS.md` (or `context/00_Strategy/MEMORY.md`) as its IMMEDIATE `NEXT TASK`. Do not wait for the user to remind you.
 4. **Rule Evolution**: If the error was caused by a contradiction in the agent's instructions or a recurring bad habit, the agent should propose adding a new global rule to `.agents/rules/` (via the `meta-agent-admin` skill) to permanently fix its behavior across future sessions.
