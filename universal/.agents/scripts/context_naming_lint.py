@@ -9,7 +9,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 AGENTS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 PROJECT_ROOT = os.path.abspath(os.path.join(AGENTS_DIR, ".."))
 CONTEXT_DIR = os.path.join(PROJECT_ROOT, "context")
-REGISTRY_FILE = os.path.join(AGENTS_DIR, "templates", "SAAS_STARTUP_STRUCTURE.md")
+
 
 
 PILLAR_MASTERS: Dict[str, str] = {
@@ -121,13 +121,13 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
                 errors += 1
                 output.append(
                     f"[ERROR] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from SAAS_STARTUP_STRUCTURE.md"
+
                 )
             else:
                 warnings += 1
                 output.append(
                     f"[WARNING] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from SAAS_STARTUP_STRUCTURE.md"
+
                 )
 
     return errors, warnings, output

@@ -10,25 +10,25 @@ This workflow defines the precision implementation cycle for individual features
 - [ ] **State Initialization**: Create or update `.wiki/task.md` with the phases below. Update checkboxes to `[/]` and `[x]` as you progress.
 - [ ] **Verify Environment**: Ensure `.agents/` is synced and active.
 - [ ] **Rule Alignment**: Read `rules/core-guardrails.md` and `rules/context-standards.md`.
-- [ ] **Surgical Entry**: Identify the target folder (00-03) and the relevant Prefix from `templates/SAAS_STARTUP_STRUCTURE.md`.
+
 
 ## 1. SPECIFICATION (LIVING DATA)
 - [ ] **Master Update**: Add the feature summary to `.wiki/BLUEPRINT.md` and `01_Product/ROADMAP.md`.
 - [ ] **Registry Expansion**: Create a new Prefix-based detail file (e.g., `01_Product/Rev_Payment_Gateways.md`) if the domain is new or requires high depth.
 - [ ] **Approval**: Present the "Surgical Spec" to the user for approval before writing code.
-- [ ] **Auto-Chain Trigger**: Set `NEXT TASK: view_file .agents/skills/ui-finish/SKILL.md`
+
 
 ## 2. AESTHETIC DESIGN (LIQUID GLASS)
-- [ ] **Vibe Check**: Invoke `@skills/ui-finish` to design the UI layout and micro-interactions.
+
 - [ ] **Component Blueprint**: Define the `{{UI_COMPONENT}}` tree and design tokens in `02_Creative/STYLE_GUIDE.md`.
 - [ ] **MANDATORY BENTO-BOX PAUSE**: You MUST run UI linting/testing before proceeding to Step 3. Do not batch Step 2 and Step 3 together.
-- [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute lint and proceed to data-logic`
+
 
 ## 3. DOMAIN & LOGIC (TECHNICAL DEPTH)
-- [ ] **Data Modeling**: Invoke `@skills/data-logic` to create immutable `{{MODEL_TYPE}}` models.
+
 - [ ] **Security Check**: Invoke `@skills/integrity-sentinel` to audit data parsing and storage logic.
 - [ ] **State Management**: Implement `{{STATE_MANAGEMENT}}` and business logic services.
-- [ ] **API Contract**: Invoke `@skills/api-contract` if backend interaction is required.
+
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute Adversarial Twin Protocol`
 
 ## 3.5 ADVERSARIAL TWIN PROTOCOL (PRE-VERIFICATION)

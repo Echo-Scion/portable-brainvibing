@@ -74,7 +74,7 @@
 
 ---
 
-## CHAPTER 8: SAAS STARTUP DOMAINS (FULL MAPPING)
+
 > [!NOTE]
 > This chapter provides the core summary of every granular context file. Full details are in the respective files.
 

@@ -213,7 +213,7 @@ PROTECTED_FILES = {
 ## 7. Example: Complete Flow
 
 ### Scenario
-Developer updates `.agents/skills/backend-orchestrator/SKILL.md` in `_foundation`
+
 
 ### Execution
 ```bash
@@ -238,7 +238,7 @@ python portable\ brainvibing/.agents/scripts/verify_agents.py
 # 4. Push
 cd portable\ brainvibing
 git add .
-git commit -m "v1.3.0: Enhanced backend-orchestrator with RLS patterns"
+
 git push
 ```
 
@@ -246,7 +246,7 @@ git push
 - `VERSION`: `1.3.0`
 - `CHANGELOG.md`: New entry for 1.3.0 with commit message
 - `README.md`: Shows "**Current Version**: **1.3.0**"
-- `.agents/skills/backend-orchestrator/`: Updated with sanitized content ready for distribution
+
 
 ---
 

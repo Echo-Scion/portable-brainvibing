@@ -11,7 +11,7 @@ This is the standard pipeline for building a complete, production-ready feature 
 - **Rule**: At the start of every phase below, you MUST mark its checkbox as `[/]` (in-progress) in `.wiki/task.md`. At the end of every phase, mark it `[x]` (done).
 
 ## Phase 1: Context & Strategy
-- **Trigger**: Run `view_file .agents/skills/saas-strategist/SKILL.md`
+
 - **Output Required**: Write the context to `.wiki/CONTEXT.md`
 - **Auto-Chain Trigger**: In your response footer, set `NEXT TASK: view_file .agents/skills/project-architect/SKILL.md`
 - **Gate**: Wait for user approval (`[DO: YES]`).
@@ -31,10 +31,10 @@ This is the standard pipeline for building a complete, production-ready feature 
 - **Trigger**: Run `view_file .agents/workflows/strict-tdd.md`
 - **Action**: Read `.wiki/BLUEPRINT.md`, then implement the logic. Write failing tests first, then pass them.
 - **Output Required**: Test execution logs showing `[PASS]`.
-- **Auto-Chain Trigger**: In your response footer, set `NEXT TASK: view_file .agents/skills/ui-finish/SKILL.md`
+
 
 ## Phase 4: Aesthetic & UI Polish
-- **Trigger**: Run `view_file .agents/skills/ui-finish/SKILL.md`
+
 - **Action**: Apply Liquid Glass design, micro-interactions, and 4-state error handling.
 - **Auto-Chain Trigger**: In your response footer, set `NEXT TASK: view_file .agents/skills/integrity-sentinel/SKILL.md`
 

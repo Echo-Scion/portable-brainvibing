@@ -117,8 +117,8 @@ To prevent architectural drift and naming inconsistency, all files created withi
 
 ## 1. The Mapping Requirement (Structural Organization)
 - AI **MUST NOT** invent arbitrary file names for context or knowledge items.
-- If a new piece of context or domain knowledge is provided, the AI must first map it to the **82 SaaS Startup Files** defined in `.agents/templates/SAAS_STARTUP_STRUCTURE.md`.
-- **Naming Source**: Use only the identifiers listed in `SAAS_STARTUP_STRUCTURE.md`.
+
+
 
 ## 2. Selection Logic
 1. **Direct Match**: If the knowledge fits a specific category (e.g., SEO strategy), use the designated file (e.g., `01_Product/Acq_SEO_Wins.md`).
@@ -140,7 +140,7 @@ To prevent architectural drift and naming inconsistency, all files created withi
 
 ## 5. Lean-to-Startup Evolution (Just-In-Time Expansion)
 - **Anti-Paralysis**: Do NOT generate all 82 SaaS files upfront. Start with the minimal files needed for the current sprint.
-- The 82 files in `SAAS_STARTUP_STRUCTURE.md` act as a **dictionary of allowed names**, not a mandate to create empty files.
+
 - Even in **Lean** or **Startup** projects, any NEW idea or feature MUST trigger a **Surgical Expansion (JIT)**.
 - Instead of creating random files, the AI "promotes" the relevant category from the 82-file baseline.
 - *Example*: Adding a "Referral Program" to a project results in the creation of `context/01_Product/Growth_Referral_Programs.md`, initializing that specific file ONLY when needed.
@@ -158,7 +158,7 @@ To prevent architectural drift and naming inconsistency, all files created withi
 To prevent accidental data loss ("Lossy Compression Hazard") when cleaning up or migrating malformed context files, the system enforces the following anti-destructive laws:
 
 ### 1. The "Quarantine" Rule (Proactive Rejection)
-- Any file found in the `/context` (or `apps/*/context`) folder that does NOT match the official names in `SAAS_STARTUP_STRUCTURE.md` is strictly designated as **Quarantine**.
+
 - **Rule**: The AI MUST NOT touch, overwrite, or proactively delete Quarantine files.
 - AI must halt context operations targeting those files and instead notify the user about the anomaly to prevent destructive data loss.
 

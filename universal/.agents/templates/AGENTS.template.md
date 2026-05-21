@@ -33,15 +33,15 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | :--- | :--- |
 | **New Project, Init, Scaffold, Start from Scratch** | `.agents/workflows/project-init.md` & `.agents/workflows/full-lifecycle.md` |
 | **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/global/feature-recipe.md` |
-| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
+
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
-| **Backend Logic, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
-| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` |
+
+
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` |
-| **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
-| **API Contracts, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
+
+
 | **Wiki, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/llm-wiki/SKILL.md` |
-| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` |
+
 | **Deployment, Build, Release, CI/CD, DevOps** | `.agents/workflows/prod-deploy.md` & `.agents/skills/project-operator/SKILL.md` |
 | **Cost Analysis, Token Budget, LLM Costs** | `.agents/scripts/token_audit.py` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **Agent System Modification, .agents/ Edits** | `.agents/skills/meta-agent-admin/SKILL.md` |

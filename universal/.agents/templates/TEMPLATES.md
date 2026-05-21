@@ -35,16 +35,16 @@ Templates for specialized SaaS knowledge and episodic memory.
 
 | Template | Purpose |
 | :--- | :--- |
-| [BLUEPRINT_SAAS_CHAPTER.template.md](BLUEPRINT_SAAS_CHAPTER.template.md) | Category summaries for SaaS projects. |
-| [SAAS_MEMORY.template.md](SAAS_MEMORY.template.md) | Domain-specific deep context logs. |
+
+
 | [MEMORY.template.md](MEMORY.template.md) | Core decision tracking and friction logging. |
 | [WIKI_SCHEMA.template.md](WIKI_SCHEMA.template.md) | Configuration for the `.wiki/` graph. |
 
 ## 📖 Reference Docs (Static)
 | File | Purpose |
 | :--- | :--- |
-| [SAAS_STARTUP_STRUCTURE.md](SAAS_STARTUP_STRUCTURE.md) | The absolute 82-file naming registry. |
-| [LEAN_TO_SAAS_MAPPING.md](LEAN_TO_SAAS_MAPPING.md) | Pillar-to-prefix mapping table. |
+
+
 | [github-native-structure.md](github-native-structure.md) | Canonical GitHub folder structure guide. |
 | [startup_knowledge_base.md](startup_knowledge_base.md) | Domain-specific instructions for auto-population. |
 

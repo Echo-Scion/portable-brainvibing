@@ -12,7 +12,7 @@ Read the user's prompt. If it is vague, do NOT guess.
 
 ## 2. Generate Context
 Create the foundational knowledge file for the AI.
-- **Command**: `view_file .agents/skills/saas-strategist/SKILL.md`
+
 - **Action**: Generate `CONTEXT.md` using the template.
 
 ## 3. Scaffold Architecture

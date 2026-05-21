@@ -19,7 +19,7 @@
 - **Architectural Guards:** [Rules from `canons/` that must not be violated]
 
 ## 4. Sub-Agent & Knowledge State
-- **Active Skill:** [e.g., `ui-finish`]
+
 - **Knowledge Gaps:** [Things that need research in the next session]
 
 ---
