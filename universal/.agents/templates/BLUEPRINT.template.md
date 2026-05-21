@@ -10,7 +10,7 @@
 ---
 
 ## CHAPTER 1: CONTEXT & IDENTITY (The Foundational Soul)
-** Identifier**: {{_identifier}}
+**Node Identifier**: {{node_identifier}}
 **Etymology**: {{etymology}}
 **Trinity of Identity**: {{trinity_keywords}}
 **Core Intent**: {{core_intent}}

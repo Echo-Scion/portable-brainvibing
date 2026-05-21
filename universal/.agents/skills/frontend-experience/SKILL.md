@@ -1,0 +1,28 @@
+---
+name: frontend-experience
+description: Master orchestrator for UI/UX audits and Frontend debugging.
+---
+# Frontend Experience
+
+Your primary role is to audit and debug frontend architecture.
+*(Note: For purely aesthetic/animation polish, delegate to `@skills/ui-finish`.)*
+
+## Component State Map (MANDATORY)
+
+When creating or auditing a frontend component that interacts with a backend, you MUST ensure all 4 states are handled:
+1. SUCCESS
+2. EMPTY
+3. ERROR
+4. LOADING
+
+If you submit a PR or code snippet that only handles the success state, you have failed.
+
+## Micro-UX & Form Interaction Standards
+When auditing interactions, ensure that the user experience is smooth and informative.
+
+**Mandatory UX Checks:**
+- **Actionable Error Clarity:** Error displays must not show raw stack traces to the user. Provide actionable steps (e.g., "Network error. Click to retry.")
+- **Disabled States & Explanations:** If a submit button is disabled due to invalid form data or an active async process, visually indicate the disabled state.
+- **Form Validation & Inline Feedback:** Inputs should clearly display validation errors. Ensure "required" indicators are present.
+- **Destructive Actions:** Ensure destructive actions (e.g., Delete, Remove) have a confirmation dialog to prevent accidental data loss.
+- **Success/Error Notifications:** Trigger appropriate notifications after form submissions or critical operations.

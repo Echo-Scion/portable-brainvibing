@@ -1,7 +1,7 @@
 # Workspace Rules & Mandates: {project_name}
 
 <!-- START FOUNDATION MANDATES (Version: 3.0.0 - Router Pattern) -->
-> **CRITICAL HABITAT NOTICE:** This file is the Master Bmobile. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
+> **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1. MANDATORY LIGHT HEADER (ZERO EXEMPTIONS)
 EVERY technical response MUST begin with this light header declaring the tier of the CURRENT task:
@@ -31,18 +31,18 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **New Project, Init, Scaffold, Start from Scratch** | `.agents/workflows/framework-init.md` & `.agents/workflows/full-lifecycle.md` |
-| **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/global/framework-feature-recipe.md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/workflows/project-init.md` & `.agents/workflows/full-lifecycle.md` |
+| **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/global/feature-recipe.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
-| **Backend Logic, .js, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
-| **Frontend UI, Layout, framework, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/global/liquid-glass-widgets.md` |
-| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/global/framework-tests.md` |
+| **Backend Logic, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
+| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` |
+| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
-| **API Contracts, schema validation, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
+| **API Contracts, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
 | **Wiki, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/llm-wiki/SKILL.md` |
 | **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` |
-| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/workflows/framework-release.md` & `.agents/skills/project-operator/SKILL.md` |
+| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/workflows/prod-deploy.md` & `.agents/skills/project-operator/SKILL.md` |
 | **Cost Analysis, Token Budget, LLM Costs** | `.agents/scripts/token_audit.py` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **Agent System Modification, .agents/ Edits** | `.agents/skills/meta-agent-admin/SKILL.md` |
 | **Code Review, PR Review** | `.agents/workflows/code-review.md` |

@@ -1,16 +1,16 @@
 ---
 name: custom-agent
-description: "Template for creating a custom AI Agent agent"
+description: "Template for creating a custom Copilot agent"
 scope: project-specific
-target_path: universal/.agents/agents/custom/
+target_path: .github/agents/custom/
 ---
 
 # Custom Agent Template
 
-Use this template to create project-specific AI Agent agents for specialized tasks in your project.
+Use this template to create project-specific Copilot agents for specialized tasks in your project.
 
 ## File Naming
-- **Location**: `universal/.agents/agents/custom/<agent-name>.agent.md`
+- **Location**: `.github/agents/custom/<agent-name>.agent.md`
 - **Format**: kebab-case (e.g., `my-custom-agent.agent.md`)
 
 ## Template
@@ -44,7 +44,7 @@ token_budget: 30000
 
 ## INSTRUCTIONS
 
-Detailed behavioral rules for this agent. These instructions are loaded automatically by AI Agent.
+Detailed behavioral rules for this agent. These instructions are loaded automatically by Copilot.
 
 ### Core Workflow
 
@@ -75,7 +75,7 @@ If something goes wrong:
 
 1. Capture error details
 2. Attempt recovery with [recovery strategy]
-3. If still failing, escalate to `@AI Agent`
+3. If still failing, escalate to `@copilot`
 
 ### Security Constraints
 
@@ -88,7 +88,7 @@ List any security gates or validations:
 
 ## PROMPT
 
-This is the system prompt that guides AI Agent's behavior for this agent.
+This is the system prompt that guides Copilot's behavior for this agent.
 
 You are the **[Agent Name]**, a specialized assistant focused on [domain/purpose].
 
@@ -124,7 +124,7 @@ When deciding how to proceed:
 Specialized agents this agent can delegate to:
 
 | Agent | When to Use | Handoff Pattern |
-| `@AI Agent` | When task exceeds my scope | "This requires `@AI Agent` - [reason]" |
+| `@copilot` | When task exceeds my scope | "This requires `@copilot` - [reason]" |
 | `@other-specialist` | For related domain | Description |
 
 ---
@@ -160,9 +160,9 @@ When you respond:
 
 This agent integrates with:
 
-- **Rules**: Loads from `universal/.agents/rules/` automatically
+- **Rules**: Loads from `.github/rules/` automatically
 - **Skills**: Can @mention other agents for delegation
-- **Workflows**: Can trigger GitHub Actions via `@AI Agent` (indirect)
+- **Workflows**: Can trigger GitHub Actions via `@copilot` (indirect)
 
 ---
 
@@ -174,7 +174,7 @@ Before deployment, verify:
 - [ ] YAML frontmatter is syntactically valid
 - [ ] All @mentions reference valid agents/skills
 - [ ] INSTRUCTIONS section is clear and unambiguous
-- [ ] PROMPT section provides good guidance to AI Agent
+- [ ] PROMPT section provides good guidance to Copilot
 - [ ] Examples are realistic and accurate
 - [ ] Uses correct heading levels (# for title, ## for main sections)
 
@@ -193,10 +193,10 @@ Before deployment, verify:
 
 Create a custom agent when:
 - ✓ Your project has unique, specialized workflows
-- ✓ You want to guide AI Agent toward project-specific patterns
+- ✓ You want to guide Copilot toward project-specific patterns
 - ✓ You have domain-specific knowledge to encode
 - ✗ You're implementing a skill (too generic) - use `.agents/skills/` instead
-- ✗ You're creating a rule (behavioral, not task-specific) - use `universal/.agents/rules/custom/` instead
+- ✗ You're creating a rule (behavioral, not task-specific) - use `.github/rules/custom/` instead
 
 ## Submitting Back to Foundation
 
@@ -205,7 +205,7 @@ If this agent would benefit all projects:
 1. **Generalize**: Remove all project-specific values
 2. **Refine**: Ensure it's broadly applicable
 3. **Test**: Verify with multiple projects
-4. **Document**: Add to foundation agents (`universal/.agents/agents/`)
+4. **Document**: Add to foundation agents (`.github/agents/`)
 5. **Propose**: Submit PR describing the new capability
 
 ---
