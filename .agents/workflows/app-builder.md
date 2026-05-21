@@ -20,13 +20,14 @@ This workflow defines the precision implementation cycle for individual features
 
 ## 2. AESTHETIC DESIGN (LIQUID GLASS)
 - [ ] **Vibe Check**: Invoke `@skills/ui-finish` to design the UI layout and micro-interactions.
-- [ ] **Component Blueprint**: Define the Widget tree and design tokens in `02_Creative/STYLE_GUIDE.md`.
-- [ ] **Auto-Chain Trigger**: Set `NEXT TASK: view_file .agents/skills/data-logic/SKILL.md`
+- [ ] **Component Blueprint**: Define the `{{UI_COMPONENT}}` tree and design tokens in `02_Creative/STYLE_GUIDE.md`.
+- [ ] **MANDATORY BENTO-BOX PAUSE**: You MUST run UI linting/testing before proceeding to Step 3. Do not batch Step 2 and Step 3 together.
+- [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute lint and proceed to data-logic`
 
 ## 3. DOMAIN & LOGIC (TECHNICAL DEPTH)
-- [ ] **Data Modeling**: Invoke `@skills/data-logic` to create immutable Freezed models.
+- [ ] **Data Modeling**: Invoke `@skills/data-logic` to create immutable `{{MODEL_TYPE}}` models.
 - [ ] **Security Check**: Invoke `@skills/integrity-sentinel` to audit data parsing and storage logic.
-- [ ] **State Management**: Implement Riverpod Notifiers and business logic services.
+- [ ] **State Management**: Implement `{{STATE_MANAGEMENT}}` and business logic services.
 - [ ] **API Contract**: Invoke `@skills/api-contract` if backend interaction is required.
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute Adversarial Twin Protocol`
 
