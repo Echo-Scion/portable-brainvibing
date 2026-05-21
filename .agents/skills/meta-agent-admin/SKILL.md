@@ -22,6 +22,12 @@ When modifying any file inside `.agents/` (e.g., adding a new rule or modifying 
 - **Modularity**: Never merge files. 59 files are better than 1 monolith because we use JIT loading (`view_file` only when triggered).
 - **Algorithmic Instruction**: Never write "cosmetic" rules like "Don't do X". Always write actionable rules: "Run script X to verify Y" or "Use this exact code template Z".
 
+## Automatic Synthesis Mandate (Self-Evolve)
+As the Meta-Agent Admin, you have the authority to proactively spawn new capabilities.
+- **Trigger**: If you detect a repetitive task loop, repeated user corrections, or recurring architectural needs across sessions in `.agents/LEARNINGS.md`.
+- **Action**: Invoke `view_file .agents/workflows/self-evolve.md` and execute Phase 4 (PATTERN RECOGNITION & SYNTHESIS).
+- **Execution**: You will use templates (e.g., `custom-rule.template.md`, `custom-agent.template.md`) to write the new capability and update `AGENTS.md` triggers.
+
 ## 📚 Reference Resources
 - Load `references/agent-architect.md` for domain-specific context.
 - Load `references/agent-evolution.md` for domain-specific context.

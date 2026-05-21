@@ -17,3 +17,9 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 - [ ] **Evolve Rule**: If a missing or contradictory rule caused the error, you MUST output a JSON block: `{"action": "evolve_rule", "target": ".agents/rules/...", "proposed_addition": "..."}`.
 - [ ] **Inject Rule**: Mechanically execute the `replace` tool to inject this new constraint into the target rule file before declaring the task `DONE`.
 - [ ] **Verify**: Run `python .agents/scripts/verify_agents.py` to ensure the new rule hasn't broken mechanical integrity.
+
+## 4. PATTERN RECOGNITION & SYNTHESIS (SKILL/WORKFLOW GENERATION)
+- [ ] **Pattern Scan**: At the end of a session, scan `.agents/LEARNINGS.md` or `.agents/context/00_Strategy/MEMORY.md` for repetitive manual tasks, repeated error corrections, or multi-step processes performed >3 times.
+- [ ] **Propose Synthesis**: If a pattern is found, proactively output a JSON block: `{"action": "synthesize_asset", "type": "skill|workflow|rule", "name": "..."}`.
+- [ ] **Generate Asset**: Once approved, use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone SKILL.md, rule, or workflow file.
+- [ ] **Integrate**: Add a JIT trigger for the new asset in `AGENTS.md` so future sessions load it automatically.
