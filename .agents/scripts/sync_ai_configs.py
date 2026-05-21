@@ -108,7 +108,7 @@ def smart_merge_config(template_content: str, target_path: str, project_name: st
     
     return final_content, "SYNCED"
 
-def sync_ai_configs(target_root: str, selected_ais: list = None, dry_run: bool = False):
+def sync_ai_configs(target_root: str, selected_ais: list | None = None, dry_run: bool = False):
     """
     Sync AI configuration files with latest foundation templates.
     

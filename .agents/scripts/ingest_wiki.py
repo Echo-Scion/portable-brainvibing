@@ -171,8 +171,8 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             try:
                 with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
                     manifest = json.load(mf)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Warning: Failed to load manifest: {e}")
                 
         if "layers" not in manifest:
             manifest["layers"] = {"infrastructure": [], "context": [], "project_docs": [], "raw": []}
@@ -305,7 +305,7 @@ def main():
         print("\n⏳ Triggering QMD index and embed for harmonization...")
         setup_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setup_qmd.py")
         if os.path.exists(setup_script):
-            import sys, subprocess
+            import subprocess
             subprocess.run([sys.executable, setup_script, "--with-embed"])
     else:
         print("No new or updated markdown files found to ingest. Graph is up to date.")

@@ -6,6 +6,8 @@ description: Steps for end-to-end feature creation (Model -> Provider -> UI -> T
 
 This workflow defines the precision implementation cycle for individual features, fully integrated with the 4-Pillar hierarchy and SaaS Registry.
 
+> **MANDATE:** If this feature involves heavy database migrations or core architecture refactors, you MUST escalate to `[TIER: PREMIUM]` before proceeding.
+
 ## 0. PRE-FLIGHT (JIT CONTEXT)
 - [ ] **State Initialization**: Create or update `.wiki/task.md` with the phases below. Update checkboxes to `[/]` and `[x]` as you progress.
 - [ ] **Verify Environment**: Ensure `.agents/` is synced and active.

@@ -4,7 +4,7 @@ description: Checklist for reviewing source code quality and security before com
 
 # Code Review Workflow
 
-Before accepting or approving code changes (`git diff --name-only HEAD`), perform a check on each modified file based on the following criteria:
+Before accepting or approving code changes (`git diff --name-only HEAD`), perform a check on each modified file based on the following criteria. **Remember: Maintain the "Caveman" protocol. Be terse and direct, do not use pleasantries or empathy.**
 
 ## 0. CONTEXT RETRIEVAL (JIT)
 - [ ] Verify Binary Oratory compliance. IF unsure, load `rules/core-guardrails.md`.

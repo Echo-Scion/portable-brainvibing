@@ -5,8 +5,6 @@
 import os
 import shutil
 import argparse
-import sys
-import subprocess
 import re
 
 # Configuration

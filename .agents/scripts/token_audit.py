@@ -31,9 +31,9 @@ def audit_directory(dir_path, exclude_dirs):
                     tokens = estimate_tokens(content)
                     token_counts[file_path] = tokens
                     total_tokens += tokens
-            except Exception:
+            except Exception as e:
                 # Skip files that cannot be read as UTF-8 (likely binaries)
-                pass
+                print(f"Skipped {file_path}: {e}")
 
     return token_counts, total_tokens
 

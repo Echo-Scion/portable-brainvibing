@@ -8,7 +8,7 @@ import sys
 import argparse
 import json
 import hashlib
-from typing import Set, Dict, Any, List, Optional, Iterable, Tuple
+from typing import Set, Dict, List, Optional, Iterable, Tuple
 
 # Smart Root Discovery
 def discover_roots():
@@ -54,9 +54,9 @@ def get_folder_hashes(folder_path: str) -> Dict[str, str]:
                         content = file_obj.read()
                         # Normalize CRLF to LF to avoid cross-OS discrepancies
                         normalized = content.replace(b"\r\n", b"\n")
-                        hashes[rel_path] = hashlib.md5(normalized).hexdigest()
-                except Exception:
-                    pass
+                        hashes[rel_path] = hashlib.sha256(normalized).hexdigest()
+                except Exception as e:
+                    print(f"Failed to hash {file_path}: {e}")
     return hashes
 
 

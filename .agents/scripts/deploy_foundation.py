@@ -5,7 +5,6 @@
 from __future__ import annotations
 import os
 import shutil
-import subprocess
 import sys
 import re
 import argparse
@@ -76,10 +75,8 @@ def smart_merge_config(template_path: str, target_path: str, project_name: str, 
     if not template_match:
         # Template doesn't have markers, use entire content
         foundation_block = raw_template
-        has_markers = False
     else:
         foundation_block = start_marker + template_match.group(1) + end_marker
-        has_markers = True
     
     final_content = ""
     status = ""
@@ -289,7 +286,7 @@ def verify_github_native_deployment(target_root: str, dry_run: bool = False) -> 
     print("  ✅ All GitHub native components verified")
     return True
 
-def deploy(source_root: str, target_root: str, selected_ais: list = None, dry_run: bool = False):
+def deploy(source_root: str, target_root: str, selected_ais: list | None = None, dry_run: bool = False):
     """
     Copies foundation skills and rules to the target project.
     Deploys AI configuration files for selected assistants.
