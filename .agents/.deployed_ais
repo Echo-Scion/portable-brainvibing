@@ -1,0 +1,22 @@
+{
+  "project_name": "_foundation",
+  "deployed_ais": [
+    "gemini",
+    "copilot",
+    "claude"
+  ],
+  "sync_results": {
+    "gemini": {
+      "status": "SUCCESS",
+      "message": "SYNCED"
+    },
+    "copilot": {
+      "status": "SKIPPED",
+      "message": "File not found - skipping"
+    },
+    "claude": {
+      "status": "SKIPPED",
+      "message": "File not found - skipping"
+    }
+  }
+}

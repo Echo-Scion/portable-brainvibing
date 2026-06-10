@@ -1,0 +1,8 @@
+# Foundation CODEOWNERS
+# Require review from foundation maintainers for changes to the agent architecture
+
+.agents/rules/                  @maintainers
+.agents/workflows/              @maintainers
+.agents/skills/                 @maintainers
+.github/workflows/              @maintainers
+GEMINI.md                       @maintainers

@@ -1,0 +1,762 @@
+import os
+import sys
+import re
+import json
+import hashlib
+import datetime
+import argparse
+
+import sqlite3
+
+# --- Configuration & Globals ---
+ORION_DIR = ".orion"
+MANIFEST_PATH = os.path.join(ORION_DIR, "_manifest.json")
+LOG_PATH = os.path.join(ORION_DIR, "log.md")
+INDEX_PATH = os.path.join(ORION_DIR, "index.md")
+SOURCES_DIR = os.path.join(ORION_DIR, "sources")
+DB_PATH = os.path.join(ORION_DIR, "orion.db")
+DIRS = ["sources", "working", "episodic", "matrix"]
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('PRAGMA journal_mode=WAL;')
+    c.execute('PRAGMA temp_store=MEMORY;')
+    c.execute('PRAGMA mmap_size=268435456;') # 256MB mmap
+    c.execute('PRAGMA cache_size=-64000;') # 64MB buffer pinning (hybrid RAM graph)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pages (
+            path TEXT PRIMARY KEY,
+            sha256 TEXT,
+            category TEXT,
+            pillar TEXT,
+            updated TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
+            path,
+            content,
+            tokenize='porter'
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS nodes (
+            id TEXT PRIMARY KEY,
+            type TEXT,
+            name TEXT,
+            source_path TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS edges (
+            source_id TEXT,
+            target_id TEXT,
+            relation TEXT,
+            PRIMARY KEY (source_id, target_id, relation)
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS telemetry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            event_type TEXT,
+            exit_code INTEGER,
+            context_load INTEGER
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_telemetry(event_type: str, exit_code: int = 0, context_load: int = 0):
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO telemetry (timestamp, event_type, exit_code, context_load)
+        VALUES (?, ?, ?, ?)
+    ''', (datetime.datetime.now().isoformat(), event_type, exit_code, context_load))
+    conn.commit()
+    conn.close()
+
+RAW_EXTS = [".dart", ".ts", ".js", ".py", ".go", ".rs", ".swift", ".java"]
+try:
+    manifest_path = os.path.join(".agents", ".project_manifest.json")
+    if os.path.exists(manifest_path):
+        with open(manifest_path, "r") as f:
+            manifest = json.load(f)
+            if "ecosystem" in manifest and "extensions" in manifest["ecosystem"]:
+                RAW_EXTS = manifest["ecosystem"]["extensions"]
+except Exception:
+    pass
+
+FRONTMATTER_RE = re.compile(r'\A---\s*\n(.*?)\n---\s*(?:\n|$)', re.DOTALL)
+
+# === BOOTSTRAP ===
+def bootstrap():
+    if not os.path.exists(ORION_DIR):
+        os.makedirs(ORION_DIR)
+        
+    for d in DIRS:
+        path = os.path.join(ORION_DIR, d)
+        if not os.path.exists(path):
+            os.makedirs(path)
+            
+    # Initialize SQLite DB for LightRAG
+    init_db()
+            
+    # Create empty index and log
+    for f in ["index.md", "log.md"]:
+        path = os.path.join(ORION_DIR, f)
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as fp:
+                fp.write(f"# {f.split('.')[0].capitalize()}\n")
+                
+    # Copy template if available (mock implementation)
+    schema_path = os.path.join(ORION_DIR, "_schema.md")
+    if not os.path.exists(schema_path):
+        with open(schema_path, "w", encoding="utf-8") as f:
+            f.write("# Orion Schema\nAutonomy Level: balanced\n")
+            
+    # Seed essential files
+    session_history_path = os.path.join(ORION_DIR, "episodic", "session_history.md")
+    if not os.path.exists(session_history_path):
+        with open(session_history_path, "w", encoding="utf-8") as f:
+            f.write("# Session History\n\n*Chronological log of agent sessions and key architectural decisions.*\n")
+            
+    handoff_path = os.path.join(ORION_DIR, "working", "handoff.md")
+    if not os.path.exists(handoff_path):
+        with open(handoff_path, "w", encoding="utf-8") as f:
+            f.write("# SESSION HANDOFF\n\n## 1. Resume Point\n\n## 2. Technical State\n\n## 4. Metrik Cost & Token Savings\n\n## 5. Anti-Goals\n")
+            
+    # Simple manifest
+    manifest = {
+        "scanned_at": datetime.datetime.now().isoformat(),
+        "status": "bootstrapped",
+        "layers": {"infrastructure": [], "context": [], "project_docs": [], "raw": []}
+    }
+    with open(os.path.join(ORION_DIR, "_manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    print("Orion bootstrapped successfully in .orion/")
+
+
+# === INGEST ===
+def compute_sha256(content: bytes) -> str:
+    normalized = content.replace(b"\r\n", b"\n")
+    return hashlib.sha256(normalized).hexdigest()
+
+def parse_frontmatter(content: str) -> dict:
+    match = FRONTMATTER_RE.match(content)
+    if not match:
+        return {}
+    
+    yaml_text = match.group(1)
+    frontmatter = {}
+    for line in yaml_text.splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            frontmatter[k.strip().lower()] = v.strip().strip('"').strip("'")
+    return frontmatter
+
+def classify_file(filepath: str, content: str) -> tuple:
+    filepath_normalized = filepath.replace("\\", "/")
+    
+    category = "project-doc"
+    confidence = "authoritative"
+    pillar = "cross-cutting"
+    
+    _, ext = os.path.splitext(filepath_normalized.lower())
+    if ext in RAW_EXTS:
+        category = "raw-source"
+        confidence = "raw"
+        pillar = "tech"
+        return category, confidence, pillar
+    elif ext in [".yaml", ".json"]:
+        category = "config"
+        confidence = "authoritative"
+        pillar = "infrastructure"
+        return category, confidence, pillar
+        
+    if "rules/" in filepath_normalized:
+        category = "rule"
+        confidence = "authoritative"
+        pillar = "infrastructure"
+        if "flutter" in filepath_normalized:
+            pillar = "tech"
+    elif "skills/" in filepath_normalized:
+        category = "skill"
+        confidence = "authoritative"
+        pillar = "tech"
+    elif "workflows/" in filepath_normalized:
+        category = "workflow"
+        confidence = "authoritative"
+        pillar = "infrastructure"
+    elif "canons/" in filepath_normalized:
+        category = "canon"
+        confidence = "canonical"
+        pillar = "cross-cutting"
+    elif "context/" in filepath_normalized or filepath_normalized.endswith("CONTEXT.md"):
+        category = "context-master" if filepath_normalized.endswith("CONTEXT.md") else "context-pillar"
+        confidence = "authoritative"
+        pillar = "tech"
+        
+    return category, confidence, pillar
+
+def prune_orphans() -> int:
+    if not os.path.exists(MANIFEST_PATH):
+        return 0
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
+            manifest = json.load(mf)
+            
+        pruned_count = 0
+        for layer in list(manifest.get("layers", {}).keys()):
+            valid_entries = []
+            for entry in manifest["layers"][layer]:
+                original_path = entry.get("filepath")
+                orion_file = entry.get("orion_file")
+                
+                # Cek jika file asli masih ada di sistem (kecuali jika pathnya memang dihapus)
+                if original_path and not os.path.exists(original_path):
+                    pruned_count += 1
+                    print(f"[PRUNE] Pruning orphan from orion: {original_path}")
+                    if orion_file:
+                        full_wiki_path = os.path.join(ORION_DIR, orion_file.replace("/", os.sep))
+                        if os.path.exists(full_wiki_path):
+                            os.remove(full_wiki_path)
+                else:
+                    valid_entries.append(entry)
+            manifest["layers"][layer] = valid_entries
+            
+        if pruned_count > 0:
+            with open(MANIFEST_PATH, "w", encoding="utf-8") as mf:
+                json.dump(manifest, mf, indent=2)
+        return pruned_count
+    except Exception as e:
+        print(f"Failed during orphan pruning: {e}")
+        return 0
+
+def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
+    if not os.path.exists(filepath):
+        print(f"File not found: {filepath}")
+        return False
+        
+    try:
+        with open(filepath, "rb") as f:
+            raw_bytes = f.read()
+        sha = compute_sha256(raw_bytes)
+        
+        try:
+            content_str = raw_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            content_str = raw_bytes.decode("latin-1")
+            
+        existing_frontmatter = parse_frontmatter(content_str)
+        category, confidence, pillar = classify_file(filepath, content_str)
+        
+        basename = os.path.basename(filepath)
+        name, ext = os.path.splitext(basename)
+        if ext.lower() in RAW_EXTS + [".yaml", ".json"]:
+            wiki_filename = f"{name}-{ext[1:].lower()}.md"
+        elif basename == "SKILL.md":
+            folder_name = os.path.basename(os.path.dirname(filepath))
+            wiki_filename = f"skill-{folder_name}.md"
+        else:
+            wiki_filename = basename
+            
+        target_path = os.path.join(ORION_DIR, "sources", wiki_filename)
+        
+        is_updated = True
+        action_type = "NEW"
+        if os.path.exists(target_path):
+            with open(target_path, "r", encoding="utf-8") as tf:
+                target_content = tf.read()
+            target_fm = parse_frontmatter(target_content)
+            if target_fm.get("source_sha256") == sha:
+                print(f"Skipping {filepath} (Already matches hash)")
+                return False
+            action_type = "EXTEND"
+            
+        updated_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        created_date = existing_frontmatter.get("created", updated_date)
+        
+        wiki_fm = {
+            "type": "source-summary",
+            "source-category": category,
+            "sources": [os.path.relpath(filepath).replace("\\", "/")],
+            "source_sha256": sha,
+            "pillar": existing_frontmatter.get("pillar", pillar),
+            "confidence": confidence,
+            "created": created_date,
+            "updated": updated_date
+        }
+        
+        fm_lines = ["---"]
+        for k, v in wiki_fm.items():
+            if isinstance(v, list):
+                fm_lines.append(f"{k}: [{', '.join(v)}]")
+            else:
+                fm_lines.append(f"{k}: {v}")
+        fm_lines.append("---")
+        fm_text = "\n".join(fm_lines)
+        
+        pointer_body = f"\n> **Original Source**: `{filepath}`\n"
+        
+        if ext.lower() in RAW_EXTS:
+            try:
+                # Add agents/scripts to sys.path to find utils
+                import sys
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
+                if parent_dir not in sys.path:
+                    sys.path.insert(0, parent_dir)
+                from utils.ast_parser import generate_ast_summary
+                ast_summary = generate_ast_summary(filepath, content_str)
+                skeleton_lines = ast_summary.split("\n") if ast_summary else ["[AST Skipping: Not structurally parsed]"]
+                triplets = [] # Triplets generation deprecated in favor of AST summaries
+            except Exception as e:
+                skeleton_lines = [f"Error generating AST summary: {e}"]
+                triplets = []
+            
+            skeleton_text = "\n".join(skeleton_lines) if skeleton_lines else "*No class or function signatures found.*"
+            pointer_body += f"\n###  Structural Skeleton\n\n```\n{skeleton_text}\n```\n"
+        elif ext.lower() in [".yaml", ".json"]:
+            deps_list = []
+            metadata = {}
+            if ext.lower() == ".json":
+                try:
+                    data = json.loads(content_str)
+                    metadata["name"] = data.get("name", "Unknown")
+                    metadata["version"] = data.get("version", "Unknown")
+                    deps = data.get("dependencies", {})
+                    dev_deps = data.get("devDependencies", {})
+                    for dep, ver in deps.items():
+                        deps_list.append(f"- `{dep}`: `{ver}`")
+                    for dep, ver in dev_deps.items():
+                        deps_list.append(f"- `{dep}`: `{ver}` (dev)")
+                except Exception:
+                    pass
+            elif ext.lower() == ".yaml":
+                try:
+                    in_deps = False
+                    in_dev_deps = False
+                    for line in content_str.splitlines():
+                        line_stripped = line.strip()
+                        if line_stripped.startswith("name:"):
+                            metadata["name"] = line_stripped.split(":", 1)[1].strip()
+                        elif line_stripped.startswith("version:"):
+                            metadata["version"] = line_stripped.split(":", 1)[1].strip()
+                        elif line_stripped == "dependencies:":
+                            in_deps = True
+                            in_dev_deps = False
+                        elif line_stripped == "dev_dependencies:":
+                            in_deps = False
+                            in_dev_deps = True
+                        elif line.startswith("  ") and not line.startswith("    "):
+                            if ":" in line_stripped:
+                                k, v = line_stripped.split(":", 1)
+                                k = k.strip()
+                                v = v.strip()
+                                if in_deps:
+                                    deps_list.append(f"- `{k}`: `{v}`")
+                                elif in_dev_deps:
+                                    deps_list.append(f"- `{k}`: `{v}` (dev)")
+                        elif not line.startswith(" ") and line_stripped:
+                            in_deps = False
+                            in_dev_deps = False
+                except Exception:
+                    pass
+            
+            meta_text = "\n".join(f"- **{k.capitalize()}**: `{v}`" for k, v in metadata.items())
+            deps_text = "\n".join(deps_list) if deps_list else "*No dependencies parsed.*"
+            pointer_body += f"\n###  Metadata\n{meta_text}\n\n###  Dependencies\n{deps_text}\n"
+        else:
+            pointer_body += f"> *Content body excluded from Graph to prevent storage bloat.*\n"
+        
+        with open(target_path, "w", encoding="utf-8") as wf:
+            wf.write(fm_text + "\n" + pointer_body)
+            
+        log_entry = f"- [{updated_date}] [{action_type}] Ingested {filepath} -> sources/{wiki_filename}\n"
+        with open(LOG_PATH, "a", encoding="utf-8") as lf:
+            lf.write(log_entry)
+            
+        # LightRAG SQLite Sync
+        try:
+            init_db()
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            
+            c.execute('''
+                INSERT INTO pages (path, sha256, category, pillar, updated) 
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(path) DO UPDATE SET
+                    sha256 = excluded.sha256,
+                    category = excluded.category,
+                    pillar = excluded.pillar,
+                    updated = excluded.updated
+            ''', (target_path, sha, category, existing_frontmatter.get("pillar", pillar), updated_date))
+            
+            c.execute('DELETE FROM pages_fts WHERE path = ?', (target_path,))
+            c.execute('''
+                INSERT INTO pages_fts (path, content) VALUES (?, ?)
+            ''', (target_path, fm_text + "\n" + pointer_body))
+            
+            c.execute('DELETE FROM edges WHERE source_id = ?', (target_path,))
+            if ext.lower() in RAW_EXTS and 'triplets' in locals() and triplets:
+                for caller, rel, callee in triplets:
+                    c.execute('''
+                        INSERT OR IGNORE INTO edges (source_id, target_id, relation)
+                        VALUES (?, ?, ?)
+                    ''', (target_path, callee, f"{caller} calls"))
+            
+            conn.commit()
+            conn.close()
+        except Exception as db_e:
+            print(f"Warning: Failed to sync to orion.db: {db_e}")
+            
+        manifest = {}
+        if os.path.exists(MANIFEST_PATH):
+            try:
+                with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
+                    manifest = json.load(mf)
+            except Exception as e:
+                print(f"Warning: Failed to load manifest: {e}")
+                
+        if "layers" not in manifest:
+            manifest["layers"] = {"infrastructure": [], "context": [], "project_docs": [], "raw": []}
+            
+        layer_key = "infrastructure"
+        if category in ["context-master", "context-pillar", "memory", "handoff"]:
+            layer_key = "context"
+        elif category in ["project-doc"]:
+            layer_key = "project_docs"
+        elif category in ["raw-source"]:
+            layer_key = "raw"
+            
+        manifest_entry = {
+            "filepath": filepath.replace("\\", "/"),
+            "orion_file": f"sources/{wiki_filename}",
+            "sha256": sha,
+            "category": category,
+            "updated": updated_date
+        }
+        
+        manifest["layers"][layer_key] = [e for e in manifest["layers"][layer_key] if e["filepath"] != manifest_entry["filepath"]]
+        manifest["layers"][layer_key].append(manifest_entry)
+        manifest["status"] = "active"
+        manifest["scanned_at"] = datetime.datetime.now().isoformat()
+        
+        with open(MANIFEST_PATH, "w", encoding="utf-8") as mf:
+            json.dump(manifest, mf, indent=2)
+            
+        print(f"Ingested: {filepath} -> {target_path} [{action_type}]")
+        return True
+    except Exception as e:
+        print(f"Failed to ingest {filepath}: {e}")
+        return False
+
+def rebuild_index():
+    if not os.path.exists(MANIFEST_PATH):
+        return
+        
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as mf:
+            manifest = json.load(mf)
+            
+        index_lines = [
+            "# Orion Index",
+            f"*Last Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
+            "",
+            "##  Infrastructure Layer"
+        ]
+        
+        infra = manifest.get("layers", {}).get("infrastructure", [])
+        if infra:
+            for item in sorted(infra, key=lambda x: x["filepath"]):
+                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+        else:
+            index_lines.append("- *No files ingested yet*")
+            
+        index_lines.extend([
+            "",
+            "##  Context Layer"
+        ])
+        
+        context = manifest.get("layers", {}).get("context", [])
+        if context:
+            for item in sorted(context, key=lambda x: x["filepath"]):
+                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+        else:
+            index_lines.append("- *No files ingested yet*")
+            
+        index_lines.extend([
+            "",
+            "##  Project Docs Layer"
+        ])
+        
+        docs = manifest.get("layers", {}).get("project_docs", [])
+        if docs:
+            for item in sorted(docs, key=lambda x: x["filepath"]):
+                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+        else:
+            index_lines.append("- *No files ingested yet*")
+            
+        index_lines.extend([
+            "",
+            "##  Raw/Source Layer"
+        ])
+        
+        raw_files = manifest.get("layers", {}).get("raw", [])
+        if raw_files:
+            for item in sorted(raw_files, key=lambda x: x["filepath"]):
+                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+        else:
+            index_lines.append("- *No source files ingested yet*")
+            
+        with open(INDEX_PATH, "w", encoding="utf-8") as idx:
+            idx.write("\n".join(index_lines) + "\n")
+            
+        print("Orion Index rebuilt successfully.")
+    except Exception as e:
+        print(f"Failed to rebuild index: {e}")
+
+
+def get_smart_ignore_dirs(target_path):
+    ignores = {".git", ".orion", "__pycache__", "node_modules", "build", ".dart_tool", ".idea", ".vscode", ".gradle", "target", "venv", "env"}
+    if os.path.isfile(target_path):
+        target_path = os.path.dirname(target_path)
+    curr = os.path.abspath(target_path)
+    while curr:
+        g = os.path.join(curr, ".gitignore")
+        if os.path.exists(g):
+            try:
+                with open(g, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            if "*" in line or "?" in line:
+                                continue
+                            if "/" not in line:
+                                ignores.add(line)
+                            elif line.endswith("/") and line.count("/") == 1:
+                                ignores.add(line.replace("/", ""))
+                            elif line.startswith("/") and line.endswith("/") and line.count("/") == 2:
+                                ignores.add(line.replace("/", ""))
+            except Exception:
+                pass
+            break
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+    return ignores
+
+def ingest_main(paths, autonomy):
+    if not os.path.exists(SOURCES_DIR):
+        os.makedirs(SOURCES_DIR)
+        
+    pruned = prune_orphans()
+        
+    ingested_count = 0
+    valid_exts = tuple([".md"] + RAW_EXTS + [".yaml", ".json"])
+    for path in paths:
+        ignore_dirs = get_smart_ignore_dirs(path)
+        if os.path.isdir(path):
+            for root, dirs, files in os.walk(path):
+                dirs[:] = [d for d in dirs if d not in ignore_dirs]
+                    
+                for f in files:
+                    if f.lower().endswith(valid_exts):
+                        full_path = os.path.join(root, f)
+                        if ingest_file(full_path, autonomy):
+                            ingested_count += 1
+        elif os.path.isfile(path):
+            if ingest_file(path, autonomy):
+                ingested_count += 1
+        else:
+            import glob
+            for g in glob.glob(path, recursive=True):
+                if os.path.isfile(g) and g.lower().endswith(valid_exts):
+                    if '.orion' not in g.replace('\\', '/').split('/'):
+                        if ingest_file(g, autonomy):
+                            ingested_count += 1
+                        
+    if ingested_count > 0 or pruned > 0:
+        rebuild_index()
+        print(f"\nBatch execution complete. Processed: {ingested_count} | Pruned: {pruned}")
+        
+        # --- AUTO-COMPILE HOOK ---
+        if ingested_count > 0:
+            print("\n[AUTO-COMPILE] Triggering Matrix Compilation for zero-drift...")
+            import subprocess
+            compile_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile_rules.py")
+            try:
+                subprocess.run([sys.executable, compile_script], check=False)
+            except Exception as e:
+                print(f"[ERROR] Failed to auto-compile rules: {e}")
+    else:
+        print("No new or updated markdown files found to ingest. Graph is up to date.")
+
+# === RESOLVER ===
+def load_manifest():
+    if not os.path.exists(MANIFEST_PATH):
+        return None
+    with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def find_target_file(query):
+    # Try exact match first
+    potential_path = os.path.join(SOURCES_DIR, f"{query}.md")
+    if os.path.exists(potential_path):
+        return potential_path
+    
+    # Try partial match
+    query_lower = query.lower()
+    if os.path.exists(SOURCES_DIR):
+        for file in os.listdir(SOURCES_DIR):
+            if query_lower in file.lower():
+                return os.path.join(SOURCES_DIR, file)
+    return None
+
+def extract_links(content):
+    # Matches [[Page Name]] or [[Page Name|relation]]
+    pattern = r'\[\[(.*?)\]\]'
+    links = re.findall(pattern, content)
+    parsed_links = []
+    for link in links:
+        parts = link.split('|')
+        name = parts[0].strip()
+        relation = parts[1].strip() if len(parts) > 1 else "mentions"
+        parsed_links.append((name, relation))
+    return parsed_links
+
+def get_file_summary(filepath):
+    if not os.path.exists(filepath):
+        return "File not found."
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # Extract frontmatter or first paragraph
+    lines = content.split('\n')
+    summary = []
+    in_frontmatter = False
+    for line in lines:
+        if line.startswith('---'):
+            if not in_frontmatter:
+                in_frontmatter = True
+                continue
+            else:
+                in_frontmatter = False
+                continue
+        if in_frontmatter:
+            if line.startswith('source-category:') or line.startswith('pillar:'):
+                summary.append(line)
+        else:
+            if line.strip() and not line.startswith('>'):
+                # Grab the first real content line (usually header or short desc)
+                summary.append(line.strip()[:100] + "...")
+                break
+    return " | ".join(summary) if summary else "No metadata available."
+
+def find_backlinks(target_name):
+    backlinks = []
+    target_pattern = re.compile(r'\[\[' + re.escape(target_name) + r'(?:\|.*?)?\]\]', re.IGNORECASE)
+    
+    if os.path.exists(SOURCES_DIR):
+        for file in os.listdir(SOURCES_DIR):
+            if file.endswith('.md'):
+                filepath = os.path.join(SOURCES_DIR, file)
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                if target_pattern.search(content):
+                    backlinks.append(file.replace('.md', ''))
+    return backlinks
+
+def resolve_wiki(query):
+    target_file = find_target_file(query)
+    if not target_file:
+        print(f" [ORION] No nodes found matching '{query}'.")
+        return
+
+    print(f" [ORION GRAPH RESOLVER] Node: {os.path.basename(target_file)}")
+    print("=" * 60)
+    
+    with open(target_file, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    print(" CONTENT:")
+    # Print up to 1500 chars to avoid overwhelming the LLM
+    print(content[:1500] + ("\n...[TRUNCATED]" if len(content) > 1500 else ""))
+    print("-" * 60)
+    
+    links = extract_links(content)
+    if links:
+        print(" FORWARD LINKS (Outbound):")
+        for name, rel in links:
+            linked_file = find_target_file(name)
+            summary = get_file_summary(linked_file) if linked_file else "Not ingested."
+            print(f"  -> [[{name}]] ({rel}) : {summary}")
+    else:
+        print(" FORWARD LINKS: None.")
+        
+    print("-" * 60)
+    target_basename = os.path.basename(target_file).replace('.md', '')
+    backlinks = find_backlinks(target_basename)
+    
+    if backlinks:
+        print(" BACKLINKS (Inbound / Dependencies):")
+        for bl in backlinks:
+            bl_file = find_target_file(bl)
+            summary = get_file_summary(bl_file) if bl_file else ""
+            print(f"  <- [[{bl}]] : {summary}")
+    else:
+        print(" BACKLINKS: None.")
+        
+    print("=" * 60)
+    print(" EXECUTION PATH (AST Edges):")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('SELECT target_id, relation FROM edges WHERE source_id = ?', (target_file,))
+        rows = c.fetchall()
+        if rows:
+            for target_id, relation in rows:
+                print(f"  [{relation}] -> {target_id}")
+        else:
+            print("  No downstream execution path found.")
+        conn.close()
+    except Exception as e:
+        print(f"  [DB Error] {e}")
+        
+    print("=" * 60)
+    print(" Graph Neighborhood Resolved. Use this context to answer the user.")
+
+
+# === CLI ===
+def main():
+    parser = argparse.ArgumentParser(description="Orion Operations System")
+    subparsers = parser.add_subparsers(dest="command")
+    
+    parser_init = subparsers.add_parser("init", help="Bootstrap the orion directory structure")
+    
+    parser_ingest = subparsers.add_parser("ingest", help="Ingest files into the orion")
+    parser_ingest.add_argument("paths", nargs="+", help="Paths or files to ingest")
+    parser_ingest.add_argument("--autonomy", default="balanced", choices=["balanced", "high", "strict"])
+    
+    parser_resolve = subparsers.add_parser("resolve", help="Resolve orion nodes for context routing")
+    parser_resolve.add_argument("node", help="Node name to resolve")
+
+    args = parser.parse_args()
+    
+    if args.command == "init":
+        bootstrap()
+    elif args.command == "ingest":
+        ingest_main(args.paths, args.autonomy)
+    elif args.command == "resolve":
+        resolve_wiki(args.node)
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,35 @@
+---
+description: Post-Task Reflection & Learning Loop (Deterministic Self-Evolution)
+activation: After task completion or upon encountering systemic errors.
+---
+# 🧠 WORKFLOW: SELF-EVOLVE (MECHANICAL EVOLUTION)
+
+This workflow defines how the agent ecosystem learns and updates itself to prevent recurring mistakes.
+
+## 1. ERROR EXTRACTION (SYNCHRONOUS)
+- [ ] **Trace Extraction**: If a tool call fails (Exit Code > 0) or the user corrects you, mechanically extract the error trace into an XML block `<error_trace>`.
+- [ ] **Root Cause Analysis**: Identify if the failure was due to a missing rule, contradictory instruction, or a missing context link.
+
+## 2. MEMORY WRITE (PERSISTENCE)
+- [ ] **Update Learnings**: Use the `replace_file_content` or `write_to_file` tool to inject the finding into `.agents/LEARNINGS.md`. Do not wait or queue this action.
+
+## 3. DARWINIAN A/B SKILL EVOLUTION (ANTI-DRIFT)
+- [ ] **Evolve Rule (V2 Fork)**: If a missing or contradictory rule caused the error, you MUST NOT blindly overwrite the rule. Instead, fork the rule (e.g. `cp SKILL.md SKILL-v2.md`).
+- [ ] **A/B Benchmark (MANDATORY)**: Run `python .agents/scripts/orion.py evolve bench --skill <skill_name>` on BOTH V1 and V2. 
+- [ ] **Fitness Gate**: If `score(V2) >= score(V1)`, promote it: `mv SKILL-v2.md SKILL.md`. If it fails, ARCHIVE it (do not delete).
+- [ ] **Ledger Logging**: You MUST log this mutation. Run a Python script or write directly to `.agents/EVOLUTION_LOG.jsonl` noting the target, trigger, and fitness delta.
+
+## 3.5. OFFENSIVE OPTIMIZATION (SUCCESS LOOP)
+- [ ] **Token & Path Audit**: If a task succeeds flawlessly, analyze the session for token waste, redundant tool calls, or slow paths.
+- [ ] **Propose Compression**: If inefficiency is found, proactively synthesize a skill compression patch (Darwinian evolution driven by optimization, not just failure).
+
+## 4. PATTERN RECOGNITION & SYNTHESIS (DISCOVER)
+- **CRITICAL ACTION**: **Pattern Scan**: At the end of a session, execute `grep_search` on BOTH `.agents/LEARNINGS.md` AND `MEMORY.md` (specifically for `<friction-data>` tags) NOW for repetitive manual tasks to fuse short-term and long-term friction.
+- **CRITICAL ACTION**: **Propose Synthesis**: If a pattern is found, proactively output a JSON block: `{"action": "synthesize_asset", "type": "skill|workflow|rule", "name": "..."}`.
+- **CRITICAL ACTION**: **Interview Gate (MANDATORY)**: Before generating the asset, perform the Agent-OS Discover Loop:
+      1. Present the discovered pattern or tribal knowledge to the user.
+      2. Ask exactly 1-2 clarifying questions about the "why" behind the pattern (e.g., "What problem does this solve?", "Are there exceptions?").
+      3. Wait for the user's response. Do NOT batch questions.
+- [ ] **Draft Standard**: Draft the standard concisely. Use bullet points over paragraphs, include code examples, and skip obvious things. Lead with the rule, explain why second. Show the draft to the user for approval.
+- [ ] **Generate Asset**: Once approved, use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone SKILL.md, rule, or workflow file.
+- [ ] **Integrate**: Update JIT triggers and ensure the new rule is indexed in `.agents/rules/RULES_INDEX.md` so future sessions load it automatically. You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.

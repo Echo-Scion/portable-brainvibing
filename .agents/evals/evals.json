@@ -1,0 +1,249 @@
+{
+  "skills": [
+    {
+      "skill_name": "integrity-sentinel",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "I need to evaluate a new 'react-dev' skill. Create an evaluation plan including 3 test cases, expected outputs, and specific assertions following the agentskills.io standard.",
+          "expected_output": "A structured evaluation plan with realistic prompts, human-readable success criteria, and at least 3 verifiable assertions per case.",
+          "assertions": [
+            "Output contains an 'evals' array or section with 3 distinct cases",
+            "Each case has a 'prompt', 'expected_output', and 'assertions'",
+            "Assertions are specific (e.g., 'JSON is valid') rather than vague ('Output is good')",
+            "Includes at least one edge case (e.g., malformed code, ambiguous request)"
+          ]
+        },
+        {
+          "id": 2,
+          "prompt": "Here are the results of an eval run. The pass rate is 0.4 and the model keeps failing on 'formatting' assertions. Suggest 3 improvements to the SKILL.md to fix this.",
+          "expected_output": "3 actionable improvements to SKILL.md focused on reducing formatting errors (e.g., enforcing JSON mode, adding Zod schemas, or providing examples).",
+          "assertions": [
+            "Recommendations are based on the reported failure (formatting)",
+            "Includes at least one example of 'explaining the why' for instructions",
+            "Suggests concrete technical constraints (e.g., JSON mode, schemas)"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "api-contract",
+      "evals": [
+        {
+          "id": 3,
+          "prompt": "Create an API schema for user registration.",
+          "expected_output": "Strict runtime validation schema (e.g., Zod, Pydantic) enforcing input hygiene.",
+          "assertions": [
+            "Schema strips unknown keys",
+            "Password has length constraints",
+            "Uses proper HTTP status codes for errors"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "cost-optimizer",
+      "evals": [
+        {
+          "id": 4,
+          "prompt": "Optimize this background batch job's cloud footprint.",
+          "expected_output": "Recommendation to downgrade to a budget model tier or use serverless functions.",
+          "assertions": [
+            "Mentions explicit tiers (Premium vs Budget)",
+            "Suggests caching or batching to reduce tokens",
+            "Advises against long-running expensive VM instances"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "backend-orchestrator",
+      "evals": [
+        {
+          "id": 5,
+          "prompt": "Design a caching strategy for a high-traffic e-commerce product catalog API.",
+          "expected_output": "A tiered caching architecture (memory + Redis) with specific invalidation rules.",
+          "assertions": [
+            "Recommends Redis or Memcached as a distributed layer",
+            "Includes explicit TTL configuration",
+            "Addresses cache stampede or thundering herd scenarios"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "caveman",
+      "evals": [
+        {
+          "id": 6,
+          "prompt": "Explain how React Context avoids prop drilling, but do it in Caveman mode.",
+          "expected_output": "Terse, direct explanation stripping all conversational fluff while preserving accuracy.",
+          "assertions": [
+            "Answers strictly in English",
+            "Omits conversational filler (e.g., 'I can help', 'Sure')",
+            "Maintains technical accuracy regarding global state wrapping"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "caveman-compress",
+      "evals": [
+        {
+          "id": 7,
+          "prompt": "Compress this 500-word PRD draft into a dense format without losing technical constraints.",
+          "expected_output": "A dense, bulleted summary reducing word count while preserving all schema, API, and UI constraints.",
+          "assertions": [
+            "Word count is reduced by at least 60%",
+            "Preserves all technical rules and constraints",
+            "Removes marketing fluff and pleasantries completely"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "data-logic",
+      "evals": [
+        {
+          "id": 8,
+          "prompt": "Refactor this mutable Dart class into an immutable DTO using Freezed.",
+          "expected_output": "A Freezed data class utilizing a `const` constructor and `copyWith` capability.",
+          "assertions": [
+            "Class is decorated with @freezed",
+            "All fields are explicitly marked final",
+            "Uses factory constructor for JSON serialization"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "frontend-experience",
+      "evals": [
+        {
+          "id": 9,
+          "prompt": "Diagnose this React hydration mismatch error: 'Expected server HTML to contain a matching <div> in <span>'.",
+          "expected_output": "Identifies the root cause as invalid HTML nesting (div inside span) and proposes a semantic fix.",
+          "assertions": [
+            "Correctly identifies invalid HTML nesting as the root cause",
+            "Explains why SSR hydration fails on structural mismatches",
+            "Proposes a valid structural fix (e.g., changing span to div)"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "llm-wiki",
+      "evals": [
+        {
+          "id": 11,
+          "prompt": "A new standard was just ingested. How should the wiki-ops workflow handle the RULES_INDEX.md?",
+          "expected_output": "Mandates appending the new standard to RULES_INDEX.md with a single-sentence description.",
+          "assertions": [
+            "Explicitly mentions RULES_INDEX.md",
+            "Specifies adding a single-sentence description",
+            "Requires explicit user confirmation for the description if ambiguous"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "meta-agent-admin",
+      "evals": [
+        {
+          "id": 12,
+          "prompt": "The agent repeatedly encounters a 'file not found' error during a task. What is the mandatory next step?",
+          "expected_output": "Triggers the self-evolve workflow silently to extract the pattern and update LEARNINGS.md.",
+          "assertions": [
+            "Mentions triggering the self-evolve workflow",
+            "Requires extracting the failure pattern",
+            "Mandates updating LEARNINGS.md"
+          ]
+        },
+        {
+          "id": 19,
+          "prompt": "Evaluate cognitive load metrics from metrics/foundation_health.json against the current project size.",
+          "expected_output": "Dynamic threshold adjustment based on project complexity scale.",
+          "assertions": [
+            "Reads foundation_health.json successfully.",
+            "Thresholds scale dynamically (e.g. error tolerance increases with code volume)."
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "palette",
+      "evals": [
+        {
+          "id": 13,
+          "prompt": "Review this generic button component for accessibility and micro-interactions.",
+          "expected_output": "Recommendations for ARIA labels, keyboard focus states, and subtle hover animations.",
+          "assertions": [
+            "Suggests ARIA labels for screen reader support",
+            "Mentions `:focus-visible` or clear keyboard focus states",
+            "Includes a micro-animation recommendation (e.g., scale or color transition)"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "project-architect",
+      "evals": [
+        {
+          "id": 14,
+          "prompt": "Extract the bounded contexts from this monolithic e-commerce requirement doc.",
+          "expected_output": "Clear separation into modular domains like Identity, Catalog, Cart, and Fulfillment.",
+          "assertions": [
+            "Identifies at least 3 distinct bounded contexts",
+            "Defines the integration points or boundaries between them",
+            "Suggests database isolation or separate schemas per context"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "project-operator",
+      "evals": [
+        {
+          "id": 15,
+          "prompt": "Create a deployment readiness checklist for a Flutter mobile app going to production.",
+          "expected_output": "A comprehensive checklist covering signing, obfuscation, and CI/CD validation.",
+          "assertions": [
+            "Includes Keystore / Key properties validation",
+            "Mentions code obfuscation (ProGuard / R8)",
+            "Verifies removal of debug logs and development asserts"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "saas-strategist",
+      "evals": [
+        {
+          "id": 17,
+          "prompt": "Evaluate the viability of a SaaS idea for 'AI-powered dog walking routes'.",
+          "expected_output": "A critical breakdown of CAC, LTV, TAM, and competitor landscape.",
+          "assertions": [
+            "Analyzes Customer Acquisition Cost (CAC) vs Lifetime Value (LTV)",
+            "Challenges the core value proposition (Anti-Affirmation)",
+            "Suggests a low-cost MVP validation strategy"
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "ui-finish",
+      "evals": [
+        {
+          "id": 18,
+          "prompt": "Apply the 'Liquid Glass' aesthetic to a standard login modal.",
+          "expected_output": "CSS/Styling instructions implementing backdrop-filter blur, subtle borders, and gradients.",
+          "assertions": [
+            "Uses `backdrop-filter: blur()` for the glass effect",
+            "Implements subtle semi-transparent borders",
+            "Gracefully handles empty, loading, and error states"
+          ]
+        }
+      ]
+    }
+  ]
+}

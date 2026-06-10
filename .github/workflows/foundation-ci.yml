@@ -1,0 +1,29 @@
+name: Foundation CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read  # Principle of Least Privilege
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Agent Verifier
+        run: python .agents/scripts/orion.py verify
+
+      - name: Run Secret Scanner
+        run: python .agents/canons/global/harnesses/secrets_scan_verifier.py
+
+      - name: Run Preflight Check
+        run: python .agents/scripts/orion.py preflight
