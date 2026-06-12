@@ -3,7 +3,16 @@ import shutil
 import argparse
 import re
 import json
+import sys
 import subprocess
+
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
+
 
 AI_CONFIGS = {
     "gemini": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "GEMINI.md", "format": "md"},
@@ -116,6 +125,7 @@ BLACKLIST = {
 }
 
 # === DEPLOY ===
+
 
 def cmd_deploy(args):
     # args.target, args.framework, args.language, args.dry_run
@@ -260,6 +270,7 @@ def cmd_deploy(args):
 
     print("\nDeployment Complete!")
     print("AI Agents in the target project are now connected to the Foundation.")
+    print("⚡ [RECOMMENDED TIER: BUDGET] — Deploy operations are batch tasks. Switch back to Budget model for subsequent operations.")
 
 # === PUSH UPSTREAM ===
 def increment_patch_version(content):

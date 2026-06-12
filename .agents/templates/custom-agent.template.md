@@ -183,7 +183,7 @@ Before deployment, verify:
 ## Maintenance
 
 - **Last Updated**: [DATE]
-- **Version**: 1.0.0
+- **Version**: 0.0.1
 - **Owner**: [Team/Person]
 - **Review Schedule**: [Frequency]
 

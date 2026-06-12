@@ -16,12 +16,11 @@ To maintain a "plug and play" environment while avoiding brittle failures, this 
   - Instead of `rtk grep`, use the native `grep_search` tool.
 
 ## 2. Orion (Agent Memory & Brain Graph)
-- **Role**: Context syncing and knowledge indexing via the `orion-brain` MCP Server or `orion_mcp.py`.
-- **Prerequisite**: IDE with MCP support OR Python environment.
+- **Role**: Context syncing and knowledge indexing via the `orion.py` CLI.
+- **Prerequisite**: Python environment.
 - **Fallback Chain**:
-  1. **Primary**: Use the native MCP tools (e.g., `call_mcp_tool` for `orion_verify`, `orion_ingest`).
-  2. **Fallback 1**: If MCP tools fail, use the local python bridge: `python .agents/scripts/orion_mcp.py` (or `orion.py`).
-  3. **Fallback 2**: If Python fails entirely, use native `grep_search` on the `.orion/` or `.agents/` directories to find context manually.
+  1. **Primary**: Use the local python bridge: `python .agents/scripts/orion.py`.
+  2. **Fallback**: If Python fails entirely, use native `grep_search` on the `.orion/` or `.agents/` directories to find context manually.
 
 ## 3. Semantic Search (QMD / Local Rerankers)
 - **Role**: Node.js/npx based semantic search or local Ollama instances.

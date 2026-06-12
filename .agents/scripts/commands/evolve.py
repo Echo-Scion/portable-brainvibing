@@ -45,6 +45,31 @@ def cmd_bench(args):
     """Idea 2: Fitness Scoring Engine"""
     skill_name = args.skill
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    # CIRCUIT BREAKER: Max 3 mutations per 24h
+    import datetime
+    genome_path = os.path.join(base_dir, ".genome.json")
+    if os.path.exists(genome_path):
+        with open(genome_path, "r", encoding="utf-8") as f:
+            genome = json.load(f)
+        daily_cap = genome.get("daily_mutation_cap", 3)
+        today = datetime.date.today().isoformat()
+        
+        # Read evolution log
+        log_path = os.path.join(base_dir, "EVOLUTION_LOG.jsonl")
+        today_mutations = 0
+        if os.path.exists(log_path):
+            with open(log_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try: 
+                        if json.loads(line).get("ts", "").startswith(today):
+                            today_mutations += 1
+                    except: pass
+                    
+        if today_mutations >= daily_cap:
+            print(f"[BENCH ABORT] Daily mutation cap ({daily_cap}) reached. Skipping.")
+            return False
+
     evals_path = os.path.join(base_dir, "evals", "evals.json")
     skill_path = os.path.join(base_dir, "skills", skill_name, "SKILL.md")
     
@@ -57,8 +82,8 @@ def cmd_bench(args):
         
     skill_evals = next((s for s in evals_data.get("skills", []) if s["skill_name"] == skill_name), None)
     if not skill_evals or not skill_evals.get("evals"):
-        print(f"[BENCH ABORT] No evals found for '{skill_name}'")
-        return True # Default pass if ungradable
+        print(f"[BENCH SKIP] Cannot evaluate mutation without evals in evals.json. V2 archived. (Ungradable)")
+        return False # Freeze if ungradable
         
     with open(skill_path, 'r', encoding='utf-8') as f:
         skill_content = f.read()
@@ -103,37 +128,48 @@ def cmd_bench(args):
     return score
 
 def cmd_drift_scan(args):
-    """Idea 4: Semantic Drift Detector"""
+    """Idea 4: Semantic Drift Detector — Compares live file hashes against orion.db baselines."""
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     db_path = os.path.join(base_dir, ".orion", "orion.db")
-    log_path = os.path.join(base_dir, "EVOLUTION_LOG.jsonl")
     
     if not os.path.exists(db_path):
         print("[DRIFT OK] No orion.db found.")
         return True
         
-    # Read legitimate evolutions
-    legit_targets = set()
-    if os.path.exists(log_path):
-        with open(log_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                try:
-                    entry = json.loads(line)
-                    legit_targets.add(entry.get("target"))
-                except:
-                    pass
+    conn = sqlite3.connect(db_path)
+    conn.execute('PRAGMA busy_timeout=5000;')
+    c = conn.cursor()
+    c.execute('SELECT path, sha256 FROM pages')
+    rows = c.fetchall()
+    conn.close()
 
-    # Note: A full implementation would query orion.db for old AST hashes, 
-    # re-parse current ASTs with RTK, and compare.
-    # For now, we stub this out gracefully.
-    print("[DRIFT SCAN] Checking AST skeletons against .orion.db baselines...")
-    print("[DRIFT OK] No unauthorized skeleton mutations detected.")
-    return True
+    drifted = []
+    print("[DRIFT SCAN] Comparing live file hashes against orion.db baselines...")
+    for orion_path, stored_hash in rows:
+        # orion_path points to .orion/sources/X.md, extract original source
+        source_path = orion_path  # The source summary file itself
+        if not os.path.exists(source_path):
+            drifted.append((source_path, "DELETED"))
+            continue
+        with open(source_path, "rb") as f:
+            live_hash = hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()
+        if live_hash != stored_hash:
+            drifted.append((source_path, "MODIFIED"))
+
+    if drifted:
+        print(f"[DRIFT ALERT] {len(drifted)} files drifted from baseline:")
+        for path, status in drifted[:10]:
+            print(f"  [{status}] {path}")
+        return False
+    else:
+        print("[DRIFT OK] All files match orion.db baselines.")
+        return True
 
 def cmd_mine_friction(args):
     """Idea 5: Friction Miner"""
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     memory_path = os.path.join(base_dir, "MEMORY.md")
+    learnings_path = os.path.join(base_dir, "LEARNINGS.md")
     
     if not os.path.exists(memory_path):
         print("[MINE OK] No MEMORY.md found.")
@@ -169,10 +205,20 @@ def cmd_mine_friction(args):
     if critical_found:
         print("\n[DIRECTIVE] CRITICAL friction detected. Trigger self-evolve to synthesize a new rule.")
         
-    # Clear the learnings log to reset the heartbeat
-    learnings_path = os.path.join(base_dir, "LEARNINGS.md")
-    if os.path.exists(learnings_path):
-        open(learnings_path, 'w').close()
+    # SAFE ROTATION: Archive, don't truncate
+    if os.path.exists(learnings_path) and critical_found:
+        import datetime, shutil
+        archive_dir = os.path.join(os.path.dirname(base_dir), ".orion", "episodic")
+        os.makedirs(archive_dir, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        shutil.copy(learnings_path, os.path.join(archive_dir, f"learnings_{stamp}.md"))
+        # Reset only the [Darwinian Hook] markers, preserve other learnings
+        with open(learnings_path, 'r', encoding='utf-8') as f:
+            lr_content = f.read()
+        cleaned = lr_content.replace("[Darwinian Hook]", "[Processed]")
+        with open(learnings_path, 'w', encoding='utf-8') as f:
+            f.write(cleaned)
+        print(f"[MINE] Learnings archived and heartbeat markers reset (non-destructive).")
         
     return critical_found
 

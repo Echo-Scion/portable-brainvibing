@@ -3,6 +3,7 @@
 
 # 2. WHITELIST: Core Foundation Directories
 !/.agents/
+!/.github/
 
 # 3. WHITELIST: Core Foundation Files
 !/.gitignore
@@ -11,9 +12,19 @@
 !/EXPLAIN.md
 !/PREREQUISITES.md
 !/VERSION
+!/GEMINI.md
+!/CLAUDE.md
+!/LICENSE
+!/CODEOWNERS
 
 # 4. BLACKLIST: Re-ignore specific internal things inside whitelisted folders
 .agents/LEARNINGS.md
+.agents/EVOLUTION_LOG.jsonl
+.agents/.foundation_path
+.agents/.project_manifest.json
+.agents/.deployed_ais
+.agents/.genome.json
+.agents/archive/
 .orion/
-
 __pycache__/
+*.pyc

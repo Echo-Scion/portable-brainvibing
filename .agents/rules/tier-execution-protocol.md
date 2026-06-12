@@ -14,6 +14,7 @@ last_updated: 2026-05-20
 
 | Question | Yes → Tier |
 | :--- | :--- |
+| Is this an `orion_ops ingest`, `deploy`, or batch indexing operation? | `BUDGET` |
 | Is this a background/batch task, non-critical indexing, or simple targeted file fix? | `BUDGET` |
 | Is this an automated test run, scheduled linting, UI creation, or standard feature development? | `STANDARD` |
 | Does it involve enterprise planning, complex STEM logic, core architecture, or deep debugging? | `PREMIUM` |

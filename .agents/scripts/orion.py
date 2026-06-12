@@ -3,6 +3,14 @@ import sys
 import os
 import subprocess
 
+# Force utf-8 encoding for standard output to avoid UnicodeEncodeError on Windows
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
+
 def print_help():
     print("========================================")
     print(" 🌌 ORION: The Unified Brain Engine CLI")

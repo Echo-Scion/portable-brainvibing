@@ -377,6 +377,7 @@ def check_telemetry_health(res: AuditResult, verbose: bool = True):
     import sqlite3
     try:
         conn = sqlite3.connect(db_path)
+        conn.execute('PRAGMA busy_timeout=5000;')
         c = conn.cursor()
         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry'")
         if c.fetchone():

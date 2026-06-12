@@ -1,5 +1,15 @@
 import os
 import sys
+import argparse
+import subprocess
+
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
+
 import re
 import json
 import hashlib
@@ -9,6 +19,7 @@ import argparse
 import sqlite3
 
 # --- Configuration & Globals ---
+WORKSPACE_DIR = os.getcwd()
 ORION_DIR = ".orion"
 MANIFEST_PATH = os.path.join(ORION_DIR, "_manifest.json")
 LOG_PATH = os.path.join(ORION_DIR, "log.md")
@@ -19,6 +30,7 @@ DIRS = ["sources", "working", "episodic", "matrix"]
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
+    conn.execute('PRAGMA busy_timeout=5000;')
     c = conn.cursor()
     c.execute('PRAGMA journal_mode=WAL;')
     c.execute('PRAGMA temp_store=MEMORY;')
@@ -71,6 +83,7 @@ def init_db():
 def log_telemetry(event_type: str, exit_code: int = 0, context_load: int = 0):
     init_db()
     conn = sqlite3.connect(DB_PATH)
+    conn.execute('PRAGMA busy_timeout=5000;')
     c = conn.cursor()
     c.execute('''
         INSERT INTO telemetry (timestamp, event_type, exit_code, context_load)
@@ -385,6 +398,7 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
         try:
             init_db()
             conn = sqlite3.connect(DB_PATH)
+            conn.execute('PRAGMA busy_timeout=5000;')
             c = conn.cursor()
             
             c.execute('''
@@ -451,10 +465,10 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             json.dump(manifest, mf, indent=2)
             
         print(f"Ingested: {filepath} -> {target_path} [{action_type}]")
-        return True
+        return target_path
     except Exception as e:
         print(f"Failed to ingest {filepath}: {e}")
-        return False
+        return None
 
 def rebuild_index():
     if not os.path.exists(MANIFEST_PATH):
@@ -558,7 +572,7 @@ def ingest_main(paths, autonomy):
         
     pruned = prune_orphans()
         
-    ingested_count = 0
+    ingested_files = []
     valid_exts = tuple([".md"] + RAW_EXTS + [".yaml", ".json"])
     for path in paths:
         ignore_dirs = get_smart_ignore_dirs(path)
@@ -569,25 +583,28 @@ def ingest_main(paths, autonomy):
                 for f in files:
                     if f.lower().endswith(valid_exts):
                         full_path = os.path.join(root, f)
-                        if ingest_file(full_path, autonomy):
-                            ingested_count += 1
+                        target_path = ingest_file(full_path, autonomy)
+                        if target_path:
+                            ingested_files.append((full_path, target_path))
         elif os.path.isfile(path):
-            if ingest_file(path, autonomy):
-                ingested_count += 1
+            target_path = ingest_file(path, autonomy)
+            if target_path:
+                ingested_files.append((path, target_path))
         else:
             import glob
             for g in glob.glob(path, recursive=True):
                 if os.path.isfile(g) and g.lower().endswith(valid_exts):
                     if '.orion' not in g.replace('\\', '/').split('/'):
-                        if ingest_file(g, autonomy):
-                            ingested_count += 1
+                        target_path = ingest_file(g, autonomy)
+                        if target_path:
+                            ingested_files.append((g, target_path))
                         
-    if ingested_count > 0 or pruned > 0:
+    if len(ingested_files) > 0 or pruned > 0:
         rebuild_index()
-        print(f"\nBatch execution complete. Processed: {ingested_count} | Pruned: {pruned}")
+        print(f"\nBatch execution complete. Processed: {len(ingested_files)} | Pruned: {pruned}")
         
         # --- AUTO-COMPILE HOOK ---
-        if ingested_count > 0:
+        if len(ingested_files) > 0:
             print("\n[AUTO-COMPILE] Triggering Matrix Compilation for zero-drift...")
             import subprocess
             compile_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile_rules.py")
@@ -595,8 +612,20 @@ def ingest_main(paths, autonomy):
                 subprocess.run([sys.executable, compile_script], check=False)
             except Exception as e:
                 print(f"[ERROR] Failed to auto-compile rules: {e}")
+                
+            print(f"\n[TRIPLET_REQUEST] {len(ingested_files)} files need graph triplet extraction.")
+            print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
+            print("Files:")
+            for i, (orig, target) in enumerate(ingested_files, 1):
+                rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
+                rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
+                print(f"{i}. {rel_target} (source: {rel_orig})")
+            print("[ACTION] Read each source file, extract 3-5 Subject|Predicate|Object triplets,")
+            print("then run: python .agents/scripts/orion.py orion_ops inject_triplets '<json>'")
+            
     else:
         print("No new or updated markdown files found to ingest. Graph is up to date.")
+        print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
 
 # === RESOLVER ===
 def load_manifest():
@@ -717,14 +746,53 @@ def resolve_wiki(query):
     print(" EXECUTION PATH (AST Edges):")
     try:
         conn = sqlite3.connect(DB_PATH)
+        conn.execute('PRAGMA busy_timeout=5000;')
         c = conn.cursor()
+        # 1. File-to-file AST links
         c.execute('SELECT target_id, relation FROM edges WHERE source_id = ?', (target_file,))
         rows = c.fetchall()
+        has_ast = False
         if rows:
+            has_ast = True
             for target_id, relation in rows:
                 print(f"  [{relation}] -> {target_id}")
+        
+        # 2. Graph Entity Triplets
+        c.execute('SELECT id FROM nodes WHERE source_path = ?', (target_file,))
+        entities = [r[0] for r in c.fetchall()]
+        has_graph = False
+        if entities:
+            first_header = True
+            for ent in entities:
+                c.execute('SELECT target_id, relation FROM edges WHERE source_id = ?', (ent,))
+                edges_rows = c.fetchall()
+                if edges_rows:
+                    if first_header:
+                        print(" GRAPH TRIPLETS (Semantic Knowledge):")
+                        first_header = False
+                    has_graph = True
+                    for target_id, relation in edges_rows:
+                        print(f"  ({ent}) -[{relation}]-> ({target_id})")
+                        
+        if not has_ast and not has_graph:
+            print("  No downstream execution path or graph triplets found.")
+            
+        print("-" * 60)
+        print(" RELATED NODES (via FTS5 BM25):")
+        keywords = re.findall(r'\b[a-zA-Z0-9_]+\b', target_basename.lower())
+        valid_kws = [kw for kw in keywords if len(kw) > 2]
+        if valid_kws:
+            query_str = " OR ".join([f'"{kw}"' for kw in valid_kws])
+            c.execute('SELECT path FROM pages_fts WHERE pages_fts MATCH ? AND path != ? ORDER BY rank LIMIT 3', (query_str, target_file))
+            fts_rows = c.fetchall()
+            if fts_rows:
+                for row in fts_rows:
+                    print(f"  ~ {os.path.basename(row[0])}")
+            else:
+                print("  No related nodes found via text match.")
         else:
-            print("  No downstream execution path found.")
+            print("  No related nodes found via text match.")
+            
         conn.close()
     except Exception as e:
         print(f"  [DB Error] {e}")
@@ -732,6 +800,39 @@ def resolve_wiki(query):
     print("=" * 60)
     print(" Graph Neighborhood Resolved. Use this context to answer the user.")
 
+def inject_triplets(json_data):
+    try:
+        import sqlite3
+        if os.path.exists(json_data):
+            with open(json_data, "r", encoding="utf-8") as f:
+                json_data = f.read()
+        triplets = json.loads(json_data)
+        if not triplets:
+            print("[INFO] No triplets provided.")
+            return
+            
+        init_db()
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute('PRAGMA busy_timeout=5000;')
+        c = conn.cursor()
+        
+        count = 0
+        for t in triplets:
+            sub = t.get("s")
+            pred = t.get("p")
+            obj = t.get("o")
+            src = t.get("src", "Unknown")
+            if sub and pred and obj:
+                c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (sub, 'Entity', sub, src))
+                c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (obj, 'Entity', obj, src))
+                c.execute('INSERT OR IGNORE INTO edges (source_id, target_id, relation) VALUES (?, ?, ?)', (sub, obj, pred))
+                count += 1
+                
+        conn.commit()
+        conn.close()
+        print(f"[SUCCESS] Injected {count} triplets into orion.db.")
+    except Exception as e:
+        print(f"[ERROR] Failed to inject triplets: {e}")
 
 # === CLI ===
 def main():
@@ -746,6 +847,9 @@ def main():
     
     parser_resolve = subparsers.add_parser("resolve", help="Resolve orion nodes for context routing")
     parser_resolve.add_argument("node", help="Node name to resolve")
+    
+    parser_inject = subparsers.add_parser("inject_triplets", help="Inject graph triplets (JSON array)")
+    parser_inject.add_argument("json_data", help="JSON string containing triplets")
 
     args = parser.parse_args()
     
@@ -755,6 +859,8 @@ def main():
         ingest_main(args.paths, args.autonomy)
     elif args.command == "resolve":
         resolve_wiki(args.node)
+    elif args.command == "inject_triplets":
+        inject_triplets(args.json_data)
     else:
         parser.print_help()
 

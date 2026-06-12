@@ -36,8 +36,8 @@ If the user requests token savings, "caveman mode", or terse communication, you 
 - **Code Skeleton First**: Before full reads of files >100 lines, ALWAYS use `grep_search` to find the exact target line.
 - **Circuit Breaker**: If you fail the same operation 3 times, ABORT immediately and ask the user for help.
 - **Mandatory Orion Fetch (Anti-Amnesia)**: The IDE does NOT auto-load `.orion`. If you need information about project architecture, state, or past decisions, you MUST mechanically execute a `grep_search` or view the relevant `.orion/` file before generating an answer. Standardize on high-performance keyword/regex searching across the whole repository instead of relying on external indexing engines.
-- **Prioritize Native MCP**: Always use MCP Server tools (e.g., `orion-brain` tools like `orion_ingest`) instead of executing raw terminal scripts when available.
 - **Cross-Domain Synthesis**: If a prompt triggers multiple conflicting skills (e.g., Frontend Layout + Database Mutability), do NOT treat them as isolated silos. You MUST explicitly synthesize a bridging pattern (e.g., via `api-contract`) in your thought process before executing.
+- **Ingest Triplet Duty**: Setelah menjalankan `orion_ops ingest`, jika output mengandung `[TRIPLET_REQUEST]`, anda WAJIB membaca setiap source file yang terdaftar, mengekstrak 3-5 triplet semantik, lalu menjalankan `orion_ops inject_triplets` dengan hasilnya.
 
 ## 3.5. INTERNAL ROUTING ANALYSIS (ANTI-TUNNEL VISION)
 Before answering ANY user prompt, you MUST perform routing analysis internally.
@@ -50,7 +50,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/app-lifecycle.md` & `.agents/workflows/app-lifecycle.md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/app-lifecycle.md` |
 | **Legacy Migration, Brownfield, Onboard Existing, Migrate Project** | `.agents/workflows/project-migrate.md` |
 | **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
@@ -105,6 +105,12 @@ You are FORCED to physically run these scripts in the terminal (`run_command`) w
 2. **UI Modification**: Finishing any UI task or widget edit? MUST run `python .agents/evals/audit_aesthetics.py --dir <path>`
 3. **High Context Load**: User asks about context/tokens? MUST run `python .agents/scripts/orion.py scan tokens`
 - Do not mark the task as complete unless the terminal output confirms success.
+
+## 8. IDE-AGNOSTIC NATIVE TOOLING (PORTABILITY)
+You are operating in a portable framework. You must detect and utilize your native IDE capabilities (Antigravity, Cursor, Copilot, Windsurf) rather than relying on plain text chats when advanced interaction is required.
+- **Interactive Alignment**: When a rule instructs you to "grill the user" or "ask for help", you MUST trigger your IDE's native interactive questionnaire tool (e.g., `/grill-me` in Antigravity, Composer Ask in Cursor) instead of outputting markdown questions.
+- **Autonomous Execution**: When instructed to execute a massive refactor or a long-running goal, you MUST recommend or trigger your IDE's native autonomy mode (e.g., `/goal` in Antigravity, Agent Mode in Cursor, Cascade in Windsurf).
+- **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
 *Mandate Version: 0.0.1 (Active Router Pattern)*

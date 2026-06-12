@@ -7,7 +7,7 @@
 
 A plug-and-play `.agents` ecosystem that transforms generic AI coding assistants into **deterministic engineering instruments**. This repository contains the **Universal Framework**—a language-agnostic, OS-agnostic blueprint designed to enforce absolute reproducibility and minimize AI hallucination. 
 
-## ⚠️ WARNING: 100% AI ENGINEERED. ACTUAL VERSION NEVER 1.0
+## ⚠️ WARNING: 100% AI ENGINEERED. ACTUAL VERSION NEVER 1.0. IT EVOLVE WITH YOU.
 
 ---
 
@@ -42,8 +42,8 @@ We structurally ban polite AI fluff. The AI is forced to speak in terse, fragmen
 - **AI now:** `Auth crash. User null. Adding check.` 
 *Result: Context windows last longer. Compute cost drops significantly. Logic remains accurate.*
 
-### 2. 🧠 Native MCP Server & Modular CLI (`orion.py`)
-Instead of forcing the AI to manually search for rules or parse fragile CLI outputs, the system relies on a unified **Model Context Protocol (MCP)** server (`orion_mcp.py`). AI IDEs like Cursor and Claude natively connect to this server to call 14 specialized GraphRAG tools via pure JSON-RPC. For human execution, the standard CLI (`orion.py`) acts as the secondary interface.
+### 2. 🧠 IDE Agent Delegation & Modular CLI (`orion.py`)
+Instead of forcing the AI to manually search for rules or parse fragile CLI outputs, the system relies on structured IDE Agent Delegation. Your IDE AI explicitly triggers specialized CLI tools via standard `run_command` protocols. The standard CLI (`orion.py`) acts as the primary interface for both background cron-jobs and human/AI-driven task orchestration.
 
 ### 3. 📡 The Omni-Buffer (Context Hook)
 To prevent the AI from hallucinating about which file the user is currently looking at, we utilize the `context.json` Omni-Buffer. A background hook silently writes the active IDE tab, cursor position, and any terminal errors to this buffer. The AI reads it magically on its first turn—no manual copy-pasting required.
@@ -70,8 +70,11 @@ The ecosystem learns autonomously through a strictly mechanical evolution loop:
 To bypass heavy vector databases and bloated background daemons, we use a lightweight quad-core setup:
 - **SQLite FTS5**: Super lightweight, high-performance local full-text search.
 - **Relational Triplet Graph**: Explicit semantic linking of code symbols and files under `.orion/`.
-- **Nano LLM (`qwen2.5:0.5b` via Ollama)**: An ultra-lightweight <500MB local model triggered via `orion.py nano` to act as a memory compressor and graph extractor during session offloads, preventing idle CPU drain.
+- **Nano LLM (`qwen2.5:0.5b` via Ollama)**: An ultra-lightweight <500MB local model. It acts as an active intelligence processor during `brain sync` (Semantic Query Expansion & Dynamic Rule Filtering) and compresses memory/extracts graphs during session offloads, preventing idle CPU drain while maximizing accuracy.
 - **Universal OS-Agnostic Execution**: Every component runs natively via standard `python` without hardcoded aliases, ensuring 100% plug-and-play across Windows, macOS, and Linux virtual environments.
+
+### 8. 🌐 IDE-Agnostic Native Tooling
+The framework avoids vendor lock-in by utilizing an abstract tooling policy. Whether running inside Antigravity, Cursor, Copilot, or Windsurf, the AI is instructed to dynamically map abstract workflows ("ask the user", "execute long task") to its specific native slash-commands (like `/grill-me`, `/goal`, or `Composer Ask`).
 
 ---
 
@@ -114,7 +117,7 @@ The ecosystem is split conceptually to allow infinite scaling across any tech st
 ├── rules/               # Context-aware guardrails (Security, Execution Tiers)
 ├── skills/              # Domain expertise triggered by JIT Routing
 ├── workflows/           # CI pipelines, session handoffs, test loops
-├── scripts/             # The Modular CLI Ecosystem (`orion.py` + `orion_mcp.py`)
+├── scripts/             # The Modular CLI Ecosystem (`orion.py`)
 ├── templates/           # DRY source for generating IDE Master BIOS files
 └── metrics/             # Telemetry, evals, and compliance testing
 ```
@@ -140,13 +143,20 @@ However, if deployed on a workstation with **unlimited budget and compute** (e.g
 
 ## 🚀 Deployment & Onboarding
 
-The Universal template can be injected into any repository (Node, Rust, Flutter, Python, Go) to align the AI workflow.
+The Universal template can be injected into any repository (Node, Rust, Flutter, Python, Go) to align the AI workflow. Instead of setting it up manually, you simply order your AI to do it for you.
 
-For the full, step-by-step deployment guide—including instructions for deploying the native Model Context Protocol (MCP) server to your IDE—please refer to the primary deployment manual:
+### 📌 Prerequisites
+- **Python 3.x** must be installed on your machine.
+- Your target project must have a basic structure initialized.
 
-👉 **[Agentic Deployment Guide (.agents/DEPLOY_ME.md)](.agents/DEPLOY_ME.md)**
+### 🤖 How to Deploy (Agentic Installation)
+To deploy this foundation into your project, you do **not** need to copy files manually. Just copy the exact prompt below and paste it into your IDE's AI chat (Gemini, Cursor, Copilot, Windsurf, etc.):
 
-*(The deployment process is designed to be executed directly by your AI Agent using the automated Python engine).*
+> *"Hey AI, please read the deployment manual at `[path-to-foundation]/.agents/DEPLOY_ME.md` and execute the python deployment engine to inject this foundation into my current project."*
+
+👉 **Full Manual:** **[Agentic Deployment Guide (.agents/DEPLOY_ME.md)](.agents/DEPLOY_ME.md)**
+
+*(The deployment process relies on `orion.py foundation deploy` which will automatically handle symlinking, creating `GEMINI.md`, generating `.gitignore`, and performing safe graph ingestion without human intervention).*
 
 ---
 

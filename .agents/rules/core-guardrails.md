@@ -25,17 +25,21 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 > 1. If the workspace root is `_foundation` (or any purely tooling/infrastructure repo), the 82-file mapping and context naming policies MUST BE ABORTED.
 > 2. The 82-file SaaS naming policy applies EXACTLY AND ONLY to Target Deployment Projects (SaaS apps). Enforcing them within `.agents/` or foundation directories is a violation.
 
-## 1.6 Native MCP Execution
+## 1.6 Native Orion Execution
 
-> **Protocol Shift**: The Foundation now supports native Model Context Protocol (MCP) via `orion_mcp.py`.
-> 1. If you detect that `orion_ingest`, `orion_resolve`, or `orion_verify` are available as Native Tools in your IDE, you **MUST** call those tools directly instead of using `run_command` via the terminal.
-> 2. This drastically reduces token usage and prevents fragile CLI string parsing. Only fallback to `run_command` if the MCP tools fail or are unavailable in your current host.
+> **Protocol Shift**: The Foundation now strictly routes all graph and ecosystem commands via `orion.py`.
+> 1. You **MUST** use `run_command` with `python .agents/scripts/orion.py <cmd>` instead of external binaries or native MCP tools.
+> 2. This centralizes context extraction and prevents fragile CLI string parsing or IDE-specific configuration friction.
 
 ## 1.7 Omni-Buffer Context Protocol
 
 > **No-More-Copy-Paste Rule**: The `.agents` ecosystem now utilizes an Omni-Buffer to synchronize context across IDEs.
 > 1. In your **VERY FIRST TURN** of a session or when encountering an ambiguous error, you MUST execute a `view_file` on `.orion/working/context.json` to extract the `active_file` and `terminal_error`. Do NOT ask the user to copy-paste errors from their terminal.
 > 2. **Stale Data Guard**: After reading `context.json`, you MUST check the `timestamp_ms`. If the timestamp is older than 5 minutes relative to the current system time, you MUST discard the data and ask the user for confirmation, to prevent hallucinating on stale IDE states.
+
+## 1.8 IDE-Agnostic Tooling Execution
+
+> **Native Interaction Policy**: When a rule requires you to "ask the user", "stop and clarify", "interview the user", or "run a long task", you MUST map these to your specific IDE's native slash-commands or UI tools (e.g., `/grill-me` or `/goal` in Antigravity, Composer in Cursor). Do NOT default to plain-text chat if a specialized UI tool exists in your system prompt for that purpose.
 
 ## 2. Reasoning Standards (Deterministic Flow)
 - **AI Engineering Compliance**: Adhere strictly to the algorithms in `rules/ai-engineering-standards.md` (e.g., Assertion Matrix, Confidence Gates).

@@ -20,11 +20,19 @@ This skill integrates a structural Brain Graph pattern to give AI a persistent, 
 ## 1. Operations
 
 ### `/orion-ingest <path-or-glob>`
+Executes `python .agents/scripts/orion.py orion_ops ingest <path>`.
 Classifies a raw markdown file, calculates its `source_sha256`, and updates the `.orion/` graph.
-**Smart Vibe Coding Flow:**
+**Phase 1 (Python/Background):**
 1. Diff against the existing orion.
 2. Auto-commit `[NEW]` pages or simple `[EXTEND]` actions silently.
 3. If `[CONTRADICT]` or `[VIOLATION]` occurs, stop and emit a `TRIAGE_REPORT` for human approval.
+4. Outputs `[TRIPLET_REQUEST]` if successful.
+
+**Phase 2 (IDE Agent Delegation):**
+If `[TRIPLET_REQUEST]` is printed:
+1. The IDE Agent (You) MUST read the content of each ingested file.
+2. Extract 3-5 Subject|Predicate|Object semantic triplets.
+3. Inject them into the SQLite graph via `python .agents/scripts/orion.py orion_ops inject_triplets '<json>'`.
 
 ### `/orion-query <node_name>`
 **CRITICAL ACTION**: You MUST execute `run_command` with `python .agents/scripts/orion.py orion_ops resolve "<node_name>"` NOW. Do not use manual `grep_search`. The resolver will automatically inject the target file's content, its forward links, and its backlinks (the graph neighborhood) into your context.

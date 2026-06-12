@@ -14,6 +14,8 @@ import sqlite3
 import datetime
 import shutil
 
+from brain import NanoBrain
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 WORKSPACE_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
@@ -21,67 +23,6 @@ ORION_DIR = os.path.join(WORKSPACE_DIR, '.orion')
 DB_PATH = os.path.join(ORION_DIR, 'orion.db')
 HANDOFF_FILE = os.path.join(ORION_DIR, 'working', 'handoff.md')
 EPISODIC_DIR = os.path.join(ORION_DIR, 'episodic')
-
-class NanoBrain:
-    def __init__(self, model="qwen2.5:0.5b"):
-        self.endpoint = "http://localhost:11434/api/generate"
-        self.model = model
-
-    def ping(self):
-        try:
-            req = urllib.request.Request("http://localhost:11434/", method="GET")
-            with urllib.request.urlopen(req, timeout=2) as r:
-                return r.status == 200
-        except Exception:
-            return False
-
-    def generate(self, prompt, system="You are an expert summarizer. Use Caveman English. Output terse, telegraphic fragments ONLY."):
-        if not self.ping():
-            return None
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "system": system,
-            "stream": False
-        }
-        data = json.dumps(payload).encode('utf-8')
-        req = urllib.request.Request(self.endpoint, data=data, headers={'Content-Type': 'application/json'})
-        try:
-            with urllib.request.urlopen(req, timeout=120) as r:
-                resp = json.loads(r.read().decode('utf-8'))
-                return resp.get('response', '')
-        except Exception as e:
-            print(f"[NanoCompressor] Ollama generation failed: {e}")
-            return None
-
-    def extract_and_store_triplets(self, text, source_id):
-        if not self.ping(): return
-        print(f"[NanoCompressor] Extracting Triplets for LightRAG Graph from {os.path.basename(source_id)}...")
-        sys_prompt = "You are an extraction engine. Output raw lines using the | delimiter ONLY. Do not use JSON."
-        prompt = f"Extract 3-5 high-value architectural triplets from this text:\n\n{text[:2000]}\n\nFormat EACH line EXACTLY as: Subject | Predicate | Object"
-        response = self.generate(prompt, system=sys_prompt)
-        if not response: return
-        
-        try:
-            triplets = []
-            for line in response.split('\n'):
-                parts = [p.strip() for p in line.split('|')]
-                if len(parts) >= 3:
-                    triplets.append(parts[:3])
-            
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            for triplet in triplets:
-                if len(triplet) == 3:
-                    sub, pred, obj = triplet
-                    c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (sub, 'Entity', sub, source_id))
-                    c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (obj, 'Entity', obj, source_id))
-                    c.execute('INSERT OR IGNORE INTO edges (source_id, target_id, relation) VALUES (?, ?, ?)', (sub, obj, pred))
-            conn.commit()
-            conn.close()
-            print(f"[NanoCompressor] Successfully ingested {len(triplets)} triplets into orion.db")
-        except Exception as e:
-            print(f"[NanoCompressor] Triplet parsing failed: {e}")
 
 def compress_handoff():
     if not os.path.exists(HANDOFF_FILE):
@@ -117,8 +58,14 @@ def compress_handoff():
             f.write(new_content)
             
         print(f"[NanoCompressor] Compression complete. Original backed up to {backup_path}")
-        
-        nb.extract_and_store_triplets(summary, HANDOFF_FILE)
+        print("\n[TRIPLET_REQUEST] 1 files need graph triplet extraction.")
+        print("⚡ RECOMMENDED TIER: BUDGET")
+        print("Files:")
+        rel_handoff = os.path.relpath(HANDOFF_FILE, WORKSPACE_DIR).replace("\\", "/")
+        print(f"1. {rel_handoff} (source: {rel_handoff})")
+        print("[ACTION] Read each source file, extract 3-5 Subject|Predicate|Object triplets,")
+        print("then run: python .agents/scripts/orion.py orion_ops inject_triplets '<json>'")
+
     else:
         print("[NanoCompressor] Summarization returned empty. Aborting.")
 

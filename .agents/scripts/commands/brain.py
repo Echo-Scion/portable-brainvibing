@@ -58,9 +58,7 @@ class NanoBrain:
         except Exception as e:
             return None
 
-    def extract_triplets(self, text):
-        prompt = f"Extract 3 knowledge triplets (Subject, Predicate, Object) from this text:\n\n{text}\n\nFormat EACH line EXACTLY as: Subject | Predicate | Object\nDo not use JSON."
-        return self.generate(prompt, system="You are an extraction engine. Output raw lines using the | delimiter ONLY.")
+
 
     def vibe_check(self, text):
         prompt = f"Does this code use hardcoded colors or raw pixel values instead of theme variables?\n\nCODE: {text[:1000]}\n\nAnswer YES or NO."
@@ -81,7 +79,24 @@ class NanoBrain:
 def extract_keywords(text):
     stop_words = {'i', 'need', 'to', 'build', 'the', 'a', 'an', 'and', 'or', 'for', 'with', 'on', 'in', 'of', 'how', 'do', 'what', 'create', 'make', 'update', 'fix'}
     words = re.findall(r'\b[a-zA-Z0-9_]+\b', text.lower())
-    return [w for w in words if w not in stop_words and len(w) > 2]
+    base_keywords = [w for w in words if w not in stop_words and len(w) > 2]
+    
+    # Semantic Expansion via NanoBrain
+    try:
+        nb = NanoBrain()
+        if nb.ping():
+            sys_prompt = "You are a synonym generator. Output exactly 3 comma-separated technical synonyms for the intent. NO other text. Example: 'login' -> 'auth,authentication,session'"
+            prompt = f"Intent: {text}\nSynonyms:"
+            expansion = nb.generate(prompt, system=sys_prompt)
+            if expansion:
+                expanded_words = [w.strip().lower() for w in expansion.split(",") if w.strip()]
+                # Filter out hallucinated sentences
+                expanded_words = [w for w in expanded_words if len(w.split()) == 1 and w.isalpha()]
+                return list(set(base_keywords + expanded_words))
+    except Exception:
+        pass
+        
+    return base_keywords
 
 def search_files(directory, keywords):
     matches = []
@@ -137,6 +152,7 @@ def sync(intent):
         import sqlite3
         try:
             conn = sqlite3.connect(db_path)
+            conn.execute('PRAGMA busy_timeout=5000;')
             c = conn.cursor()
             # FTS5 BM25 query: Search for any of the keywords
             query_str = " OR ".join([f'"{kw}"' for kw in keywords])
@@ -175,11 +191,40 @@ def sync(intent):
             
         print("\n##  Standard Operating Procedures (Micro-Rules)")
         matches = []
+        nb = None
+        try:
+            temp_nb = NanoBrain()
+            if temp_nb.ping():
+                nb = temp_nb
+        except:
+            pass
+            
         for line in rules_content.split('\n'):
             if not line.strip() or line.startswith('#'):
                 continue
             line_lower = line.lower()
-            if any(kw in line_lower for kw in keywords) or "global" in line_lower:
+            
+            # Global rules always apply
+            if "global" in line_lower:
+                matches.append(line.strip())
+                continue
+                
+            is_match = False
+            # Semantic filter via NanoBrain
+            if nb:
+                sys_prompt = "You are a binary classifier. Answer ONLY with YES or NO. Is the RULE relevant to the INTENT?"
+                prompt = f"INTENT: {intent}\nRULE: {line.strip()}\nRelevant (YES/NO):"
+                try:
+                    resp = nb.generate(prompt, system=sys_prompt)
+                    if resp and "YES" in resp.upper():
+                        is_match = True
+                except: pass
+                
+            # Fallback to lexical
+            if not is_match and any(kw in line_lower for kw in keywords):
+                is_match = True
+                
+            if is_match:
                 matches.append(line.strip())
                 
         if matches:
@@ -194,6 +239,20 @@ def sync(intent):
         for r in (rules + skills)[:3]:
             rel_path = os.path.relpath(r, workspace_dir)
             print(f"- [Mandatory Execution Protocol]: {rel_path}")
+            
+            # Apply NanoBrain compression ONLY to .md rules/skills
+            if r.endswith('.md'):
+                try:
+                    with open(r, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    if len(content) < 4000: # Limit size to prevent 0.5b timeout
+                        temp_nb = NanoBrain()
+                        if temp_nb.ping():
+                            compressed = temp_nb.caveman_compress(content)
+                            if compressed and len(compressed) > 10:
+                                print(f"  [COMPRESSED CONTEXT]: {compressed.replace(chr(10), ' ')}")
+                except Exception:
+                    pass
             
     if wiki_nodes:
         print("\n##  Hippocampus (Orion Knowledge)")
@@ -357,7 +416,7 @@ def main():
         if args.action == 'vibe_check':
             print(nb.vibe_check(args.text))
         elif args.action == 'extract':
-            print(nb.extract_triplets(args.text))
+            print("[ERROR] Triplet extraction delegated to IDE Agent. Use `python .agents/scripts/orion.py orion_ops inject_triplets` instead.")
         elif args.action == 'compress':
             print(nb.caveman_compress(args.text))
         elif args.action == 'draft':

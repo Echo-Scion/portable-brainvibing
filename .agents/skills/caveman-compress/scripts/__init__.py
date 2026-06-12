@@ -6,4 +6,4 @@ into caveman format to save input tokens.
 
 __all__ = ["cli", "compress", "detect", "validate"]
 
-__version__ = "1.0.0"
+__version__ = "0.0.1"

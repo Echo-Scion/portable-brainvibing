@@ -72,29 +72,7 @@ python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .a
 
 ---
 
-### 6. Model Context Protocol (MCP) Setup
 
-Orion comes with a zero-dependency local MCP Server. Integrating it allows your IDE (Claude Desktop, Cursor, Antigravity) to natively call Orion Graph tools via JSON-RPC instead of typing shell commands.
-
-> [!WARNING]
-> **IDE PERMISSION BLOCKER**: AI Agents (like Copilot, Cursor, Antigravity) are generally **BLOCKED** from writing or modifying global IDE MCP configuration files for security reasons. 
-> 
-> **MANDATORY AI ACTION**: When deploying, you (the AI) MUST explicitly remind the user to install the MCP server manually. Provide them with the JSON snippet below. Do NOT attempt to auto-edit their `claude_desktop_config.json` or `mcp.json`.
-
-**Manual Setup (Provide this to the User):**
-Instruct the user to add this to their `claude_desktop_config.json` or IDE MCP settings:
-```json
-"mcpServers": {
-  "orion-brain": {
-    "command": "python",
-    "args": [
-      "${workspaceFolder}/.agents/scripts/orion_mcp.py"
-    ]
-  }
-}
-```
-
----
 
 ## 🔄 Syncing & Management (For Humans/AIs)
 
@@ -110,5 +88,5 @@ python .agents/scripts/orion.py foundation push-upstream --source /path/to/proje
 
 ---
 > [!NOTE]
-> **Version**: 2.5.0 (Script-Enforced Gateway)  
+> **Version**: 0.0.1 (Script-Enforced Gateway)  
 > This deployment protocol delegates 100% of physical file orchestration to `orion.py deploy` to prevent LLM token exhaustion and hallucination.

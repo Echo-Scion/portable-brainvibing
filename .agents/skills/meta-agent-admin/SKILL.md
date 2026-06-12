@@ -41,7 +41,7 @@ When you audit the `.agents/` ecosystem, you must evaluate it against this biolo
 1. **The Genetic DNA (Templates)**: Files in `.agents/templates/`. They dictate how the brain grows. Ensure the DNA correctly instantiates the live brain.
 2. **The Central Nervous System (Router & Engine)**:
    - **`GEMINI.md`**: The Master BIOS. Forces JIT routing.
-   - **`scripts/orion.py` & `orion_mcp.py`**: The Neuro-Link Engine. Hosts the **NanoBrain** (<500MB LLM via Ollama) for GraphRAG extraction, Vibe Checks, and Caveman Compression.
+   - **`scripts/orion.py`**: The Neuro-Link Engine. Hosts the **NanoBrain** (<500MB LLM via Ollama) for GraphRAG extraction, Vibe Checks, and Caveman Compression.
 3. **Pre-Frontal Cortex (Working Memory)**: The `.orion/matrix/` and `.orion/working/` directories across 4 Lean Pillars.
 4. **Tactical Attention (Focus Mechanism)**: `TASK_PLANNING.template.md` and `.orion/task.md`. Forces "Atomic Tasks" and explicit context reads.
 5. **Hippocampus (The LightRAG Triad)**: 
