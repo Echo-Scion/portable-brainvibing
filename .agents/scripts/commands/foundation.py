@@ -52,6 +52,10 @@ def resolve_templates(target_dir, manifest, target_files=None):
             if language:
                 new_content = new_content.replace("{{LANGUAGE}}", language)
                 
+            llm_profile = manifest.get("llm_profile", {})
+            if llm_profile:
+                new_content = new_content.replace("{{LLM_TIER}}", llm_profile.get("intelligence_tier", "cloud_agent"))
+                
             if new_content != content:
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(new_content)
@@ -143,11 +147,29 @@ def cmd_deploy(args):
     os.makedirs(target_agents_dir, exist_ok=True)
     
     manifest_path = os.path.join(target_agents_dir, ".project_manifest.json")
+    llm_tier = "cloud_agent"
+    if args.use_local_llm or args.llm_params > 0:
+        if args.llm_params >= 30:
+            llm_tier = "high_intelligence"
+        elif args.llm_params >= 8:
+            llm_tier = "medium_intelligence"
+        elif args.llm_params > 0:
+            llm_tier = "low_intelligence"
+        else:
+            llm_tier = "unknown_local"
+
     manifest = {
         "framework": args.framework,
         "language": args.language,
-        "ecosystem": get_ecosystem_config(foundation_dir, args.framework)
+        "ecosystem": get_ecosystem_config(foundation_dir, args.framework),
+        "llm_profile": {
+            "is_local": args.use_local_llm or args.llm_params > 0,
+            "parameters_b": args.llm_params,
+            "intelligence_tier": llm_tier
+        }
     }
+    
+    print(f"  -> LLM Profile: {llm_tier} (Local: {args.use_local_llm}, Params: {args.llm_params}B)")
     
     if not args.dry_run:
         with open(manifest_path, "w", encoding="utf-8") as f:
@@ -262,7 +284,27 @@ def cmd_deploy(args):
         orion_script = os.path.join(foundation_dir, ".agents", "scripts", "orion.py")
         if os.path.exists(orion_script):
             try:
-                subprocess.run(["python", orion_script, "orion_ops", "init"], cwd=target_dir, check=True)
+                # 1. Initialize empty Graph Database
+                subprocess.run([sys.executable, orion_script, "orion_ops", "init"], cwd=target_dir, check=True)
+                
+                # 2. Scaffold Base Context Directory to prevent amnesia
+                context_dir = os.path.join(target_dir, "context")
+                os.makedirs(context_dir, exist_ok=True)
+                
+                context_json = os.path.join(context_dir, "context.json")
+                if not os.path.exists(context_json):
+                    with open(context_json, "w", encoding="utf-8") as f:
+                        json.dump({"state": "init", "evolution_overdue": False, "memory": []}, f, indent=2)
+                        
+                readme_md = os.path.join(target_dir, "README.md")
+                if not os.path.exists(readme_md):
+                    with open(readme_md, "w", encoding="utf-8") as f:
+                        f.write(f"# {os.path.basename(os.path.abspath(target_dir))}\\n\\nProject initialized by Portable Brainvibing.\\n")
+
+                # 3. Auto-Hydrate Graph with Rules, Skills, and Context
+                print("  -> Auto-Hydrating Rules & Context into Brain Graph...")
+                subprocess.run([sys.executable, orion_script, "orion_ops", "ingest", ".agents", "context", "README.md"], cwd=target_dir, check=True)
+                
             except Exception as e:
                 print(f"    [WARNING] Failed to initialize Orion Brain Graph: {e}")
         else:
@@ -647,6 +689,8 @@ def main():
     parser_deploy.add_argument("--language", required=True, help="Language (e.g., typescript, dart)")
     parser_deploy.add_argument("--ai", default="gemini", help="Comma-separated list of AIs to deploy (or 'all'). Defaults to 'gemini'.")
     parser_deploy.add_argument("--dry-run", action="store_true", help="Simulate deployment without modifying files")
+    parser_deploy.add_argument("--use-local-llm", action="store_true", help="Flag to indicate if using a local LLM")
+    parser_deploy.add_argument("--llm-params", type=float, default=0.0, help="Parameter size of the local LLM in Billions (e.g., 8.0, 70.0)")
     
     # Push Upstream
     parser_upstream = subparsers.add_parser("push-upstream", help="Sync local project changes back to Foundation")

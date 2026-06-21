@@ -23,8 +23,41 @@ class NanoBrain:
     def __init__(self, model="qwen2.5:0.5b"):
         self.endpoint = "http://localhost:11434/api/generate"
         self.model = model
+        self.tier_level = 1 # 1: Low, 2: Medium, 3: High
+        self.tier_name = "low_intelligence"
+        
+        agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        manifest_path = os.path.join(agents_dir, ".project_manifest.json")
+        if os.path.exists(manifest_path):
+            try:
+                with open(manifest_path, "r") as f:
+                    manifest = json.load(f)
+                    profile = manifest.get("llm_profile", {})
+                    self.tier_name = profile.get("intelligence_tier", "low_intelligence")
+                    
+                    if self.tier_name == "high_intelligence": self.tier_level = 3
+                    elif self.tier_name == "medium_intelligence": self.tier_level = 2
+                    elif self.tier_name == "low_intelligence": self.tier_level = 1
+                    else: self.tier_level = 0 # cloud_agent / none
+            except Exception:
+                pass
+
+    def check_tier(self, required_level, feature_name):
+        if self.tier_level < required_level:
+            return f"[DELEGATE_TO_CLOUD] Error: Required Medium Intelligence (or higher) for {feature_name}. Current tier is '{self.tier_name}'. Fallback gracefully to Cloud Agent LLM."
+        return None
 
     def ping(self):
+        agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        status_file = os.path.join(agents_dir, ".nanobrain_status")
+        if os.path.exists(status_file):
+            try:
+                with open(status_file, "r") as f:
+                    if f.read().strip().upper() == "OFF":
+                        return False
+            except Exception:
+                pass
+
         if psutil:
             try:
                 mem = psutil.virtual_memory()
@@ -70,11 +103,26 @@ class NanoBrain:
         return self.generate(prompt, system=system)
 
     def draft_boilerplate(self, intent):
-        # 0.5b models hallucinate code. Extract primary domain instead.
-        system = "You are a domain classifier. Output ONLY ONE WORD representing the primary technical domain (e.g. Flutter, React, Express, Database)."
-        prompt = f"Classify the primary technical domain for this intent:\n\n{intent}"
-        domain = self.generate(prompt, system=system)
-        return f"// Boilerplate generator delegated. 0.5b generation blocked to prevent hallucination.\n// Suggested Domain Template: {domain.strip() if domain else 'Unknown'}"
+        # Requires Medium Intelligence
+        block_msg = self.check_tier(2, "Boilerplate Drafting")
+        if block_msg:
+            return block_msg
+            
+        system = "You are a Senior Architect LLM. Generate standard boilerplate code for the given intent. Output ONLY the code, no markdown wrappers."
+        prompt = f"Draft the boilerplate component for this intent:\n\n{intent}"
+        code = self.generate(prompt, system=system)
+        return code if code else "[DELEGATE_TO_CLOUD] Error: Generation failed. Fallback to Cloud Agent."
+
+    def extract_triplets(self, text):
+        # Requires High Intelligence
+        block_msg = self.check_tier(3, "Complex Triplet Extraction")
+        if block_msg:
+            return block_msg
+            
+        system = "You are a Brainvibing Knowledge Extractor. Extract triplets in JSON format."
+        prompt = f"Extract (Subject, Predicate, Object) from this text:\n{text}"
+        res = self.generate(prompt, system=system)
+        return res if res else "[DELEGATE_TO_CLOUD] Error: Extraction failed. Fallback to Cloud Agent."
 
 def extract_keywords(text):
     stop_words = {'i', 'need', 'to', 'build', 'the', 'a', 'an', 'and', 'or', 'for', 'with', 'on', 'in', 'of', 'how', 'do', 'what', 'create', 'make', 'update', 'fix'}
@@ -399,8 +447,8 @@ def main():
     sync_parser.add_argument('intent', type=str, help='The task or intent')
     
     nb_parser = subparsers.add_parser('nanobrain', help='Execute NanoBrain tasks')
-    nb_parser.add_argument('action', choices=['vibe_check', 'extract', 'compress', 'draft'], help='Action to perform')
-    nb_parser.add_argument('text', type=str, help='Input text')
+    nb_parser.add_argument('action', choices=['vibe_check', 'extract', 'compress', 'draft', 'on', 'off', 'status'], help='Action to perform')
+    nb_parser.add_argument('text', nargs='?', type=str, default='', help='Input text')
     
     page_parser = subparsers.add_parser('page', help='Ephemeral context slicer')
     page_parser.add_argument('keywords', nargs='+', help='Keywords to extract')
@@ -409,14 +457,33 @@ def main():
     if args.command == 'sync':
         sync(args.intent)
     elif args.command == 'nanobrain':
+        agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        status_file = os.path.join(agents_dir, ".nanobrain_status")
+        
+        if args.action == 'on':
+            with open(status_file, "w") as f: f.write("ON")
+            print("🟢 NanoBrain is now ENABLED.")
+            return
+        elif args.action == 'off':
+            with open(status_file, "w") as f: f.write("OFF")
+            print("🔴 NanoBrain is now DISABLED.")
+            return
+        elif args.action == 'status':
+            state = "ON"
+            if os.path.exists(status_file):
+                with open(status_file, "r") as f: state = f.read().strip().upper()
+            print(f"NanoBrain Toggle: {state}")
+            return
+
         nb = NanoBrain()
         if not nb.ping():
-            print("Error: Ollama not running on localhost:11434")
+            print("Error: NanoBrain is DISABLED or Ollama is not running on localhost:11434")
             return
+            
         if args.action == 'vibe_check':
             print(nb.vibe_check(args.text))
         elif args.action == 'extract':
-            print("[ERROR] Triplet extraction delegated to IDE Agent. Use `python .agents/scripts/orion.py orion_ops inject_triplets` instead.")
+            print(nb.extract_triplets(args.text))
         elif args.action == 'compress':
             print(nb.caveman_compress(args.text))
         elif args.action == 'draft':

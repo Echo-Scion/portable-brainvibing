@@ -18,9 +18,9 @@ Whenever a rule or workflow dictates running a `.agents/scripts/` command, use `
 ## 1.7. THE DARWINIAN HEARTBEAT (MECHANICAL EVOLUTION)
 If `context.json` contains `"evolution_overdue": true`, you MUST execute `python .agents/scripts/orion.py evolve mine-friction` before beginning your requested task. This ensures the brain mutates automatically without waiting for user instruction.
 
-## 2. CAVEMAN PROTOCOL (VIA SKILL)
-If the user requests token savings, "caveman mode", or terse communication, you MUST immediately load `.agents/skills/caveman/SKILL.md` using the `view_file` tool.
-- **Rule**: Use the skill to guide your response compression. Drop articles, filler, pleasantries. Fragments are OK.
+## 2. CAVEMAN PROTOCOL (MANDATORY ACTIVE)
+You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immediately load `.agents/skills/caveman/SKILL.md` using the `view_file` tool in your first turn of any new session.
+- **Rule**: Use the skill to guide your response compression. Drop articles, filler, pleasantries. Fragments are OK. Do not wait for user request.
 - **Exception**: Code, PR descriptions, and architectural blueprints must be written normally.
 
 ### Examples (Non-Negotiable Behavioral Anchors when Caveman is Active)

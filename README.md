@@ -70,7 +70,7 @@ The ecosystem learns autonomously through a strictly mechanical evolution loop:
 To bypass heavy vector databases and bloated background daemons, we use a lightweight quad-core setup:
 - **SQLite FTS5**: Super lightweight, high-performance local full-text search.
 - **Relational Triplet Graph**: Explicit semantic linking of code symbols and files under `.orion/`.
-- **Nano LLM (`qwen2.5:0.5b` via Ollama)**: An ultra-lightweight <500MB local model. It acts as an active intelligence processor during `brain sync` (Semantic Query Expansion & Dynamic Rule Filtering) and compresses memory/extracts graphs during session offloads, preventing idle CPU drain while maximizing accuracy.
+- **Dynamic Local LLM Tiers**: Natively integrated with Ollama. At deployment, users configure their local AI hardware capabilities (`Low`, `Medium`, `High` intelligence). The system dynamically gates features (like code generation vs simple vibe checks) based on this tier to physically prevent Agentic Hallucination, gracefully falling back to Cloud Agents when required.
 - **Universal OS-Agnostic Execution**: Every component runs natively via standard `python` without hardcoded aliases, ensuring 100% plug-and-play across Windows, macOS, and Linux virtual environments.
 
 ### 8. 🌐 IDE-Agnostic Native Tooling

@@ -13,7 +13,8 @@ Confirm the target directory (usually the current working directory `.`). Identi
 > **MANDATORY Q&A**: If the target project does not already have an `.agents/.project_manifest.json` file, you MUST pause and ask the user two questions before proceeding:
 > 1. "What framework or ecosystem are we building in? (e.g., react, flutter, nextjs, python)"
 > 2. "What is the primary language? (e.g., typescript, dart, python)"
-> Do not guess. You need these answers for the `--framework` and `--language` CLI arguments below.
+> 3. "Are you planning to use a Local LLM for this project? If yes, roughly how many parameters does it have? (e.g., 0.5B, 8B, 32B, 70B, or type 'None' if using a Cloud LLM like Antigravity/Claude)"
+> Do not guess. You need these answers for the CLI arguments below.
 
 ### 2. Gitignore Pre-flight (Dynamic Generation)
 Check if the target project has a `.gitignore` file. If it does NOT, you MUST proactively generate a standard `.gitignore` appropriate for the project's framework (using your internal LLM knowledge) BEFORE running any deployment commands. This guarantees Orion skips build artifacts during auto-ingest.
@@ -23,18 +24,20 @@ Do not attempt to create symlinks, files, or merge rules manually. Use your term
 
 **Default (Gemini Only)**
 ```bash
-python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language>
+python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language> [--use-local-llm --llm-params <params_in_billions>]
 ```
 
 **Selective AIs (e.g., Cursor, Copilot)**
 ```bash
-python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language> --ai cursor,copilot
+python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language> --ai cursor,copilot [--use-local-llm --llm-params <params_in_billions>]
 ```
 
 **Deploy All 6 Supported AIs**
 ```bash
-python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language> --ai all
+python .agents/scripts/orion.py foundation deploy --target /path/to/project --framework <framework> --language <language> --ai all [--use-local-llm --llm-params <params_in_billions>]
 ```
+
+*(Note: Omit `--use-local-llm` and `--llm-params` if the user is using a Cloud LLM).*
 
 *(This script automatically handles Symlinking, Smart Merging `AGENTS.md`, and path marker tracking).*
 
