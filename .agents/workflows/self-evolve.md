@@ -25,11 +25,6 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 
 ## 4. PATTERN RECOGNITION & SYNTHESIS (DISCOVER)
 - **CRITICAL ACTION**: **Pattern Scan**: At the end of a session, execute `grep_search` on BOTH `.agents/LEARNINGS.md` AND `MEMORY.md` (specifically for `<friction-data>` tags) NOW for repetitive manual tasks to fuse short-term and long-term friction.
-- **CRITICAL ACTION**: **Propose Synthesis**: If a pattern is found, proactively output a JSON block: `{"action": "synthesize_asset", "type": "skill|workflow|rule", "name": "..."}`.
-- **CRITICAL ACTION**: **Interview Gate (MANDATORY)**: Before generating the asset, perform the Agent-OS Discover Loop:
-      1. Present the discovered pattern or tribal knowledge to the user.
-      2. Ask exactly 1-2 clarifying questions about the "why" behind the pattern (e.g., "What problem does this solve?", "Are there exceptions?").
-      3. Wait for the user's response. Do NOT batch questions.
-- [ ] **Draft Standard**: Draft the standard concisely. Use bullet points over paragraphs, include code examples, and skip obvious things. Lead with the rule, explain why second. Show the draft to the user for approval.
-- [ ] **Generate Asset**: Once approved, use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone SKILL.md, rule, or workflow file.
+- **CRITICAL ACTION**: **Autonomous Synthesis**: If a pattern is found, proactively synthesize the rule without waiting for user approval. Darwinian mutation must be 100% autonomous.
+- [ ] **Generate Asset**: Use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone SKILL.md, rule, or workflow file.
 - [ ] **Integrate**: Update JIT triggers and ensure the new rule is indexed in `.agents/rules/RULES_INDEX.md` so future sessions load it automatically. You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.

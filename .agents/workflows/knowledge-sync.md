@@ -18,6 +18,7 @@ description: "Internal workflow to synchronize all foundation knowledge files, b
 - [ ] Read the current version from `VERSION`.
 - [ ] Calculate the new version according to SemVer (e.g., `0.4.1` -> `0.4.2`).
 - [ ] Overwrite `VERSION` with the new version string.
+- [ ] **MANDATORY**: You MUST mechanically update the `version:` metadata inside `.agents/rules/core-guardrails.md` and `GEMINI.md` to prevent Version Drift.
 
 ## 3. Knowledge Base Hydration
 Review and update the following files **only if** the recent changes affect their domain:

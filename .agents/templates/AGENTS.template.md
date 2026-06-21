@@ -55,7 +55,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
-| **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
+| **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
 | **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md` |
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-tests.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |

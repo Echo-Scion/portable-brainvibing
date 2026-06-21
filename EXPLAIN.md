@@ -20,7 +20,7 @@ Ketika LLM disuapi konteks besar (>50.000 token), kemampuannya mengingat instruk
 Anda memasukkan panduan arsitektur setebal 100 halaman ke konteks AI. Di halaman 3, ada Aturan #12: *"Jangan gunakan `setState`. Selalu gunakan `Riverpod`."* Anda lalu meminta AI membangun layar Login. AI menulis 200+ baris kode UI, dan karena perhatiannya sudah berpusat pada tugas langsung, aturan di halaman 3 "menguap." AI menggunakan `setState`, dan arsitektur proyek langsung terpolusi. Anda baru menyadarinya 3 hari kemudian setelah 15 layar lain sudah dibangun.
 
 **Solusi Arsitektural: Perutean Just-In-Time (JIT)**
-Kerangka kerja `.agents` secara fisik mencegah pemuatan semua aturan sekaligus. Ia menggunakan tabel routing dinamis (didefinisikan di `GEMINI.md` §4). Jika pengguna bertanya tentang "database", hanya aturan `backend-orchestrator` dan `data-logic` yang dimuat. Jika tentang "UI", hanya `ui-finish` dan `palette`. Ini menjamin bahwa konteks AI selalu bersih, terfokus, dan terisi hanya oleh informasi yang relevan.
+Kerangka kerja `.agents` secara fisik mencegah pemuatan semua aturan sekaligus. Ia menggunakan tabel routing dinamis (didefinisikan di `GEMINI.md` §4). Jika pengguna bertanya tentang "database", hanya aturan `project-architect` dan `data-logic` yang dimuat. Jika tentang "UI", hanya `ui-finish` dan `palette`. Ini menjamin bahwa konteks AI selalu bersih, terfokus, dan terisi hanya oleh informasi yang relevan.
 
 ### 1.2. Fragmentasi IDE (Vendor Lock-In Vulnerability)
 Setiap IDE (Cursor, Windsurf, Copilot, Antigravity) memiliki mesin AI dan alat interaktif yang berbeda-beda:
@@ -406,7 +406,7 @@ Setiap skill adalah sebuah "topi" (hat) yang dikenakan AI. Saat dimuat, skill me
 **Konten:** Spesifikasi OpenAPI, validasi Zod, pola keamanan API.
 **Referensi:** `references/api_safety_patterns.md`.
 
-### 10.3. `backend-orchestrator`
+### 10.3. `project-architect` (ex backend-orchestrator)
 **Domain:** Arsitek backend master.
 **Konten:** Manajemen kebocoran memori Node.js, connection pooling, optimasi SQL, indeks database.
 **Referensi:** 6 sub-dokumen — `backend-architect.md`, `backend-optimizer.md`, `cache-optimizer.md`, `db-expert.md`, `enterprise_patterns.md`, `node_performance_tuning.md`, `postgres_patterns.md`.

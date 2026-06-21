@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
+## [0.0.3] - 2026-06-22
+### Changed
+- Refactored `.agents` ecosystem: Removed `backend-orchestrator` ghost references, consolidated into `project-architect`.
+- Upgraded `knowledge-sync.md` to prevent version drift.
+- Removed Interview Gate from `self-evolve.md` for full autonomy.
+- Upgraded `audit-00-master-workflow.md` to enforce Soft Auto-Proceed (Batching) and OS-Agnostic tooling.
+
 
 ## [0.0.2] - 2026-06-22
 ### Added

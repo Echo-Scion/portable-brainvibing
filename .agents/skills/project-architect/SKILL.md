@@ -43,8 +43,23 @@ Your output MUST contain these 6 sections exactly, and be saved to `.orion/BLUEP
 
 If you do not provide "The Cut List", you have failed your role as Architect.
 
+## 7. Backend & Database Orchestration (Merged Capabilities)
+
+### Database Schema Decision Tree
+When designing a data model, use this tree:
+Q1. Does the data have strict relational integrity? (YES -> Postgres Relational Tables, NO -> Q2)
+Q2. Is the data highly unstructured or document-like? (YES -> Postgres `jsonb` columns, NO -> Relational Tables)
+
+### Supabase Row Level Security (MANDATORY TEMPLATE)
+NEVER create a table in Supabase without applying RLS.
+```sql
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.posts FOR SELECT USING ( is_public = true OR auth.uid() = user_id );
+CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WITH CHECK ( auth.uid() = user_id );
+```
+
 ## 📚 Mandatory Knowledge Routing (JIT References)
-*If your current task intersects with these domains, you MUST execute iew_file on the target BEFORE writing code:*
+*If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
@@ -52,3 +67,10 @@ If you do not provide "The Cut List", you have failed your role as Architect.
 | **Startup Growth** | references/startup_growth.md |
 | **Strategic Rigor** | references/strategic_rigor.md |
 | **Structural Pillars** | references/structural_pillars.md |
+| **Backend Architect** | references/backend-architect.md |
+| **Backend Optimizer** | references/backend-optimizer.md |
+| **Cache Optimizer** | references/cache-optimizer.md |
+| **Db Expert** | references/db-expert.md |
+| **Enterprise Patterns** | references/enterprise_patterns.md |
+| **Node Performance Tuning** | references/node_performance_tuning.md |
+| **Postgres Patterns** | references/postgres_patterns.md |

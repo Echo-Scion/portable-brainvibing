@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.1 - Router Pattern) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.3 - Router Pattern) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `_foundation`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -66,7 +66,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
-| **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/backend-orchestrator/SKILL.md` |
+| **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
 | **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md` |
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-tests.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
@@ -133,7 +133,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.1 (Active Router Pattern)*
+*Mandate Version: 0.0.3 (Active Router Pattern)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

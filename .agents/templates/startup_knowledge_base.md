@@ -24,7 +24,7 @@ This resource provides high-density, domain-specific instructions for auto-popul
 - **Compliance**: Define the audit trail requirements for PCI-DSS (if handling payments).
 
 ## 🚀 4. Scaling & Engineering (Files: Infrastructure, CI/CD, Performance, etc.)
-*Expertise from: backend-orchestrator, project-operator*
+*Expertise from: project-architect, project-operator*
 - **Infrastructure**: Define the "Multi-Region" failover strategy and IaC (Terraform/Pulumi) modules.
 - **Performance**: Set strict "Budget Latency" (e.g., <200ms for TTFB).
 - **Observability**: Define the SLIs (Service Level Indicators) and SLOs (Service Level Objectives).

@@ -14,7 +14,6 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 *Skills define deep domain knowledge and specialized personas.*
 
 - **api-contract**: `.agents/skills/api-contract/SKILL.md` (OpenAPI, Zod, Contracts)
-- **backend-orchestrator**: `.agents/skills/backend-orchestrator/SKILL.md` (Backend, Node.js, Schemas)
 - **caveman**: `.agents/skills/caveman/SKILL.md` (Ultra-compressed communication)
 - **caveman-compress**: `.agents/skills/caveman-compress/SKILL.md` (Token reduction for docs)
 - **cost-optimizer**: `.agents/skills/cost-optimizer/SKILL.md` (Cloud/LLM token budgeting)

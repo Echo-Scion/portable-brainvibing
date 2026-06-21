@@ -9,7 +9,7 @@ Do NOT proceed to deployment steps until all these automated checks return [PASS
 
 ```bash
 # 1. Secret Leak Check
-python .agents/canons/global/harnesses/secrets_scan_verifier.py --path .
+if [ -f .agents/canons/global/harnesses/secrets_scan_verifier.py ]; then python .agents/canons/global/harnesses/secrets_scan_verifier.py --path .; else grep -rE "(sk-|BEGIN PRIVATE KEY)" --exclude-dir=".git" .; fi
 
 # 2. Migration Safety Check (if applying DB changes)
 python .agents/canons/global/harnesses/migration_verifier.py --file supabase/migrations/<latest_migration.sql>

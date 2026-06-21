@@ -2,8 +2,8 @@
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
 
-version: 0.0.1
-last_updated: 2026-05-20
+version: 0.0.3
+last_updated: 2026-06-21
 ---
 # Agent Protocols
 
@@ -77,6 +77,7 @@ When delegating to sub-agents or creating internal prompts, follow these pattern
 
 ## 4. Circuit Breaker (Anti-Infinite Loop)
 - **3x Failure Rule**: If a specific tool call or test fails 3 times consecutively, ABORT.
+- **False Positive Guard**: You MUST NOT trust `exit 0` wrappers in tests. Always use `grep` on raw stdout/stderr logs to validate if an error actually occurred.
 - Document the specific failure output, then **immediately stop and report to the user directly in your response** to request human intervention.
 
 ## 5. Rule Precedence & Conflict Arbitration (Non-Negotiable)
@@ -138,4 +139,4 @@ To prevent protocol drift and stale constraints:
 
 ## 10. Post-Task Reflection
 
-See `workflows/self-evolve.md` for the deterministic self-evolution protocol.
+You MUST execute `view_file` on `workflows/self-evolve.md` for the deterministic self-evolution protocol.
