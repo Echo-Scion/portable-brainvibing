@@ -28,6 +28,15 @@ SOURCES_DIR = os.path.join(ORION_DIR, "sources")
 DB_PATH = os.path.join(ORION_DIR, "orion.db")
 DIRS = ["sources", "working", "episodic", "matrix"]
 
+def normalize_path(p: str) -> str:
+    return p.replace(chr(92), '/')
+
+def get_db():
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('PRAGMA busy_timeout=5000;')
+    return conn
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     conn.execute('PRAGMA busy_timeout=5000;')
@@ -77,6 +86,17 @@ def init_db():
             context_load INTEGER
         )
     ''')
+    conn.commit()
+    conn.close()
+
+def log_telemetry(event_type: str, exit_code: int = 0, context_load: int = 0):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO telemetry (timestamp, event_type, exit_code, context_load)
+        VALUES (?, ?, ?, ?)
+    ''', (datetime.datetime.now().isoformat(), event_type, exit_code, context_load))
+    c.execute('DELETE FROM telemetry WHERE id NOT IN (SELECT id FROM telemetry ORDER BY id DESC LIMIT 1000)')
     conn.commit()
     conn.close()
 
@@ -249,9 +269,12 @@ def prune_orphans() -> int:
                         
                         if db_conn:
                             try:
-                                db_c.execute('DELETE FROM pages WHERE path = ?', (full_wiki_path,))
-                                db_c.execute('DELETE FROM pages_fts WHERE path = ?', (full_wiki_path,))
-                                db_c.execute('DELETE FROM edges WHERE source_id = ?', (full_wiki_path,))
+                                norm_path = normalize_path(full_wiki_path)
+                                db_c.execute('DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE source_path = ? OR source_path = ?)', (full_wiki_path, norm_path))
+                                db_c.execute('DELETE FROM nodes WHERE source_path = ? OR source_path = ?', (full_wiki_path, norm_path))
+                                db_c.execute('DELETE FROM pages WHERE path = ? OR path = ?', (full_wiki_path, norm_path))
+                                db_c.execute('DELETE FROM pages_fts WHERE path = ? OR path = ?', (full_wiki_path, norm_path))
+                                db_c.execute('DELETE FROM edges WHERE source_id = ? OR source_id = ?', (full_wiki_path, norm_path))
                             except Exception as e:
                                 print(f"DB cleanup error for {full_wiki_path}: {e}")
                 else:
@@ -439,9 +462,7 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             
         # LightRAG SQLite Sync
         try:
-            init_db()
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute('PRAGMA busy_timeout=5000;')
+            conn = get_db()
             c = conn.cursor()
             
             c.execute('''
@@ -465,7 +486,7 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
                     c.execute('''
                         INSERT OR IGNORE INTO edges (source_id, target_id, relation)
                         VALUES (?, ?, ?)
-                    ''', (target_path, callee, f"{caller} calls"))
+                    ''', (target_path, callee, rel))
             
             conn.commit()
             conn.close()
@@ -863,9 +884,7 @@ def inject_triplets(json_data):
             print("[INFO] No triplets provided.")
             return
             
-        init_db()
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute('PRAGMA busy_timeout=5000;')
+        conn = get_db()
         c = conn.cursor()
         
         # Collect unique sources to clear stale triplets first
@@ -877,6 +896,7 @@ def inject_triplets(json_data):
         for src in unique_sources:
             try:
                 c.execute('DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE source_path = ?)', (src,))
+                c.execute('DELETE FROM nodes WHERE source_path = ?', (src,))
             except Exception as e:
                 print(f"[WARNING] Failed to clear stale triplets for {src}: {e}")
         
@@ -887,8 +907,8 @@ def inject_triplets(json_data):
             obj = t.get("o")
             src = t.get("src", "Unknown")
             if sub and pred and obj:
-                c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (sub, 'Entity', sub, src))
-                c.execute('INSERT OR IGNORE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (obj, 'Entity', obj, src))
+                c.execute('INSERT OR REPLACE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (sub, 'Entity', sub, src))
+                c.execute('INSERT OR REPLACE INTO nodes (id, type, name, source_path) VALUES (?, ?, ?, ?)', (obj, 'Entity', obj, src))
                 c.execute('INSERT OR IGNORE INTO edges (source_id, target_id, relation) VALUES (?, ?, ?)', (sub, obj, pred))
                 count += 1
                 

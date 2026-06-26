@@ -70,6 +70,85 @@ def parse_regex_ast(content: str) -> str:
         
     return "\n".join(result)
 
+def parse_treesitter_ast(filepath: str, content: str) -> str:
+    """Attempts to parse using tree-sitter, falls back to regex."""
+    _, ext = os.path.splitext(filepath.lower())
+    
+    try:
+        import tree_sitter
+        
+        # Determine language module based on extension
+        lang_module = None
+        if ext == '.js':
+            import tree_sitter_javascript
+            lang_module = tree_sitter_javascript.language()
+        elif ext == '.ts':
+            import tree_sitter_typescript
+            lang_module = tree_sitter_typescript.language_typescript()
+        elif ext == '.tsx':
+            import tree_sitter_typescript
+            lang_module = tree_sitter_typescript.language_tsx()
+        elif ext == '.dart':
+            try:
+                import tree_sitter_dart
+                lang_module = tree_sitter_dart.language()
+            except ImportError:
+                pass
+                
+        if not lang_module:
+            return parse_regex_ast(content)
+            
+        parser = tree_sitter.Parser()
+        # API differs between v0.21 and v0.22+ - handle gracefully
+        try:
+            parser.set_language(tree_sitter.Language(lang_module))
+        except TypeError:
+            parser.set_language(lang_module)
+        
+        tree = parser.parse(bytes(content, "utf8"))
+        
+        classes = []
+        functions = []
+        
+        def traverse(node):
+            if node.type in ['class_declaration', 'class']:
+                for child in node.children:
+                    if child.type == 'identifier':
+                        classes.append(child.text.decode('utf8'))
+                        break
+            elif node.type in ['function_declaration', 'function', 'method_definition', 'arrow_function']:
+                for child in node.children:
+                    if child.type in ['identifier', 'property_identifier']:
+                        functions.append(child.text.decode('utf8'))
+                        break
+            for child in node.children:
+                traverse(child)
+                
+        traverse(tree.root_node)
+        
+        result = []
+        if classes:
+            result.append("Classes found: " + ", ".join(classes))
+        if functions:
+            # Filter keywords
+            keywords = {"if", "switch", "for", "while", "catch", "return", "super", "this"}
+            funcs = [f for f in functions if f not in keywords]
+            result.append("Functions/Methods found: " + ", ".join(funcs[:30]))
+            if len(funcs) > 30:
+                result.append(f"... and {len(funcs) - 30} more.")
+                
+        if not result:
+            return "No structural elements found via Tree-sitter."
+        return "
+".join(result)
+        
+    except ImportError:
+        # tree_sitter or language binding not installed
+        return parse_regex_ast(content)
+    except Exception as e:
+        print(f"[AST WARNING] Tree-sitter failed: {e}. Falling back to Regex.")
+        return parse_regex_ast(content)
+
 def generate_ast_summary(filepath: str, content: str) -> str:
     """
     Attempts to parse the content into a lightweight AST summary.
@@ -99,7 +178,9 @@ def generate_ast_summary(filepath: str, content: str) -> str:
     
     if ext == ".py":
         return header + parse_python_ast(content)
-    elif ext in [".dart", ".js", ".ts", ".java", ".cpp", ".c", ".h", ".go", ".rs"]:
+    elif ext in [".dart", ".js", ".ts", ".tsx"]:
+        return header + parse_treesitter_ast(filepath, content)
+    elif ext in [".java", ".cpp", ".c", ".h", ".go", ".rs"]:
         return header + parse_regex_ast(content)
     else:
         # Return None to indicate no AST mapping applies

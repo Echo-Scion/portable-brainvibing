@@ -354,13 +354,21 @@ def sync(intent):
             for line in handoff_content.splitlines():
                 print(f"    {line}")
                 
-            # Auto-Archive
-            import datetime, shutil
+            # Auto-Archive with freshness check
+            import datetime, shutil, time
             episodic_dir = os.path.join(orion_dir, "episodic")
             if not os.path.exists(episodic_dir): os.makedirs(episodic_dir)
+            
+            mtime = os.path.getmtime(handoff_path)
+            age_hours = (time.time() - mtime) / 3600
             stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            shutil.move(handoff_path, os.path.join(episodic_dir, f"handoff_{stamp}.md"))
-            print("  [INFO] Handoff archived to episodic memory to prevent future loop.")
+            
+            if age_hours > 48:
+                print(f"  [WARNING] Handoff is {age_hours:.0f}h old. May be stale. Archiving with STALE prefix.")
+                shutil.move(handoff_path, os.path.join(episodic_dir, f"STALE_handoff_{stamp}.md"))
+            else:
+                shutil.move(handoff_path, os.path.join(episodic_dir, f"handoff_{stamp}.md"))
+                print("  [INFO] Handoff archived to episodic memory to prevent future loop.")
         except Exception as e:
             print(f"  [ERROR] Failed to process working memory: {e}")
     # --------------------------------------------

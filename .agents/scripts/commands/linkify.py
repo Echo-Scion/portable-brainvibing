@@ -16,28 +16,49 @@ def get_markdown_files(base_dir):
 
 def linkify_text(text, md_files, current_file_path):
     sorted_names = sorted(md_files.keys(), key=len, reverse=True)
-    new_text = text
-    current_dir = os.path.dirname(current_file_path)
     
+    # Pre-process: identify protected regions
+    protected = []
+    import re
+    for m in re.finditer(r'```.*?```', text, re.DOTALL):
+        protected.append((m.start(), m.end()))
+    for m in re.finditer(r'`[^`\n]+`', text):
+        protected.append((m.start(), m.end()))
+    for m in re.finditer(r'\[([^\]]+)\]\([^)]+\)', text):
+        protected.append((m.start(), m.end()))
+    for m in re.finditer(r'\[\[(.*?)\]\]', text):
+        protected.append((m.start(), m.end()))
+        
+    def is_protected(pos):
+        return any(s <= pos < e for s, e in protected)
+        
+    # Find all replacements across all names first in the original text
+    replacements = []
     for name in sorted_names:
         target_full_path = md_files[name]
-        
-        # Skip linking to itself
         if os.path.abspath(target_full_path) == os.path.abspath(current_file_path):
             continue
             
-        target_full_path_fwd = target_full_path.replace(chr(92), '/')
-        
-        def replacer(match):
-            matched_text = match.group(0)
-            return f"[{matched_text}](file:///{target_full_path_fwd})"
+        pattern = r'(?<!\[)(?<!\[\[)(?<!`)(' + re.escape(name) + r')(?:\.md)?(?!\]\])(?!\])(?!`)'
+        for m in re.finditer(pattern, text):
+            if not is_protected(m.start()):
+                replacements.append((m.start(), m.end(), m.group(1)))
+                
+    # We must sort replacements by start index (descending) so we don't mess up offsets
+    # and filter overlapping replacements (e.g. if 'auth' and 'auth_service' both match)
+    replacements.sort(key=lambda x: x[0], reverse=True)
+    
+    filtered_replacements = []
+    last_start = float('inf')
+    for r in replacements:
+        start, end, matched_text = r
+        if end <= last_start:
+            filtered_replacements.append(r)
+            last_start = start
             
-        # Match standard markdown links so we can overwrite them if they already exist
-        # We'll first clean existing links, then apply new ones.
-        # Actually, since we might already have [name](...), we should just let the cleaner run first.
-        # Wait, the current text might have [ROADMAP.md](../../context/...)
-        pattern = r'(?<!\[)(?<!\[\[)(?<!`)\b(' + re.escape(name) + r')(?:\.md)?\b(?!\]\])(?!\])(?!`)'
-        new_text = re.sub(pattern, replacer, new_text)
+    new_text = text
+    for start, end, matched_text in filtered_replacements:
+        new_text = new_text[:start] + f"[[{matched_text}]]" + new_text[end:]
         
     return new_text
 
