@@ -75,22 +75,22 @@ def parse_treesitter_ast(filepath: str, content: str) -> str:
     _, ext = os.path.splitext(filepath.lower())
     
     try:
-        import tree_sitter
+        import tree_sitter # type: ignore
         
         # Determine language module based on extension
         lang_module = None
         if ext == '.js':
-            import tree_sitter_javascript
+            import tree_sitter_javascript # type: ignore
             lang_module = tree_sitter_javascript.language()
         elif ext == '.ts':
-            import tree_sitter_typescript
+            import tree_sitter_typescript # type: ignore
             lang_module = tree_sitter_typescript.language_typescript()
         elif ext == '.tsx':
-            import tree_sitter_typescript
+            import tree_sitter_typescript # type: ignore
             lang_module = tree_sitter_typescript.language_tsx()
         elif ext == '.dart':
             try:
-                import tree_sitter_dart
+                import tree_sitter_dart # type: ignore
                 lang_module = tree_sitter_dart.language()
             except ImportError:
                 pass
@@ -139,8 +139,7 @@ def parse_treesitter_ast(filepath: str, content: str) -> str:
                 
         if not result:
             return "No structural elements found via Tree-sitter."
-        return "
-".join(result)
+        return "\\n".join(result)
         
     except ImportError:
         # tree_sitter or language binding not installed

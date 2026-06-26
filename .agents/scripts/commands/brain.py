@@ -244,7 +244,7 @@ def sync(intent):
             temp_nb = NanoBrain()
             if temp_nb.ping():
                 nb = temp_nb
-        except:
+        except Exception:
             pass
             
         for line in rules_content.split('\n'):
@@ -266,7 +266,7 @@ def sync(intent):
                     resp = nb.generate(prompt, system=sys_prompt)
                     if resp and "YES" in resp.upper():
                         is_match = True
-                except: pass
+                except Exception: pass
                 
             # Fallback to lexical
             if not is_match and any(kw in line_lower for kw in keywords):
@@ -294,9 +294,8 @@ def sync(intent):
                     with open(r, "r", encoding="utf-8") as f:
                         content = f.read()
                     if len(content) < 4000: # Limit size to prevent 0.5b timeout
-                        temp_nb = NanoBrain()
-                        if temp_nb.ping():
-                            compressed = temp_nb.caveman_compress(content)
+                        if nb and nb.ping():
+                            compressed = nb.caveman_compress(content)
                             if compressed and len(compressed) > 10:
                                 print(f"  [COMPRESSED CONTEXT]: {compressed.replace(chr(10), ' ')}")
                 except Exception:
@@ -338,8 +337,7 @@ def sync(intent):
     # -----------------------------------
     
     # --- NanoBrain Active Ping ---
-    nb = NanoBrain()
-    if nb.ping():
+    if nb and nb.ping():
         print("\n## [NanoBrain] NanoBrain (Ollama) is ONLINE")
         print("  [CAPABILITY]: You can use `python .agents/scripts/orion.py brain nanobrain vibe_check <text>` for instant UI aesthetic validation without consuming major tokens.")
             
@@ -361,14 +359,27 @@ def sync(intent):
             
             mtime = os.path.getmtime(handoff_path)
             age_hours = (time.time() - mtime) / 3600
-            stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            if age_hours > 48:
-                print(f"  [WARNING] Handoff is {age_hours:.0f}h old. May be stale. Archiving with STALE prefix.")
-                shutil.move(handoff_path, os.path.join(episodic_dir, f"STALE_handoff_{stamp}.md"))
-            else:
-                shutil.move(handoff_path, os.path.join(episodic_dir, f"handoff_{stamp}.md"))
-                print("  [INFO] Handoff archived to episodic memory to prevent future loop.")
+            archive_marker = os.path.join(episodic_dir, ".last_archived_mtime")
+            last_mtime = 0
+            if os.path.exists(archive_marker):
+                try:
+                    with open(archive_marker, "r") as mf:
+                        last_mtime = float(mf.read().strip())
+                except Exception:
+                    pass
+            
+            if mtime > last_mtime:
+                stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                if age_hours > 48:
+                    print(f"  [WARNING] Handoff is {age_hours:.0f}h old. May be stale. Archiving with STALE prefix.")
+                    shutil.copy2(handoff_path, os.path.join(episodic_dir, f"STALE_handoff_{stamp}.md"))
+                else:
+                    shutil.copy2(handoff_path, os.path.join(episodic_dir, f"handoff_{stamp}.md"))
+                    print("  [INFO] Handoff backed up to episodic memory.")
+                
+                with open(archive_marker, "w") as mf:
+                    mf.write(str(mtime))
         except Exception as e:
             print(f"  [ERROR] Failed to process working memory: {e}")
     # --------------------------------------------

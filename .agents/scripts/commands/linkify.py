@@ -19,7 +19,6 @@ def linkify_text(text, md_files, current_file_path):
     
     # Pre-process: identify protected regions
     protected = []
-    import re
     for m in re.finditer(r'```.*?```', text, re.DOTALL):
         protected.append((m.start(), m.end()))
     for m in re.finditer(r'`[^`\n]+`', text):
@@ -39,7 +38,7 @@ def linkify_text(text, md_files, current_file_path):
         if os.path.abspath(target_full_path) == os.path.abspath(current_file_path):
             continue
             
-        pattern = r'(?<!\[)(?<!\[\[)(?<!`)(' + re.escape(name) + r')(?:\.md)?(?!\]\])(?!\])(?!`)'
+        pattern = r'(?<!\[)(?<!\[\[)(?<!`)(?<!\w)(' + re.escape(name) + r')(?:\.md)?(?!\w)(?!\]\])(?!\])(?!`)'
         for m in re.finditer(pattern, text):
             if not is_protected(m.start()):
                 replacements.append((m.start(), m.end(), m.group(1)))

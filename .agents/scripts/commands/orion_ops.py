@@ -14,7 +14,6 @@ import re
 import json
 import hashlib
 import datetime
-import argparse
 
 import sqlite3
 
@@ -31,8 +30,13 @@ DIRS = ["sources", "working", "episodic", "matrix"]
 def normalize_path(p: str) -> str:
     return p.replace(chr(92), '/')
 
+_DB_INITIALIZED = False
+
 def get_db():
-    init_db()
+    global _DB_INITIALIZED
+    if not _DB_INITIALIZED:
+        init_db()
+        _DB_INITIALIZED = True
     conn = sqlite3.connect(DB_PATH)
     conn.execute('PRAGMA busy_timeout=5000;')
     return conn
@@ -43,8 +47,8 @@ def init_db():
     c = conn.cursor()
     c.execute('PRAGMA journal_mode=WAL;')
     c.execute('PRAGMA temp_store=MEMORY;')
-    c.execute('PRAGMA mmap_size=268435456;') # 256MB mmap
-    c.execute('PRAGMA cache_size=-64000;') # 64MB buffer pinning (hybrid RAM graph)
+    c.execute('PRAGMA mmap_size=67108864;') # 64MB mmap
+    c.execute('PRAGMA cache_size=-16000;') # 16MB buffer pinning (hybrid RAM graph)
     c.execute('''
         CREATE TABLE IF NOT EXISTS pages (
             path TEXT PRIMARY KEY,
@@ -100,17 +104,6 @@ def log_telemetry(event_type: str, exit_code: int = 0, context_load: int = 0):
     conn.commit()
     conn.close()
 
-def log_telemetry(event_type: str, exit_code: int = 0, context_load: int = 0):
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute('PRAGMA busy_timeout=5000;')
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO telemetry (timestamp, event_type, exit_code, context_load)
-        VALUES (?, ?, ?, ?)
-    ''', (datetime.datetime.now().isoformat(), event_type, exit_code, context_load))
-    conn.commit()
-    conn.close()
 
 RAW_EXTS = [".dart", ".ts", ".js", ".py", ".go", ".rs", ".swift", ".java"]
 try:
@@ -246,8 +239,7 @@ def prune_orphans() -> int:
         pruned_count = 0
         db_conn = None
         try:
-            db_conn = sqlite3.connect(DB_PATH)
-            db_conn.execute('PRAGMA busy_timeout=5000;')
+            db_conn = get_db()
             db_c = db_conn.cursor()
         except Exception:
             pass
@@ -670,7 +662,6 @@ def ingest_main(paths, autonomy):
         # --- AUTO-COMPILE HOOK ---
         if len(ingested_files) > 0:
             print("\n[AUTO-COMPILE] Triggering Matrix Compilation for zero-drift...")
-            import subprocess
             compile_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile_rules.py")
             try:
                 subprocess.run([sys.executable, compile_script], check=False)

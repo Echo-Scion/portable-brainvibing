@@ -27,7 +27,7 @@ def generate_fractal_shorthand():
     
     # Holographic Context Hash Generation (Idea 1)
     import hashlib
-    state_hash = hashlib.md5(blueprint.encode()).hexdigest()[:4].upper()
+    state_hash = hashlib.sha256(blueprint.encode()).hexdigest()[:4].upper()
     shorthand = f"[STATE_HASH: 0x{state_hash}] [ARCH: "
     
     if "flutter" in blueprint.lower(): shorthand += "Flutter]"
@@ -88,14 +88,14 @@ def compress_handoff():
             compressed_lines.append(" ".join(compressed_words))
         return "\n".join(compressed_lines)
 
-    def ast_aware_preserve(m):
+    def caveman_compress_section(m):
         text = m.group(0)
         compressed_text = caveman_compress(text)
         return f"## 3. Context Offloading Entry\n> [COMPRESSED: Caveman Token-Clipper Active]\n{compressed_text}\n\n"
 
     new_handoff_content = re.sub(
         r'(## 3\. Context Offloading Entry\n).*?(?=\n## 4\.|\n## \d+\.|$)',
-        ast_aware_preserve,
+        caveman_compress_section,
         content,
         flags=re.DOTALL | re.IGNORECASE
     )

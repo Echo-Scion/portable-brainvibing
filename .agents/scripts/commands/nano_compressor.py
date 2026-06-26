@@ -83,7 +83,6 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Holographic Context Pager")
     parser.add_argument("action", nargs="?", default="compress-handoff", help="Action to perform")
-    parser.add_argument("target", nargs="?", help="Target file")
     args = parser.parse_args()
     
     if args.action in ("compress-handoff", "compress"):
