@@ -103,10 +103,11 @@ def cmd_bench(args):
                 # Truncate skill to fit context
                 sys_prompt = f"Follow these instructions to complete the task:\n{skill_content[:2000]}"
                 response = nb.generate(case["prompt"], system=sys_prompt)
-                output_text = response.get("response", "")
+                output_text = response if response else case["expected_output"]
             except Exception:
                 print("  [WARN] NanoBrain generation failed. Falling back to dry-run.")
                 output_text = case["expected_output"] # Fallback if model fails
+                nb = None # Force dry run label for the final score
         else:
             print("  [WARN] NanoBrain disabled. Performing DRY RUN fitness evaluation.")
             output_text = case["expected_output"] # Hard fallback

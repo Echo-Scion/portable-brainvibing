@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 
-LOG_FILE = ".agents/logs/budget_telemetry.json"
+LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs", "budget_telemetry.json")
 
 def log_task_execution(task_name, tier, model_used, was_harness_used, aborted_to_premium):
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

@@ -7,7 +7,7 @@
 
 A plug-and-play `.agents` ecosystem that transforms generic AI coding assistants into **deterministic engineering instruments**. This repository contains the **Universal Framework**—a language-agnostic, OS-agnostic blueprint designed to enforce absolute reproducibility and minimize AI hallucination. 
 
-## ⚠️ WARNING: 100% AI ENGINEERED. UNTESTED. ACTUAL VERSION NEVER 1.0. IT EVOLVE WITH YOU.
+⚠️ WARNING: 100% AI ENGINEERED. UNTESTED. ACTUAL VERSION NEVER 1.0. IT EVOLVE WITH YOU.
 
 ---
 

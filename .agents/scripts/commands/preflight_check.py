@@ -5,7 +5,7 @@ import subprocess
 
 # Configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 
 def load_valid_skills():
     skills_dir = os.path.join(BASE_DIR, 'skills')

@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
+
+## [0.0.5] - 2026-06-26
+### Changed
+- **Architecture Audit & Stability**: Fixed fatal execution blockers (bare module imports, absolute path resolution) in `evolve.py`, `track_budget.py`, `preflight_check.py`, and `nano_compressor.py`.
+- **Graceful Degradation**: Hardened `evolve.py` to safely fallback to Dry Run mode without throwing `AttributeError` when NanoBrain (Local LLM) is offline.
+- **SaaS Context Distribution**: Decomposed monolithic theoretical documentation (`EXPLAIN.md` and `README.md`) into a strict 82-file SaaS registry structure inside `context/`.
+- **Knowledge Graph Triplet Ingestion**: Injected 33 semantic triplets into `orion.db` to logically map the newly distributed SaaS context files.
+- **Code Optimization**: Pruned cosmetic stubs like `preload_wiki_nodes()` from `compress_memory.py`.
+
 ## [0.0.4] - 2026-06-26
 ### Changed
 - Refactored `Omni-Buffer Context Protocol` in `GEMINI.md`, `core-guardrails.md`, and `AGENTS.template.md` to be explicitly Agent-Driven via `pre-agent-wake.py`, removing reliance on non-existent IDE daemons.

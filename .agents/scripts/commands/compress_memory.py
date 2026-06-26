@@ -9,8 +9,8 @@ BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 WORKSPACE_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
 ARCHIVE_DIR = os.path.join(BASE_DIR, 'archive')
 ARCHIVE_FILE = os.path.join(ARCHIVE_DIR, 'compressed_memory.md')
-HANDOFF_FILE = os.path.join(WORKSPACE_DIR, 'session_handoff.md')
-BLUEPRINT_FILE = os.path.join(WORKSPACE_DIR, '00_Strategy', 'BLUEPRINT.md')
+HANDOFF_FILE = os.path.join(WORKSPACE_DIR, '.orion', 'working', 'handoff.md')
+BLUEPRINT_FILE = os.path.join(WORKSPACE_DIR, 'context', 'BLUEPRINT.md')
 
 def generate_fractal_shorthand():
     """
@@ -143,16 +143,11 @@ def compress_tasks():
     return compressed
             
 
-def preload_wiki_nodes():
-    print("[PREDICTIVE CACHE] Warming up memory buffer based on active workspace...")
-    print("[OK] JIT Cache primed for next session.")
-
 def compress_memory():
     print("[CLEAN] Surgical Memory Compression starting...")
     generate_fractal_shorthand()
     handoff_compressed = compress_handoff()
     tasks_compressed = compress_tasks()
-    preload_wiki_nodes()
     
     if not handoff_compressed and not tasks_compressed:
         print("[OK] No compressable context found. System memory is lean and efficient.")

@@ -14,7 +14,12 @@ import sqlite3
 import datetime
 import shutil
 
-from brain import NanoBrain
+try:
+    from commands.brain import NanoBrain
+except ImportError:
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from brain import NanoBrain
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
@@ -70,4 +75,13 @@ def compress_handoff():
         print("[NanoCompressor] Summarization returned empty. Aborting.")
 
 if __name__ == "__main__":
-    compress_handoff()
+    import argparse
+    parser = argparse.ArgumentParser(description="Holographic Context Pager")
+    parser.add_argument("action", nargs="?", default="compress-handoff", help="Action to perform")
+    parser.add_argument("target", nargs="?", help="Target file")
+    args = parser.parse_args()
+    
+    if args.action in ("compress-handoff", "compress"):
+        compress_handoff()
+    else:
+        print(f"[NanoCompressor] Action {args.action} not fully implemented yet.")
