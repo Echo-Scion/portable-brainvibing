@@ -8,7 +8,7 @@ Used to dramatically reduce token cost when feeding rules to LLM agents.
 
 import os
 import re
-import yaml
+import json
 import glob
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -70,15 +70,15 @@ def compile_all():
             
         yaml_dict = parse_markdown_to_dict(content)
         
-        out_name = filename.replace('.md', '.yml')
+        out_name = filename.replace('.md', '.json')
         out_path = os.path.join(MATRIX_DIR, out_name)
         
         with open(out_path, 'w', encoding='utf-8') as f:
-            yaml.dump(yaml_dict, f, default_flow_style=False, sort_keys=False)
+            json.dump(yaml_dict, f, indent=2)
             
         count += 1
         
-    print(f"[OK] Compiled {count} Markdown rules into YAML Matrices at {MATRIX_DIR}")
+    print(f"[OK] Compiled {count} Markdown rules into JSON Matrices at {MATRIX_DIR}")
 
 if __name__ == "__main__":
     compile_all()
