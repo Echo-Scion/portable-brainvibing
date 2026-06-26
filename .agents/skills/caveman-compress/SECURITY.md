@@ -28,4 +28,4 @@ Files larger than 500KB are rejected before any API call is made.
 
 ### Reporting a vulnerability
 
-If you believe you've found a genuine security issue, please open a GitHub issue with the label `security`.
+If you believe you've found a genuine [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) issue, please open a GitHub issue with the label `security`.

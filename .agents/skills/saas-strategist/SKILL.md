@@ -46,7 +46,7 @@ If the total score < 25, you MUST recommend pivoting or reducing scope before wr
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Saas Growth** | references/saas-growth.md |
-| **Saas Viability** | references/saas-viability.md |
-| **Technical Content** | references/technical_content.md |
-| **Viral Growth** | references/viral_growth.md |
+| **Saas Growth** | references/[saas-growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/[saas-growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/saas-growth.md)) |
+| **Saas Viability** | references/[saas-viability.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/[saas-viability.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/saas-viability.md)) |
+| **Technical Content** | references/[technical_content.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/[technical_content.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/technical_content.md)) |
+| **Viral Growth** | references/[viral_growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/[viral_growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/saas-strategist/references/viral_growth.md)) |

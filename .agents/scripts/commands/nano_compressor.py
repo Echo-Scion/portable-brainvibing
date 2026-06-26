@@ -41,7 +41,12 @@ def compress_handoff():
         print("[NanoCompressor] Handoff already compressed or empty. Aborting.")
         return
 
-    nb = NanoBrain()
+    try:
+        nb = NanoBrain()
+    except Exception as e:
+        print(f"[NanoCompressor] Failed to initialize NanoBrain: {e}")
+        return
+
     if not nb.ping():
         print("[NanoCompressor] Ollama offline. Aborting compression.")
         return

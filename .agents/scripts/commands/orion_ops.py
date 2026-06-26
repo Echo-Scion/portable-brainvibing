@@ -224,6 +224,14 @@ def prune_orphans() -> int:
             manifest = json.load(mf)
             
         pruned_count = 0
+        db_conn = None
+        try:
+            db_conn = sqlite3.connect(DB_PATH)
+            db_conn.execute('PRAGMA busy_timeout=5000;')
+            db_c = db_conn.cursor()
+        except Exception:
+            pass
+
         for layer in list(manifest.get("layers", {}).keys()):
             valid_entries = []
             for entry in manifest["layers"][layer]:
@@ -238,9 +246,21 @@ def prune_orphans() -> int:
                         full_wiki_path = os.path.join(ORION_DIR, orion_file.replace("/", os.sep))
                         if os.path.exists(full_wiki_path):
                             os.remove(full_wiki_path)
+                        
+                        if db_conn:
+                            try:
+                                db_c.execute('DELETE FROM pages WHERE path = ?', (full_wiki_path,))
+                                db_c.execute('DELETE FROM pages_fts WHERE path = ?', (full_wiki_path,))
+                                db_c.execute('DELETE FROM edges WHERE source_id = ?', (full_wiki_path,))
+                            except Exception as e:
+                                print(f"DB cleanup error for {full_wiki_path}: {e}")
                 else:
                     valid_entries.append(entry)
             manifest["layers"][layer] = valid_entries
+            
+        if db_conn:
+            db_conn.commit()
+            db_conn.close()
             
         if pruned_count > 0:
             with open(MANIFEST_PATH, "w", encoding="utf-8") as mf:
@@ -636,6 +656,15 @@ def ingest_main(paths, autonomy):
             except Exception as e:
                 print(f"[ERROR] Failed to auto-compile rules: {e}")
                 
+            # --- AUTO-LINKIFY HOOK ---
+            print("\n[AUTO-LINKIFY] Injecting Wiki-links into Markdown context...")
+            linkify_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "linkify.py")
+            if os.path.exists(linkify_script):
+                try:
+                    subprocess.run([sys.executable, linkify_script], check=False)
+                except Exception as e:
+                    print(f"[ERROR] Failed to auto-linkify markdown: {e}")
+                
             print(f"\n[TRIPLET_REQUEST] {len(ingested_files)} files need graph triplet extraction.")
             print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
             print("Files:")
@@ -838,6 +867,18 @@ def inject_triplets(json_data):
         conn = sqlite3.connect(DB_PATH)
         conn.execute('PRAGMA busy_timeout=5000;')
         c = conn.cursor()
+        
+        # Collect unique sources to clear stale triplets first
+        unique_sources = set()
+        for t in triplets:
+            if t.get("src"):
+                unique_sources.add(t.get("src"))
+                
+        for src in unique_sources:
+            try:
+                c.execute('DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE source_path = ?)', (src,))
+            except Exception as e:
+                print(f"[WARNING] Failed to clear stale triplets for {src}: {e}")
         
         count = 0
         for t in triplets:

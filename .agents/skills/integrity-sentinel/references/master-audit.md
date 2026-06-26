@@ -21,7 +21,7 @@ Look for an explicit YES, even if they asked for a Master audit explicitly.
 
 ### 1. Architecture audit (synchronous, both modes)
 
-Run [The Architecture Audit](architecture-audit.md) once and wait for it to finish. This is required for the next steps.
+Run The Architecture Audit) once and wait for it to finish. This is required for the next steps.
 
 Capture the key outputs (entry points, main flows, hot files, risky areas) so they can be passed as shared context to the next step.
 
@@ -31,12 +31,12 @@ Capture the key outputs (entry points, main flows, hot files, risky areas) so th
 
 Run in order:
 
-- [The Duplicate Audit](duplicate-audit.md)
-- [The Fail-Fast Audit](fail-fast-audit.md)
-- [The Bloat Audit](bloat-audit.md)
-- [The Retry Audit](retry-audit.md)
-- [The Logic Audit](logic-audit.md)
-- [The Performance Audit](performance-audit.md)
+- The Duplicate Audit)
+- The Fail-Fast Audit)
+- The Bloat Audit)
+- The Retry Audit)
+- The Logic Audit)
+- The Performance Audit)
 
 **Deep mode:** Once the architecture audit is done, pick 3 parts of the app that fit this codebase, based on what the architecture audit revealed. Common splits:
 
@@ -49,9 +49,9 @@ Pick the three largest or most mission-critical parts and one other to cover eve
 
 Then dispatch 3 specialist sub-agents in parallel - one per part. Each specialist runs ALL four audits, scoped to its part. NO SUBAGENT RECURSION!
 
-- Specialist A → its part → [Duplicate](duplicate-audit.md), [Fail-Fast](fail-fast-audit.md), [Bloat](bloat-audit.md), [Retry](retry-audit.md), [Logic](logic-audit.md), [Performance](performance-audit.md)
-- Specialist B → its part → [Duplicate](duplicate-audit.md), [Fail-Fast](fail-fast-audit.md), [Bloat](bloat-audit.md), [Retry](retry-audit.md), [Logic](logic-audit.md), [Performance](performance-audit.md)
-- Specialist C → its part → [Duplicate](duplicate-audit.md), [Fail-Fast](fail-fast-audit.md), [Bloat](bloat-audit.md), [Retry](retry-audit.md), [Logic](logic-audit.md), [Performance](performance-audit.md)
+- Specialist A → its part → Duplicate), Fail-Fast), Bloat), Retry), Logic), Performance)
+- Specialist B → its part → Duplicate), Fail-Fast), Bloat), Retry), Logic), Performance)
+- Specialist C → its part → Duplicate), Fail-Fast), Bloat), Retry), Logic), Performance)
 
 Pass each specialist:
 - The architecture audit output (entry points, main flows, hot files, risky areas), so they don't re-map the app entirely.
@@ -69,7 +69,7 @@ In Deep mode, also watch for duplicates that span multiple parts (e.g. the same 
 
 Score each finding's **impact (1-10)** based on real-world consequence:
 
-- **10** → critical (silent revenue loss, broken core flow, security risk)
+- **10** → critical (silent revenue loss, broken core flow, [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) risk)
 - **7-9** → major impact (preventing customer-facing bugs, hours saved, big code reduction)
 - **4-6** → meaningful improvement, worth doing
 - **1-3** → minor cleanup, small win

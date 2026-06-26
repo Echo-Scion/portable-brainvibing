@@ -6,7 +6,7 @@ activation: Triggered automatically by the [TRIPLET_REQUEST] directive during or
 # Knowledge Graph Extraction Workflow
 
 You have been invoked because a recent ingestion operation generated a `[TRIPLET_REQUEST]`.
-This means the knowledge graph (`orion.db`) requires true semantic relationships (triplets) to be mapped for the newly ingested files, replacing the deprecated AST method.
+This means the [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) graph (`orion.db`) requires true semantic relationships (triplets) to be mapped for the newly ingested files, replacing the deprecated AST method.
 
 ## Goal
 Transform unstructured code/documentation into structured graph relationships.

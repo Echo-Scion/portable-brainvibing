@@ -8,7 +8,7 @@ activation: always on
 ## 1. Environment Boundary Check (Scope Guard)
 
 > **Context/82-File Mandate Isolation**: Before creating context files or enforcing the "82-File Mandate", you **MUST** verify the current environment.
-> 1. If the workspace root is `_foundation` (or any purely tooling/infrastructure repo), the 82-file mapping and context naming policies MUST BE ABORTED.
+> 1. The 82-file mapping can be applied to tooling/infrastructure repositories (where the tooling itself is the "product"). If a project does not require SaaS documentation, it may simply omit the `context/` directory.
 > 2. The 82-file SaaS naming policy applies EXACTLY AND ONLY to Target Deployment Projects (SaaS apps). Enforcing them within `.agents/` or foundation directories is a strict protocol violation.
 
 ## 2. Context Length Caps

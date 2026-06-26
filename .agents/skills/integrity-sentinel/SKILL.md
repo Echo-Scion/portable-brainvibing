@@ -1,6 +1,6 @@
 ---
 name: integrity-sentinel
-description: MANDATORY TRIGGER for security audits, evaluations, and QA validations.
+description: MANDATORY TRIGGER for [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) audits, evaluations, and QA validations.
 ---
 # Integrity Sentinel
 
@@ -15,7 +15,7 @@ description: MANDATORY TRIGGER for security audits, evaluations, and QA validati
 Do not "adopt a persona." You are an algorithmic QA engine.
 
 ## Audit Output Template (MANDATORY)
-When asked to perform a security audit or QA check on a file, you MUST return the results using this exact format. Do not use conversational text.
+When asked to perform a [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) audit or QA check on a file, you MUST return the results using this exact format. Do not use conversational text.
 
 ```markdown
 ## Audit Report: `[Filename]`
@@ -54,20 +54,20 @@ When asked to perform a security audit or QA check on a file, you MUST return th
 
 | If Code Involves... | Immediately Load (view_file) |
 | :--- | :--- |
-| **System Architecture, High-Level Structure** | `.agents/skills/integrity-sentinel/references/architecture-audit.md` |
-| **Large Files, Unused Code, YAGNI** | `.agents/skills/integrity-sentinel/references/bloat-audit.md` |
-| **Repeated Logic, Missing DRY** | `.agents/skills/integrity-sentinel/references/duplicate-audit.md` |
-| **Error Handling, Try/Catch, Fallbacks** | `.agents/skills/integrity-sentinel/references/fail-fast-audit.md` |
-| **Logic, Broken Math, State Mutation, Data Drift** | `.agents/skills/integrity-sentinel/references/logic-audit.md` |
-| **Optimization, Big-O, Memory Leaks, Rebuilds** | `.agents/skills/integrity-sentinel/references/performance-audit.md` |
-| **Flutter Widgets, UI Tests** | `.agents/skills/integrity-sentinel/references/flutter_testing_patterns.md` |
-| **API Endpoints, Concurrency, Load** | `.agents/skills/integrity-sentinel/references/load_testing_tactics.md` |
-| **Implementation Plans, Review** | `.agents/skills/integrity-sentinel/references/plan-checklist.md` |
-| **Network Requests, Retries, Idempotency** | `.agents/skills/integrity-sentinel/references/retry-audit.md` |
-| **Authentication, JWT, SQL, Passwords** | `.agents/skills/integrity-sentinel/references/security.md` |
-| **Runtime Bugs, Crashes, Errors, Debugging** | `.agents/skills/integrity-sentinel/references/telemetry-gate.md` |
-| **General QA, Edge Cases** | `.agents/skills/integrity-sentinel/references/master-audit.md` |
-| **Comprehensive Deep Audit (Fallback)** | `.agents/skills/integrity-sentinel/references/master-audit.md` |
+| **System Architecture, High-Level Structure** | `.agents/skills/integrity-sentinel/references/[architecture-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[architecture-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/architecture-audit.md)).md` |
+| **Large Files, Unused Code, YAGNI** | `.agents/skills/integrity-sentinel/references/[bloat-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[bloat-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/bloat-audit.md)).md` |
+| **Repeated Logic, Missing DRY** | `.agents/skills/integrity-sentinel/references/[duplicate-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[duplicate-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/duplicate-audit.md)).md` |
+| **Error Handling, Try/Catch, Fallbacks** | `.agents/skills/integrity-sentinel/references/[fail-fast-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[fail-fast-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/fail-fast-audit.md)).md` |
+| **Logic, Broken Math, State Mutation, Data Drift** | `.agents/skills/integrity-sentinel/references/[logic-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[logic-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/logic-audit.md)).md` |
+| **Optimization, Big-O, Memory Leaks, Rebuilds** | `.agents/skills/integrity-sentinel/references/[performance-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[performance-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/performance-audit.md)).md` |
+| **Flutter Widgets, UI Tests** | `.agents/skills/integrity-sentinel/references/[flutter_testing_patterns](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[flutter_testing_patterns.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/flutter_testing_patterns.md)).md` |
+| **API Endpoints, Concurrency, Load** | `.agents/skills/integrity-sentinel/references/[load_testing_tactics](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[load_testing_tactics.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/load_testing_tactics.md)).md` |
+| **Implementation Plans, Review** | `.agents/skills/integrity-sentinel/references/[plan-checklist](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[plan-checklist.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/plan-checklist.md)).md` |
+| **Network Requests, Retries, Idempotency** | `.agents/skills/integrity-sentinel/references/[retry-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[retry-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/retry-audit.md)).md` |
+| **Authentication, JWT, SQL, Passwords** | `.agents/skills/integrity-sentinel/references/[security](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)).md` |
+| **Runtime Bugs, Crashes, Errors, Debugging** | `.agents/skills/integrity-sentinel/references/[telemetry-gate](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[telemetry-gate.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/telemetry-gate.md)).md` |
+| **General QA, Edge Cases** | `.agents/skills/integrity-sentinel/references/[master-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[master-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/master-audit.md)).md` |
+| **Comprehensive Deep Audit (Fallback)** | `.agents/skills/integrity-sentinel/references/[master-audit](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[master-audit.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/master-audit.md)).md` |
 
 ### The Reference Evidence Flag
 Before writing the `## Audit Report`, you MUST output the following XML block to prove you have read the reference:

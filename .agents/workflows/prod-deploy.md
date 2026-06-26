@@ -16,24 +16,18 @@ python .agents/canons/global/harnesses/migration_verifier.py --file supabase/mig
 ```
 
 ## 0.5. SUPREME COURT CONSENSUS
-- **MANDATORY**: Before deploying, You MUST execute `view_file .agents/skills/project-operator/SKILL.md` NOW to coordinate the deployment:
-  1. `view_file .agents/skills/integrity-sentinel/SKILL.md`: Votes on Security/Race conditions.
-  2. `view_file .agents/skills/project-architect/SKILL.md`: Votes on Architectural integrity.
-  3. `view_file .agents/skills/cost-optimizer/SKILL.md`: Votes on Financial blast-radius.
+- **MANDATORY**: Before deploying, You MUST execute `view_file .agents/skills/project-operator/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` NOW to coordinate the deployment:
+  1. `view_file .agents/skills/integrity-sentinel/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md`: Votes on Security/Race conditions.
+  2. `view_file .agents/skills/project-architect/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md`: Votes on Architectural integrity.
+  3. `view_file .agents/skills/cost-optimizer/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md`: Votes on Financial blast-radius.
 - If ANY subagent issues a `VETO`, abort deployment immediately and fix the flagged issue.
 
 ## 1. PREPARATION COMMANDS
 Execute these checks in the terminal:
 
-- [ ] **Dependency Audit**:
-```bash
-{{CLI_AUDIT}}
-```
+- [ ] **Dependency Audit**: Execute the appropriate command for your tech stack (e.g., `npm audit`, `pip-audit`, `flutter pub outdated`).
 
-- [ ] **Type & Lint Check**:
-```bash
-{{CLI_LINT}}
-```
+- [ ] **Type & Lint Check**: Execute the appropriate lint command for your tech stack (e.g., `npm run lint`, `dart analyze`, `flake8`).
 
 ## 2. PRODUCTION ENVIRONMENT CONFIGURATION
 - Verify `NODE_ENV=production` or `DEBUG=False` in the production `.env` (NOT local).

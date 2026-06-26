@@ -42,18 +42,8 @@ def main():
             unprocessed_learnings = f.read().count("[Darwinian Hook]")
     
     if unprocessed_learnings >= 3:
-        # Check if we evolved recently
-        last_evolution_ts = 0
-        if os.path.exists(evolution_log_path):
-            with open(evolution_log_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                if lines:
-                    try:
-                        last_line = json.loads(lines[-1])
-                        # Simplified check: just flag if we have >=3 failures since last evolution
-                        # In a real setup, we'd parse the ISO timestamp
-                    except json.JSONDecodeError:
-                        pass
+        # Simplified: flag overdue if >=3 unprocessed learnings exist
+        # Recency check not implemented yet (would need timestamp parsing)
         evolution_overdue = True
         
         # [RADICAL INNOVATION]: Autonomic Evolution Hook

@@ -30,7 +30,8 @@ def print_help():
     print("  preflight     - Self-Healing Routing Diagnostic")
     print("  budget        - Track budget and tier telemetry")
     print("  compile       - Compile rules into static output")
-    print("  context-lint  - Validate context/ naming conventions\n")
+    print("  context-lint  - Validate context/ naming conventions")
+    print("  linkify       - Auto-inject Wiki-links into Markdown\n")
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help"]:
@@ -67,6 +68,7 @@ def main():
         "compile_rules": ["commands", "compile_rules.py"],
         "context-lint": ["commands", "context_naming_lint.py"],
         "context_naming_lint": ["commands", "context_naming_lint.py"],
+        "linkify": ["commands", "linkify.py"],
         "rtk": ["core", "rtk_proxy.py"],
         "rtk_proxy": ["core", "rtk_proxy.py"]
     }

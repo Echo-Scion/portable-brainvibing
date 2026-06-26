@@ -83,5 +83,5 @@ Each fix as its own diff. Ask before applying.
 - Prefer "dedup key in the database" or "upsert with a unique constraint" over "check then insert" (which has a race condition).
 - For outside services with built-in idempotency keys (Stripe, Resend, Inngest), use them.
 - Don't auto-fix.
-- If a webhook has no signature verification, mention it as a related risk but flag it as out of scope (that's a security issue, not an idempotency one).
+- If a webhook has no signature verification, mention it as a related risk but flag it as out of scope (that's a [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) issue, not an idempotency one).
 

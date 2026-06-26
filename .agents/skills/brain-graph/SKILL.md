@@ -45,7 +45,7 @@ Checks all ingested sources against the raw files.
 
 ## 2. Harmonization Rules
 
-- **Typed Relationships**: Use `[[page|extends]]`, `[[page|contradicts]]`, `[[page|implements]]`. Do not use plain wikilinks.
+- **Typed Relationships**: Use `page|extends`, `page|contradicts`, `page|implements`. Do not use plain wikilinks.
 - **Context Weighting**: Assign `weight: <1-10>` in the frontmatter. High-impact nodes (e.g., core architecture) receive higher weights. `orion_ops.py resolve` prioritizes high-weight nodes during token eviction.
 - **Canon Supremacy**: Canons (`.agents/canons/`) always receive `confidence: canonical`. Any context that contradicts a canon is a `[VIOLATION]`.
 - **82-File Boundary**: Never write into `context/`. All orion outputs go to `.orion/`.

@@ -17,11 +17,14 @@ def discover_roots():
     if os.path.basename(current_dir) in ["commands", "core"] and os.path.basename(os.path.dirname(current_dir)) == ".agents":
         base_dir = os.path.dirname(os.path.dirname(current_dir))
     else:
-        # Check if .agents exists in current dir
-        if os.path.exists(".agents"):
-            base_dir = os.path.abspath(".agents")
-        else:
-            base_dir = os.getcwd()
+        # Navigate from __file__ → commands/ → scripts/ → .agents/
+        base_dir = os.path.dirname(os.path.dirname(current_dir))
+        if not os.path.exists(os.path.join(base_dir, "rules")):
+            # Last resort: try CWD
+            if os.path.exists(os.path.join(os.getcwd(), ".agents")):
+                base_dir = os.path.join(os.getcwd(), ".agents")
+            else:
+                base_dir = os.getcwd()
     return base_dir
 
 BASE_DIR = discover_roots()

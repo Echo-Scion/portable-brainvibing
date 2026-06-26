@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.6] - 2026-06-27
+### Changed
+- **Linkify Engine**: Converted dynamic Wiki-links to Native Absolute Markdown Links for robust IDE clickability.
+- **Orion Ops Audit**: Patched SQLite storage leaks in prune_orphans and inject_triplets to prevent graph corruption and ghost data.
+
 ## [0.0.5] - 2026-06-26
 ### Changed
 - **Architecture Audit & Stability**: Fixed fatal execution blockers (bare module imports, absolute path resolution) in `evolve.py`, `track_budget.py`, `preflight_check.py`, and `nano_compressor.py`.

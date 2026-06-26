@@ -1,7 +1,7 @@
 ---
 description: Mandatory checklist for ending a session smoothly. Evicts stale context, collects precise handoff state, and prevents token exhaustion.
 ---
-# /session-offload
+# /session-offload.md
 
 This workflow is the strict shutdown sequence for all AI agents finishing a session.
 
@@ -46,7 +46,8 @@ python .agents/scripts/orion.py nano_compressor
 Verify that no obsolete task files remain in `.agents/workflows/tasks/`.
 
 ## 3.5. Auto-Context Sync (Conversational Extraction)
-If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
+If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) is persisted into the `context/` 82-file structure before memory is wiped.
+> **TERMINATION GATE**: Execute [auto-context.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[auto-context.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/auto-context.md)) ONCE. Do not re-enter session-offload.md after [auto-context.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[auto-context.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/auto-context.md)) completes. After injection, proceed directly to Step 4 without re-evaluating steps 1-3.5.
 
 ## 3.8. Self-Reflection (Evaluasi Diri)
 - **Mandatory Action**: Before ending the session, you MUST analyze any errors, failed executions, false assumptions, and cognitive biases that occurred during the session. Document these learnings in the session log so the system and user can evolve.

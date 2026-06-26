@@ -1,6 +1,5 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.4 - Router Pattern) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `_foundation`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)

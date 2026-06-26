@@ -1,9 +1,9 @@
 ---
-description: Unified security standards, zero-trust constraints, and offensive audit protocols.
+description: Unified [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) standards, zero-trust constraints, and offensive audit protocols.
 activation: always on
 ---
 
-# SECURITY & OFFENSIVE AUDIT PROTOCOLS
+# [SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/[SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/SECURITY.md)) & OFFENSIVE AUDIT PROTOCOLS
 
 ## Security Guardrails
 # Security Guardrails
@@ -101,13 +101,13 @@ Proceed? Reply [DO: YES] to confirm.
 
 ## 6. Persistent Learning (Post-Mortem Protocol)
 
-After any security incident or near-miss:
+After any [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) incident or near-miss:
 ```
 REQUIRED OUTPUT:
 - Root Cause: (1 sentence)
 - Fix Applied: (exact code/command used)
 - Debt/Warning: (what could still go wrong)
-- Added to: .agents/rules/security-guardrails.md ? [YES/NO]
+- Added to: .agents/rules/[security](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md))-guardrails.md ? [YES/NO]
 ```
 
 ## 7. Visual Strategy Pre-Flight (UI/UX Gate)
@@ -129,11 +129,11 @@ Before any UI implementation (Flutter or Web), declare:
 
 ## 1. Core Mindset & Offensive Engineering Principles
 
-* **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and security linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
+* **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
 * **Anti Second-System Effect (Complexity Gate):** If a proposed refactor increases cyclomatic complexity or lines of code by >20% without measurable performance gain (proven via benchmark script), ABORT the refactor.
 * **The Decoupling Paradox (State Lock):** Validate state safety by writing a concurrent test script (e.g., spawning 10 parallel requests) to verify atomic overlapping limits.
 * **The "Good Enough" Principle:** If an anomaly is caught and logged safely without crashing the main process (exit code 0), it passes the audit.
-* **KISS & YAGNI:** Mechanically delete any code/feature block not explicitly defined in `.orion/BLUEPRINT.md`.
+* **KISS & YAGNI:** Mechanically delete any code/feature block not explicitly defined in `.orion/[BLUEPRINT](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/[BLUEPRINT.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/BLUEPRINT.md)).md`.
 * **DRY, Fail-Fast & Idempotency:** Execute external calls (e.g., HTTP POST) twice in tests. Verify the database state does not duplicate entries on the second call.
 * **Stop Drift (Zero-Friction Auto-Healing):** Lock interface contracts, write cross-layer integration tests, and use pipeline-aware checklists to check consumers. If drift is detected, you MUST auto-heal by generating the Zod/DTO fix.
 
@@ -152,8 +152,8 @@ These are mandatory guardrails to prevent AI from making typical Large Language 
 ## 3. Deep Audit Taxonomy (The Four Killers)
 
 * **LOGIC BUGS:** Errors in the "thinking" of the program.
-* **PERFORMANCE & FINANCIAL BUGS:** Resource waste (e.g., N+1 queries) evaluated directly as $ USD Cloud/Token burn rate. You MUST execute `view_file .agents/skills/cost-optimizer/SKILL.md` NOW if financial blast-radius is high.
-* **SECURITY BUGS:** Weak cryptography (e.g., XOR ciphers); logging private keys.
+* **PERFORMANCE & FINANCIAL BUGS:** Resource waste (e.g., N+1 queries) evaluated directly as $ USD Cloud/Token burn rate. You MUST execute `view_file .agents/skills/cost-optimizer/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` NOW if financial blast-radius is high.
+* **[SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/[SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/SECURITY.md)) BUGS:** Weak cryptography (e.g., XOR ciphers); logging private keys.
 * **CONCURRENCY BUGS:** Double-deployments; state corruption.
 
 ## 4. LLM Execution Safety & Isolated Subagent Mandate (Anti-Degradation)
@@ -163,5 +163,5 @@ To prevent the AI from succumbing to **Context Window Degradation (Memory Loss)*
 2. **Mandatory Subagent Isolation**: For multi-file codebases, the Agent MUST use the Subagent orchestration mechanism (`invoke_subagent`) to spawn a clean, isolated Subagent for EACH file being audited. If `invoke_subagent` is unavailable, you MUST clear context by writing a temporary summary file and instructing the user to reset the session.
 3. **Pristine Instruction Injection**: Every Subagent MUST be launched with this protocol loaded directly as its primary system prompt alongside the target file content. This guarantees the attention mechanism has 100% focus on the rules without cognitive dilution.
 
-*You MUST execute `view_file` on `workflows/audit-and-test.md` for execution mandates, loops, and checklists.*
+*You MUST execute `view_file` on `workflows/[audit-and-test](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[audit-and-test.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/audit-and-test.md)).md` for execution mandates, loops, and checklists.*
 

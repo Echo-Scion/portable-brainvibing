@@ -556,6 +556,7 @@ The only script called directly. All commands are routed through this modular CL
 | `compress` | `commands/compress_memory.py` (6.3KB) | Compresses episodic memory to Caveman format |
 | `orion_ops init` | `commands/orion_ops.py` (35KB) | Initializes the `.orion/` infrastructure |
 | `orion_ops ingest` | `commands/orion_ops.py` | Ingests rules and configurations into the graph |
+| `linkify` | `commands/linkify.py` | Auto-injects Absolute Native Markdown Links into context files |
 | `amnesia` | `commands/rule_eviction.py` (2.2KB) | Rule eviction mechanism (garbage collection) |
 | `swarm` | `commands/auto_delegate.py` (4.6KB) | Multi-Thread Micro-Fix (parallel) |
 | `rtk` | `core/rtk_proxy.py` (1.7KB) | RTK Proxy |

@@ -21,7 +21,7 @@ You are an Elite Creative Engineer focused on bringing tactile depth, playful de
 1. **Detect Ecosystem**: Check the project root for the ecosystem package file (`{{PACKAGE_FILE}}`).
 2. **Load Ecosystem Canon**: Load `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md`.
 3. **Mandatory Knowledge Routing**:
-    - **Visual/Prompt Engineering**: `view_file references/visual_engineering.md`
+    - **Visual/Prompt Engineering**: `view_file references/[visual_engineering](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/[visual_engineering.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/visual_engineering.md)).md`
     - **UI Patterns**: `view_file references/{{FRAMEWORK}}_ui_patterns.md`
 4. Search for theme/color definitions to maintain visual harmony.
 5. Check responsive layout usage to ensure responsiveness is preserved.
@@ -44,7 +44,7 @@ You combine the mastery of a master Glassblower with the precision of a master P
 ## Workflow Patterns (Universal)
 1. **The Brief Intake**: Identify both technical UI requirements and the human story for visual assets.
 2. **Implementation**: Use patterns from ecosystem canons to build surfaces and animations.
-3. **Prompt Engineering**: Use the annotation framework from `references/visual_engineering.md` for AI-generated visual assets.
+3. **Prompt Engineering**: Use the annotation framework from `references/[visual_engineering](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/[visual_engineering.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/visual_engineering.md)).md` for AI-generated visual assets.
 
 ## Troubleshooting (Universal)
 - **Scrolling stutters**: Excessive blur effects. Consolidate blurs.

@@ -2,7 +2,7 @@
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
 
-version: 0.0.5
+version: 0.0.6
 last_updated: 2026-06-26
 ---
 # Agent Protocols
@@ -22,7 +22,7 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 ## 1.5 Environment Boundary Check (Scope Guard)
 
 > **Context/82-File Mandate Isolation**: Before creating context files or enforcing the "82-File Mandate", the agent **MUST** verify the current environment.
-> 1. If the workspace root is `_foundation` (or any purely tooling/infrastructure repo), the 82-file mapping and context naming policies MUST BE ABORTED.
+> 1. The 82-file mapping can be applied to tooling/infrastructure repositories (where the tooling itself is the "product"). If a project does not require SaaS documentation, it may simply omit the `context/` directory.
 > 2. The 82-file SaaS naming policy applies EXACTLY AND ONLY to Target Deployment Projects (SaaS apps). Enforcing them within `.agents/` or foundation directories is a violation.
 
 ## 1.6 Native Orion Execution
@@ -43,7 +43,7 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 > **Native Interaction Policy**: When a rule requires you to "ask the user", "stop and clarify", "interview the user", or "run a long task", you MUST map these to your specific IDE's native slash-commands or UI tools (e.g., `/grill-me` or `/goal` in Antigravity, Composer in Cursor). Do NOT default to plain-text chat if a specialized UI tool exists in your system prompt for that purpose.
 
 ## 2. Reasoning Standards (Deterministic Flow)
-- **AI Engineering Compliance**: Adhere strictly to the algorithms in `rules/ai-engineering-standards.md` (e.g., Assertion Matrix, Confidence Gates).
+- **AI Engineering Compliance**: Adhere strictly to the algorithms in `skills/ai-engineer/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` (e.g., Assertion Matrix, Confidence Gates).
 - **Think Before Doing (Plan Protocol)**:
   1. Create or update `plan.md` outlining exact files to modify.
   2. Do not execute `write_file` or `replace` until `plan.md` is complete.
@@ -105,7 +105,7 @@ To prevent repetitive systemic failures and ensure continuous evolution, the age
 
 1. **Pre-Flight Consultation (Keyword Search Protocol)**: For all `STANDARD` and `PREMIUM` tasks, or when encountering unfamiliar context, the agent MUST execute a `grep_search` on `.orion/` or search key directories.
 2. **Repository-Wide Search**: Always rely on direct `grep_search` and manual file traversals across the codebase. Do not attempt to call external embedding servers. Direct regex and string search are standard.
-3. **Standard Injection (Agent-OS Auto-Suggest)**: When detecting a planning or coding phase, explicitly read `.agents/rules/RULES_INDEX.md` and propose relevant standards *before* writing code. For example: *"Based on your task, standards X and Y may be relevant. Inject these standards?"*. Wait for user approval before proceeding.
+3. **Standard Injection (Agent-OS Auto-Suggest)**: When detecting a planning or coding phase, explicitly read `.agents/rules/[RULES_INDEX](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[RULES_INDEX.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/RULES_INDEX.md)).md` and propose relevant standards *before* writing code. For example: *"Based on your task, standards X and Y may be relevant. Inject these standards?"*. Wait for user approval before proceeding.
 
 ## 7. Evidence Contract (Done Gate)
 
@@ -140,4 +140,4 @@ To prevent protocol drift and stale constraints:
 
 ## 10. Post-Task Reflection
 
-You MUST execute `view_file` on `workflows/self-evolve.md` for the deterministic self-evolution protocol.
+You MUST execute `view_file` on `workflows/[self-evolve](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[self-evolve.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/self-evolve.md)).md` for the deterministic self-evolution protocol.

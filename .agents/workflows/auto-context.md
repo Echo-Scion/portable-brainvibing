@@ -1,9 +1,9 @@
 ---
 description: Organic Business Rule Extraction from Conversations
-activation: Called automatically during /session-offload, or manually via /auto-context
+activation: Called automatically during /[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/session-offload.md)), or manually via /auto-context.md
 ---
 
-# /auto-context (Conversational Context Extraction)
+# /auto-context.md (Conversational Context Extraction)
 
 This workflow is the bridge between human conversation and the structural 82-file `context/` matrix. It extracts business logic, architectural decisions, and domain rules from recent chats and automatically injects them into the correct context files.
 
@@ -15,7 +15,7 @@ This workflow is the bridge between human conversation and the structural 82-fil
   - *"We decided to use Redis for this cache instead of local state."*
 
 ## 2. Structural Routing (Map Phase)
-For each extracted piece of knowledge, determine its proper destination within the 82-file structure.
+For each extracted piece of [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)), determine its proper destination within the 82-file structure.
 - **00_Strategy**: Business goals, user personas, revenue logic.
 - **01_Product**: User roles, feature requirements, UI/UX specs.
 - **02_Creative**: Color themes, typography, tone of voice.
@@ -24,8 +24,8 @@ For each extracted piece of knowledge, determine its proper destination within t
 *If the target file does not exist, use your `write_to_file` tool to create it inside the appropriate folder.*
 
 ## 3. Injection (Write Phase)
-- **Action**: Use your `replace_file_content` or `write_to_file` tools to inject the knowledge into the file.
-- **Format Constraint**: If the file contains a `<!-- LEGACY MERGE START -->` or `<!-- CONVERSATION MERGE START -->` marker, insert the new knowledge below it. Use clear bullet points and specify the date of extraction.
+- **Action**: Use your `replace_file_content` or `write_to_file` tools to inject the [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) into the file.
+- **Format Constraint**: If the file contains a `<!-- LEGACY MERGE START -->` or `<!-- CONVERSATION MERGE START -->` marker, insert the new [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) below it. Use clear bullet points and specify the date of extraction.
 
 Example Format:
 ```markdown
@@ -34,7 +34,7 @@ Example Format:
 ```
 
 ## 4. Semantic Commit (Ingest Phase)
-You MUST execute the Orion Ingestion script immediately after modifying the context files so the Brain Graph indexes the new knowledge.
+You MUST execute the Orion Ingestion script immediately after modifying the context files so the Brain Graph indexes the new [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)).
 - **Command**: `python .agents/scripts/orion.py orion_ops ingest <path_to_modified_context_file>`
 
 ## 5. Closure

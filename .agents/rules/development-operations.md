@@ -142,7 +142,7 @@ If the agent is on **[TIER: BUDGET]**, using `view_file` on files >200 lines as 
 If a user dumps a monolithic requirement file:
 1. Parse the dump.
 2. Distribute snippets to the 82 domain files.
-3. Update `00_Strategy/BLUEPRINT.md` as the index.
+3. Update `00_Strategy/[BLUEPRINT](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/[BLUEPRINT.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/BLUEPRINT.md)).md` as the index.
 
 ### 3.3 Safe Context Refactoring (Archivist Protocol)
 - **Quarantine Rule**: Any context file not matching the 82-file list is marked "Quarantine". AI MUST NOT proactively delete or modify it without explicit user permission.
@@ -150,5 +150,5 @@ If a user dumps a monolithic requirement file:
 
 ## 4. Domain Canons & Neuro-Link Synchronization
 - **Canons (`canons/`)**: Store the "Static Truth" (Identity, Architecture). Lazy-load them. BUDGET tasks are prohibited from loading canons blindly.
-- **Neuro-Link (`orion_refs`)**: Every context file MUST include `orion_refs: [...]` in its YAML frontmatter to bidirectionally link active state (`context/`) with long-term knowledge (`.orion/`).
+- **Neuro-Link (`orion_refs`)**: Every context file MUST include `orion_refs: [...]` in its YAML frontmatter to bidirectionally link active state (`context/`) with long-term [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) (`.orion/`).
 
