@@ -327,7 +327,30 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
                 from utils.ast_parser import generate_ast_summary
                 ast_summary = generate_ast_summary(filepath, content_str)
                 skeleton_lines = ast_summary.split("\n") if ast_summary else ["[AST Skipping: Not structurally parsed]"]
-                triplets = [] # Triplets generation deprecated in favor of AST summaries
+                triplets = []
+                
+                # Auto-extract basic structural triplets
+                import re
+                file_basename = os.path.basename(filepath)
+                if ext.lower() == ".py":
+                    for match in re.finditer(r'^\s*import\s+([a-zA-Z0-9_]+)', content_str, re.MULTILINE):
+                        triplets.append((file_basename, "imports", match.group(1)))
+                    for match in re.finditer(r'^\s*from\s+([a-zA-Z0-9_\.]+)\s+import', content_str, re.MULTILINE):
+                        triplets.append((file_basename, "imports", match.group(1)))
+                    for match in re.finditer(r'^\s*class\s+([a-zA-Z0-9_]+)(?:\((.*?)\))?:', content_str, re.MULTILINE):
+                        cls_name = match.group(1)
+                        triplets.append((file_basename, "defines", cls_name))
+                        parent = match.group(2)
+                        if parent and parent.strip():
+                            triplets.append((cls_name, "inherits", parent.strip()))
+                elif ext.lower() in [".js", ".ts", ".dart"]:
+                    for match in re.finditer(r'^\s*import\s+.*?(?:from\s+)?[\'"](.*?)[\'"]', content_str, re.MULTILINE):
+                        triplets.append((file_basename, "imports", match.group(1)))
+                    for match in re.finditer(r'^\s*class\s+([a-zA-Z0-9_]+)(?:\s+extends\s+([a-zA-Z0-9_]+))?', content_str, re.MULTILINE):
+                        cls_name = match.group(1)
+                        triplets.append((file_basename, "defines", cls_name))
+                        if match.group(2):
+                            triplets.append((cls_name, "inherits", match.group(2)))
             except Exception as e:
                 skeleton_lines = [f"Error generating AST summary: {e}"]
                 triplets = []

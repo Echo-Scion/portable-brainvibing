@@ -7,7 +7,7 @@
 
 A plug-and-play `.agents` ecosystem that transforms generic AI coding assistants into **deterministic engineering instruments**. This repository contains the **Universal Framework**—a language-agnostic, OS-agnostic blueprint designed to enforce absolute reproducibility and minimize AI hallucination. 
 
-## ⚠️ WARNING: 100% AI ENGINEERED. ACTUAL VERSION NEVER 1.0. IT EVOLVE WITH YOU.
+## ⚠️ WARNING: 100% AI ENGINEERED. UNTESTED. ACTUAL VERSION NEVER 1.0. IT EVOLVE WITH YOU.
 
 ---
 
@@ -147,6 +147,7 @@ The Universal template can be injected into any repository (Node, Rust, Flutter,
 
 ### 📌 Prerequisites
 - **Python 3.x** must be installed on your machine.
+- Work best with **RTK** and **Local LMM for Proxy**
 - Your target project must have a basic structure initialized.
 
 ### 🤖 How to Deploy (Agentic Installation)
@@ -168,3 +169,6 @@ This foundation synthesizes principles from top open-source optimization tools:
 
 ---
 **License**: MIT
+
+---
+**Note**: No longer maintained. Please support with a star! 

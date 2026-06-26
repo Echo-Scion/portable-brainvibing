@@ -105,8 +105,10 @@ def cmd_bench(args):
                 response = nb.generate(case["prompt"], system=sys_prompt)
                 output_text = response.get("response", "")
             except Exception:
+                print("  [WARN] NanoBrain generation failed. Falling back to dry-run.")
                 output_text = case["expected_output"] # Fallback if model fails
         else:
+            print("  [WARN] NanoBrain disabled. Performing DRY RUN fitness evaluation.")
             output_text = case["expected_output"] # Hard fallback
             
         for assertion in case["assertions"]:
@@ -118,7 +120,10 @@ def cmd_bench(args):
                 print(f"  [FAIL] {assertion[:50]}...")
                 
     score = passed_assertions / total_assertions if total_assertions > 0 else 1.0
-    print(f"--- Fitness Score: {score:.2f} ({passed_assertions}/{total_assertions}) ---")
+    if not nb:
+        print(f"--- Fitness Score (DRY RUN): {score:.2f} ({passed_assertions}/{total_assertions}) ---")
+    else:
+        print(f"--- Fitness Score: {score:.2f} ({passed_assertions}/{total_assertions}) ---")
     
     # Save to standard output for capture
     if args.output:
@@ -168,23 +173,25 @@ def cmd_drift_scan(args):
 def cmd_mine_friction(args):
     """Idea 5: Friction Miner"""
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    memory_path = os.path.join(base_dir, "MEMORY.md")
+    memory_path = os.path.join(os.path.dirname(base_dir), "MEMORY.md")
     learnings_path = os.path.join(base_dir, "LEARNINGS.md")
     
-    if not os.path.exists(memory_path):
-        print("[MINE OK] No MEMORY.md found.")
+    content = ""
+    if os.path.exists(memory_path):
+        with open(memory_path, 'r', encoding='utf-8') as f:
+            content += f.read() + "\n"
+            
+    if os.path.exists(learnings_path):
+        with open(learnings_path, 'r', encoding='utf-8') as f:
+            content += f.read() + "\n"
+            
+    if not content:
+        print("[MINE OK] No MEMORY.md or LEARNINGS.md found.")
         return True
         
-    with open(memory_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-        
-    # Extract <friction-data> blocks
+    # Extract <friction-data> blocks (mostly from MEMORY.md)
     friction_blocks = re.findall(r'<friction-data>(.*?)</friction-data>', content, re.DOTALL)
     
-    if not friction_blocks:
-        print("[MINE OK] No friction data found.")
-        return True
-        
     patterns = []
     for block in friction_blocks:
         m = re.search(r'Pattern Found:\s*(.*)', block)
@@ -202,13 +209,23 @@ def cmd_mine_friction(args):
         else:
             print(f" [WARN] {pattern} (Count: {count})")
             
+    # Also check for direct [Darwinian Hook] tags in LEARNINGS.md
+    darwinian_hooks = content.count("[Darwinian Hook]")
+    if darwinian_hooks >= 3:
+        print(f" [CRITICAL] Darwinian Hook threshold reached (Count: {darwinian_hooks})")
+        critical_found = True
+        
+    if not critical_found and not patterns:
+        print("[MINE OK] No critical friction data found.")
+        return True
+            
     if critical_found:
         print("\n[DIRECTIVE] CRITICAL friction detected. Trigger self-evolve to synthesize a new rule.")
         
     # SAFE ROTATION: Archive, don't truncate
     if os.path.exists(learnings_path) and critical_found:
         import datetime, shutil
-        archive_dir = os.path.join(os.path.dirname(base_dir), ".orion", "episodic")
+        archive_dir = os.path.join(base_dir, ".orion", "episodic")
         os.makedirs(archive_dir, exist_ok=True)
         stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         shutil.copy(learnings_path, os.path.join(archive_dir, f"learnings_{stamp}.md"))

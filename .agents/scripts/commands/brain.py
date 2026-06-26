@@ -376,12 +376,7 @@ def sync(intent):
     if not (skills or rules or wiki_nodes or saas_nodes):
         print("\n[WARNING]: No contextual nodes found for these tokens. AI must rely on zero-shot reasoning.")
         
-    print("\n" + "="*60)
-    print(" SYSTEM DIRECTIVE FOR AI:")
-    print("1. You MUST read the files listed above using your `view_file` tool BEFORE executing logic.")
-    print("2. You MUST adhere strictly to the rules and concepts found to prevent hallucination.")
-    print("3. Proceed with your execution plan.")
-    print("="*60)
+    print("\n---\n[DIRECTIVE] Read the above files with `view_file` BEFORE modifying code. Adhere to rules. Proceed.")
 
 def page_context(keywords):
     agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -409,7 +404,6 @@ def page_context(keywords):
                         if script_dir not in sys.path:
                             sys.path.insert(0, script_dir)
                         from compile_rules import parse_markdown_to_dict
-                        import yaml
                         
                         for chunk in chunks:
                             chunk_lower = chunk.lower()
@@ -419,10 +413,10 @@ def page_context(keywords):
                                 
                                 # Ephemeral Caveman Compilation
                                 chunk_dict = parse_markdown_to_dict(chunk.strip())
-                                dense_yaml = yaml.dump(chunk_dict, default_flow_style=False, sort_keys=False)
-                                relevant_chunks.append(f"### Source: {file} | {header}\n```yaml\n{dense_yaml}```\n")
+                                dense_json = json.dumps(chunk_dict, indent=2)
+                                relevant_chunks.append(f"### Source: {file} | {header}\n```json\n{dense_json}\n```\n")
                     except Exception as e:
-                        # Fallback if pyyaml is missing
+                        # Fallback if parsing fails
                         for chunk in chunks:
                             chunk_lower = chunk.lower()
                             if any(kw.lower() in chunk_lower for kw in keywords):

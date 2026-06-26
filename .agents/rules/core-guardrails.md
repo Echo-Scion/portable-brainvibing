@@ -2,8 +2,8 @@
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
 
-version: 0.0.3
-last_updated: 2026-06-21
+version: 0.0.4
+last_updated: 2026-06-26
 ---
 # Agent Protocols
 
@@ -31,11 +31,12 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 > 1. You **MUST** use `run_command` with `python .agents/scripts/orion.py <cmd>` instead of external binaries or native MCP tools.
 > 2. This centralizes context extraction and prevents fragile CLI string parsing or IDE-specific configuration friction.
 
-## 1.7 Omni-Buffer Context Protocol
+## 1.7 Omni-Buffer Context Protocol (Agent-Driven)
 
-> **No-More-Copy-Paste Rule**: The `.agents` ecosystem now utilizes an Omni-Buffer to synchronize context across IDEs.
-> 1. In your **VERY FIRST TURN** of a session or when encountering an ambiguous error, you MUST execute a `view_file` on `.orion/working/context.json` to extract the `active_file` and `terminal_error`. Do NOT ask the user to copy-paste errors from their terminal.
-> 2. **Stale Data Guard**: After reading `context.json`, you MUST check the `timestamp_ms`. If the timestamp is older than 5 minutes relative to the current system time, you MUST discard the data and ask the user for confirmation, to prevent hallucinating on stale IDE states.
+> **No-More-Copy-Paste Rule**: The `.agents` ecosystem utilizes an Omni-Buffer to synchronize context.
+> 1. In your **VERY FIRST TURN** of a session, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py` to generate the current workspace state.
+> 2. After it runs, execute a `view_file` on `.orion/working/context.json` to extract the `active_file`, `recent_errors`, and evolution flags.
+> 3. This ensures you have 100% accurate context without relying on magical IDE extensions. Do NOT skip this step.
 
 ## 1.8 IDE-Agnostic Tooling Execution
 

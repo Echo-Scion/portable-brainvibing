@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
+## [0.0.4] - 2026-06-26
+### Changed
+- Refactored `Omni-Buffer Context Protocol` in `GEMINI.md`, `core-guardrails.md`, and `AGENTS.template.md` to be explicitly Agent-Driven via `pre-agent-wake.py`, removing reliance on non-existent IDE daemons.
+- Upgraded `evolve.py` to perform a dual-scan on both `LEARNINGS.md` and `MEMORY.md`, and safely fallback to DRY RUN if `NanoBrain` is offline.
+- Upgraded `orion_ops.py` to perform deterministic AST-based regex Graph Triplet extraction during ingest, eliminating the need for LLMs to generate graph edges.
+- Refactored `brain.py` to remove `pyyaml` dependency (replaced with native `json`) and significantly compressed the footer output.
+
 ## [0.0.3] - 2026-06-22
 ### Changed
 - Refactored `.agents` ecosystem: Removed `backend-orchestrator` ghost references, consolidated into `project-architect`.
