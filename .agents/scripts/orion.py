@@ -11,6 +11,19 @@ if sys.stdout.encoding.lower() != 'utf-8':
     except AttributeError:
         pass
 
+def load_env():
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    if k.strip() not in os.environ:
+                        os.environ[k.strip()] = v.strip()
+
+load_env()
+
 def print_help():
     print("========================================")
     print(" 🌌 ORION: The Unified Brain Engine CLI")
@@ -31,7 +44,8 @@ def print_help():
     print("  budget        - Track budget and tier telemetry")
     print("  compile       - Compile rules into static output")
     print("  context-lint  - Validate context/ naming conventions")
-    print("  linkify       - Auto-inject Wiki-links into Markdown\n")
+    print("  linkify       - Auto-inject Wiki-links into Markdown")
+    print("  adversarial   - Enforce Adversarial Twin Protocol (TDD wrapper)\n")
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help"]:
@@ -69,8 +83,10 @@ def main():
         "context-lint": ["commands", "context_naming_lint.py"],
         "context_naming_lint": ["commands", "context_naming_lint.py"],
         "linkify": ["commands", "linkify.py"],
+        "matrix": ["commands", "matrix_query.py"],
         "rtk": ["core", "rtk_proxy.py"],
-        "rtk_proxy": ["core", "rtk_proxy.py"]
+        "rtk_proxy": ["core", "rtk_proxy.py"],
+        "adversarial": ["commands", "adversarial.py"]
     }
 
     cmd = sys.argv[1]

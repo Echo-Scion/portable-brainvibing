@@ -2,7 +2,7 @@
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
 
-version: 0.0.8
+version: 0.0.9
 last_updated: 2026-06-26
 ---
 # Agent Protocols
@@ -34,7 +34,7 @@ Before executing **ANY task** that modifies the filesystem (write, delete, refac
 ## 1.7 Omni-Buffer Context Protocol (Agent-Driven)
 
 > **No-More-Copy-Paste Rule**: The `.agents` ecosystem utilizes an Omni-Buffer to synchronize context.
-> 1. In your **VERY FIRST TURN** of a session, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py` to generate the current workspace state.
+> 1. In your **VERY FIRST TURN** of a session, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` to generate the current workspace state.
 > 2. After it runs, execute a `view_file` on `.orion/working/context.json` to extract the `active_file`, `recent_errors`, and evolution flags.
 > 3. This ensures you have 100% accurate context without relying on magical IDE extensions. Do NOT skip this step.
 
@@ -122,6 +122,8 @@ All tasks MUST include a machine-verifiable evidence block matched to their tier
 - **Scope Proof**: Explicit confirmation that only intended targets were modified.
 
 If validation cannot be run, the agent MUST mark status as `PARTIAL` and state the exact blocker. Claiming `DONE` without evidence is **prohibited for all tiers**.
+
+**Binary Oratory Mandate**: Validation proofs MUST rely strictly on binary exit codes (0 for success, >0 for failure). Subjective claims of success (e.g. "The logic looks correct") are strictly banned.
 
 ## 8. Rule Lifecycle Hygiene (Anti-Bloat)
 

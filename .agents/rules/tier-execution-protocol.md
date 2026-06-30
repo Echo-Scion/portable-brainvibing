@@ -143,18 +143,12 @@ Before executing `write_file` or `replace` for a complex feature or system desig
 ## 2. Adversarial Twin Protocol (Deterministic Execution)
 "Adopting a persona" is probabilistic and fails. To achieve "Small Model Superiority", execute this strict verification protocol:
 
-1. **Write Exploit Script**: Write a unit test or Python script targeting the newly written feature (e.g., test network drop, null data).
-2. **Execute Exploit**: Run the test.
-3. **Log & Mitigate**: Output the following XML block:
-```xml
-<adversarial_attack>
-  <vector_tested>[Exact test case run]</vector_tested>
-  <exit_code>[0 or >0]</exit_code>
-  <fix_applied>[Code added to mitigate the failure]</fix_applied>
-  <residual_risk>[Remaining risk]</residual_risk>
-</adversarial_attack>
-```
-*Task is NOT done until `exit_code` matches the expected failure/mitigation cycle.*
+1. **Write Exploit Script**: Write a unit test or Python script targeting the new logic (e.g., test network drop, null data).
+2. **Execute Exploit via Algorithmic Gate**: You MUST run `python .agents/scripts/orion.py adversarial run <test_cmd>`. The gate will crash if the test passes.
+3. **Write Fix**: Implement the solution in source code.
+4. **Verify Fix**: You MUST run `python .agents/scripts/orion.py adversarial verify <test_cmd>`. The gate will only pass if a prior failing test was recorded.
+
+*Task is NOT done until `adversarial verify` completes with Exit Code 0.*
 
 ## 3. Causal Enforcement (The "No-Fix" Policy)
 - **Iron Law**: No code modifications are permitted until the root cause is deterministically proven.

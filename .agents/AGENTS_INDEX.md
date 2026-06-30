@@ -13,6 +13,7 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 ## 2. 🛠️ SKILLS (The Personas & Domains)
 *Skills define deep domain knowledge and specialized personas.*
 
+- **ai-engineer**: `.agents/skills/ai-engineer/SKILL.md` (Mitigating probabilistic nature, AI engineering)
 - **api-contract**: `.agents/skills/api-contract/SKILL.md` (OpenAPI, Zod, Contracts)
 - **caveman**: `.agents/skills/caveman/SKILL.md` (Ultra-compressed communication)
 - **caveman-compress**: `.agents/skills/caveman-compress/SKILL.md` (Token reduction for docs)

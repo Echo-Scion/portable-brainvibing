@@ -23,9 +23,8 @@ ORION_DIR = ".orion"
 MANIFEST_PATH = os.path.join(ORION_DIR, "_manifest.json")
 LOG_PATH = os.path.join(ORION_DIR, "log.md")
 INDEX_PATH = os.path.join(ORION_DIR, "index.md")
-SOURCES_DIR = os.path.join(ORION_DIR, "sources")
 DB_PATH = os.path.join(ORION_DIR, "orion.db")
-DIRS = ["sources", "working", "episodic", "matrix"]
+DIRS = ["working", "episodic", "matrix"]
 
 def normalize_path(p: str) -> str:
     return p.replace(chr(92), '/')
@@ -305,23 +304,18 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
         
         basename = os.path.basename(filepath)
         name, ext = os.path.splitext(basename)
-        if ext.lower() in RAW_EXTS + [".yaml", ".json"]:
-            wiki_filename = f"{name}-{ext[1:].lower()}.md"
-        elif basename == "SKILL.md":
-            folder_name = os.path.basename(os.path.dirname(filepath))
-            wiki_filename = f"skill-{folder_name}.md"
-        else:
-            wiki_filename = basename
-            
-        target_path = os.path.join(ORION_DIR, "sources", wiki_filename)
+        
+        target_path = os.path.relpath(filepath).replace("\\", "/")
         
         is_updated = True
         action_type = "NEW"
-        if os.path.exists(target_path):
-            with open(target_path, "r", encoding="utf-8") as tf:
-                target_content = tf.read()
-            target_fm = parse_frontmatter(target_content)
-            if target_fm.get("source_sha256") == sha:
+        
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT sha256 FROM pages WHERE path = ?', (target_path,))
+        row = c.fetchone()
+        if row:
+            if row[0] == sha:
                 print(f"Skipping {filepath} (Already matches hash)")
                 return False
             action_type = "EXTEND"
@@ -445,12 +439,15 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
         else:
             pointer_body += f"> *Content body excluded from Graph to prevent storage bloat.*\n"
         
-        with open(target_path, "w", encoding="utf-8") as wf:
-            wf.write(fm_text + "\n" + pointer_body)
-            
-        log_entry = f"- [{updated_date}] [{action_type}] Ingested {filepath} -> sources/{wiki_filename}\n"
+        log_entry = f"- [{updated_date}] [{action_type}] Ingested {filepath}\n"
         with open(LOG_PATH, "a", encoding="utf-8") as lf:
             lf.write(log_entry)
+            
+        with open(LOG_PATH, "r", encoding="utf-8") as lf:
+            lines = lf.readlines()
+        if len(lines) > 500:
+            with open(LOG_PATH, "w", encoding="utf-8") as lf:
+                lf.writelines(lines[-500:])
             
         # LightRAG SQLite Sync
         try:
@@ -506,7 +503,7 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             
         manifest_entry = {
             "filepath": filepath.replace("\\", "/"),
-            "orion_file": f"sources/{wiki_filename}",
+            "orion_file": filepath.replace("\\", "/"),
             "sha256": sha,
             "category": category,
             "updated": updated_date
@@ -623,9 +620,6 @@ def get_smart_ignore_dirs(target_path):
     return ignores
 
 def ingest_main(paths, autonomy):
-    if not os.path.exists(SOURCES_DIR):
-        os.makedirs(SOURCES_DIR)
-        
     pruned = prune_orphans()
         
     ingested_files = []
@@ -699,17 +693,16 @@ def load_manifest():
         return json.load(f)
 
 def find_target_file(query):
-    # Try exact match first
-    potential_path = os.path.join(SOURCES_DIR, f"{query}.md")
-    if os.path.exists(potential_path):
-        return potential_path
-    
-    # Try partial match
-    query_lower = query.lower()
-    if os.path.exists(SOURCES_DIR):
-        for file in os.listdir(SOURCES_DIR):
-            if query_lower in file.lower():
-                return os.path.join(SOURCES_DIR, file)
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT path FROM pages WHERE path LIKE ?', (f'%{query}%',))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return row[0]
+    except Exception:
+        pass
     return None
 
 def extract_links(content):
@@ -725,45 +718,34 @@ def extract_links(content):
     return parsed_links
 
 def get_file_summary(filepath):
-    if not os.path.exists(filepath):
-        return "File not found."
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    # Extract frontmatter or first paragraph
-    lines = content.split('\n')
-    summary = []
-    in_frontmatter = False
-    for line in lines:
-        if line.startswith('---'):
-            if not in_frontmatter:
-                in_frontmatter = True
-                continue
-            else:
-                in_frontmatter = False
-                continue
-        if in_frontmatter:
-            if line.startswith('source-category:') or line.startswith('pillar:'):
-                summary.append(line)
-        else:
-            if line.strip() and not line.startswith('>'):
-                # Grab the first real content line (usually header or short desc)
-                summary.append(line.strip()[:100] + "...")
-                break
-    return " | ".join(summary) if summary else "No metadata available."
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT category FROM pages WHERE path = ?', (filepath,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return f"Category: {row[0]}"
+    except Exception:
+        pass
+    return "Not ingested."
 
 def find_backlinks(target_name):
     backlinks = []
     target_pattern = re.compile(r'\[\[' + re.escape(target_name) + r'(?:\|.*?)?\]\]', re.IGNORECASE)
     
-    if os.path.exists(SOURCES_DIR):
-        for file in os.listdir(SOURCES_DIR):
-            if file.endswith('.md'):
-                filepath = os.path.join(SOURCES_DIR, file)
-                with open(filepath, "r", encoding="utf-8") as f:
-                    content = f.read()
-                if target_pattern.search(content):
-                    backlinks.append(file.replace('.md', ''))
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT path, content FROM pages_fts')
+        rows = c.fetchall()
+        conn.close()
+        
+        for filepath, content in rows:
+            if target_pattern.search(content):
+                backlinks.append(os.path.basename(filepath))
+    except Exception:
+        pass
     return backlinks
 
 def resolve_wiki(query):

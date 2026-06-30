@@ -21,7 +21,7 @@ except ImportError:
 
 class NanoBrain:
     def __init__(self, model="qwen2.5:0.5b"):
-        self.endpoint = "http://localhost:11434/api/generate"
+        self.endpoint = os.environ.get("ORION_LLM_URL", "http://localhost:11434/api/generate")
         self.model = model
         self.tier_level = 1 # 1: Low, 2: Medium, 3: High
         self.tier_name = "low_intelligence"
@@ -67,7 +67,8 @@ class NanoBrain:
             except Exception:
                 pass
         try:
-            req = urllib.request.Request("http://localhost:11434/", method="GET")
+            base_url = os.environ.get("ORION_LLM_URL", "http://localhost:11434/api/generate").replace("/api/generate", "/")
+            req = urllib.request.Request(base_url, method="GET")
             with urllib.request.urlopen(req, timeout=2) as r:
                 return r.status == 200
         except Exception:
@@ -89,6 +90,7 @@ class NanoBrain:
                 resp = json.loads(r.read().decode('utf-8'))
                 return resp.get('response', '')
         except Exception as e:
+            print(f"[NanoBrain] generate error: {e}", file=sys.stderr)
             return None
 
 

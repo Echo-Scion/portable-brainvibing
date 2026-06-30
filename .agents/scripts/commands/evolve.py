@@ -135,7 +135,7 @@ def cmd_bench(args):
 
 def cmd_drift_scan(args):
     """Idea 4: Semantic Drift Detector — Compares live file hashes against orion.db baselines."""
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     db_path = os.path.join(base_dir, ".orion", "orion.db")
     
     if not os.path.exists(db_path):
@@ -152,8 +152,8 @@ def cmd_drift_scan(args):
     drifted = []
     print("[DRIFT SCAN] Comparing live file hashes against orion.db baselines...")
     for orion_path, stored_hash in rows:
-        # orion_path points to .orion/sources/X.md, extract original source
-        source_path = orion_path  # The source summary file itself
+        # orion_path points to the true relative filepath
+        source_path = orion_path
         if not os.path.exists(source_path):
             drifted.append((source_path, "DELETED"))
             continue

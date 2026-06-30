@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.9] - 2026-06-30
+### Changed
+- **Ecosystem Functional Audit**: Validated structural health and scripting functionalities.
+
 ## [0.0.8] - 2026-06-27
 ### Changed
 - **Memory Backbone Deep Audit**: Fixed bugs across `orion_ops.py`, `brain.py`, `linkify.py`, `compress_memory.py`, and `ast_parser.py` including broken `handoff.md` backups, invalid regexes, deprecated hashing, and redundant database initialization loops.

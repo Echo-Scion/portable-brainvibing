@@ -12,10 +12,10 @@
 !/EXPLAIN.md
 !/PREREQUISITES.md
 !/VERSION
-!/GEMINI.md
 !/CLAUDE.md
 !/LICENSE
 !/CODEOWNERS
+!/.env.example
 
 # 4. BLACKLIST: Re-ignore specific internal things inside whitelisted folders
 .agents/LEARNINGS.md

@@ -1,7 +1,7 @@
 # Workspace Rules & Mandates: {project_name}
 
 <!-- START FOUNDATION MANDATES (Version: 0.0.8 - Router Pattern) -->
-> **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `_foundation`.
+> **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
 
@@ -13,7 +13,7 @@ Every implementation plan you create (`implementation_plan.md`) MUST include a d
 
 ## 1.5. AUTO-PILOT INJECTOR (MANDATORY HARD HOOK)
 
-Before beginning ANY coding task, planning phase, or feature scaffolding, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py` to generate the workspace context, followed by `python .agents/scripts/orion.py brain sync "<your_task_keywords>"` to inject dynamic standards. You MUST do this in your VERY FIRST turn. Do not skip this.
+Before beginning ANY coding task, planning phase, or feature scaffolding, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` to generate the workspace context, followed by `python .agents/scripts/orion.py brain sync "<your_task_keywords>"` to inject dynamic standards. You MUST do this in your VERY FIRST turn. Do not skip this.
 
 ## 1.6. OS-AWARE PYTHON EXECUTION
 

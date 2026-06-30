@@ -407,67 +407,62 @@ Each skill is a "hat" worn by the AI. When loaded, the skill limits the AI's foc
 **Content:** OpenAPI specifications, Zod validation, API safety patterns.
 **Reference:** `references/api_safety_patterns.md`.
 
-### 10.3. `project-architect` (formerly backend-orchestrator)
-**Domain:** Master backend architect.
-**Content:** Node.js memory leak management, connection pooling, SQL optimization, database indexing.
-**References:** 6 sub-documents — `backend-architect.md`, `backend-optimizer.md`, `cache-optimizer.md`, `db-expert.md`, `enterprise_patterns.md`, `node_performance_tuning.md`, `postgres_patterns.md`.
-
-### 10.4. `brain-graph`
+### 10.3. `brain-graph`
 **Domain:** Operating `orion.db` and local RAG.
 **Content:** FTS5 querying, triplet injection, SQLite maintenance.
 
-### 10.5. `caveman`
+### 10.4. `caveman`
 **Domain:** Ultra-terse communication compression.
 **Content:** 6 intensity levels. Supports `wenyan` (classical Chinese variant).
 
-### 10.6. `caveman-compress`
+### 10.5. `caveman-compress`
 **Domain:** `.md` file compression.
 **Content:** Reads markdown files and replaces them with terse versions via regex. Saves a `.original.md` backup.
 **Supporting scripts:** `scripts/__init__.py`, `scripts/compress.py`, `scripts/detect.py`, `scripts/validate.py`, `scripts/benchmark.py`, `scripts/cli.py`.
 
-### 10.7. `cost-optimizer`
+### 10.6. `cost-optimizer`
 **Domain:** Token and cloud budget management.
 **Content:** Routing cheap models (Haiku) for simple tasks, expensive models (Opus) for complex tasks.
 
-### 10.8. `data-logic`
+### 10.7. `data-logic`
 **Domain:** Data immutability.
 **Content:** Forbids global state, Redux/Zustand patterns, pure functions, DTOs must not be mutated.
 
-### 10.9. `frontend-experience`
+### 10.8. `frontend-experience`
 **Domain:** UI/UX debugging.
 **Content:** Fixing excessive re-renders, DOM infinite loops, React/Flutter state synchronization.
 **Reference:** `references/ux-designer.md`.
 
-### 10.10. `integrity-sentinel`
+### 10.9. `integrity-sentinel`
 **Domain:** Red Team & Automated QA.
 **Content:** Architecture audit, bloat audit, duplicate audit, fail-fast audit, logic audit, performance audit, retry audit, load testing.
 **References:** 11 sub-documents: `architecture-audit.md`, `bloat-audit.md`, `duplicate-audit.md`, `fail-fast-audit.md`, `flutter_testing_patterns.md`, `load_testing_tactics.md`, `logic-audit.md`, `master-audit.md`, `performance-audit.md`, `plan-checklist.md`, `retry-audit.md`, `telemetry-gate.md`.
 
-### 10.11. `meta-agent-admin`
+### 10.10. `meta-agent-admin`
 **Domain:** Architect of the `.agents` system itself.
 **Content:** Ecosystem evolution, rule creation, routing integrity.
 **References:** `agent-architect.md`, `agent-evolution.md`, `context-manager.md`, `knowledge.md`, `loop_design_patterns.md`, `system-admin.md`, `tech-writer.md`.
 
-### 10.12. `palette`
+### 10.11. `palette`
 **Domain:** Micro-aesthetics & accessibility.
 **Content:** CSS tokens, smooth animations, ARIA labels, glassmorphism, color harmony, keyboard navigation.
 
-### 10.13. `project-architect`
-**Domain:** High-scale PRD & Blueprints.
-**Content:** Translating user ideas into technical documents before code is written.
-**References:** `architectural_standards.md`, `startup_growth.md`, `strategic_rigor.md`, `structural_pillars.md`.
+### 10.12. `project-architect`
+**Domain:** High-scale PRD & Blueprints, and Master backend architect.
+**Content:** Translating user ideas into technical documents before code is written, Node.js memory leak management, connection pooling, SQL optimization, database indexing.
+**References:** `architectural_standards.md`, `startup_growth.md`, `strategic_rigor.md`, `structural_pillars.md`, `backend-architect.md`, `backend-optimizer.md`, `cache-optimizer.md`, `db-expert.md`, `enterprise_patterns.md`, `node_performance_tuning.md`, `postgres_patterns.md`.
 
-### 10.14. `project-operator`
+### 10.13. `project-operator`
 **Domain:** DevOps & resilience.
 **Content:** Dockerfiles, CI/CD pipelines, Nginx, chaos engineering.
 **References:** `chaos-engineer.md`, `release-manager.md`.
 
-### 10.15. `saas-strategist`
+### 10.14. `saas-strategist`
 **Domain:** SaaS business strategy.
 **Content:** Viability analysis, monetization, growth, viral content.
 **References:** `saas-growth.md`, `saas-viability.md`, `technical_content.md`, `viral_growth.md`.
 
-### 10.16. `ui-finish`
+### 10.15. `ui-finish`
 **Domain:** Premium UI final polish.
 **Content:** Empty states, loading spinners, error boundaries, Liquid Glass widgets.
 **Reference:** `visual_engineering.md`.
@@ -803,55 +798,3 @@ python .agents/scripts/orion.py foundation push-upstream --source /path/to/proje
 | **Tier Mismatch** | Condition where the active model is weaker than the tier required for the task |
 | **82-File Mandate** | Context naming policy based on 82 standard SaaS file domains |
 
----
-
-# VOLUME XII: VISUAL ARCHITECTURE DIAGRAM
-
----
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           PORTABLE BRAINVIBING                               │
-│                                                                              │
-│  ┌─────────────┐    ┌──────────────┐    ┌──────────────────────────────────┐ │
-│  │  GEMINI.md   │───→│ JIT Routing  │───→│ Skill/Rule/Workflow Loading     │ │
-│  │  (BIOS)      │    │ Table (§4)   │    │ (Dynamic, on-demand)            │ │
-│  └──────┬───────┘    └──────────────┘    └──────────────────────────────────┘ │
-│         │                                                                     │
-│         ▼                                                                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────────┐ │
-│  │ context.json │───→│ pre-agent-   │───→│ Darwinian Heartbeat             │ │
-│  │ (Omni-Buffer)│    │ wake.py      │    │ (Auto-Evolution Trigger)         │ │
-│  └──────────────┘    └──────────────┘    └──────────────────────────────────┘ │
-│                                                                              │
-│  ┌───────────────────────────────────────────────────────────────────────┐   │
-│  │                        .agents/ (The Brain)                           │   │
-│  │  ┌────────┐ ┌────────┐ ┌──────────┐ ┌───────┐ ┌─────────┐ ┌──────┐  │   │
-│  │  │ rules/ │ │skills/ │ │workflows/│ │canons/│ │scripts/ │ │evals/│  │   │
-│  │  │ (10)   │ │ (16)   │ │  (10)    │ │ (4)   │ │ (16+)   │ │ (2)  │  │   │
-│  │  └────────┘ └────────┘ └──────────┘ └───────┘ └─────────┘ └──────┘  │   │
-│  │  ┌─────────┐ ┌──────┐ ┌──────────┐ ┌────────────────────────────┐   │   │
-│  │  │templates│ │hooks/│ │  docs/   │ │ LEARNINGS.md + EVOLUTION   │   │   │
-│  │  │  (11)   │ │ (1)  │ │  (3)     │ │        _LOG.jsonl          │   │   │
-│  │  └─────────┘ └──────┘ └──────────┘ └────────────────────────────┘   │   │
-│  └───────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│  ┌───────────────────────────────────────────────────────────────────────┐   │
-│  │                       .orion/ (The Memory)                            │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌────────────┐  │   │
-│  │  │ orion.db │ │ index.md │ │ sources/ │ │ matrix/ │ │  working/  │  │   │
-│  │  │ (SQLite) │ │ (135 idx)│ │(118 docs)│ │ (YAML)  │ │context.json│  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └─────────┘ └────────────┘  │   │
-│  └───────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-│  ┌──────────────────────┐    ┌──────────────────────────┐                   │
-│  │  RTK (Rust Binary)   │    │  NanoBrain (Ollama/0.5b) │                   │
-│  │  Terminal Proxy       │    │  Query Expansion + Filter │                   │
-│  │  Token Savings: 60-90%│    │  Episodic Memory Compress │                   │
-│  └──────────────────────┘    └──────────────────────────┘                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-*End of Main Encyclopedia. This document covers 12 Volumes, 22 Chapters, all 10 rule files, 16 skills, 10 workflows, 16+ Python scripts, 11 templates, and all supporting components of the Portable Brainvibing ecosystem. This framework converts LLMs from probabilistic conversational chatbots into mechanically self-evolving deterministic engineering instruments.*
