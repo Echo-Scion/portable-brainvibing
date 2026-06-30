@@ -43,9 +43,9 @@ last_updated: 2026-05-20
 - Because **Antigravity IDE** does not have an *auto-routing* feature, switching models must be done **MANUALLY** by the user.
 - Before executing **ANY TASK** that manipulates files/systems, the agent **MUST** evaluate which tier **SHOULD (TARGET TIER)** be used based on heuristics, NOT the currently active model.
 - **Auto-Abort Pre-Execution (Downgrade Guard)**: The agent MUST compare the *Current Model* with the *Target Tier*. If the current model's capability is **LOWER** than the *Target Tier* (a downgrade), the agent **MUST** emit this signal and **STOP COMPLETELY**:
-  `[ABORT: TIER MISMATCH. TARGET TIER: <REQUIRED TIER>. PLEASE SWITCH MODEL AND REPEAT PROMPT]`
+  `[STOP: TIER MISMATCH. TARGET TIER: <REQUIRED TIER>. PLEASE SWITCH MODEL AND REPEAT PROMPT]`
 - **Overpowered Exemption**: If the current model is *higher* than the Target Tier (e.g., using a PREMIUM model for a BUDGET task), the agent should **PROCEED**. Do not abort when overpowered.
-- **Read-Only Exemption**: Tasks that only read files or query information (investigatory) do not require user confirmation `[DO: YES]` to proceed.
+- **Read-Only Exemption**: Tasks that only read files or query information (investigatory) execute immediately.
 
 ## 4. Forced Intelligence Per Tier (Capability Harness)
 
@@ -155,11 +155,29 @@ Before executing `write_file` or `replace` for a complex feature or system desig
 - **Protocol**:
   1. Write `reproduce_bug.py` or `<feature>_test.dart`.
   2. Run the script.
-  3. If script succeeds (no bug found), ABORT fix.
+  3. If script succeeds (no bug found), STOP fix.
   4. If script fails (bug proven), proceed with implementation.
 
 ## 4. Value-Density Analysis (Scope Guard)
 - **MVC Principle**: Prioritize Minimum Viable Complexity via mechanical filtering:
   - *Reduction Pass*: Run `grep` or analyze code to delete 10-20% of dead code/unused imports before adding new logic.
-  - *Selective Expansion*: Require user's explicit `[DO: YES]` before expanding scope beyond the original blueprint.
+  - *Selective Expansion*: Request user's explicit permission before expanding scope beyond the original blueprint.
   - *Hold*: Strictly adhere to the original blueprint layout.
+
+## 5. Evidence Contract (Done Gate)
+
+All tasks MUST include a machine-verifiable evidence block matched to their tier:
+
+| Tier | Action Proof | Validation Proof | Scope Proof |
+| :--- | :--- | :--- | :--- |
+| **BUDGET** | Required (which file changed) | Skippable (but must state why) | Required (confirm only target was touched) |
+| **STANDARD** | Required | Required | Required |
+| **PREMIUM** | Required | Required | Required |
+
+- **Action Proof**: Which file/command/tool changed state.
+- **Validation Proof**: Test/lint/check command output summary (pass/fail). BUDGET may skip if no automated test exists, but MUST document the blocker.
+- **Scope Proof**: Explicit confirmation that only intended targets were modified.
+
+If validation cannot be run, the agent MUST mark status as `PARTIAL` and state the exact blocker. Claiming `DONE` without evidence is **prohibited for all tiers**.
+
+**Binary Oratory Mandate**: Validation proofs MUST rely strictly on binary exit codes (0 for success, >0 for failure). Subjective claims of success (e.g. "The logic looks correct") are strictly banned.

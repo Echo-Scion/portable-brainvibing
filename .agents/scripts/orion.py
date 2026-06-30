@@ -31,6 +31,7 @@ def print_help():
     print("Usage: python .agents/scripts/orion.py <command> [args...]\n")
     print("Available Commands:")
     print("  brain         - Neuro-Link Brain Engine (sync, page)")
+    print("  viz           - Generate HTML visualization of Orion Graph")
     print("  verify        - Verify workspace integrity & AST drift")
     print("  orion_ops     - Orion Graph Operations (init, ingest)")
     print("  deploy        - Deploy Foundation to a target project")
@@ -45,7 +46,10 @@ def print_help():
     print("  compile       - Compile rules into static output")
     print("  context-lint  - Validate context/ naming conventions")
     print("  linkify       - Auto-inject Wiki-links into Markdown")
-    print("  adversarial   - Enforce Adversarial Twin Protocol (TDD wrapper)\n")
+    print("  adversarial   - Enforce Adversarial Twin Protocol (TDD wrapper)")
+    print("  consolidate   - Temporal Pulse: session/milestone/epoch knowledge synthesis")
+    print("  contradict    - Contradiction Resolution Engine")
+    print("  fsm           - Formal State Machine Engine\n")
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help"]:
@@ -86,7 +90,12 @@ def main():
         "matrix": ["commands", "matrix_query.py"],
         "rtk": ["core", "rtk_proxy.py"],
         "rtk_proxy": ["core", "rtk_proxy.py"],
-        "adversarial": ["commands", "adversarial.py"]
+        "adversarial": ["commands", "adversarial.py"],
+        "viz": ["commands", "viz.py"],
+        "raw_ingest": ["commands", "raw_ingest.py"],
+        "consolidate": ["commands", "consolidate.py"],
+        "contradict": ["commands", "contradict.py"],
+        "fsm": ["commands", "state_machine.py"]
     }
 
     cmd = sys.argv[1]

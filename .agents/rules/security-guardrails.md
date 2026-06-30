@@ -96,7 +96,7 @@ Before running any of these, output the confirmation prompt and WAIT:
 [DESTRUCTIVE OP DETECTED]: {command}
 Target: {file/table/resource}
 Irreversible: YES
-Proceed? Reply [DO: YES] to confirm.
+Proceed? Use IDE Artifact RequestFeedback to confirm.
 ```
 
 ## 6. Persistent Learning (Post-Mortem Protocol)
@@ -130,7 +130,7 @@ Before any UI implementation (Flutter or Web), declare:
 ## 1. Core Mindset & Offensive Engineering Principles
 
 * **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
-* **Anti Second-System Effect (Complexity Gate):** If a proposed refactor increases cyclomatic complexity or lines of code by >20% without measurable performance gain (proven via benchmark script), ABORT the refactor.
+* **Anti Second-System Effect (Complexity Gate):** If a proposed refactor increases cyclomatic complexity or lines of code by >20% without measurable performance gain (proven via benchmark script), REJECT the refactor.
 * **The Decoupling Paradox (State Lock):** Validate state safety by writing a concurrent test script (e.g., spawning 10 parallel requests) to verify atomic overlapping limits.
 * **The "Good Enough" Principle:** If an anomaly is caught and logged safely without crashing the main process (exit code 0), it passes the audit.
 * **KISS & YAGNI:** Mechanically delete any code/feature block not explicitly defined in `.orion/[BLUEPRINT](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/[BLUEPRINT.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/BLUEPRINT.md)).md`.

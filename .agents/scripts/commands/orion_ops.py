@@ -80,6 +80,10 @@ def init_db():
             PRIMARY KEY (source_id, target_id, relation)
         )
     ''')
+    
+    # [DORMANT SCAFFOLDING] 
+    # The 'telemetry' and 'contradictions' (created in contradict.py) tables are dormant structural schemas. 
+    # They are provided as foundations awaiting activation by specific downstream SaaS projects.
     c.execute('''
         CREATE TABLE IF NOT EXISTS telemetry (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +91,12 @@ def init_db():
             event_type TEXT,
             exit_code INTEGER,
             context_load INTEGER
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS page_embeddings (
+            path TEXT PRIMARY KEY,
+            embedding_json TEXT
         )
     ''')
     conn.commit()
@@ -477,6 +487,26 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
                         VALUES (?, ?, ?)
                     ''', (target_path, callee, rel))
             
+            # Vector Embedding (Graceful Degradation)
+            try:
+                import sys
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                if script_dir not in sys.path:
+                    sys.path.insert(0, script_dir)
+                from brain import NanoBrain
+                nb = NanoBrain()
+                if nb.ping():
+                    embed_text = (fm_text + "\n" + pointer_body)[:2000] # Limit size for performance
+                    emb = nb.embed(embed_text)
+                    if emb:
+                        c.execute('''
+                            INSERT INTO page_embeddings (path, embedding_json) 
+                            VALUES (?, ?)
+                            ON CONFLICT(path) DO UPDATE SET embedding_json = excluded.embedding_json
+                        ''', (target_path, json.dumps(emb)))
+            except Exception as e:
+                print(f"Warning: Failed to generate vector embedding: {e}")
+
             conn.commit()
             conn.close()
         except Exception as db_e:
@@ -794,6 +824,14 @@ def resolve_wiki(query):
         conn = sqlite3.connect(DB_PATH)
         conn.execute('PRAGMA busy_timeout=5000;')
         c = conn.cursor()
+        
+        # --- ACCESS COUNT INCREMENT ---
+        try:
+            c.execute("UPDATE pages SET access_count = IFNULL(access_count, 0) + 1, last_accessed = datetime('now') WHERE path = ?", (target_file,))
+            conn.commit()
+        except Exception:
+            pass
+            
         # 1. File-to-file AST links
         c.execute('SELECT target_id, relation FROM edges WHERE source_id = ?', (target_file,))
         rows = c.fetchall()
@@ -888,6 +926,14 @@ def inject_triplets(json_data):
         conn.commit()
         conn.close()
         print(f"[SUCCESS] Injected {count} triplets into orion.db.")
+        
+        # --- IDE-1: Contradiction Engine ---
+        import subprocess
+        contradict_script = os.path.join(os.path.dirname(__file__), 'contradict.py')
+        if os.path.exists(contradict_script):
+            subprocess.Popen([sys.executable, contradict_script, "detect"],
+                             stdout=sys.stdout, stderr=sys.stderr)
+            
     except Exception as e:
         print(f"[ERROR] Failed to inject triplets: {e}")
 

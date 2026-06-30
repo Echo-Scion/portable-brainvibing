@@ -9,6 +9,9 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 ## 1. 📚 RULES (The Core Guardrails)
 - **Index**: `.agents/rules/RULES_INDEX.md` (Master index of all standards)
 - **Primary Guardrail**: `.agents/rules/core-guardrails.md`
+- **Formal State Machine**: `.agents/rules/standards/fsm-protocol.md`
+- **Contradiction**: `.agents/rules/contradiction-protocol.md`
+- **Memory Hygiene**: `.agents/rules/memory-hygiene.md`
 
 ## 2. 🛠️ SKILLS (The Personas & Domains)
 *Skills define deep domain knowledge and specialized personas.*
@@ -45,7 +48,16 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **strict-tdd**: `.agents/workflows/audit-and-test.md` (Test-driven development cycle)
 - **orion-ops**: `.agents/workflows/orion-ops.md` (Orion query and linting procedures)
 
-## 4. Ecosystem Canons (Platform-Specific)
+## 4. 🧰 CORE SCRIPTS (The Execution Engine)
+*Python scripts that power the ecosystem, triggered by hooks or manual orchestration.*
+
+- **state_machine**: `.agents/scripts/commands/state_machine.py` (FSM Engine)
+- **consolidate**: `.agents/scripts/commands/consolidate.py` (Temporal Pulse)
+- **contradict**: `.agents/scripts/commands/contradict.py` (Predicate Collision)
+- **pre-agent-wake**: `.agents/hooks/pre-agent-wake.py` (Bootstrapper)
+- **nano_compressor**: `.agents/scripts/commands/nano_compressor.py` (Memory compression)
+
+## 5. Ecosystem Canons (Platform-Specific)
 *Ecosystem canons contain framework-specific code patterns, commands, and workflows. They are loaded on-demand by universal skills/workflows via delegation.*
 
 ### {{FRAMEWORK}} (`canons/ecosystems/{{FRAMEWORK}}/`)

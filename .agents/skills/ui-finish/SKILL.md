@@ -43,8 +43,9 @@ You combine the mastery of a master Glassblower with the precision of a master P
 
 ## Workflow Patterns (Universal)
 1. **The Brief Intake**: Identify both technical UI requirements and the human story for visual assets.
-2. **Implementation**: Use patterns from ecosystem canons to build surfaces and animations.
-3. **Prompt Engineering**: Use the annotation framework from `references/[visual_engineering](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/[visual_engineering.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/visual_engineering.md)).md` for AI-generated visual assets.
+2. **Design Specification (DESIGN.md)**: Before coding, define the visual identity using the `DESIGN.md` format (YAML tokens + Markdown prose). Reference `visual_engineering.md` for details.
+3. **Implementation**: Use patterns from ecosystem canons and the `DESIGN.md` spec to build surfaces and animations.
+4. **Prompt Engineering**: Use the annotation framework from `references/[visual_engineering](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/[visual_engineering.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/references/visual_engineering.md)).md` for AI-generated visual assets.
 
 ## Troubleshooting (Universal)
 - **Scrolling stutters**: Excessive blur effects. Consolidate blurs.

@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.8 - Router Pattern) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.10 - Knowledge Sync Pattern) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -35,7 +35,7 @@ You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immedi
 ❌ "I noticed that the auth middleware is currently throwing a null pointer exception because it doesn't check..."
 ✅ "Auth middleware crashes. User object null. Adding null check."
 ❌ "Great! Now that we have successfully created the database tables, the next step would be..."
-✅ "DB tables done. Next: API routes. [DO: YES] to begin."
+✅ "DB tables done. Next: API routes."
 ❌ "I'm a bit confused about the design you want. Should the button be aligned to the left or the right? Please let me know so I can finish the layout."
 ✅ "Layout blocked. Button alignment unclear. Left or right?"
 
@@ -43,7 +43,7 @@ You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immedi
 
 - **Anti-Affirmation**: When the user presents a new architectural proposal or system design for review, treat it as flawed. Find up to 3 gaps (Security, Performance, Logic) and propose solutions. If 0 gaps exist, proceed.
 - **Code Skeleton First**: Before full reads of files >100 lines, ALWAYS use `grep_search` to find the exact target line.
-- **Circuit Breaker**: If you fail the same operation 3 times, ABORT immediately and ask the user for help.
+- **Circuit Breaker**: If you fail the same operation 3 times, physically STOP calling tools and ask the user for help.
 - **Mandatory Orion Fetch (Anti-Amnesia)**: The IDE does NOT auto-load `.orion`. If you need information about project architecture, state, or past decisions, you MUST mechanically execute a `grep_search` or view the relevant `.orion/` file before generating an answer. Standardize on high-performance keyword/regex searching across the whole repository instead of relying on external indexing engines.
 - **Cross-Domain Synthesis**: If a prompt triggers multiple conflicting skills (e.g., Frontend Layout + Database Mutability), do NOT treat them as isolated silos. You MUST explicitly synthesize a bridging pattern (e.g., via `api-contract`) in your thought process before executing.
 - **Ingest Triplet Duty**: Setelah menjalankan `orion_ops ingest`, jika output mengandung `[TRIPLET_REQUEST]`, anda WAJIB membaca setiap source file yang terdaftar, mengekstrak 3-5 triplet semantik, lalu menjalankan `orion_ops inject_triplets` dengan hasilnya.
@@ -61,19 +61,19 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/app-lifecycle.md` & `.agents/workflows/app-lifecycle.md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/workflows/app-lifecycle.md` |
 | **Legacy Migration, Brownfield, Onboard Existing, Migrate Project** | `.agents/workflows/project-migrate.md` |
-| **Feature Scaffold, New Model, Repository, Screen** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` |
+| **Feature Scaffold, New Model, Repository, Screen** | `.agents/workflows/app-lifecycle.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
 | **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
-| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md` |
-| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-tests.md` |
+| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` |
+| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
 | **API Contracts, Zod, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
 | **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/SKILL.md` & `.agents/workflows/orion-ops.md` |
-| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-debug.md` |
-| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-release.md` & `.agents/skills/project-operator/SKILL.md` & `.agents/workflows/prod-deploy.md` |
+| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` |
+| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/SKILL.md` & `.agents/workflows/prod-deploy.md` |
 | **Cost Analysis, Token Budget, LLM Costs** | `python .agents/scripts/orion.py scan tokens` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **Agent System Modification, .agents/ Edits, Rules** | `.agents/AGENTS_INDEX.md` & `.agents/skills/meta-agent-admin/SKILL.md` |
 | **Code Review, PR Review** | `.agents/workflows/audit-and-test.md` |
@@ -84,7 +84,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | **End-to-End Feature Creation (App Builder)** | `.agents/workflows/app-lifecycle.md` |
 | **Agent Self-Learning, Reflection, Pattern Synthesis** | `.agents/workflows/self-evolve.md` |
 
-*Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run.*
+*Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run. If a referenced canon file is missing (ghost routing), skip it and rely on generic protocols.*
 
 ## 4.5. STANDARD DEPLOYMENT (DEPLOY)
 
@@ -100,7 +100,7 @@ EVERY technical response MUST END with this block. It provides GPS orientation, 
 📋 **EVIDENCE**: [State the EXACT Exit Code or output status. If Exit Code > 0, you MUST NOT claim success.]
 🧠 **EVALUATION**: [If Exit Code > 0: Root cause analysis. If 0: Check transcript logs. If >3 tool errors during task, state "Execution ROUGH" else "Execution smooth".]
 🔮 **NEXT TASK**: [If ROUGH or Error: queue `/self-evolve`. If Success: Next workflow step or "None".]
-⚡ **[RECOMMENDED TIER: BUDGET|STANDARD|PREMIUM]** — [If task queued: Reply `[DO: YES]` to execute. If empty: Describe next task.]
+⚡ **[RECOMMENDED TIER: BUDGET|STANDARD|PREMIUM]** — [Describe next autonomous task or ask user to provide manual context.]
 ---
 ```
 
@@ -133,7 +133,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.8 (Active Router Pattern)*
+*Mandate Version: 0.0.10 (Knowledge Sync Pattern)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

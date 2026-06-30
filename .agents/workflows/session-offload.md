@@ -58,6 +58,7 @@ You MUST explicitly use the `write_to_file` tool to save the exact markdown bloc
 ## 4.5. Orion Session Log & Synthesis (The Write-Back Loop)
 - **Mandatory Action**: The agent MUST append a 3-line session learning or architectural decision summary to `.orion/episodic/session_history.md`.
 - **Purpose**: Closes the feedback loop to ensure project memory compounds over time.
+- **Session Pulse**: Execute `python .agents/scripts/orion.py consolidate session` to synthesize the session and trigger any pending Milestones.
 - Archive `.orion/working/handoff.md` content as an episodic entry in `.orion/log.md`.
 
 ```markdown

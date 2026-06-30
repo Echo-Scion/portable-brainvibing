@@ -47,16 +47,28 @@ class NanoBrain:
             return f"[DELEGATE_TO_CLOUD] Error: Required Medium Intelligence (or higher) for {feature_name}. Current tier is '{self.tier_name}'. Fallback gracefully to Cloud Agent LLM."
         return None
 
-    def ping(self):
+    def ping(self, capability="ANY"):
         agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         status_file = os.path.join(agents_dir, ".nanobrain_status")
+        state = "FULL" # Default if file doesn't exist
         if os.path.exists(status_file):
             try:
                 with open(status_file, "r") as f:
-                    if f.read().strip().upper() == "OFF":
-                        return False
+                    content = f.read().strip().upper()
+                    if content:
+                        state = content
+                    # Backwards compatibility: ON -> FULL
+                    if state == "ON": 
+                        state = "FULL"
             except Exception:
                 pass
+                
+        if state == "OFF":
+            return False
+            
+        if capability != "ANY" and state != "FULL":
+            if capability == "EMBED" and state != "EMBED": return False
+            if capability == "LLM" and state != "LLM": return False
 
         if psutil:
             try:
@@ -75,7 +87,7 @@ class NanoBrain:
             return False
 
     def generate(self, prompt, system="You are Orion NanoBrain, a strict JSON extracting router. You do NOT write code."):
-        if not self.ping():
+        if not self.ping(capability="LLM"):
             return None
         payload = {
             "model": self.model,
@@ -92,6 +104,33 @@ class NanoBrain:
         except Exception as e:
             print(f"[NanoBrain] generate error: {e}", file=sys.stderr)
             return None
+
+    def embed(self, text, model="nomic-embed-text"):
+        if not self.ping(capability="EMBED"):
+            return None
+        payload = {
+            "model": model,
+            "prompt": text
+        }
+        data = json.dumps(payload).encode('utf-8')
+        embed_endpoint = self.endpoint.replace("/api/generate", "/api/embeddings")
+        req = urllib.request.Request(embed_endpoint, data=data, headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                resp = json.loads(r.read().decode('utf-8'))
+                return resp.get('embedding', None)
+        except Exception:
+            # Silently degrade if embedding model missing or timeout
+            return None
+
+def cosine_similarity(v1, v2):
+    import math
+    if not v1 or not v2 or len(v1) != len(v2): return 0.0
+    dot_product = sum(x*y for x,y in zip(v1,v2))
+    mag1 = math.sqrt(sum(x*x for x in v1))
+    mag2 = math.sqrt(sum(y*y for y in v2))
+    if mag1 == 0 or mag2 == 0: return 0.0
+    return dot_product / (mag1 * mag2)
 
 
 
@@ -183,7 +222,7 @@ def get_ast_block(filepath, tag_name):
         pass
     return None
 
-def sync(intent):
+def sync(intent, delta=False):
     print(f" NEURO-LINK ENGAGED: Syncing Brain for intent: '{intent}'")
     keywords = extract_keywords(intent)
     print(f" Extracted Tokens: {keywords}")
@@ -198,93 +237,166 @@ def sync(intent):
     # Rute Semantic via LightRAG (SQLite FTS5 BM25)
     rules = []
     db_path = os.path.join(orion_dir, 'orion.db')
-    if os.path.exists(db_path):
-        import sqlite3
+    cache_path = os.path.join(orion_dir, 'working', 'cache.json')
+    query_str = " OR ".join([f'"{kw}"' for kw in keywords])
+
+    cache_data = {}
+    if os.path.exists(cache_path):
         try:
-            conn = sqlite3.connect(db_path)
-            conn.execute('PRAGMA busy_timeout=5000;')
-            c = conn.cursor()
-            # FTS5 BM25 query: Search for any of the keywords
-            query_str = " OR ".join([f'"{kw}"' for kw in keywords])
-            c.execute('SELECT path FROM pages_fts WHERE pages_fts MATCH ? ORDER BY rank LIMIT 3', (query_str,))
-            for row in c.fetchall():
-                path = row[0]
-                if "archive/" in path.replace("\\", "/").lower():
-                    basename = os.path.basename(path)
-                    dest = os.path.join(agents_dir, "rules", basename)
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cache_data = json.load(f)
+        except Exception:
+            pass
+
+    if query_str in cache_data and not delta:
+        print(f"  [CACHE HIT] Loaded semantic routes for '{query_str}' from RAM cache.")
+        rules = cache_data[query_str]
+    elif not delta:
+        # Generate Intent Embedding
+        query_embedding = None
+        try:
+            temp_nb = NanoBrain()
+            if temp_nb.ping(capability="EMBED"):
+                query_embedding = temp_nb.embed(intent)
+                if query_embedding:
+                    print("  [VECTOR SEARCH] Active. Embedding generated.")
+        except Exception:
+            pass
+
+        if os.path.exists(db_path):
+            import sqlite3
+            try:
+                conn = sqlite3.connect(db_path)
+                conn.execute('PRAGMA busy_timeout=5000;')
+                c = conn.cursor()
+                
+                scored_paths = {}
+                
+                # 1. FTS5 (Lexical)
+                c.execute('SELECT path FROM pages_fts WHERE pages_fts MATCH ? ORDER BY rank LIMIT 5', (query_str,))
+                for idx, row in enumerate(c.fetchall()):
+                    path = row[0]
+                    scored_paths[path] = 0.9 - (idx * 0.1) # Baseline lexical score
+
+                # 2. Vector Search (Semantic)
+                if query_embedding:
+                    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='page_embeddings'")
+                    if c.fetchone():
+                        c.execute("SELECT path, embedding_json FROM page_embeddings")
+                        vector_results = []
+                        for row in c.fetchall():
+                            path = row[0]
+                            try:
+                                emb = json.loads(row[1])
+                                sim = cosine_similarity(query_embedding, emb)
+                                if sim > 0.4: # Context semantic threshold
+                                    vector_results.append((path, sim))
+                            except Exception:
+                                pass
+                        
+                        vector_results.sort(key=lambda x: x[1], reverse=True)
+                        for path, sim in vector_results[:3]:
+                            if path in scored_paths:
+                                scored_paths[path] += sim # Hybrid boost
+                            else:
+                                scored_paths[path] = sim
+                                
+                # Resolve final top 3 paths
+                final_paths = sorted(scored_paths.keys(), key=lambda k: scored_paths[k], reverse=True)[:3]
+
+                for path in final_paths:
+                    if "archive/" in path.replace("\\", "/").lower():
+                        basename = os.path.basename(path)
+                        dest = os.path.join(agents_dir, "rules", basename)
+                        try:
+                            import shutil
+                            if os.path.exists(path):
+                                shutil.copy(path, dest)
+                                print(f"  [AMNESIA RECALL] JIT Retrieved rule '{basename}' from archive!")
+                            rules.append(dest)
+                        except Exception as e:
+                            print(f"  [AMNESIA ERROR] Could not recall {basename}: {e}")
+                    else:
+                        rules.append(path)
+                        
+                    # --- IDE-4: Smart Memory Compression ---
                     try:
-                        import shutil
-                        if os.path.exists(path):
-                            shutil.copy(path, dest)
-                            print(f"  [AMNESIA RECALL] JIT Retrieved rule '{basename}' from archive!")
-                        rules.append(dest)
-                    except Exception as e:
-                        print(f"  [AMNESIA ERROR] Could not recall {basename}: {e}")
-                else:
-                    rules.append(path)
-            conn.close()
-        except Exception as e:
-            print(f"  [ERROR] LightRAG Query Failed: {e}")
+                        c.execute("UPDATE pages SET access_count = IFNULL(access_count, 0) + 1, last_accessed = datetime('now') WHERE path = ?", (path,))
+                        conn.commit()
+                    except Exception:
+                        pass
+                conn.close()
+    
+                cache_data[query_str] = rules
+                with open(cache_path, "w", encoding="utf-8") as f:
+                    json.dump(cache_data, f)
+            except Exception as e:
+                print(f"  [ERROR] LightRAG Query Failed: {e}")
             
     wiki_nodes = search_files(orion_dir, keywords)
     saas_nodes = search_files(context_dir, keywords)
     
     print("\n" + "="*60)
-    print(" UNIFIED CONTEXT PACKET (LIGHTRAG-HARMONIZED)")
+    if delta:
+        print(" DELTA CONTEXT PACKET (LIGHTRAG-HARMONIZED) - Continuous RAG")
+    else:
+        print(" UNIFIED CONTEXT PACKET (LIGHTRAG-HARMONIZED)")
     print("="*60)
     
-    # --- Brainvibing Injection (RULES_INDEX.md line-by-line) ---
-    rules_index_path = os.path.join(agents_dir, "rules", "RULES_INDEX.md")
-    if os.path.exists(rules_index_path):
-        with open(rules_index_path, "r", encoding="utf-8") as f:
-            rules_content = f.read()
-            
-        print("\n##  Standard Operating Procedures (Micro-Rules)")
-        matches = []
-        nb = None
-        try:
-            temp_nb = NanoBrain()
-            if temp_nb.ping():
-                nb = temp_nb
-        except Exception:
-            pass
-            
-        for line in rules_content.split('\n'):
-            if not line.strip() or line.startswith('#'):
-                continue
-            line_lower = line.lower()
-            
-            # Global rules always apply
-            if "global" in line_lower:
-                matches.append(line.strip())
-                continue
+    nb = None
+    if not delta:
+        # --- Brainvibing Injection (RULES_INDEX.md line-by-line) ---
+        rules_index_path = os.path.join(agents_dir, "rules", "RULES_INDEX.md")
+        if os.path.exists(rules_index_path):
+            with open(rules_index_path, "r", encoding="utf-8") as f:
+                rules_content = f.read()
                 
-            is_match = False
-            # Semantic filter via NanoBrain
-            if nb:
-                sys_prompt = "You are a binary classifier. Answer ONLY with YES or NO. Is the RULE relevant to the INTENT?"
-                prompt = f"INTENT: {intent}\nRULE: {line.strip()}\nRelevant (YES/NO):"
-                try:
-                    resp = nb.generate(prompt, system=sys_prompt)
-                    if resp and "YES" in resp.upper():
-                        is_match = True
-                except Exception: pass
+            print("\n##  Standard Operating Procedures (Micro-Rules)")
+            matches = []
+            nb = None
+            try:
+                temp_nb = NanoBrain()
+                if temp_nb.ping():
+                    nb = temp_nb
+            except Exception:
+                pass
                 
-            # Fallback to lexical
-            if not is_match and any(kw in line_lower for kw in keywords):
-                is_match = True
+            for line in rules_content.split('\n'):
+                if not line.strip() or line.startswith('#'):
+                    continue
+                line_lower = line.lower()
                 
-            if is_match:
-                matches.append(line.strip())
-                
-        if matches:
-            for m in matches[:5]:
-                print(f"  {m}")
-        else:
-            print("  No specific standards matched. Proceeding with global baseline.")
-    # ---------------------------------------------------------
+                # Global rules always apply
+                if "global" in line_lower:
+                    matches.append(line.strip())
+                    continue
+                    
+                is_match = False
+                # Semantic filter via NanoBrain
+                if nb:
+                    sys_prompt = "You are a binary classifier. Answer ONLY with YES or NO. Is the RULE relevant to the INTENT?"
+                    prompt = f"INTENT: {intent}\nRULE: {line.strip()}\nRelevant (YES/NO):"
+                    try:
+                        resp = nb.generate(prompt, system=sys_prompt)
+                        if resp and "YES" in resp.upper():
+                            is_match = True
+                    except Exception: pass
+                    
+                # Fallback to lexical
+                if not is_match and any(kw in line_lower for kw in keywords):
+                    is_match = True
+                    
+                if is_match:
+                    matches.append(line.strip())
+                    
+            if matches:
+                for m in matches[:5]:
+                    print(f"  {m}")
+            else:
+                print("  No specific standards matched. Proceeding with global baseline.")
+        # ---------------------------------------------------------
     
-    if skills or rules:
+    if (skills or rules) and not delta:
         print("\n##  Motor Cortex (Rules & Skills)")
         for r in (rules + skills)[:3]:
             rel_path = os.path.relpath(r, workspace_dir)
@@ -339,9 +451,11 @@ def sync(intent):
     # -----------------------------------
     
     # --- NanoBrain Active Ping ---
-    if nb and nb.ping():
-        print("\n## [NanoBrain] NanoBrain (Ollama) is ONLINE")
+    if nb and nb.ping(capability="LLM"):
+        print("\n## [NanoBrain] NanoBrain (Ollama) is ONLINE (LLM Active)")
         print("  [CAPABILITY]: You can use `python .agents/scripts/orion.py brain nanobrain vibe_check <text>` for instant UI aesthetic validation without consuming major tokens.")
+    else:
+        print("\n## [NanoBrain] [WARNING] NanoBrain LLM features disabled — (Status OFF or EMBED-ONLY)")
             
     # --- Working Memory (Holographic Handoff) ---
     handoff_path = os.path.join(orion_dir, "working", "handoff.md")
@@ -460,9 +574,10 @@ def main():
     
     sync_parser = subparsers.add_parser('sync', help='Sync brain context')
     sync_parser.add_argument('intent', type=str, help='The task or intent')
+    sync_parser.add_argument('--delta', action='store_true', help='Only fetch new info without pulling full global rules')
     
     nb_parser = subparsers.add_parser('nanobrain', help='Execute NanoBrain tasks')
-    nb_parser.add_argument('action', choices=['vibe_check', 'extract', 'compress', 'draft', 'on', 'off', 'status'], help='Action to perform')
+    nb_parser.add_argument('action', choices=['vibe_check', 'extract', 'compress', 'draft', 'on', 'off', 'embed_only', 'llm_only', 'status'], help='Action to perform')
     nb_parser.add_argument('text', nargs='?', type=str, default='', help='Input text')
     
     page_parser = subparsers.add_parser('page', help='Ephemeral context slicer')
@@ -470,21 +585,29 @@ def main():
     
     args = parser.parse_args()
     if args.command == 'sync':
-        sync(args.intent)
+        sync(args.intent, getattr(args, 'delta', False))
     elif args.command == 'nanobrain':
         agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         status_file = os.path.join(agents_dir, ".nanobrain_status")
         
         if args.action == 'on':
-            with open(status_file, "w") as f: f.write("ON")
-            print("🟢 NanoBrain is now ENABLED.")
+            with open(status_file, "w") as f: f.write("FULL")
+            print("🟢 NanoBrain is now FULLY ENABLED (LLM + EMBED).")
             return
         elif args.action == 'off':
             with open(status_file, "w") as f: f.write("OFF")
             print("🔴 NanoBrain is now DISABLED.")
             return
+        elif args.action == 'embed_only':
+            with open(status_file, "w") as f: f.write("EMBED")
+            print("🟢 NanoBrain is now EMBED-ONLY (Vector Search Active, Generative AI Off).")
+            return
+        elif args.action == 'llm_only':
+            with open(status_file, "w") as f: f.write("LLM")
+            print("🟢 NanoBrain is now LLM-ONLY (Generative AI Active, Vector Search Off).")
+            return
         elif args.action == 'status':
-            state = "ON"
+            state = "FULL"
             if os.path.exists(status_file):
                 with open(status_file, "r") as f: state = f.read().strip().upper()
             print(f"NanoBrain Toggle: {state}")

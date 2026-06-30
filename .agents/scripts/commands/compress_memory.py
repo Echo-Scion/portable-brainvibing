@@ -1,7 +1,16 @@
 import os
 import re
+import sys
 import shutil
 from datetime import datetime
+
+# Force utf-8 encoding for standard output to avoid UnicodeEncodeError on Windows
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
 
 # Configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -143,8 +152,69 @@ def compress_tasks():
     return compressed
             
 
+def check_compression_eligibility():
+    """
+    IDE-4: Smart Memory Compression with Eligibility Rules.
+    Checks orion.db to report which pages/nodes are eligible for compression
+    and which are protected. Inspired by Cloudflare's compression eligibility.
+    """
+    db_path = os.path.join(WORKSPACE_DIR, '.orion', 'orion.db')
+    if not os.path.exists(db_path):
+        print("[SKIP] No orion.db found — eligibility check skipped.")
+        return
+    
+    import sqlite3
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Check if access_count column exists
+    cursor.execute("PRAGMA table_info(pages)")
+    cols = [r[1] for r in cursor.fetchall()]
+    if 'access_count' not in cols:
+        print("[SKIP] pages.access_count not yet migrated — skipping eligibility filter.")
+        conn.close()
+        return
+    
+    IMPORTANCE_THRESHOLD = 4
+    MIN_ACCESS_COUNT = 2
+    MIN_AGE_DAYS = 14
+    
+    # Find eligible pages
+    cursor.execute("""
+        SELECT path, access_count, importance, updated 
+        FROM pages 
+        WHERE (importance IS NULL OR importance < ?)
+        AND (access_count IS NULL OR access_count < ?)
+        ORDER BY updated ASC
+    """, (IMPORTANCE_THRESHOLD, MIN_ACCESS_COUNT))
+    
+    eligible = cursor.fetchall()
+    
+    # Find protected pages
+    cursor.execute("""
+        SELECT path, access_count, importance 
+        FROM pages 
+        WHERE importance >= ? OR access_count >= ?
+    """, (IMPORTANCE_THRESHOLD, MIN_ACCESS_COUNT))
+    
+    protected = cursor.fetchall()
+    
+    print(f"[ELIGIBILITY] {len(eligible)} pages eligible for compression, {len(protected)} protected.")
+    
+    if eligible:
+        for path, ac, imp, updated in eligible[:5]:
+            print(f"  📋 {path} (access={ac or 0}, importance={imp or 1})")
+    
+    if protected:
+        for path, ac, imp in protected[:5]:
+            print(f"  🛡️ {path} (access={ac or 0}, importance={imp or 1}) — PROTECTED")
+    
+    conn.close()
+
+
 def compress_memory():
     print("[CLEAN] Surgical Memory Compression starting...")
+    check_compression_eligibility()
     generate_fractal_shorthand()
     handoff_compressed = compress_handoff()
     tasks_compressed = compress_tasks()
@@ -155,4 +225,4 @@ def compress_memory():
         print(f"[OK] Memory compression complete. Stale memories moved to {ARCHIVE_DIR}")
 
 if __name__ == "__main__":
-    compress_memory()
+    compress_memory()

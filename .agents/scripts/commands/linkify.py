@@ -70,7 +70,9 @@ def main():
         os.path.join(agents_dir, "rules"),
         os.path.join(agents_dir, "skills"),
         os.path.join(agents_dir, "workflows"),
-        os.path.join(project_root, "context")
+        os.path.join(project_root, "context"),
+        os.path.join(project_root, ".orion", "sources"),
+        os.path.join(project_root, ".orion", "matrix")
     ]
     
     all_md_files = {}

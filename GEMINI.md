@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.9 - Router Pattern) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.10 - Knowledge Sync) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -83,8 +83,11 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | **Test-Driven Development (TDD), Writing Tests** | `.agents/workflows/audit-and-test.md` |
 | **End-to-End Feature Creation (App Builder)** | `.agents/workflows/app-lifecycle.md` |
 | **Agent Self-Learning, Reflection, Pattern Synthesis** | `.agents/workflows/self-evolve.md` |
+| **Agent Identity, Onboarding, Personality, Bootstrap** | `context/AGENT_IDENTITY.md` |
+| **Temporal Pulse, Daily Summary, Weekly Synthesis** | `.agents/workflows/temporal-pulse.md` |
+| **Worker Delegation, Sub-agent, Task Splitting** | `.agents/skills/worker-delegate/SKILL.md` |
 
-*Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run.*
+*Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run. If a referenced canon file is missing (ghost routing), skip it and rely on generic protocols.*
 
 ## 4.5. STANDARD DEPLOYMENT (DEPLOY)
 
@@ -133,7 +136,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.9 (Active Router Pattern)*
+*Mandate Version: 0.0.10 (Knowledge Sync Pattern)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

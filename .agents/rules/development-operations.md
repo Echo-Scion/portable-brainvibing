@@ -13,7 +13,7 @@ activation: always on
 > - **Format**: `<type>(<scope>): <subject>` (feat, fix, refactor, perf, test, docs, chore, ci)
 > - **Branching**: `develop` (integration), `feat/*`, `fix/*`. PR to `develop`.
 > - **Pre-Commit Checks**: Run tests & lint (`flutter test`, `dart analyze`, `npm test`).
-> - **Destructive Commands**: (`git reset --hard`, `git push --force`) require explicit `[DO: YES]`.
+> - **Destructive Commands**: (`git reset --hard`, `git push --force`) require explicit mechanical IDE feedback block.
 > - **Bypass Git**: If the project is not a git repository (e.g., no `.git` folder), skip all git commands to prevent `not a git repository` errors.
 
 ## 1. Commit Message Format (Caveman Protocol)

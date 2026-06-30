@@ -17,8 +17,12 @@ This directory contains the core behavioral and operational constraints for the 
 | `security-guardrails.md` | Absolute [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) constraints, offensive zero-trust audits, and Red Team exploit generation. |
 | `web-api-standards.md` | Frontend UI/UX constraints (Liquid Glass) and strict backend data contracts (Zod, OpenAPI). |
 | `development-operations.md` | Git workflows, PR reviews, Auto-Harness validation pipelines, and Context Management. |
+| `prompting-patterns.md` | Advanced prompting patterns for sub-agent orchestration and determinism. |
 | `antigravity-rtk-rules.md` | Rules for interacting with the RTK context proxy. |
 | `performance-optimization.md` | Decision trees for performance optimization, token usage, and Bolt-level speed enforcement. |
+| `standards/fsm-protocol.md` | Crash-proof formal state machine protocol for multi-step tasks. |
+| `contradiction-protocol.md` | Protocol for resolving colliding predicates and rule conflicts. |
+| `memory-hygiene.md` | Rules for episodic memory compression and GraphRAG garbage collection. |
 
 ---
 *Policy: If a new rule is added, it MUST be indexed here and MUST include a frontmatter with `description` and `activation` tags.*

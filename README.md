@@ -1,7 +1,7 @@
 # 🧠 Portable Brainvibing — Plug and Play AI Infrastructure
 
 ![Foundation CI](https://github.com/Echo-Scion/Portable-Brainvibing/actions/workflows/foundation-ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-v0.0.1-blue)
+![Version](https://img.shields.io/badge/version-v0.0.11-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AI Compatible](https://img.shields.io/badge/AI-Gemini%20%7C%20Claude%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Windsurf-orange)
 
@@ -46,7 +46,7 @@ We structurally ban polite AI fluff. The AI is forced to speak in terse, fragmen
 Instead of forcing the AI to manually search for rules or parse fragile CLI outputs, the system relies on structured IDE Agent Delegation. Your IDE AI explicitly triggers specialized CLI tools via standard `run_command` protocols. The standard CLI (`orion.py`) acts as the primary interface for both background cron-jobs and human/AI-driven task orchestration.
 
 ### 3. 📡 The Omni-Buffer (Context Hook)
-To prevent the AI from hallucinating about which file the user is currently looking at, we utilize the `context.json` Omni-Buffer. A background hook silently writes the active IDE tab, cursor position, and any terminal errors to this buffer. The AI reads it magically on its first turn—no manual copy-pasting required.
+To prevent the AI from hallucinating about which file the user is currently looking at, we utilize the `context.json` Omni-Buffer. A background hook silently writes the active IDE tab and any terminal errors to this buffer. The AI reads it magically on its first turn—no manual copy-pasting required.
 
 ### 4. ⚔️ Adversarial Twin Protocol (Brute-Force Loops)
 The AI is forced into an automated attack/defend cycle:
@@ -63,18 +63,25 @@ Verbose terminal logs (e.g., `npm install` or `cargo build`) flood the AI's cont
 ### 6. 🧬 The Self-Evolve Engine (Darwinian Mutation)
 The ecosystem learns autonomously through a strictly mechanical evolution loop:
 - **Heartbeat Cron**: Forces evolution based on error thresholds, defeating Agentic Amnesia.
-- **Fitness Benchmarker**: Forks rules (V1 vs V2) and runs automated `evals.json` to prove V2 is superior before promotion.
+- **Contradiction Engine**: Automatically detects and resolves colliding knowledge graphs.
+- **Activity-Based Temporal Pulse**: Replaces calendar-based summaries with activity-based epochs (Session/Milestone/Epoch), synthesizing memories cleanly even on paused projects.
 - **Evolution Genome**: Every mutation is logged to an append-only JSONL ledger, providing a genetic history of the brain's divergence.
 
-### 7. 🦖 The LightRAG Quad-Core
-To bypass heavy vector databases and bloated background daemons, we use a lightweight quad-core setup:
-- **SQLite FTS5**: Super lightweight, high-performance local full-text search.
-- **Relational Triplet Graph**: Explicit semantic linking of code symbols and files under `.orion/`.
-- **Dynamic Local LLM Tiers**: Natively integrated with Ollama. At deployment, users configure their local AI hardware capabilities (`Low`, `Medium`, `High` intelligence). The system dynamically gates features (like code generation vs simple vibe checks) based on this tier to physically prevent Agentic Hallucination, gracefully falling back to Cloud Agents when required.
+### 7. 🦖 True LightRAG (Graph + Vector + Lexical)
+To bypass heavy vector databases and bloated background daemons, we use a hybrid semantic engine requiring zero C-extensions:
+- **SQLite FTS5 + JSON Vectors**: Fast lexical search combined with native JSON vector embeddings. Cosine similarity is calculated in pure Python `math` to ensure 100% OS portability without `sqlite-vss` compilation errors.
+- **Relational Triplet Graph**: Explicit semantic linking of code symbols. Employs a Hybrid Strategy: shallow AST extraction via Python, and deep logical extraction delegated to Cloud LLMs.
+- **Granular State Routing (NanoBrain)**: Natively integrated with Ollama (`nomic-embed-text` and `qwen2.5:0.5b`). Users can strictly configure state (e.g., `EMBED_ONLY`) to get world-class vector search while keeping generative local LLMs unloaded, saving massive amounts of RAM during development.
 - **Universal OS-Agnostic Execution**: Every component runs natively via standard `python` without hardcoded aliases, ensuring 100% plug-and-play across Windows, macOS, and Linux virtual environments.
+- **Native Obsidian Vault Integration**: The entire `.orion/` graph and `context/` directory are physically structured to be readable as an Obsidian Vault. The `linkify.py` script automatically injects `[[wikilinks]]` to bridge technical files with human notes.
+- **Raw-to-Wiki Pipeline**: Unstructured data (meeting notes, raw text) dumped into `context/raw/` is automatically processed, tagged, and migrated to structured markdown in `context/wiki/` via the lightweight `raw_ingest.py` worker.
+- **Proactive Git Hooks**: The Brain Graph does not wait for manual updates. A `.git/hooks/post-commit` hook automatically triggers `python .agents/scripts/orion.py brain sync` to ensure the AI's internal state is always synchronized with the latest commits.
 
 ### 8. 🌐 IDE-Agnostic Native Tooling
 The framework avoids vendor lock-in by utilizing an abstract tooling policy. Whether running inside Antigravity, Cursor, Copilot, or Windsurf, the AI is instructed to dynamically map abstract workflows ("ask the user", "execute long task") to its specific native slash-commands (like `/grill-me`, `/goal`, or `Composer Ask`).
+
+### 9. 🛡️ Crash-Proof Formal State Machine
+The `.agents` architecture completely isolates **static environment data** from **active execution state**. A formal state machine engine (`execution_state.json`) tracks AI tasks and phase transitions. If the IDE crashes midway through a 20-file generation task, the Omni-Buffer hook catches the dangling state on the next boot and instantly instructs the AI to resume exactly where it crashed.
 
 ---
 
@@ -110,6 +117,8 @@ The ecosystem is split conceptually to allow infinite scaling across any tech st
    The baseline truth. Contains the core pipelines, the Caveman Protocol, DevSecOps Python scripts, and the overarching AI logic. 
 2. **Project Workspace** (The Inherited Layer)
    The active repository. It inherits the Universal rules but allows injection of specific framework canons (e.g., Flutter UI rules, React testing protocols) without polluting the global workflows.
+3. **`context/`** (The Second Brain / Storage)
+   The human-facing unstructured knowledge base. Contains `raw/` for data dumping and `wiki/` for structured markdown. Completely decoupled from `.agents` to maintain portability, yet heavily utilized by `.orion` for context enrichment.
 
 ```text
 .agents/
@@ -121,6 +130,14 @@ The ecosystem is split conceptually to allow infinite scaling across any tech st
 ├── templates/           # DRY source for generating IDE Master BIOS files
 └── metrics/             # Telemetry, evals, and compliance testing
 ```
+
+### The Hub-and-Spoke Model
+
+The framework operates as a distributed architecture to share knowledge across all your codebases:
+
+- **The Hub (Foundation)**: Your global Second Brain storing universal engineering laws and skills.
+- **The Spokes (Target Projects)**: Local `.agents` folders deployed to your apps, remaining tethered to the Hub.
+- **Cross-Project Sync**: If the AI learns a new optimization in Project A, `orion.py foundation push-upstream` syncs it back to the Hub. When you deploy to Project B, it instantly inherits those learnings.
 
 ---
 
@@ -171,4 +188,4 @@ This foundation synthesizes principles from top open-source optimization tools:
 **License**: MIT
 
 ---
-**Note**: No longer maintained. Please support with a star! 
+**Note**: Maintained as I used this. Please support with a star! 

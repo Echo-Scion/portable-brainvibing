@@ -17,12 +17,12 @@ VIOLATIONS_CATALOG = {
     "drop_table": {
         "pattern": r"\bDROP\s+TABLE\b",
         "severity": "CRITICAL",
-        "fix": "Ensure DROP TABLE is intentional. Consider soft-delete patterns instead. Requires [DO: YES] gate.",
+        "fix": "Ensure DROP TABLE is intentional. Consider soft-delete patterns instead. Requires explicit manual confirmation.",
     },
     "drop_column": {
         "pattern": r"\bDROP\s+COLUMN\b",
         "severity": "HIGH",
-        "fix": "Dropping a column is irreversible. Back up data first. Requires [DO: YES] gate.",
+        "fix": "Dropping a column is irreversible. Back up data first. Requires explicit manual confirmation.",
     },
     "delete_without_where": {
         "pattern": r"\bDELETE\s+FROM\s+\w+\s*;",
@@ -32,7 +32,7 @@ VIOLATIONS_CATALOG = {
     "truncate": {
         "pattern": r"\bTRUNCATE\b",
         "severity": "CRITICAL",
-        "fix": "TRUNCATE wipes all rows irreversibly. Requires [DO: YES] gate.",
+        "fix": "TRUNCATE wipes all rows irreversibly. Requires explicit manual confirmation.",
     },
     "rls_not_enabled": {
         "pattern": r"CREATE\s+TABLE",

@@ -6,7 +6,7 @@ import argparse
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# The script functions as a CI/CD Gatekeeper for the "Creative Technologist"
+# The script functions as a Manual Aesthetic Lint for the "Creative Technologist"
 # It specifically rejects generic solutions in UI files to enforce high-fidelity output.
 
 def scan_file_for_aesthetics(filepath):
@@ -54,7 +54,7 @@ def scan_file_for_aesthetics(filepath):
         return True
 
 def run_audit(target_dir="."):
-    print("🎨 Initiating Aesthetic CI/CD Gatekeeper...")
+    print("🎨 Initiating Manual Aesthetic Lint...")
     files_to_scan = []
     
     for root, _, files in os.walk(target_dir):

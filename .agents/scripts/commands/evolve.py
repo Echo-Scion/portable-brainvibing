@@ -67,7 +67,7 @@ def cmd_bench(args):
                     except: pass
                     
         if today_mutations >= daily_cap:
-            print(f"[BENCH ABORT] Daily mutation cap ({daily_cap}) reached. Skipping.")
+            print(f"[BENCH STOP] Daily mutation cap ({daily_cap}) reached. Skipping.")
             return False
 
     evals_path = os.path.join(base_dir, "evals", "evals.json")

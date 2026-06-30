@@ -44,7 +44,7 @@ When you audit the `.agents/` ecosystem, you must evaluate it against this biolo
    - **`scripts/orion.py`**: The Neuro-Link Engine. Hosts the **NanoBrain** (<500MB LLM via Ollama) for GraphRAG extraction, Vibe Checks, and Caveman Compression.
 3. **Pre-Frontal Cortex (Working Memory)**: The `.orion/matrix/` and `.orion/working/` directories across 4 Lean Pillars.
 4. **Tactical Attention (Focus Mechanism)**: `TASK_PLANNING.template.md` and `.orion/task.md`. Forces "Atomic Tasks" and explicit context reads.
-5. **Hippocampus (The LightRAG Triad)**: 
+5. **Hippocampus (FTS5 Semantic Triad)**: 
    - **`MEMORY.md`**: Episodic scratchpad.
    - **`.orion/` & `orion.db`**: Semantic [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) graph (SQLite FTS5 + Triplet Graph + NanoBrain Extractor). Heavy vector embeddings are strictly forbidden.
 6. **Neuroplasticity (The Learning Loop)**: `workflows/[self-evolve](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[self-evolve.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/self-evolve.md)).md`. Reads `LEARNINGS.md`, synthesizes rules, A/B tests via `evals/`, stores back via `orion_ops.py`.

@@ -110,12 +110,13 @@ It operates as a **State Machine**. Do not blindly execute steps 1 to 5 sequenti
 - [ ] **Draft Shape**: Write a Shape Document (e.g., in `.orion/specs/`) outlining the scope, visual/UX goals, references, and deployed standards.
 - [ ] **Master Update**: Add the feature summary to `.orion/[BLUEPRINT](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/[BLUEPRINT.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/BLUEPRINT.md)).md` and `01_Product/[ROADMAP](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/01_Product/[ROADMAP.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/01_Product/ROADMAP.md)).md`.
 - [ ] **Registry Expansion**: Create a new Prefix-based detail file (e.g., `01_Product/Rev_Payment_Gateways.md`) if the domain is new or requires high depth.
-- [ ] **Approval**: Present the "Shape Spec" to the user for approval `[DO: YES]` before writing any code.
+- [ ] **Approval**: Present the "Shape Spec" to the user for approval via IDE Artifact RequestFeedback before writing any code.
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: view_file .agents/skills/ui-finish/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md`
 
 ## 2. AESTHETIC DESIGN (LIQUID GLASS)
 - [ ] **Vibe Check**: You MUST execute `view_file .agents/skills/ui-finish/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` NOW to design the UI layout and micro-interactions.
-- [ ] **Component Blueprint**: Define the `{{UI_COMPONENT}}` tree and design tokens in `02_Creative/[STYLE_GUIDE](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/02_Creative/[STYLE_GUIDE.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/02_Creative/STYLE_GUIDE.md)).md`.
+- [ ] **Component Blueprint (DESIGN.md)**: Define the visual identity in a `DESIGN.md` file (combining YAML tokens and Markdown prose) as specified in `ui-finish`.
+- [ ] **Style Guide Sync**: Sync the `DESIGN.md` properties into `02_Creative/[STYLE_GUIDE](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/02_Creative/[STYLE_GUIDE.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/02_Creative/STYLE_GUIDE.md)).md`.
 - [ ] **MANDATORY BENTO-BOX PAUSE**: You MUST run UI linting/testing before proceeding to Step 3. Do not batch Step 2 and Step 3 together.
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Execute lint and proceed to data-logic`
 

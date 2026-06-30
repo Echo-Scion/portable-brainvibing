@@ -15,7 +15,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-If any of these fail, ABORT the release and fix the errors first.
+If any of these fail, STOP the release and fix the errors first.
 
 ## 2. Build Commands
 

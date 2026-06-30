@@ -14,7 +14,7 @@ description: Step-by-step procedures for operating the Brain Graph (Ingest, Quer
    - `[CONTRADICT]`, `[VIOLATION]`: Pause and emit a `TRIAGE_REPORT`. Wait for user approval.
 5. Create/update files in `.orion/` with Typed Relationships in frontmatter.
 6. **CRITICAL ACTION (Agent-OS Index)**: If the ingested file is a rule or standard, you MUST append it to `.agents/rules/[RULES_INDEX](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[RULES_INDEX.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/RULES_INDEX.md)).md` NOW. You MUST automatically generate a single-sentence description. If no description can be perfectly inferred, explicitly ask the user: *"New standard needs an index entry. Suggested description: [draft]. Accept this description? (yes / or type a better one)"*. Keep descriptions extremely lightweight to aid AI context routing (e.g., `- path/to/rule.md: Enforces Zod schemas`).
-7. **CRITICAL ACTION**: Execute `run_command` with `python .agents/scripts/orion.py orion_ops ingest <path>` NOW to build the mechanical graph and copy sources. You MUST check the exit code and terminal output. If it fails or warns, ABORT and log the error.
+7. **CRITICAL ACTION**: Execute `run_command` with `python .agents/scripts/orion.py orion_ops ingest <path>` NOW to build the mechanical graph and copy sources. You MUST check the exit code and terminal output. If it fails or warns, STOP execution and log the error.
 
 ## 2. `/orion-lint`
 1. Read `.orion/sources/` to get all registered `source_sha256`.

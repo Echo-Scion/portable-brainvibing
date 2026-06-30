@@ -4,7 +4,7 @@ Before investigating ANY runtime bug, crash, or unexpected behavior, the agent M
 
 ## Hard Gate Checklist
 
-The following 4 items MUST be present before writing a single line of fix code. If ANY item is missing, **ABORT** the debug attempt and request the missing data from the user.
+The following 4 items MUST be present before writing a single line of fix code. If ANY item is missing, **STOP** the debug attempt and request the missing data from the user.
 
 ### 1. Error Signal (MANDATORY)
 At least ONE of:
@@ -39,7 +39,7 @@ At least ONE of:
 |:-------------------|:-------|
 | All 4 items present | ✅ Proceed to Root Cause Analysis (5-Why Script) |
 | 3 of 4 present | ⚠️ Proceed with caution. Document what's missing in the task log. |
-| 2 or fewer present | 🛑 ABORT. Request missing evidence. Do NOT guess. |
+| 2 or fewer present | 🛑 STOP. Request missing evidence. Do NOT guess. |
 | "Cannot reproduce" declared | 🔍 Switch to Log Analysis mode — request production logs, metrics dashboards, or APM traces instead of local repro. |
 
 ## Post-Gate: Investigation Protocol
