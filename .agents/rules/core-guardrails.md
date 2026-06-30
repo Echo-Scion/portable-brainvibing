@@ -2,8 +2,8 @@
 description: Core agent behavioral protocols, interaction standards, and operational constraints.
 activation: always on
 
-version: 0.0.9
-last_updated: 2026-06-26
+version: 0.0.11
+last_updated: 2026-06-30
 ---
 # Agent Protocols
 

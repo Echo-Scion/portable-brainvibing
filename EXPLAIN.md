@@ -285,8 +285,8 @@ The `.orion` Knowledge Base is not just a vector database or a simple keyword se
 
 ### 8.2. Granular State Routing (NanoBrain)
 To support massive vector intelligence on laptops with limited RAM, NanoBrain features **Granular State Control**. Users can selectively activate capabilities without loading heavy local generative LLMs:
-- `brain nanobrain on`: **FULL Mode**. Generative LLM (`qwen2.5:0.5b`) and Vector Embeddings (`nomic-embed-text`) are both active.
-- `brain nanobrain embed_only`: **Vector-Only Mode**. Ideal for coding. Gives you world-class semantic search without eating RAM for generative AI.
+- `brain nanobrain on`: **FULL Mode**. Generative LLM (via Ollama) and Vector Embeddings (`nomic-embed-text`) are both active. *Note: We do not force local "dumb" models for complex reasoning. Deep extraction is always delegated to Cloud.*
+- `brain nanobrain embed_only`: **Vector-Only Mode (Recommended)**. Gives you world-class semantic search via `nomic-embed-text` without eating RAM for generative AI. This is the **Graceful Degradation** philosophy in action.
 - `brain nanobrain llm_only`: Vector logic disabled, generative AI active.
 - `brain nanobrain off`: Complete fallback to pure FTS5 Lexical Search.
 

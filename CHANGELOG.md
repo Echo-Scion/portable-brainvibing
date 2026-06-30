@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.11] - 2026-06-30
+### Changed
+- **Architecture**: Upgraded to **True LightRAG Engine** (Dual-Retrieval Graph + Vector + Lexical). Added native pure Python Cosine Similarity, storing `nomic-embed-text` vectors as JSON arrays in SQLite. 
+- **Granular State Routing**: Implemented `EMBED_ONLY`, `FULL`, `LLM_ONLY`, and `OFF` capabilities in NanoBrain to enforce **Graceful Degradation**. Prevents local "dumb" 0.5b LLMs from polluting complex logical extraction.
+
+## [0.0.10] - 2026-06-30
+### Changed
+- **Master BIOS**: Updated `GEMINI.md` to `0.0.10 - Knowledge Sync`. Added Sequential Tool Ban, Auto-Pilot Injector hook (`pre-agent-wake.py`), Darwinian Heartbeat, and strict JIT Routing table.
+- **System Defense**: Added strict Anti-Affirmation and Circuit Breaker inline micro-rules.
+
 ## [0.0.9] - 2026-06-30
 ### Changed
 - **Ecosystem Functional Audit**: Validated structural health and scripting functionalities.
