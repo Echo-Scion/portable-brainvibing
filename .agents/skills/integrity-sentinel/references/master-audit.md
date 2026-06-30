@@ -69,7 +69,7 @@ In Deep mode, also watch for duplicates that span multiple parts (e.g. the same 
 
 Score each finding's **impact (1-10)** based on real-world consequence:
 
-- **10** → critical (silent revenue loss, broken core flow, security.md) risk)
+- **10** → critical (silent revenue loss, broken core flow, [[security]]) risk)
 - **7-9** → major impact (preventing customer-facing bugs, hours saved, big code reduction)
 - **4-6** → meaningful improvement, worth doing
 - **1-3** → minor cleanup, small win

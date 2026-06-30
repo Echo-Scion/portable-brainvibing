@@ -5,7 +5,7 @@
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
 
-**CRITICAL**: You are FORBIDDEN from using any modifying tools (`run_command`, `write_to_file`, `replace_file_content`, etc.) until you have explicitly executed a `view_file` on `.agents/rules/core-guardrails.md` in the current session. Zero exceptions.
+**CRITICAL**: You are FORBIDDEN from using any modifying tools (`run_command`, `write_to_file`, `replace_file_content`, etc.) until you have explicitly executed a `view_file` on `.agents/rules/core-guardrails.md` in the current session. Furthermore, you MUST set `RequestFeedback=true` mechanically on your `implementation_plan.md` artifact before making any file modifications. Zero exceptions.
 
 ## 1.1. INTEGRITY FLAG
 
@@ -43,6 +43,7 @@ You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immedi
 
 - **Anti-Affirmation**: When the user presents a new architectural proposal or system design for review, treat it as flawed. Find up to 3 gaps (Security, Performance, Logic) and propose solutions. If 0 gaps exist, proceed.
 - **Code Skeleton First**: Before full reads of files >100 lines, ALWAYS use `grep_search` to find the exact target line.
+- **Large File Ban**: You MUST NOT use `cat` or `type` via `run_command` to dump logs or files >100 lines into your context window. This causes severe token bloat. Always use `rtk proxy` or pagination tools like `view_file` with explicit line numbers.
 - **Circuit Breaker**: If you fail the same operation 3 times, physically STOP calling tools and ask the user for help.
 - **Mandatory Orion Fetch (Anti-Amnesia)**: The IDE does NOT auto-load `.orion`. If you need information about project architecture, state, or past decisions, you MUST mechanically execute a `grep_search` or view the relevant `.orion/` file before generating an answer. Standardize on high-performance keyword/regex searching across the whole repository instead of relying on external indexing engines.
 - **Cross-Domain Synthesis**: If a prompt triggers multiple conflicting skills (e.g., Frontend Layout + Database Mutability), do NOT treat them as isolated silos. You MUST explicitly synthesize a bridging pattern (e.g., via `api-contract`) in your thought process before executing.
@@ -64,25 +65,25 @@ DO NOT rely on your internal LLM memory for how to execute these tasks. You suff
 | **New Project, Init, Scaffold, Start from Scratch** | `.agents/workflows/app-lifecycle.md` |
 | **Legacy Migration, Brownfield, Onboard Existing, Migrate Project** | `.agents/workflows/project-migrate.md` |
 | **Feature Scaffold, New Model, Repository, Screen** | `.agents/workflows/app-lifecycle.md` |
-| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
+
 | **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md` |
 | **Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
-| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md` |
+
 | **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` |
-| **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
-| **API Contracts, Zod, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
+
 | **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/SKILL.md` & `.agents/workflows/orion-ops.md` |
-| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` |
+
 | **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/SKILL.md` & `.agents/workflows/prod-deploy.md` |
 | **Cost Analysis, Token Budget, LLM Costs** | `python .agents/scripts/orion.py scan tokens` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **Agent System Modification, .agents/ Edits, Rules** | `.agents/AGENTS_INDEX.md` & `.agents/skills/meta-agent-admin/SKILL.md` |
 | **Code Review, PR Review** | `.agents/workflows/audit-and-test.md` |
 | **Token Reduction, Compression, Caveman Mode** | `.agents/skills/caveman/SKILL.md` & `.agents/skills/caveman-compress/SKILL.md` |
-| **Accessibility, A11y, Micro-interactions, Web UX** | `.agents/skills/palette/SKILL.md` |
+
 | **Session End, Handoff, Context Eviction** | `.agents/workflows/session-offload.md` |
 | **Test-Driven Development (TDD), Writing Tests** | `.agents/workflows/audit-and-test.md` |
 | **End-to-End Feature Creation (App Builder)** | `.agents/workflows/app-lifecycle.md` |
 | **Agent Self-Learning, Reflection, Pattern Synthesis** | `.agents/workflows/self-evolve.md` |
+| **Unknown, General Request, Ambiguous** | `.agents/workflows/auto-context.md` |
 
 *Note: Once you load the file via `view_file`, you MUST physically execute any scripts or commands it asks you to run. If a referenced canon file is missing (ghost routing), skip it and rely on generic protocols.*
 

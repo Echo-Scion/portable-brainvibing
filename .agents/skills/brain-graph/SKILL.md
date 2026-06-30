@@ -7,12 +7,6 @@ version: 0.0.1
 
 # Skill: Brain Graph Management (`brain-graph`)
 
-## 🚀 Ecosystem Paradigm Shift
-> **Core Directive**: Proactive Oracle: Parses background logs and proactively injects historical solutions into context before an error happens.
-
-
-## 🧠 Next-Gen Capabilities
-> **Graph-RAG Knowledge Mapping**: Discard flat text searching. Extract entities and relationships during ingestion to construct a localized, traversable Knowledge Graph for deep, multi-hop contextual reasoning.
 
 
 This skill integrates a structural Brain Graph pattern to give AI a persistent, compounding memory across the entire project. It uses a Smart Vibe Coding (Autonomy Matrix) to balance automation with human oversight.

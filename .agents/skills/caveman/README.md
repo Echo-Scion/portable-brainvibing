@@ -17,7 +17,7 @@ Six intensity levels:
 | `wenyan-full` | Maximum 文言文. 80-90% character reduction. |
 | `wenyan-ultra` | Extreme classical compression. |
 
-Auto-clarity rule: caveman drops to normal prose for security.md) warnings, irreversible-action confirmations, multi-step sequences where fragment ambiguity risks misread, and when user repeats a question. Resumes after the clear part.
+Auto-clarity rule: caveman drops to normal prose for [[security]]) warnings, irreversible-action confirmations, multi-step sequences where fragment ambiguity risks misread, and when user repeats a question. Resumes after the clear part.
 
 ## How to invoke
 
@@ -45,4 +45,4 @@ Caveman (ultra):
 ## See also
 
 - `SKILL.md`) — full LLM-facing instructions
-- Caveman README)) — repo overview, install, benchmarks
+- Caveman [[README]])) — repo overview, install, benchmarks

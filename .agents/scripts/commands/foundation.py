@@ -310,6 +310,33 @@ def cmd_deploy(args):
         else:
             print(f"    [WARNING] orion.py not found at {orion_script}")
 
+    # 4. Proactive Git Hooks
+    git_hooks_dir = os.path.join(target_dir, ".git", "hooks")
+    if os.path.exists(git_hooks_dir):
+        post_commit_path = os.path.join(git_hooks_dir, "post-commit")
+        hook_script = "#!/bin/sh\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync >/dev/null 2>&1 &\n"
+        if not args.dry_run:
+            try:
+                existing_hook = ""
+                if os.path.exists(post_commit_path):
+                    with open(post_commit_path, "r", encoding="utf-8") as f:
+                        existing_hook = f.read()
+                
+                if "orion.py brain sync" not in existing_hook:
+                    with open(post_commit_path, "a" if existing_hook else "w", encoding="utf-8", newline="\n") as f:
+                        if not existing_hook:
+                            f.write(hook_script)
+                        else:
+                            f.write("\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync >/dev/null 2>&1 &\n")
+                    
+                    if os.name != 'nt':
+                        os.chmod(post_commit_path, 0o755)
+                    print(f"  -> Injected post-commit Git hook at {post_commit_path}")
+            except Exception as e:
+                print(f"    [WARNING] Failed to inject post-commit hook: {e}")
+        else:
+            print("  [SIMULATED] -> Injected post-commit Git hook")
+
     print("\nDeployment Complete!")
     print("AI Agents in the target project are now connected to the Foundation.")
     print("⚡ [RECOMMENDED TIER: BUDGET] — Deploy operations are batch tasks. Switch back to Budget model for subsequent operations.")

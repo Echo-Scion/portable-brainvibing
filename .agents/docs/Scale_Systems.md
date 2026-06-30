@@ -103,7 +103,7 @@ Each skill is a "hat" worn by the AI. When loaded, the skill limits the AI's foc
 ### 10.2. `api-contract`
 **Domain:** Client/server interface contracts.
 **Content:** OpenAPI specifications, Zod validation, API safety patterns.
-**Reference:** `references/api_safety_patterns).md`.
+**Reference:** `references/api_safety_patterns.md`.
 
 ### 10.3. `project-architect` (formerly backend-orchestrator)
 **Domain:** Master backend architect.
@@ -133,7 +133,7 @@ Each skill is a "hat" worn by the AI. When loaded, the skill limits the AI's foc
 ### 10.9. `frontend-experience`
 **Domain:** UI/UX debugging.
 **Content:** Fixing excessive re-renders, DOM infinite loops, React/Flutter state synchronization.
-**Reference:** `references/ux-designer).md`.
+**Reference:** `references/ux-designer.md`.
 
 ### 10.10. `integrity-sentinel`
 **Domain:** Red Team & Automated QA.

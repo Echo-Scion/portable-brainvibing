@@ -34,7 +34,7 @@ RULES_DIR = os.path.join(BASE_DIR, "rules")
 CANONS_DIR = os.path.join(BASE_DIR, "canons")
 FOUNDATION_PATH_MARKER = os.path.join(BASE_DIR, ".foundation_path")
 
-EXCLUDED_PATH_MARKERS = [".git", ".gemini", ".system_generated", "node_modules", "__pycache__"]
+EXCLUDED_PATH_MARKERS = [".git", ".gemini", ".system_generated", "node_modules", "__pycache__", "archive"]
 DOC_METADATA_KEYS = {"param", "return", "type", "description", "activation", "trigger"}
 RULE_DIR_TOKENS = {"rules", "common", "flutter", "web", "canons", "auth", "notifications", "ui-patterns"}
 FRONTMATTER_RE = re.compile(r'\A---\s*\n(.*?)\n---\s*(?:\n|$)', re.DOTALL)

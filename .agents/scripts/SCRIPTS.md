@@ -22,6 +22,7 @@ This directory uses a **Modular CLI** architecture. Instead of calling individua
 | `python .agents/scripts/orion.py orion_ops ingest`| Ingests rules and configs into the `.orion/` graph. | `commands/orion_ops.py` |
 | `python .agents/scripts/orion.py amnesia` | Rule eviction mechanism. | `commands/rule_eviction.py` |
 | `python .agents/scripts/orion.py swarm` | Multi-Threaded Micro-Fix Swarm. | `commands/auto_delegate.py` |
+| `python .agents/scripts/orion.py matrix-query` | Queries compiled JSON matrices in `.orion/matrix`. | `commands/matrix_query.py` |
 | `python .agents/scripts/orion.py rtk` | RTK Proxy. | `core/rtk_proxy.py` |
 
 ## Organization Policy

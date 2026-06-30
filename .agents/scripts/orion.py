@@ -116,7 +116,19 @@ def main():
     python_exec = sys.executable or "python"
     
     try:
-        result = subprocess.run([python_exec, target_script] + args)
+        max_retries = 3
+        import time
+        for attempt in range(max_retries):
+            result = subprocess.run([python_exec, target_script] + args)
+            
+            # If success, or if it's an interactive/expected failure command, exit immediately
+            if result.returncode == 0 or cmd in ["rtk", "rtk_proxy", "preflight", "budget", "verify"]:
+                sys.exit(result.returncode)
+                
+            print(f"[ORION AUTO-RETRY] Command failed with exit code {result.returncode}. Attempt {attempt+1}/{max_retries}")
+            if attempt < max_retries - 1:
+                time.sleep(1)
+        
         sys.exit(result.returncode)
     except KeyboardInterrupt:
         sys.exit(130)

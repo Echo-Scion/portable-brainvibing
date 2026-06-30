@@ -20,23 +20,23 @@ Extract a lightweight skeleton of the existing codebase to provide cheap token c
 - **Output**: This will generate an architectural skeleton without incurring massive token costs for full-file reads.
 
 ## Phase 2: Scaffold Empty Context
-Generate the foundational knowledge.md) structure using the 82-file registry, but keep the files empty for manual injection.
+Generate the foundational [[knowledge]]) structure using the 82-file registry, but keep the files empty for manual injection.
 - **Command**: `python .agents/scripts/orion.py brain sync "init SaaS structure"`
 - **Command**: `python .agents/scripts/orion.py brain scaffold_saas`
 - **Action**: Use `run_command` to physically scaffold the directories: `mkdir -p context/00_Strategy context/01_Product context/02_Creative context/03_Tech`.
 
 ## Phase 3: Context Extraction & Inference
-- **Action 1: Strategy (README.md) Integration)**:
+- **Action 1: Strategy ([[README]]) Integration)**:
   - Check if `README.md` exists in the workspace root.
-  - **If exists**: Execute `view_file README).md` to extract business context. Integrate into `context/00_Strategy/BLUEPRINT).md`.
-  - **If missing**: Create `README.md` using `write_to_file` with temporary content: `This project is managed by Portable Brainvibing. .orion supports context-less ingest. Refer to development-operations.md) for legacy merge constraints.` Mirror this into `context/00_Strategy/BLUEPRINT).md`.
+  - **If exists**: Execute `view_file README.md` to extract business context. Integrate into `context/00_Strategy/BLUEPRINT.md`.
+  - **If missing**: Create `README.md` using `write_to_file` with temporary content: `This project is managed by Portable Brainvibing. .orion supports context-less ingest. Refer to development-operations.md) for legacy merge constraints.` Mirror this into `context/00_Strategy/BLUEPRINT.md`.
 - **Action 2: Technical Inference**:
   - AI reads core dependency files (e.g., `package.json`, `pubspec.yaml`, `build.gradle`).
   - AI infers the language, framework, and core tech stack.
-  - AI populates `context/03_Tech/ARCHITECTURE).md` with the extracted technical blueprint.
+  - AI populates `context/03_Tech/ARCHITECTURE.md` with the extracted technical blueprint.
 - **Action 3: Pillar Broad Strokes**:
-  - AI populates `context/01_Product/ROADMAP).md` by broadly listing current state features.
-  - AI populates `context/02_Creative/STYLE_GUIDE).md` by inferring UI libraries (e.g., Tailwind, Material) from dependencies.
+  - AI populates `context/01_Product/ROADMAP.md` by broadly listing current state features.
+  - AI populates `context/02_Creative/STYLE_GUIDE.md` by inferring UI libraries (e.g., Tailwind, Material) from dependencies.
 
 ## Phase 4: Legacy Documentation Merge
 - **Action**: Move or integrate any pre-existing documentation (e.g., `README.md`, legacy specs) into the newly created 82-file `context/` structure.

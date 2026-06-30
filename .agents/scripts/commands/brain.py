@@ -123,17 +123,6 @@ class NanoBrain:
             # Silently degrade if embedding model missing or timeout
             return None
 
-def cosine_similarity(v1, v2):
-    import math
-    if not v1 or not v2 or len(v1) != len(v2): return 0.0
-    dot_product = sum(x*y for x,y in zip(v1,v2))
-    mag1 = math.sqrt(sum(x*x for x in v1))
-    mag2 = math.sqrt(sum(y*y for y in v2))
-    if mag1 == 0 or mag2 == 0: return 0.0
-    return dot_product / (mag1 * mag2)
-
-
-
     def vibe_check(self, text):
         prompt = f"Does this code use hardcoded colors or raw pixel values instead of theme variables?\n\nCODE: {text[:1000]}\n\nAnswer YES or NO."
         return self.generate(prompt, system="You are a binary linter. Answer ONLY with YES or NO.")
@@ -164,6 +153,15 @@ def cosine_similarity(v1, v2):
         prompt = f"Extract (Subject, Predicate, Object) from this text:\n{text}"
         res = self.generate(prompt, system=system)
         return res if res else "[DELEGATE_TO_CLOUD] Error: Extraction failed. Fallback to Cloud Agent."
+
+def cosine_similarity(v1, v2):
+    import math
+    if not v1 or not v2 or len(v1) != len(v2): return 0.0
+    dot_product = sum(x*y for x,y in zip(v1,v2))
+    mag1 = math.sqrt(sum(x*x for x in v1))
+    mag2 = math.sqrt(sum(y*y for y in v2))
+    if mag1 == 0 or mag2 == 0: return 0.0
+    return dot_product / (mag1 * mag2)
 
 def extract_keywords(text):
     stop_words = {'i', 'need', 'to', 'build', 'the', 'a', 'an', 'and', 'or', 'for', 'with', 'on', 'in', 'of', 'how', 'do', 'what', 'create', 'make', 'update', 'fix'}
@@ -282,17 +280,26 @@ def sync(intent, delta=False):
                 if query_embedding:
                     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='page_embeddings'")
                     if c.fetchone():
-                        c.execute("SELECT path, embedding_json FROM page_embeddings")
                         vector_results = []
-                        for row in c.fetchall():
-                            path = row[0]
-                            try:
-                                emb = json.loads(row[1])
-                                sim = cosine_similarity(query_embedding, emb)
-                                if sim > 0.4: # Context semantic threshold
-                                    vector_results.append((path, sim))
-                            except Exception:
-                                pass
+                        offset = 0
+                        limit = 1000
+                        while True:
+                            c.execute("SELECT path, embedding_json FROM page_embeddings LIMIT ? OFFSET ?", (limit, offset))
+                            rows = c.fetchall()
+                            if not rows:
+                                break
+                            for row in rows:
+                                path = row[0]
+                                try:
+                                    emb = json.loads(row[1])
+                                    sim = cosine_similarity(query_embedding, emb)
+                                    if sim > 0.4: # Context semantic threshold
+                                        vector_results.append((path, sim))
+                                except Exception:
+                                    pass
+                            offset += limit
+                            if offset > 10000: # OOM Fail-safe limit
+                                break
                         
                         vector_results.sort(key=lambda x: x[1], reverse=True)
                         for path, sim in vector_results[:3]:
@@ -455,7 +462,7 @@ def sync(intent, delta=False):
         print("\n## [NanoBrain] NanoBrain (Ollama) is ONLINE (LLM Active)")
         print("  [CAPABILITY]: You can use `python .agents/scripts/orion.py brain nanobrain vibe_check <text>` for instant UI aesthetic validation without consuming major tokens.")
     else:
-        print("\n## [NanoBrain] [WARNING] NanoBrain LLM features disabled — (Status OFF or EMBED-ONLY)")
+        print("\n## [NanoBrain] [WARNING] NanoBrain LLM features disabled — (Status OFF or EMBED)")
             
     # --- Working Memory (Holographic Handoff) ---
     handoff_path = os.path.join(orion_dir, "working", "handoff.md")
@@ -600,7 +607,7 @@ def main():
             return
         elif args.action == 'embed_only':
             with open(status_file, "w") as f: f.write("EMBED")
-            print("🟢 NanoBrain is now EMBED-ONLY (Vector Search Active, Generative AI Off).")
+            print("🟢 NanoBrain is now EMBED mode (Vector Search Active, Generative AI Off).")
             return
         elif args.action == 'llm_only':
             with open(status_file, "w") as f: f.write("LLM")

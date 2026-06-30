@@ -13,10 +13,10 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 ## 2. MEMORY WRITE (PERSISTENCE)
 - [ ] **Update Learnings**: Use the `replace_file_content` or `write_to_file` tool to inject the finding into `.agents/LEARNINGS.md`. Do not wait or queue this action.
 
-## 3. DARWINIAN A/B SKILL.md) EVOLUTION (ANTI-DRIFT)
+## 3. DARWINIAN A/B [[SKILL]]) EVOLUTION (ANTI-DRIFT)
 - [ ] **Evolve Rule (V2 Fork)**: If a missing or contradictory rule caused the error, you MUST NOT blindly overwrite the rule. Instead, fork the rule (e.g. `cp SKILL.md) SKILL.md)-v2.md`).
 - [ ] **A/B Benchmark (MANDATORY)**: Run `python .agents/scripts/orion.py evolve bench --skill <skill_name>` on BOTH V1 and V2. 
-- [ ] **Fitness Gate**: If `score(V2) >= score(V1)`, promote it: `mv SKILL.md)-v2.md SKILL).md`. If it fails, ARCHIVE it (do not delete).
+- [ ] **Fitness Gate**: If `score(V2) >= score(V1)`, promote it: `mv SKILL.md)-v2.md SKILL.md`. If it fails, ARCHIVE it (do not delete).
 - [ ] **Ledger Logging**: You MUST log this mutation. Run a Python script or write directly to `.agents/EVOLUTION_LOG.jsonl` noting the target, trigger, and fitness delta.
 
 ## 3.5. OFFENSIVE OPTIMIZATION (SUCCESS LOOP)
@@ -28,5 +28,5 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 > **CIRCUIT BREAKER**: Maximum 2 autonomous synthesis operations per session. Beyond that, queue for next session.
 - **CRITICAL ACTION**: **Pattern Scan**: At the end of a session, execute `grep_search` on BOTH `.agents/LEARNINGS.md` AND `MEMORY.md` (specifically for `<friction-data>` tags) NOW for repetitive manual tasks to fuse short-term and long-term friction.
 - **CRITICAL ACTION**: **Autonomous Synthesis**: If a pattern is found, proactively synthesize the rule without waiting for user approval. Darwinian mutation must be 100% autonomous.
-- [ ] **Generate Asset**: Use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone SKILL.md), rule, or workflow file.
-- [ ] **Integrate**: Update JIT triggers and ensure the new rule is indexed in `.agents/rules/RULES_INDEX).md` so future sessions load it automatically. You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.
+- [ ] **Generate Asset**: Use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone [[SKILL]]), rule, or workflow file.
+- [ ] **Integrate**: Update JIT triggers and ensure the new rule is indexed in `.agents/rules/RULES_INDEX.md` so future sessions load it automatically. You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.

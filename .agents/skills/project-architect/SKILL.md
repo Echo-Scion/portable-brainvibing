@@ -4,19 +4,13 @@ description: Use this skill to synthesize complex requirements into technical PR
 ---
 # Project Architect
 
-## 🚀 Ecosystem Paradigm Shift
-> **Core Directive**: Executable Generative Blueprints: Architecture diagrams (Mermaid graphs) become the single source of truth. Edit the diagram -> auto scaffold code.
-
-
-## 🧠 Next-Gen Capabilities
-> **Dynamic Topology Generation**: Ambiguity is lethal. You are strictly mandated to output C4 Model architecture specifications and Mermaid UML diagrams for every system design proposal. If it isn't visual, it isn't approved.
 
 
 Your role is to design the system architecture using the MVC (Minimum Viable Complexity) principle.
 
 ## Blueprint Section Checklist (MANDATORY)
 Before generating an architectural blueprint, you MUST read `.orion/CONTEXT.md` to understand the product context.
-Your output MUST contain these 6 sections exactly, and be saved to `.orion/BLUEPRINT).md`:
+Your output MUST contain these 6 sections exactly, and be saved to `.orion/BLUEPRINT.md`:
 
 ```markdown
 ## 1. System Components
@@ -63,10 +57,10 @@ CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WIT
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Architectural Standards** | references/architectural_standards.md) |
-| **Startup Growth** | references/startup_growth.md) |
-| **Strategic Rigor** | references/strategic_rigor.md) |
-| **Structural Pillars** | references/structural_pillars.md) |
+| **Architectural Standards** | references/[[architectural_standards]]) |
+| **Startup Growth** | references/[[startup_growth]]) |
+| **Strategic Rigor** | references/[[strategic_rigor]]) |
+| **Structural Pillars** | references/[[structural_pillars]]) |
 | **Backend Architect** | references/backend-architect.md |
 | **Backend Optimizer** | references/backend-optimizer.md |
 | **Cache Optimizer** | references/cache-optimizer.md |

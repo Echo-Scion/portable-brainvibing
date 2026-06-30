@@ -17,20 +17,24 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 *Skills define deep domain knowledge and specialized personas.*
 
 - **ai-engineer**: `.agents/skills/ai-engineer/SKILL.md` (Mitigating probabilistic nature, AI engineering)
-- **api-contract**: `.agents/skills/api-contract/SKILL.md` (OpenAPI, Zod, Contracts)
+
 - **caveman**: `.agents/skills/caveman/SKILL.md` (Ultra-compressed communication)
 - **caveman-compress**: `.agents/skills/caveman-compress/SKILL.md` (Token reduction for docs)
 - **cost-optimizer**: `.agents/skills/cost-optimizer/SKILL.md` (Cloud/LLM token budgeting)
-- **data-logic**: `.agents/skills/data-logic/SKILL.md` (Data modeling, Immutability)
-- **frontend-experience**: `.agents/skills/frontend-experience/SKILL.md` (UI/UX audits, Frontend debugging)
+
 - **integrity-sentinel**: `.agents/skills/integrity-sentinel/SKILL.md` (Security audits, QA)
 - **brain-graph**: `.agents/skills/brain-graph/SKILL.md` (Brain Graph, Orion, Knowledge base)
 - **meta-agent-admin**: `.agents/skills/meta-agent-admin/SKILL.md` (Ecosystem evolution, you are here)
-- **palette**: `.agents/skills/palette/SKILL.md` (A11y, Micro-interactions)
+
 - **project-architect**: `.agents/skills/project-architect/SKILL.md` (System Architecture, Blueprints)
 - **project-operator**: `.agents/skills/project-operator/SKILL.md` (Deployments, Release cycles)
-- **saas-strategist**: `.agents/skills/saas-strategist/SKILL.md` (Business strategy, Viability)
-- **ui-finish**: `.agents/skills/ui-finish/SKILL.md` (Premium UI, Visual polish)
+
+- **api-contract**: `.agents/skills/api-contract/SKILL.md` (API Schemas, Zod, Request Validation)
+- **data-logic**: `.agents/skills/data-logic/SKILL.md` (Data Immutability, State Management)
+- **frontend-experience**: `.agents/skills/frontend-experience/SKILL.md` (Debugging, Errors, Runtime Issues)
+- **palette**: `.agents/skills/palette/SKILL.md` (Accessibility, A11y, Micro-interactions)
+- **saas-strategist**: `.agents/skills/saas-strategist/SKILL.md` (Business Strategy, Growth, Idea Viability)
+- **ui-finish**: `.agents/skills/ui-finish/SKILL.md` (Frontend UI, Layout, Aesthetics, Animations)
 
 ## 3. 🚀 WORKFLOWS (The Lifecycle Checklists)
 *Workflows define step-by-step procedures.*
@@ -57,17 +61,3 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **pre-agent-wake**: `.agents/hooks/pre-agent-wake.py` (Bootstrapper)
 - **nano_compressor**: `.agents/scripts/commands/nano_compressor.py` (Memory compression)
 
-## 5. Ecosystem Canons (Platform-Specific)
-*Ecosystem canons contain framework-specific code patterns, commands, and workflows. They are loaded on-demand by universal skills/workflows via delegation.*
-
-### {{FRAMEWORK}} (`canons/ecosystems/{{FRAMEWORK}}/`)
-- **{{FRAMEWORK}}-init**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` (Project scaffold)
-- **{{FRAMEWORK}}-debug**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-debug.md` (Debugging rules)
-- **{{FRAMEWORK}}-release**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-release.md` (Production build)
-- **{{FRAMEWORK}}-standards**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-standards.md` (Code rules)
-- **{{FRAMEWORK}}-state-map**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-state-map.md` (4-state pattern)
-- **{{FRAMEWORK}}-data-patterns**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-data-patterns.md` (Data/DTOs)
-- **{{FRAMEWORK}}-workflow-commands**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-workflow-commands.md` (CLI commands)
-- **{{FRAMEWORK}}-ui-patterns**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md` (UI widgets)
-- **{{FRAMEWORK}}-tests**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-tests.md` (Testing patterns)
-- **{{FRAMEWORK}}-feature-recipe**: `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` (Feature scaffolding)

@@ -6,16 +6,8 @@ portable: true
 ---
 # Frontend Experience
 
-## Ecosystem Paradigm Shift
-> **Core Directive**: Chaos Monkey Resilience: Actively simulates terrible network conditions, fuzzy tapping, and broken API responses to guarantee 100% resilience.
-
-
-## Next-Gen Capabilities
-> **Neuro-Aesthetic & A11y Engine**: Automate empathy. Enforce real-time WCAG contrast validations and integrate dynamic color theory algorithms that shift semantic UI palettes based on user behavioral context or time-of-day.
-
-
 Your primary role is to audit and debug frontend architecture.
-*(Note: For purely aesthetic/animation polish, you MUST execute `view_file .agents/skills/ui-finish/SKILL).md` NOW.)*
+*(Note: For purely aesthetic/animation polish, you MUST execute `view_file .agents/skills/ui-finish/SKILL.md` NOW.)*
 
 ## JIT Tool Directives (Execute this FIRST)
 1. **Detect Ecosystem**: Check the project root for ecosystem markers (`pubspec.yaml` = Flutter, `package.json` = Node/React, `Cargo.toml` = Rust).
@@ -53,4 +45,4 @@ When auditing interactions, ensure that the user experience is smooth and inform
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
 | **Flutter Debugger** | references/flutter-debugger.md |
-| **Ux Designer** | references/ux-designer.md) |
+| **Ux Designer** | references/[[ux-designer]]) |

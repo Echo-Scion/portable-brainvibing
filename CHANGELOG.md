@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.12] - 2026-06-30
+### Changed
+- **Ecosystem Functional Audit**: Validated 10 audit points across identity, skills, and stability.
+- **Skill Pruning**: Removed qualitative fluff from 13 `SKILL.md` files using `clean_fluff.py` via `re.DOTALL`.
+- **Identity Sync**: Updated `pre-agent-wake.py` to seamlessly sync `.genome.json` evolutionary traits directly into `AGENT_IDENTITY.md`.
+- **System Stability**: Patched log rotation logic, SQLite fail-safe retry mechanisms, and page limits in `brain.py`.
+
 ## [0.0.11] - 2026-06-30
 ### Changed
 - **Architecture**: Upgraded to **True LightRAG Engine** (Dual-Retrieval Graph + Vector + Lexical). Added native pure Python Cosine Similarity, storing `nomic-embed-text` vectors as JSON arrays in SQLite. 

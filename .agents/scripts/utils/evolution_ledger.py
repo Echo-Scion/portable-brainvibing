@@ -22,6 +22,14 @@ def log_evolution(target_file: str, mutation_type: str, trigger: str, fitness_be
     }
     
     try:
+        # 0. Log Rotation Fail-Safe (Audit 05)
+        max_log_size = 1024 * 1024 # 1 MB
+        if os.path.exists(ledger_path) and os.path.getsize(ledger_path) > max_log_size:
+            backup_path = ledger_path + ".bak"
+            if os.path.exists(backup_path):
+                os.remove(backup_path)
+            os.rename(ledger_path, backup_path)
+
         # 1. Append to Ledger
         with open(ledger_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")

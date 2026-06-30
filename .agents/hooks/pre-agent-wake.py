@@ -87,9 +87,21 @@ def main():
             import sys
             orion_script = os.path.join(base_agents_dir, 'scripts', 'orion.py')
             print("[AUTO-SYNC] Running synchronous ingest to prevent race conditions...")
-            subprocess.run([sys.executable, orion_script, 'orion_ops', 'ingest'], 
-                             stdout=sys.stdout, stderr=sys.stderr,
-                             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+            # Pass required paths for ingest (rules, skills, canons, workflows)
+            ingest_paths = [
+                os.path.join(base_agents_dir, 'rules'),
+                os.path.join(base_agents_dir, 'skills'),
+                os.path.join(base_agents_dir, 'canons'),
+                os.path.join(base_agents_dir, 'workflows'),
+            ]
+            existing_paths = [p for p in ingest_paths if os.path.isdir(p)]
+            result = subprocess.run(
+                [sys.executable, orion_script, 'orion_ops', 'ingest'] + existing_paths, 
+                stdout=sys.stdout, stderr=sys.stderr,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            if result.returncode != 0:
+                print(f"[AUTO-SYNC] WARNING: Ingest exited with code {result.returncode}. Graph may be stale.")
     except Exception as e:
         print(f"[AUTO-SYNC] Failed to run sync: {e}")
 
@@ -148,25 +160,54 @@ def main():
             top_lessons = [l[2:] for l in lesson_lines[:5]]
             
             # --- IDENTITY WRITE-BACK LOGIC ---
-            if top_lessons and os.path.exists(identity_path):
+            if os.path.exists(identity_path):
                 try:
                     with open(identity_path, 'r', encoding='utf-8') as f:
                         identity_content = f.read()
                         
                     import re
-                    lessons_str = '\n'.join(f"{i+1}. {l}" for i, l in enumerate(top_lessons))
                     
-                    new_content = re.sub(
-                        r'(## Active Lessons \(Top 5\)).*?(?=## |$)', 
-                        f'\\1\n\n{lessons_str}\n\n', 
-                        identity_content, flags=re.DOTALL)
+                    # 1. Inject Top Lessons
+                    if top_lessons:
+                        lessons_str = '\n'.join(f"{i+1}. {l}" for i, l in enumerate(top_lessons))
+                        identity_content = re.sub(
+                            r'(## Active Lessons \(Top 5\)).*?(?=## |$)', 
+                            f'\\1\n\n{lessons_str}\n\n', 
+                            identity_content, flags=re.DOTALL)
+                    
+                    # 2. Inject Evolutionary Traits from .genome.json
+                    genome_path = os.path.join(base_agents_dir, ".genome.json")
+                    if os.path.exists(genome_path):
+                        with open(genome_path, 'r', encoding='utf-8') as gf:
+                            genome = json.load(gf)
                         
-                    if new_content != identity_content:
-                        with open(identity_path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        print("[IDENTITY] Synced top lessons to AGENT_IDENTITY.md")
+                        traits = []
+                        if genome.get("evolved_skills"):
+                            traits.append("- **Evolved Skills**: " + ", ".join(genome["evolved_skills"]))
+                        if genome.get("evolved_rules"):
+                            traits.append("- **Evolved Rules**: " + ", ".join(genome["evolved_rules"]))
+                        if genome.get("pruned_assets"):
+                            traits.append("- **Pruned Assets**: " + ", ".join(genome["pruned_assets"]))
+                        
+                        traits_str = '\n'.join(traits) if traits else "_(no mutations yet)_"
+                        
+                        # Add Evolutionary Traits section if missing
+                        if "## Evolutionary Traits" not in identity_content:
+                            identity_content = identity_content.replace(
+                                "## Anti-Goals", 
+                                f"## Evolutionary Traits\n\n{traits_str}\n\n## Anti-Goals"
+                            )
+                        else:
+                            identity_content = re.sub(
+                                r'(## Evolutionary Traits).*?(?=## |$)', 
+                                f'\\1\n\n{traits_str}\n\n', 
+                                identity_content, flags=re.DOTALL)
+                        
+                    with open(identity_path, 'w', encoding='utf-8') as f:
+                        f.write(identity_content)
+                    print("[IDENTITY] Synced top lessons and genome traits to AGENT_IDENTITY.md")
                 except Exception as e:
-                    print(f"[IDENTITY] Failed to write-back lessons: {e}")
+                    print(f"[IDENTITY] Failed to write-back identity data: {e}")
 
     # --- IDE-6: Formal State Machine (Recovery Hook) ---
     fsm_state_path = os.path.join(CONTEXT_DIR, 'execution_state.json')
@@ -217,7 +258,7 @@ def main():
         "ide_source": args.ide_source,
         "evolution_overdue": evolution_overdue,
         "unprocessed_learnings": unprocessed_learnings,
-        "identity_path": identity_path if identity_exists else None,
+        "identity_path": os.path.relpath(identity_path, WORKSPACE_DIR).replace(os.sep, '/') if identity_exists else None,
         "top_lessons": top_lessons,
         "drift_warnings": drift_warnings
     }
@@ -230,7 +271,7 @@ def main():
         json.dump(context_payload, f, indent=2)
     os.replace(temp_file, CONTEXT_FILE)
         
-    print(f"[OK] Omni-Buffer updated at {CONTEXT_FILE}")
+    print(f"[OK] Omni-Buffer updated at {os.path.relpath(CONTEXT_FILE, WORKSPACE_DIR)}")
 
 if __name__ == "__main__":
     main()

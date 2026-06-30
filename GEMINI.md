@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.11 - LightRAG Engine) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.12 - LightRAG Engine) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -136,7 +136,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.11 (LightRAG Engine)*
+*Mandate Version: 0.0.12 (LightRAG Engine)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

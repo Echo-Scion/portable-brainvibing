@@ -89,11 +89,11 @@ To preserve the main thread's token context during long sessions, use subagents 
 When classification is ambiguous, use this deterministic fallback:
 
 1. Count impacted files.
-2. Count cross-domain boundaries (rules, scripts, workflows, security.md), deployment).
+2. Count cross-domain boundaries (rules, scripts, workflows, [[security]]), deployment).
 3. Select tier:
 	- `BUDGET`: 1 file and 0 cross-domain boundaries.
 	- `STANDARD`: 2-5 files or 1 boundary.
-	- `PREMIUM`: >5 files or 2+ boundaries or any security.md)/deployment risk.
+	- `PREMIUM`: >5 files or 2+ boundaries or any [[security]])/deployment risk.
 
 If the declared tier is lower than this fallback result, escalation is mandatory.
 
@@ -101,7 +101,7 @@ If the declared tier is lower than this fallback result, escalation is mandatory
 When operating as a **BUDGET Model**, the agent **MUST** adhere to the following architectural triad:
 1. **Context Diet Protocol (`context-standards.md`)**: Mandatory *Skeleton-First* (Grep/AST), forbidden from *full-reads* on long files to avoid *context poisoning*.
 2. **Bento-Box Workflow**: Mandatory single *State-Machine*. One target, one evaluation. Forbidden from manipulating multiple files simultaneously.
-3. **Micro-Canons (`canons/micro/README).md`)**: Mandatory reading of domain summaries before starting reasoning.
+3. **Micro-Canons (`canons/micro/README.md`)**: Mandatory reading of domain summaries before starting reasoning.
 
 # 2. Bento-Box Workflow (Anti-Multitasking for BUDGET)
 

@@ -571,7 +571,7 @@ def rebuild_index():
         infra = manifest.get("layers", {}).get("infrastructure", [])
         if infra:
             for item in sorted(infra, key=lambda x: x["filepath"]):
-                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+                index_lines.append(f"- [{item['filepath']}]({item['orion_file']}) (Type: `{item['category']}`)")
         else:
             index_lines.append("- *No files ingested yet*")
             
@@ -583,7 +583,7 @@ def rebuild_index():
         context = manifest.get("layers", {}).get("context", [])
         if context:
             for item in sorted(context, key=lambda x: x["filepath"]):
-                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+                index_lines.append(f"- [{item['filepath']}]({item['orion_file']}) (Type: `{item['category']}`)")
         else:
             index_lines.append("- *No files ingested yet*")
             
@@ -595,7 +595,7 @@ def rebuild_index():
         docs = manifest.get("layers", {}).get("project_docs", [])
         if docs:
             for item in sorted(docs, key=lambda x: x["filepath"]):
-                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+                index_lines.append(f"- [{item['filepath']}]({item['orion_file']}) (Type: `{item['category']}`)")
         else:
             index_lines.append("- *No files ingested yet*")
             
@@ -607,7 +607,7 @@ def rebuild_index():
         raw_files = manifest.get("layers", {}).get("raw", [])
         if raw_files:
             for item in sorted(raw_files, key=lambda x: x["filepath"]):
-                index_lines.append(f"- [{item['filepath']}](file:///{item['orion_file']}) (Type: `{item['category']}`)")
+                index_lines.append(f"- [{item['filepath']}]({item['orion_file']}) (Type: `{item['category']}`)")
         else:
             index_lines.append("- *No source files ingested yet*")
             

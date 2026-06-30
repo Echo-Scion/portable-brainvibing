@@ -1,7 +1,7 @@
 # 🧠 Portable Brainvibing — Plug and Play AI Infrastructure
 
 ![Foundation CI](https://github.com/Echo-Scion/Portable-Brainvibing/actions/workflows/foundation-ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-v0.0.11-blue)
+![Version](https://img.shields.io/badge/version-v0.0.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AI Compatible](https://img.shields.io/badge/AI-Gemini%20%7C%20Claude%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Windsurf-orange)
 
@@ -53,12 +53,12 @@ The AI is forced into an automated attack/defend cycle:
 1. Write implementation code.
 2. Write a unit test specifically designed to break the implementation.
 3. Mutate the code iteratively until the terminal outputs `Exit Code 0`.
-If the AI fails 3 times, the **Circuit Breaker** trips automatically, forcing it to stop wasting tokens and ask for human intervention.
+If the AI fails 3 times, the **Circuit Breaker** trips via strict prompt enforcement and mandatory tool yielding, forcing the agent to voluntarily stop wasting tokens and ask for human intervention.
 
 ### 5. ✂️ Output Filtering & Universal AST Ingestion
 Verbose terminal logs (e.g., `npm install` or `cargo build`) flood the AI's context window.
 - **RTK (Rust Token Killer)**: Proxies all terminal commands and strips >80% of log output.
-- **Universal AST Parser**: Before saving source code to the `.orion` SQLite database, our parser strips out all comments, white-spaces, and logic blocks, leaving only pure structural footprints. This reduces SQLite database bloat by 90%.
+- **Universal AST Parser**: Before saving source code to the `.orion` SQLite database, our Python-based utility scripts perform shallow extraction to strip out deep logic and noise, leaving mostly pure structural footprints. This reduces SQLite database bloat by 90%.
 
 ### 6. 🧬 The Self-Evolve Engine (Darwinian Mutation)
 The ecosystem learns autonomously through a strictly mechanical evolution loop:
@@ -188,4 +188,4 @@ This foundation synthesizes principles from top open-source optimization tools:
 **License**: MIT
 
 ---
-**Note**: Maintained as I used this. Please support with a star! 
+**Note**: Maintained as I used this (only in Antigravity). Please support with a star! 

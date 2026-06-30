@@ -9,12 +9,6 @@ description: >
 
 # Caveman Compress
 
-## 🚀 Ecosystem Paradigm Shift
-> **Core Directive**: Fractal Knowledge Graphs: Compresses memory into a hierarchical semantic graph where agents only load the specific fractal node they need.
-
-
-## 🧠 Next-Gen Capabilities
-> **Semantic Entropy Compression**: Do not just truncate words. Employ BPE (Byte Pair Encoding) awareness to ruthlessly eliminate stop words and structural bloat while retaining 100% of the mathematical and logical payload of the message.
 
 
 ## Purpose
@@ -27,9 +21,9 @@ Compress natural language files (CLAUDE.md, todos, preferences) into caveman-spe
 
 ## Process
 
-1. The compression scripts live in `scripts/` (adjacent to this SKILL.md)). If the path is not immediately available, search for `__main__.py` inside the adjacent `scripts/` directory.
+1. The compression scripts live in `scripts/` (adjacent to this [[SKILL]])). If the path is not immediately available, search for `__main__.py` inside the adjacent `scripts/` directory.
 
-2. From the directory containing this SKILL.md), run:
+2. From the directory containing this [[SKILL]]), run:
 
 python -m scripts <absolute_filepath>
 

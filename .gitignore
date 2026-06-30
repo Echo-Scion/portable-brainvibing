@@ -24,7 +24,7 @@
 .agents/.project_manifest.json
 .agents/.deployed_ais
 .agents/.genome.json
-.agents/archive/
+
 .orion/
 __pycache__/
 *.pyc

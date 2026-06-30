@@ -4,12 +4,6 @@ description: Employ this skill to define strict request/response data contracts 
 ---
 # API Contract Guard
 
-## 🚀 Ecosystem Paradigm Shift
-> **Core Directive**: Living Telemetry Contracts: Contract automatically generates dynamic mock data based on inferred real-world usage patterns.
-
-
-## 🧠 Next-Gen Capabilities
-> **Self-Healing Contracts**: Treat drift as a critical failure. Synthesize drift-detection workflows that automatically cross-reference Zod schemas against database ORM definitions and refuse compilation if a drift mismatch is detected.
 
 
 Your role is to ensure zero malformed data reaches the database.
@@ -50,4 +44,4 @@ Never proceed with an API implementation without defining the Zod schema first.
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Api Safety Patterns** | references/api_safety_patterns.md) |
+| **Api Safety Patterns** | references/[[api_safety_patterns]]) |

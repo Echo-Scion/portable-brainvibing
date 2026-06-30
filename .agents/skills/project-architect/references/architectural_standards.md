@@ -12,7 +12,7 @@
 3. **Planning (Chapter 8)**: 
    - Path: `lib/features/hydration/domain/models/intake.dart` -> Define immutable `@freezed` model.
    - Path: `lib/features/hydration/presentation/providers/intake_provider.dart` -> Define StateNotifier.
-4. **Validation**: Check against the 8 Pillars in `references/structural_pillars).md`.
+4. **Validation**: Check against the 8 Pillars in `references/structural_pillars.md`.
 
 ## ⚠️ Troubleshooting Details
 - **Blueprint feels generic**: Stop. Re-read the guidelines for Chapters 1-4. Ask the user about the project's "Soul."

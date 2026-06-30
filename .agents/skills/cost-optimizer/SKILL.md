@@ -4,12 +4,6 @@ description: Reduces cloud and LLM infrastructure costs through token-clipping a
 ---
 # Cost Optimizer
 
-## 🚀 Ecosystem Paradigm Shift
-> **Core Directive**: Predictive Token Hedging: Predicts token cost before running and routes to cheaper models dynamically.
-
-
-## 🧠 Next-Gen Capabilities
-> **Multi-Model Arbitration Routing**: Calculate task entropy dynamically. Route low-entropy tasks to cheaper models (Flash/Haiku) and high-entropy tasks to premium models automatically to maximize token-to-dollar leverage.
 
 
 Your role is to strictly manage the AI Token Budget. 
