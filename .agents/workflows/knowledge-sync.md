@@ -1,11 +1,11 @@
 ---
-name: [knowledge](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md))-sync.md
-description: "Internal workflow to synchronize all foundation [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) files, bump version, and push to origin at the end of a session."
+name: knowledge)-sync.md
+description: "Internal workflow to synchronize all foundation knowledge.md) files, bump version, and push to origin at the end of a session."
 ---
 
 # Knowledge & Foundation Sync Workflow
 
-**Purpose**: A dedicated internal checklist to ensure that all master [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) files in the `_foundation` repository are updated, versioned, and pushed to origin after any structural or functional changes. 
+**Purpose**: A dedicated internal checklist to ensure that all master knowledge.md) files in the `_foundation` repository are updated, versioned, and pushed to origin after any structural or functional changes. 
 
 > [!WARNING]
 > **Version Cap**: Do NOT exceed version `1.0.0` unless explicitly authorized by the Human. All bumps should remain in the `0.x.x` range for beta/internal development.
@@ -18,7 +18,7 @@ description: "Internal workflow to synchronize all foundation [knowledge.md](fil
 - [ ] Read the current version from `VERSION`.
 - [ ] Calculate the new version according to SemVer (e.g., `0.4.1` -> `0.4.2`).
 - [ ] Overwrite `VERSION` with the new version string.
-- [ ] **MANDATORY**: You MUST mechanically update the `version:` metadata inside `.agents/rules/[core-guardrails](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md` and `GEMINI.md` to prevent Version Drift.
+- [ ] **MANDATORY**: You MUST mechanically update the `version:` metadata inside `.agents/rules/core-guardrails).md` and `GEMINI.md` to prevent Version Drift.
 
 ## 3. Knowledge Base Hydration
 Review and update the following files **only if** the recent changes affect their domain:
@@ -31,11 +31,11 @@ Review and update the following files **only if** the recent changes affect thei
 
 ## 4. Ecosystem & Orion Sync
 - [ ] If `.agents/` rules or schemas were modified, execute `python .agents/scripts/orion.py verify_agents` to ensure mechanical integrity.
-- [ ] Hydrate the internal [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) graph: `python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .agents/canons .agents/workflows`
+- [ ] Hydrate the internal knowledge.md) graph: `python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .agents/canons .agents/workflows`
 
 ## 5. Commit & Push
 - [ ] Stage all changes: `git add .`
-- [ ] Commit with semantic version tag: `git commit -m "chore(docs): sync [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) base for v<NEW_VERSION>"`
+- [ ] Commit with semantic version tag: `git commit -m "chore(docs): sync knowledge.md) base for v<NEW_VERSION>"`
 - [ ] Push to remote: `git push origin`
 
 ---

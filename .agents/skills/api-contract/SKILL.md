@@ -50,4 +50,4 @@ Never proceed with an API implementation without defining the Zod schema first.
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Api Safety Patterns** | references/[api_safety_patterns.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/api-contract/references/[api_safety_patterns.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/api-contract/references/api_safety_patterns.md)) |
+| **Api Safety Patterns** | references/api_safety_patterns.md) |

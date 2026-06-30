@@ -69,7 +69,7 @@
 Context boundary enforcement. Forbids implementing the "82-File Mandate" in the `_foundation` repo. Forces **AST Hollowing** (forbidding `view_file` on files > 100 lines without `rtk read`).
 
 ### 9.8. `prerequisites.md` (34 lines | 2.3KB)
-**Graceful Fallback Matrix. Defines 4 [prerequisites.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[prerequisites.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/prerequisites.md)) and their fallbacks:**
+**Graceful Fallback Matrix. Defines 4 prerequisites.md) and their fallbacks:**
 
 | Prerequisite | Fallback |
 |:--|:--|
@@ -89,7 +89,7 @@ Place for project-specific rules that override global rules. Empty in `_foundati
 
 ---
 
-# VOLUME V: [SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)) / PERSONA (`skills/`) — 16 Specializations
+# VOLUME V: SKILL.md) / PERSONA (`skills/`) — 16 Specializations
 
 ---
 
@@ -103,7 +103,7 @@ Each skill is a "hat" worn by the AI. When loaded, the skill limits the AI's foc
 ### 10.2. `api-contract`
 **Domain:** Client/server interface contracts.
 **Content:** OpenAPI specifications, Zod validation, API safety patterns.
-**Reference:** `references/[api_safety_patterns](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/api-contract/references/[api_safety_patterns.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/api-contract/references/api_safety_patterns.md)).md`.
+**Reference:** `references/api_safety_patterns).md`.
 
 ### 10.3. `project-architect` (formerly backend-orchestrator)
 **Domain:** Master backend architect.
@@ -133,7 +133,7 @@ Each skill is a "hat" worn by the AI. When loaded, the skill limits the AI's foc
 ### 10.9. `frontend-experience`
 **Domain:** UI/UX debugging.
 **Content:** Fixing excessive re-renders, DOM infinite loops, React/Flutter state synchronization.
-**Reference:** `references/[ux-designer](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/frontend-experience/references/[ux-designer.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/frontend-experience/references/ux-designer.md)).md`.
+**Reference:** `references/ux-designer).md`.
 
 ### 10.10. `integrity-sentinel`
 **Domain:** Red Team & Automated QA.

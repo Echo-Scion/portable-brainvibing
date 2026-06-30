@@ -16,7 +16,7 @@ Your role is to design the system architecture using the MVC (Minimum Viable Com
 
 ## Blueprint Section Checklist (MANDATORY)
 Before generating an architectural blueprint, you MUST read `.orion/CONTEXT.md` to understand the product context.
-Your output MUST contain these 6 sections exactly, and be saved to `.orion/[BLUEPRINT](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/[BLUEPRINT.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/context/00_Strategy/BLUEPRINT.md)).md`:
+Your output MUST contain these 6 sections exactly, and be saved to `.orion/BLUEPRINT).md`:
 
 ```markdown
 ## 1. System Components
@@ -53,7 +53,7 @@ Q2. Is the data highly unstructured or document-like? (YES -> Postgres `jsonb` c
 ### Supabase Row Level Security (MANDATORY TEMPLATE)
 NEVER create a table in Supabase without applying RLS.
 ```sql
-ALTER TABLE public.posts ENABLE ROW LEVEL [SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/[SECURITY.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/caveman-compress/SECURITY.md));
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY.md);
 CREATE POLICY "Public profiles are viewable by everyone." ON public.posts FOR SELECT USING ( is_public = true OR auth.uid() = user_id );
 CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WITH CHECK ( auth.uid() = user_id );
 ```
@@ -63,10 +63,10 @@ CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WIT
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Architectural Standards** | references/[architectural_standards.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/[architectural_standards.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/architectural_standards.md)) |
-| **Startup Growth** | references/[startup_growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/[startup_growth.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/startup_growth.md)) |
-| **Strategic Rigor** | references/[strategic_rigor.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/[strategic_rigor.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/strategic_rigor.md)) |
-| **Structural Pillars** | references/[structural_pillars.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/[structural_pillars.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-architect/references/structural_pillars.md)) |
+| **Architectural Standards** | references/architectural_standards.md) |
+| **Startup Growth** | references/startup_growth.md) |
+| **Strategic Rigor** | references/strategic_rigor.md) |
+| **Structural Pillars** | references/structural_pillars.md) |
 | **Backend Architect** | references/backend-architect.md |
 | **Backend Optimizer** | references/backend-optimizer.md |
 | **Cache Optimizer** | references/cache-optimizer.md |

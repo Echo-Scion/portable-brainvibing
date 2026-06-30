@@ -37,5 +37,5 @@ If ANY of these scripts return a non-zero exit code or flag a warning, the relea
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Chaos Engineer** | references/[chaos-engineer.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-operator/references/[chaos-engineer.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-operator/references/chaos-engineer.md)) |
-| **Release Manager** | references/[release-manager.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-operator/references/[release-manager.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/project-operator/references/release-manager.md)) |
+| **Chaos Engineer** | references/chaos-engineer.md) |
+| **Release Manager** | references/release-manager.md) |

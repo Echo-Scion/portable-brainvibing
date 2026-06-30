@@ -16,7 +16,7 @@ To maintain a "plug and play" environment while avoiding brittle failures, this 
   - Instead of `rtk grep`, use the native `grep_search` tool.
 
 ## 2. Orion (Agent Memory & Brain Graph)
-- **Role**: Context syncing and [knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/[knowledge.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/meta-agent-admin/references/knowledge.md)) indexing via the `orion.py` CLI.
+- **Role**: Context syncing and knowledge.md) indexing via the `orion.py` CLI.
 - **Prerequisite**: Python environment.
 - **Fallback Chain**:
   1. **Primary**: Use the local python bridge: `python .agents/scripts/orion.py`.

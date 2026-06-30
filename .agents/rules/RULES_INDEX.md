@@ -12,9 +12,9 @@ This directory contains the core behavioral and operational constraints for the 
 | File | Purpose |
 | :--- | :--- |
 | `core-guardrails.md` | **(START HERE)** The master AI behavioral protocol and operation constraints. |
-| `skills/ai-engineer/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` | Concrete engineering algorithms to mitigate fundamental AI traits (Probabilistic nature, GIGO, Black Box). |
+| `skills/ai-engineer/SKILL).md` | Concrete engineering algorithms to mitigate fundamental AI traits (Probabilistic nature, GIGO, Black Box). |
 | `tier-execution-protocol.md` | Execution depth per tier (Budget/Standard/Premium) and reasoning standards. |
-| `security-guardrails.md` | Absolute [security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md)) constraints, offensive zero-trust audits, and Red Team exploit generation. |
+| `security-guardrails.md` | Absolute security.md) constraints, offensive zero-trust audits, and Red Team exploit generation. |
 | `web-api-standards.md` | Frontend UI/UX constraints (Liquid Glass) and strict backend data contracts (Zod, OpenAPI). |
 | `development-operations.md` | Git workflows, PR reviews, Auto-Harness validation pipelines, and Context Management. |
 | `prompting-patterns.md` | Advanced prompting patterns for sub-agent orchestration and determinism. |

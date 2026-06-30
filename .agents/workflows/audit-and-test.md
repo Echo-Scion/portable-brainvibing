@@ -10,7 +10,7 @@ description: Quality enforcement workflows including Strict TDD and PR Code Revi
 Execute the following steps sequentially when instructed to use TDD.
 
 ## 0. CONTEXT RETRIEVAL (JIT)
-- [ ] Verify Binary Oratory compliance. IF unsure, use `grep_search` on `@[core-guardrails](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md`.
+- [ ] Verify Binary Oratory compliance. IF unsure, use `grep_search` on `@core-guardrails).md`.
 
 - [ ] **1. Scaffold Interfaces**: Define types/interfaces or class/function skeletons without the actual implementation.
 - [ ] **2. Write Failing Test (RED)**: Write a test that is *guaranteed to fail* because the code has not been implemented yet.
@@ -33,15 +33,15 @@ Before accepting or approving code changes (`git diff --name-only HEAD`), perfor
 
 ## 1. Context Retrieval & Execution Loop
 - **CRITICAL ACTION**: Audit MUST be executed **pipeline by pipeline** per phase (vertical slice), NOT layer-by-layer. Trace the full flow (e.g., Route -> Controller -> Service -> Repo) for each feature.
-- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/[core-guardrails](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md` NOW if unsure about Binary Oratory.
-- **CRITICAL ACTION**: You MUST execute `view_file .agents/skills/meta-agent-admin/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` NOW to properly map code relations.
-- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/[development-operations](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[development-operations.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/development-operations.md)).md` NOW to enforce Git Standards.
+- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/core-guardrails).md` NOW if unsure about Binary Oratory.
+- **CRITICAL ACTION**: You MUST execute `view_file .agents/skills/meta-agent-admin/SKILL).md` NOW to properly map code relations.
+- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/development-operations).md` NOW to enforce Git Standards.
 - **CRITICAL ACTION**: You MUST execute `run_command` with `python .agents/scripts/orion.py scan targets <DIR>` NOW if auditing the full project. Do not guess filenames.
-- [ ] **Subagent Delegation (Deep Audits)**: For large files, execute `view_file .agents/skills/integrity-sentinel/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` and delegate deep audits to the integrity-sentinel skill to prevent context degradation.
+- [ ] **Subagent Delegation (Deep Audits)**: For large files, execute `view_file .agents/skills/integrity-sentinel/SKILL).md` and delegate deep audits to the integrity-sentinel skill to prevent context degradation.
 
 ## 2. Standard Code Review (Quick Check)
-- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/[core-guardrails](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md` NOW.
-- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/[security-guardrails](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[security](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/[security.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/integrity-sentinel/references/security.md))-guardrails.md)-guardrails.md).md` NOW. Check for **CRITICAL Security** violations (Block commit immediately):
+- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/core-guardrails).md` NOW.
+- **CRITICAL ACTION**: You MUST execute `view_file .agents/rules/security-guardrails)-guardrails.md)-guardrails.md).md` NOW. Check for **CRITICAL Security** violations (Block commit immediately):
   - Hardcoded credentials, API keys, JWT secrets, or tokens.
   - SQL injection vulnerabilities (use of string concatenation in queries).
   - XSS vulnerabilities (rendering HTML without sanitization).
@@ -59,7 +59,7 @@ Before accepting or approving code changes (`git diff --name-only HEAD`), perfor
   - Missing JSDoc/docstrings for public functions or external APIs.
 
 ## 3. Offensive Deep Audit (Stress-Test)
-Actively try to break the code. You MUST execute `view_file .agents/skills/integrity-sentinel/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` NOW to load and run these checks:
+Actively try to break the code. You MUST execute `view_file .agents/skills/integrity-sentinel/SKILL).md` NOW to load and run these checks:
 - [ ] **Generative Exploit Synthesis**: Spawn a Red Team subagent to write a synthetic attack script (e.g., `synthetic_exploit.py`) targeting the new boundary.
 - [ ] **Algorithmic Mutation Testing**: Mechanically inject deliberate bugs (flip operators, drop awaits) into memory. If tests still pass, reject PR (Survivor Bias).
 - [ ] **Temporal Simulation**: Survive T=0s, T=15s, T=30s state-machine collisions?

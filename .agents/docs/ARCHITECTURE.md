@@ -9,7 +9,7 @@ The `GEMINI.md` file (or `CLAUDE.md`, depending on the IDE) at the project root 
 ### 2.1. Sequential Tool Ban (Hard Gate — §1.0)
 ```
 CRITICAL: You are FORBIDDEN from using any modifying tools (write_to_file, replace_file_content,
-run_command, etc.) until you have explicitly executed a view_file on .agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md.
+run_command, etc.) until you have explicitly executed a view_file on .agents/rules/core-guardrails.md).md.
 ```
 This is an absolute mechanical block. The AI is required to read the "master rules" before being allowed to touch any files. Its purpose: to prevent Tunnel Vision and Agentic Amnesia at the beginning of the session.
 
@@ -35,16 +35,16 @@ A complete routing table mapping 20+ user prompt categories to specific target f
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 |:--|:--|
-| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/[app-lifecycle.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[app-lifecycle.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/app-lifecycle.md)).md` |
-| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Session End, Handoff, Context Eviction** | `.agents/workflows/[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/session-offload.md)).md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/app-lifecycle.md).md` |
+| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md).md` |
+| **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md).md` |
+| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md).md` |
+| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md).md` |
+| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md).md` |
+| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/SKILL.md).md` |
+| **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/SKILL.md).md` |
+| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/SKILL.md).md` |
+| **Session End, Handoff, Context Eviction** | `.agents/workflows/session-offload.md).md` |
 
 ### 2.6. Unified Response Footer (§5)
 Every technical response MUST end with the navigation block:
@@ -99,7 +99,7 @@ The `GEMINI.md` file (or `CLAUDE.md`, depending on the IDE) at the project root 
 ### 2.1. Sequential Tool Ban (Hard Gate — §1.0)
 ```
 CRITICAL: You are FORBIDDEN from using any modifying tools (write_to_file, replace_file_content,
-run_command, etc.) until you have explicitly executed a view_file on .agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[core-guardrails.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/core-guardrails.md)).md.
+run_command, etc.) until you have explicitly executed a view_file on .agents/rules/core-guardrails.md).md.
 ```
 This is an absolute mechanical block. The AI is required to read the "master rules" before being allowed to touch any files. Its purpose: to prevent Tunnel Vision and Agentic Amnesia at the beginning of the session.
 
@@ -125,16 +125,16 @@ A complete routing table mapping 20+ user prompt categories to specific target f
 
 | If User Prompt Relates To... | Immediately Load (view_file) |
 |:--|:--|
-| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/[app-lifecycle.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[app-lifecycle.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/app-lifecycle.md)).md` |
-| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` |
-| **Session End, Handoff, Context Eviction** | `.agents/workflows/[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[session-offload.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/session-offload.md)).md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-init.md` & `.agents/workflows/app-lifecycle.md).md` |
+| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md).md` |
+| **System Architecture, Database Schema, Blueprint** | `.agents/skills/project-architect/SKILL.md).md` |
+| **Frontend UI, Layout, Aesthetics, Animations** | `.agents/skills/ui-finish/SKILL.md).md` |
+| **Security Audit, QA, Testing, Bugs, Validation** | `.agents/skills/integrity-sentinel/SKILL.md).md` |
+| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md).md` |
+| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/SKILL.md).md` |
+| **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/SKILL.md).md` |
+| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/SKILL.md).md` |
+| **Session End, Handoff, Context Eviction** | `.agents/workflows/session-offload.md).md` |
 
 ### 2.6. Unified Response Footer (§5)
 Every technical response MUST end with the navigation block:

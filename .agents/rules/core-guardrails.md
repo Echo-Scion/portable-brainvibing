@@ -54,7 +54,7 @@ Before executing **ANY task** that heavily modifies the filesystem or infrastruc
 > **AST Precision (Anti-Indentation Error)**: For Python or indentation-sensitive files, you MUST use `grep_search` with `MatchPerLine=true` to read the specific target lines before patching, ensuring that replacement spacing aligns perfectly with the AST.
 
 ## 2. Reasoning Standards (Deterministic Flow)
-- **AI Engineering Compliance**: Adhere strictly to the algorithms in `skills/ai-engineer/[SKILL](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/[SKILL.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/skills/ui-finish/SKILL.md)).md` (e.g., Assertion Matrix, Confidence Gates).
+- **AI Engineering Compliance**: Adhere strictly to the algorithms in `skills/ai-engineer/SKILL).md` (e.g., Assertion Matrix, Confidence Gates).
 - **Think Before Doing (Plan Protocol)**:
   1. Create or update `plan.md` outlining exact files to modify.
   2. Do not execute `write_file` or `replace` until `plan.md` is complete.
@@ -106,7 +106,7 @@ To prevent repetitive systemic failures and ensure continuous evolution, the age
 
 1. **Pre-Flight Consultation (Keyword Search Protocol)**: For all `STANDARD` and `PREMIUM` tasks, or when encountering unfamiliar context, the agent MUST execute a `grep_search` on `.orion/` or search key directories.
 2. **Repository-Wide Search**: Always rely on direct `grep_search` and manual file traversals across the codebase. Do not attempt to call external embedding servers. Direct regex and string search are standard.
-3. **Standard Injection (Agent-OS Auto-Suggest)**: When detecting a planning or coding phase, explicitly read `.agents/rules/[RULES_INDEX](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/[RULES_INDEX.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/rules/RULES_INDEX.md)).md` and propose relevant standards *before* writing code. For example: *"Based on your task, standards X and Y may be relevant. Inject these standards?"*. Wait for user approval before proceeding.
+3. **Standard Injection (Agent-OS Auto-Suggest)**: When detecting a planning or coding phase, explicitly read `.agents/rules/RULES_INDEX).md` and propose relevant standards *before* writing code. For example: *"Based on your task, standards X and Y may be relevant. Inject these standards?"*. Wait for user approval before proceeding.
 
 
 
@@ -127,4 +127,4 @@ To prevent protocol drift and stale constraints:
 
 ## 10. Post-Task Reflection
 
-You MUST execute `view_file` on `workflows/[self-evolve](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/[self-evolve.md](file:///C:/Users/USER/AndroidStudioProjects/_foundation/.agents/workflows/self-evolve.md)).md` for the deterministic self-evolution protocol.
+You MUST execute `view_file` on `workflows/self-evolve).md` for the deterministic self-evolution protocol.
