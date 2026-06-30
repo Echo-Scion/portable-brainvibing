@@ -53,6 +53,11 @@ Before executing **ANY task** that heavily modifies the filesystem or infrastruc
 > **Scratch Buffer**: For complex non-editing scripts, you MUST write the code to `.gemini/antigravity-ide/brain/<conversation-id>/scratch/` via `write_to_file` before executing it.
 > **AST Precision (Anti-Indentation Error)**: For Python or indentation-sensitive files, you MUST use `grep_search` with `MatchPerLine=true` to read the specific target lines before patching, ensuring that replacement spacing aligns perfectly with the AST.
 
+## 1.10 Anti-Hardcode Path Rule (Portability Preservation)
+
+> **No UI Links in Source**: When writing or modifying files using your IDE editing tools, you MUST NEVER write absolute paths or `file://` schemes (e.g., `[file](file:///C:/...)`) into the file contents. Absolute `file://` links are STRICTLY for chat UI responses. 
+> You MUST use relative paths or standard `[[wikilinks]]` in the source code.
+
 ## 2. Reasoning Standards (Deterministic Flow)
 - **AI Engineering Compliance**: Adhere strictly to the algorithms in `skills/ai-engineer/SKILL).md` (e.g., Assertion Matrix, Confidence Gates).
 - **Think Before Doing (Plan Protocol)**:
