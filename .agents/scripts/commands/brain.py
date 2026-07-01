@@ -313,16 +313,22 @@ def sync(intent, delta=False):
 
                 for path in final_paths:
                     if "archive/" in path.replace("\\", "/").lower():
-                        basename = os.path.basename(path)
-                        dest = os.path.join(agents_dir, "rules", basename)
+                        import shutil
+                        normalized_path = path.replace("\\", "/")
+                        parts = normalized_path.split("archive/")
+                        rel_path = parts[1] if len(parts) > 1 else os.path.basename(path)
+                        dest = os.path.join(agents_dir, rel_path)
                         try:
-                            import shutil
                             if os.path.exists(path):
-                                shutil.copy(path, dest)
-                                print(f"  [AMNESIA RECALL] JIT Retrieved rule '{basename}' from archive!")
+                                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                                if os.path.isdir(path):
+                                    shutil.copytree(path, dest, dirs_exist_ok=True)
+                                else:
+                                    shutil.copy(path, dest)
+                                print(f"  [AMNESIA RECALL] JIT Retrieved asset '{rel_path}' from archive!")
                             rules.append(dest)
                         except Exception as e:
-                            print(f"  [AMNESIA ERROR] Could not recall {basename}: {e}")
+                            print(f"  [AMNESIA ERROR] Could not recall {rel_path}: {e}")
                     else:
                         rules.append(path)
                         

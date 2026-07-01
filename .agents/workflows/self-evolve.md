@@ -27,6 +27,10 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 ## 4. PATTERN RECOGNITION & SYNTHESIS (DISCOVER)
 > **CIRCUIT BREAKER**: Maximum 2 autonomous synthesis operations per session. Beyond that, queue for next session.
 - **CRITICAL ACTION**: **Pattern Scan**: At the end of a session, execute `grep_search` on BOTH `.agents/LEARNINGS.md` AND `MEMORY.md` (specifically for `<friction-data>` tags) NOW for repetitive manual tasks to fuse short-term and long-term friction.
-- **CRITICAL ACTION**: **Autonomous Synthesis**: If a pattern is found, proactively synthesize the rule without waiting for user approval. Darwinian mutation must be 100% autonomous.
-- [ ] **Generate Asset**: Use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new standalone [[SKILL]]), rule, or workflow file.
-- [ ] **Integrate**: Update JIT triggers and ensure the new rule is indexed in `.agents/rules/RULES_INDEX.md` so future sessions load it automatically. You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.
+- **CRITICAL ACTION**: **Synthesis Matrix (HITL Gate)**: 
+  - If a pattern is found, determine its type BEFORE creation:
+    - **Rule**: Dictates general AI behavior (e.g., "always use X"). Destination: `.agents/rules/`. **REQUIRES HUMAN APPROVAL via `[DO: YES]` before creation.**
+    - **Workflow**: Step-by-step situational operation. Destination: `.agents/workflows/`. Can be generated autonomously.
+    - **Skill**: Relies on specific API/Tooling. Destination: `.agents/skills/`. Can be generated autonomously.
+- [ ] **Generate Asset**: Use `.agents/templates/custom-rule.template.md` (or equivalent structure) to generate the new file. **WARNING:** Do NOT attach `activation: always on` frontmatter unless it is an explicitly approved Rule.
+- [ ] **Integrate**: Update JIT triggers and ensure the new file is indexed correctly (Rules in `RULES_INDEX.md`). You MUST execute `python .agents/scripts/orion.py orion_ops ingest` to store them back into the `.orion/`.

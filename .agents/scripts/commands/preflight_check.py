@@ -37,7 +37,17 @@ def run_preflight():
         except Exception as e:
             print(f" [RTK INFO] Could not load stats: {e}")
 
-    # 0. Context naming gate (82-file registry + master anchors)
+    # 0.1 Secrets Scanning Gate
+    secrets_scan_script = os.path.join(BASE_DIR, "canons", "global", "harnesses", "secrets_scan_verifier.py")
+    if os.path.exists(secrets_scan_script):
+        print("\n [SECRETS SCAN] Checking for hardcoded API keys...")
+        secrets_result = subprocess.run([sys.executable, secrets_scan_script, "--path", os.path.abspath(os.path.join(BASE_DIR, '..', '..'))], capture_output=True, text=True)
+        print(secrets_result.stdout.strip())
+        if secrets_result.returncode != 0:
+            print("\n Pre-Flight Failed: Secrets scan detected hardcoded keys.")
+            sys.exit(1)
+
+    # 0.2 Context naming gate (82-file registry + master anchors)
     context_lint_script = os.path.join(SCRIPT_DIR, "context_naming_lint.py")
     if os.path.exists(context_lint_script):
         lint_result = subprocess.run([sys.executable, context_lint_script], capture_output=True, text=True)

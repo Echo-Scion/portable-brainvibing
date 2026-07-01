@@ -15,12 +15,13 @@ This directory contains the core behavioral and operational constraints for the 
 | `skills/ai-engineer/SKILL.md` | Concrete engineering algorithms to mitigate fundamental AI traits (Probabilistic nature, GIGO, Black Box). |
 | `tier-execution-protocol.md` | Execution depth per tier (Budget/Standard/Premium) and reasoning standards. |
 | `security-guardrails.md` | Absolute [[security]]) constraints, offensive zero-trust audits, and Red Team exploit generation. |
-| `web-api-standards.md` | Frontend UI/UX constraints (Liquid Glass) and strict backend data contracts (Zod, OpenAPI). |
+| `skills/ui-finish/SKILL.md` | Frontend UI/UX constraints (Liquid Glass). |
+| `skills/api-contract/SKILL.md` | Strict backend data contracts (Zod, OpenAPI). |
 | `development-operations.md` | Git workflows, PR reviews, Auto-Harness validation pipelines, and Context Management. |
 | `prompting-patterns.md` | Advanced prompting patterns for sub-agent orchestration and determinism. |
 | `antigravity-rtk-rules.md` | Rules for interacting with the RTK context proxy. |
 | `performance-optimization.md` | Decision trees for performance optimization, token usage, and Bolt-level speed enforcement. |
-| `standards/fsm-protocol.md` | Crash-proof formal state machine protocol for multi-step tasks. |
+| `workflows/app-lifecycle.md` | Crash-proof formal state machine protocol for multi-step tasks. |
 | `contradiction-protocol.md` | Protocol for resolving colliding predicates and rule conflicts. |
 | `memory-hygiene.md` | Rules for episodic memory compression and GraphRAG garbage collection. |
 

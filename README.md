@@ -1,7 +1,7 @@
 # 🧠 Portable Brainvibing — Plug and Play AI Infrastructure
 
 ![Foundation CI](https://github.com/Echo-Scion/Portable-Brainvibing/actions/workflows/foundation-ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-v0.0.12-blue)
+![Version](https://img.shields.io/badge/version-v0.0.13-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AI Compatible](https://img.shields.io/badge/AI-Gemini%20%7C%20Claude%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Windsurf-orange)
 
@@ -63,16 +63,17 @@ Verbose terminal logs (e.g., `npm install` or `cargo build`) flood the AI's cont
 ### 6. 🧬 The Self-Evolve Engine (Darwinian Mutation)
 The ecosystem learns autonomously through a strictly mechanical evolution loop:
 - **Heartbeat Cron**: Forces evolution based on error thresholds, defeating Agentic Amnesia.
-- **Contradiction Engine**: Automatically detects and resolves colliding knowledge graphs.
+- **Contradiction Engine**: Detects and assists in resolving colliding knowledge graphs.
 - **Activity-Based Temporal Pulse**: Replaces calendar-based summaries with activity-based epochs (Session/Milestone/Epoch), synthesizing memories cleanly even on paused projects.
 - **Evolution Genome**: Every mutation is logged to an append-only JSONL ledger, providing a genetic history of the brain's divergence.
+- **LLM-as-a-Judge Benchmarking**: Evolution fitness (A/B testing rules) is scored using local LLMs (Ollama) as a judge, providing guided reflection rather than relying solely on deterministic execution metrics.
 
 ### 7. 🦖 True LightRAG (Graph + Vector + Lexical)
 To bypass heavy vector databases and bloated background daemons, we use a hybrid semantic engine requiring zero C-extensions:
 - **SQLite FTS5 + JSON Vectors**: Fast lexical search combined with native JSON vector embeddings. Cosine similarity is calculated in pure Python `math` to ensure 100% OS portability without `sqlite-vss` compilation errors.
 - **Relational Triplet Graph**: Explicit semantic linking of code symbols. Employs a Hybrid Strategy: shallow AST extraction via Python, and deep logical extraction delegated to Cloud LLMs.
 - **Granular State Routing (NanoBrain)**: Natively integrated with Ollama (`nomic-embed-text` for vectors). Because small local LLMs are often unreliable ("dumb") for complex reasoning, we do not force them. Users can strictly configure state (e.g., `EMBED_ONLY`) to activate world-class vector search while keeping generative local LLMs fully disabled (**Graceful Degradation**), delegating deep logic to Cloud Agents and saving massive amounts of RAM.
-- **Universal OS-Agnostic Execution**: Every component runs natively via standard `python` without hardcoded aliases, ensuring 100% plug-and-play across Windows, macOS, and Linux virtual environments.
+- **Highly Portable OS-Agnostic Execution**: Most components run natively via standard `python` without hardcoded aliases, ensuring broad plug-and-play compatibility across Windows, macOS, and Linux virtual environments.
 - **Native Obsidian Vault Integration**: The entire `.orion/` graph and `context/` directory are physically structured to be readable as an Obsidian Vault. The `linkify.py` script automatically injects `[[wikilinks]]` to bridge technical files with human notes.
 - **Raw-to-Wiki Pipeline**: Unstructured data (meeting notes, raw text) dumped into `context/raw/` is automatically processed, tagged, and migrated to structured markdown in `context/wiki/` via the lightweight `raw_ingest.py` worker.
 - **Proactive Git Hooks**: The Brain Graph does not wait for manual updates. A `.git/hooks/post-commit` hook automatically triggers `python .agents/scripts/orion.py brain sync` to ensure the AI's internal state is always synchronized with the latest commits.
@@ -80,8 +81,8 @@ To bypass heavy vector databases and bloated background daemons, we use a hybrid
 ### 8. 🌐 IDE-Agnostic Native Tooling
 The framework avoids vendor lock-in by utilizing an abstract tooling policy. Whether running inside Antigravity, Cursor, Copilot, or Windsurf, the AI is instructed to dynamically map abstract workflows ("ask the user", "execute long task") to its specific native slash-commands (like `/grill-me`, `/goal`, or `Composer Ask`).
 
-### 9. 🛡️ Crash-Proof Formal State Machine
-The `.agents` architecture completely isolates **static environment data** from **active execution state**. A formal state machine engine (`execution_state.json`) tracks AI tasks and phase transitions. If the IDE crashes midway through a 20-file generation task, the Omni-Buffer hook catches the dangling state on the next boot and instantly instructs the AI to resume exactly where it crashed.
+### 9. 🛡️ Resilient Formal State Machine
+The `.agents` architecture strongly isolates **static environment data** from **active execution state**. A formal state machine engine (`execution_state.json`) tracks AI tasks and phase transitions. If the IDE crashes midway through a 20-file generation task, the Omni-Buffer hook catches the dangling state on the next boot and instructs the AI to resume exactly where it crashed.
 
 ---
 
@@ -147,8 +148,8 @@ The current `.agents` ecosystem is heavily optimized for resource-constrained en
 
 However, if deployed on a workstation with **unlimited budget and compute** (e.g., 128GB+ RAM, massive VRAM, Dual RTX 4090s), the architecture is designed to scale into a truly autonomous engineering hive:
 
-1. **Massive Local Swarm Concurrency**:
-   Instead of using `auto_delegate.py` sequentially, an unbound system could spin up 10-20 local instances of a 70B parameter model (e.g., Llama 3 70B). The Architect skill could deploy isolated worker agents in parallel to build the UI, API, and Database simultaneously, without hitting any cloud API rate limits.
+1. **From Sequential Delegation to Swarm Concurrency**:
+   Currently, `auto_delegate.py` orchestrates tasks sequentially for constrained environments. An unbound system could spin up 10-20 local instances of a 70B parameter model (e.g., Llama 3 70B) to act as a true concurrent swarm. The Architect skill could deploy isolated worker agents in parallel to build the UI, API, and Database simultaneously, without hitting any cloud API rate limits.
 2. **Real-Time Continuous Graph Ingestion**:
    Currently, `.orion` uses SQLite FTS5 triggered on-demand to save compute. With infinite resources, a heavy continuous GraphRAG daemon could map every AST (Abstract Syntax Tree) node, every file change, and every terminal log into `.orion.db` in real-time, providing the AI with sub-second, perfect spatial awareness of the entire codebase.
 3. **Zero-Latency Motor Control**:

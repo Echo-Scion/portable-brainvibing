@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.13] - 2026-07-02
+### Changed
+- **Documentation Migration**: Split monolithic `EXPLAIN.md` into modular markdown files in `.agents/docs/` for optimized RAG ingestion and removed obsolete docs.
+- **Amnesia Upgrade (Usage-Based)**: Upgraded `rule_eviction.py` to use SQLite RAG metrics (`access_count` & `last_accessed`), abandoning flawed `mtime` logic for dynamic usage-based grace periods (90-day vs 30-day).
+- **Amnesia Ecosystem Expansion**: Expanded eviction scope from `rules` to cover `workflows`, `canons`, and `skills` directories with smart folder-level preservation.
+- **JIT Recall Improvements**: Removed hardcoded path logic in `brain.py` to allow dynamic structural restoration of archived assets.
+- **Theoretical Claims Grounding**: Softened absolute terms in `README.md` ("Massive Local Swarm" -> "Sequential Delegation to Swarm").
+- **Security Scanners Realized**: Deployed `secrets_scan_verifier.py` (API key leaks) and `migration_verifier.py` (dangerous SQL ops) into `preflight_check.py`, transforming ghost claims into functional mechanics.
+- **Rules Index Purge**: Removed ghost/unimplemented references from `RULES_INDEX.md`.
 ## [0.0.12] - 2026-06-30
 ### Changed
 - **Ecosystem Functional Audit**: Validated 10 audit points across identity, skills, and stability.
