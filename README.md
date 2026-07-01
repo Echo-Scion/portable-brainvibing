@@ -1,7 +1,7 @@
 # 🧠 Portable Brainvibing — Plug and Play AI Infrastructure
 
 ![Foundation CI](https://github.com/Echo-Scion/Portable-Brainvibing/actions/workflows/foundation-ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-v0.0.13-blue)
+![Version](https://img.shields.io/badge/version-v0.0.14-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AI Compatible](https://img.shields.io/badge/AI-Gemini%20%7C%20Claude%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Windsurf-orange)
 
@@ -40,7 +40,8 @@ These are the core, framework-agnostic concepts that power this ecosystem:
 We structurally ban polite AI fluff. The AI is forced to speak in terse, fragmented "Caveman Mode." 
 - **AI before:** *"I apologize for the confusion! Let's go ahead and fix the null pointer issue by adding a check..."*
 - **AI now:** `Auth crash. User null. Adding check.` 
-*Result: Context windows last longer. Compute cost drops significantly. Logic remains accurate.*
+*Result: Context windows last longer. Compute cost drops significantly.*
+> **⚠️ REALITY CHECK (Anti-GIGO):** Forced Caveman Mode destroys the LLM's Chain-of-Thought (CoT) reasoning for complex tasks. This protocol MUST be bypassed for deep debugging to prevent the AI from jumping to conclusions.
 
 ### 2. 🧠 IDE Agent Delegation & Modular CLI (`orion.py`)
 Instead of forcing the AI to manually search for rules or parse fragile CLI outputs, the system relies on structured IDE Agent Delegation. Your IDE AI explicitly triggers specialized CLI tools via standard `run_command` protocols. The standard CLI (`orion.py`) acts as the primary interface for both background cron-jobs and human/AI-driven task orchestration.
@@ -59,6 +60,7 @@ If the AI fails 3 times, the **Circuit Breaker** trips via strict prompt enforce
 Verbose terminal logs (e.g., `npm install` or `cargo build`) flood the AI's context window.
 - **RTK (Rust Token Killer)**: Proxies all terminal commands and strips >80% of log output.
 - **Universal AST Parser**: Before saving source code to the `.orion` SQLite database, our Python-based utility scripts perform shallow extraction to strip out deep logic and noise, leaving mostly pure structural footprints. This reduces SQLite database bloat by 90%.
+> **⚠️ REALITY CHECK (Anti-GIGO):** AST Ingestion causes "Agentic Blindness" because the AI cannot see the actual function implementation. Agents MUST use `view_file` to read the full source code before proposing any bug fixes to avoid hallucinations.
 
 ### 6. 🧬 The Self-Evolve Engine (Darwinian Mutation)
 The ecosystem learns autonomously through a strictly mechanical evolution loop:
@@ -73,6 +75,7 @@ To bypass heavy vector databases and bloated background daemons, we use a hybrid
 - **SQLite FTS5 + JSON Vectors**: Fast lexical search combined with native JSON vector embeddings. Cosine similarity is calculated in pure Python `math` to ensure 100% OS portability without `sqlite-vss` compilation errors.
 - **Relational Triplet Graph**: Explicit semantic linking of code symbols. Employs a Hybrid Strategy: shallow AST extraction via Python, and deep logical extraction delegated to Cloud LLMs.
 - **Granular State Routing (NanoBrain)**: Natively integrated with Ollama (`nomic-embed-text` for vectors). Because small local LLMs are often unreliable ("dumb") for complex reasoning, we do not force them. Users can strictly configure state (e.g., `EMBED_ONLY`) to activate world-class vector search while keeping generative local LLMs fully disabled (**Graceful Degradation**), delegating deep logic to Cloud Agents and saving massive amounts of RAM.
+> **⚠️ REALITY CHECK (Graceful Degradation Flaw):** If Ollama is offline, the Semantic Keyword Expansion fails entirely. This must be bypassed by forcing the Cloud Agent to mentally generate synonyms before querying the database (Fixed via Mental Semantic Expansion hook in Master BIOS).
 - **Highly Portable OS-Agnostic Execution**: Most components run natively via standard `python` without hardcoded aliases, ensuring broad plug-and-play compatibility across Windows, macOS, and Linux virtual environments.
 - **Native Obsidian Vault Integration**: The entire `.orion/` graph and `context/` directory are physically structured to be readable as an Obsidian Vault. The `linkify.py` script automatically injects `[[wikilinks]]` to bridge technical files with human notes.
 - **Raw-to-Wiki Pipeline**: Unstructured data (meeting notes, raw text) dumped into `context/raw/` is automatically processed, tagged, and migrated to structured markdown in `context/wiki/` via the lightweight `raw_ingest.py` worker.

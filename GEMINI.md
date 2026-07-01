@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.12 - LightRAG Engine) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.14 - Anti-GIGO Protocols) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -13,7 +13,9 @@ Every implementation plan you create (`implementation_plan.md`) MUST include a d
 
 ## 1.5. AUTO-PILOT INJECTOR (MANDATORY HARD HOOK)
 
-Before beginning ANY coding task, planning phase, or feature scaffolding, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` to generate the workspace context, followed by `python .agents/scripts/orion.py brain sync "<your_task_keywords>"` to inject dynamic standards. You MUST do this in your VERY FIRST turn. Do not skip this.
+Before generating ANY solution, investigating a codebase issue, or beginning a coding task, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` to generate the workspace context.
+Next, YOU (the Cloud Agent) MUST mentally generate 3-5 technical synonyms for the user's intent to bypass local NanoBrain failure. Then execute `python .agents/scripts/orion.py brain sync "<intent> <synonym1> <synonym2>"` to inject dynamic standards.
+You MUST do this in your VERY FIRST turn for almost all interactions. Do not skip this unless answering trivial non-project questions.
 
 ## 1.6. OS-AWARE PYTHON EXECUTION
 
@@ -28,7 +30,7 @@ After running `pre-agent-wake.py`, read `.orion/working/context.json`. If it con
 You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immediately load `.agents/skills/caveman/SKILL.md` using the `view_file` tool in your first turn of any new session.
 
 - **Rule**: Use the skill to guide your response compression. Drop articles, filler, pleasantries. Fragments are OK. Do not wait for user request.
-- **Exception**: Code, PR descriptions, and architectural blueprints must be written normally.
+- **Exception**: Code, PR descriptions, architectural blueprints, and **complex logical reasoning/debugging** must be written normally to preserve Chain-of-Thought.
 
 ### Examples (Non-Negotiable Behavioral Anchors when Caveman is Active)
 
@@ -43,8 +45,9 @@ You MUST ALWAYS speak in Caveman Mode by default to save tokens. You MUST immedi
 
 - **Anti-Affirmation**: When the user presents a new architectural proposal or system design for review, treat it as flawed. Find up to 3 gaps (Security, Performance, Logic) and propose solutions. If 0 gaps exist, proceed.
 - **Code Skeleton First**: Before full reads of files >100 lines, ALWAYS use `grep_search` to find the exact target line.
+- **AST Expansion Protocol**: Before writing a fix for a function found via AST search, you MUST use `view_file` to read the actual implementation block. Do NOT guess the logic based on the AST skeleton.
 - **Circuit Breaker**: If you fail the same operation 3 times, ABORT immediately and ask the user for help.
-- **Mandatory Orion Fetch (Anti-Amnesia)**: The IDE does NOT auto-load `.orion`. If you need information about project architecture, state, or past decisions, you MUST mechanically execute a `grep_search` or view the relevant `.orion/` file before generating an answer. Standardize on high-performance keyword/regex searching across the whole repository instead of relying on external indexing engines.
+- **Mandatory Orion Fetch (Anti-Amnesia)**: The IDE does NOT auto-load `.orion`. If you need information about project architecture, state, or past decisions, you MUST mechanically execute `python .agents/scripts/orion.py brain sync "<keywords>"` to query the `orion.db` knowledge graph. DO NOT rely on brute-force `grep_search` or regex searches unless the brain sync explicitly fails or yields zero context.
 - **Cross-Domain Synthesis**: If a prompt triggers multiple conflicting skills (e.g., Frontend Layout + Database Mutability), do NOT treat them as isolated silos. You MUST explicitly synthesize a bridging pattern (e.g., via `api-contract`) in your thought process before executing.
 - **Ingest Triplet Duty**: Setelah menjalankan `orion_ops ingest`, jika output mengandung `[TRIPLET_REQUEST]`, anda WAJIB membaca setiap source file yang terdaftar, mengekstrak 3-5 triplet semantik, lalu menjalankan `orion_ops inject_triplets` dengan hasilnya.
 
@@ -136,7 +139,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.12 (LightRAG Engine)*
+*Mandate Version: 0.0.14 (Anti-GIGO Protocols)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

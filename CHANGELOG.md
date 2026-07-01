@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.14] - 2026-07-02
+### Changed
+- **Anti-GIGO Caveman Exemption**: Added explicit rule exemptions in Master BIOS to bypass Caveman Protocol for complex debugging, preserving LLM Chain-of-Thought (CoT).
+- **AST Expansion Protocol**: Forced physical code reads (`view_file`) on function implementations before proposing fixes to cure Agentic Blindness.
+- **Audit Alignment**: Corrected `README.md` to reflect true system mechanics, removing false "Dormant Scaffolding" warning on Vector Embeddings and marking Caveman/AST as patched vulnerabilities.
+- **Deep Audit Report**: Generated exhaustive map (`comprehensive_audit.md`) confirming all README claims are backed by physical `.agents` Python scripts and workflows.
+
 ## [0.0.13] - 2026-07-02
 ### Changed
 - **Documentation Migration**: Split monolithic `EXPLAIN.md` into modular markdown files in `.agents/docs/` for optimized RAG ingestion and removed obsolete docs.
