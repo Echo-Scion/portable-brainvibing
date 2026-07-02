@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.1.html).
 
+## [0.0.15] - 2026-07-02
+### Changed
+- **Universal AST Parser**: Upgraded AST logic from naive regex to 4-tier engine (Rust RTK -> Python `ast` -> `tree-sitter` JS/TS/Dart -> Regex fallback).
+- **Unified Orion SQLite**: Unified Relational Graph from disjoint JSON/SQLite files into a single `orion.db` SQLite schema.
+- **Documentation Alignment**: Synchronized `README.md` and `03-local_rag_brain.md` to reflect new AST and SQLite Graph mechanics.
+- **Bug Fix**: Repaired YAML frontmatter syntax error in `knowledge-sync.md` workflow preventing IDE indexing.
+
 ## [0.0.14] - 2026-07-02
 ### Changed
 - **Anti-GIGO Caveman Exemption**: Added explicit rule exemptions in Master BIOS to bypass Caveman Protocol for complex debugging, preserving LLM Chain-of-Thought (CoT).

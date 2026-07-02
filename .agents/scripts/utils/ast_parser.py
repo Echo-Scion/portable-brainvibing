@@ -32,6 +32,65 @@ def parse_python_ast(content: str) -> str:
     except Exception as e:
         return f"[AST PARSE ERROR: {str(e)}]"
 
+def extract_python_edges_ast(content: str, file_basename: str) -> list:
+    """Extracts triplets (Graph Edges) from Python source code using true AST parsing."""
+    import ast
+    triplets = []
+    try:
+        tree = ast.parse(content)
+        for node in ast.walk(tree):
+            # 1. Imports
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    triplets.append((file_basename, "imports", alias.name))
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    triplets.append((file_basename, "imports", node.module))
+            
+            # 2. Classes and Inheritance
+            elif isinstance(node, ast.ClassDef):
+                triplets.append((file_basename, "defines", node.name))
+                for base in node.bases:
+                    if isinstance(base, ast.Name):
+                        triplets.append((node.name, "inherits", base.id))
+                        
+            # 3. Functions
+            elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+                triplets.append((file_basename, "defines", node.name))
+                
+            # 4. Dictionary Assignments (like cmd_map)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        if isinstance(node.value, ast.Dict):
+                            triplets.append((file_basename, "defines_map", target.id))
+                            # Add values as routes
+                            for k, v in zip(node.value.keys, node.value.values):
+                                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                                    if isinstance(v, ast.List) and v.elts:
+                                        last_el = v.elts[-1]
+                                        if isinstance(last_el, ast.Constant) and isinstance(last_el.value, str):
+                                            target_val = last_el.value
+                                            if target_val.endswith('.py'):
+                                                triplets.append((file_basename, "routes_to", target_val))
+                                            
+            # 5. Function Calls (e.g., subprocess.run)
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Attribute):
+                    if isinstance(node.func.value, ast.Name):
+                        caller = f"{node.func.value.id}.{node.func.attr}"
+                        if caller in ["subprocess.run", "subprocess.Popen", "subprocess.call", "os.system"]:
+                            if node.args:
+                                arg = node.args[0]
+                                if isinstance(arg, ast.List) and arg.elts:
+                                    for el in arg.elts:
+                                        if isinstance(el, ast.Constant) and isinstance(el.value, str):
+                                            if el.value.endswith('.py'):
+                                                triplets.append((file_basename, "executes", el.value))
+    except Exception as e:
+        print(f"[AST Extraction Error] {e}")
+    return triplets
+
 def parse_regex_ast(content: str) -> str:
     """Fallback Regex heuristic parser for Dart, JS, TS, Java, etc."""
     result = []

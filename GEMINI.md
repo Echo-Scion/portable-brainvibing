@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.14 - Anti-GIGO Protocols) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.15 - Anti-GIGO Protocols) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1.0. SEQUENTIAL TOOL BAN (HARD GATE)
@@ -139,7 +139,7 @@ You are operating in a portable framework. You must detect and utilize your nati
 - **Scheduled Tasks**: When instructed to run cron-jobs or checks, use your IDE's native scheduling tool (e.g., `/schedule`).
 
 ---
-*Mandate Version: 0.0.14 (Anti-GIGO Protocols)*
+*Mandate Version: 0.0.15 (Anti-GIGO Protocols)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

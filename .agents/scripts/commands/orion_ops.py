@@ -372,16 +372,11 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
                 import re
                 file_basename = os.path.basename(filepath)
                 if ext.lower() == ".py":
-                    for match in re.finditer(r'^\s*import\s+([a-zA-Z0-9_]+)', content_str, re.MULTILINE):
-                        triplets.append((file_basename, "imports", match.group(1)))
-                    for match in re.finditer(r'^\s*from\s+([a-zA-Z0-9_\.]+)\s+import', content_str, re.MULTILINE):
-                        triplets.append((file_basename, "imports", match.group(1)))
-                    for match in re.finditer(r'^\s*class\s+([a-zA-Z0-9_]+)(?:\((.*?)\))?:', content_str, re.MULTILINE):
-                        cls_name = match.group(1)
-                        triplets.append((file_basename, "defines", cls_name))
-                        parent = match.group(2)
-                        if parent and parent.strip():
-                            triplets.append((cls_name, "inherits", parent.strip()))
+                    try:
+                        from utils.ast_parser import extract_python_edges_ast
+                        triplets.extend(extract_python_edges_ast(content_str, file_basename))
+                    except ImportError:
+                        pass
                 elif ext.lower() in [".js", ".ts", ".dart"]:
                     for match in re.finditer(r'^\s*import\s+.*?(?:from\s+)?[\'"](.*?)[\'"]', content_str, re.MULTILINE):
                         triplets.append((file_basename, "imports", match.group(1)))
@@ -480,8 +475,40 @@ def ingest_file(filepath: str, autonomy_level="balanced") -> bool:
             ''', (target_path, fm_text + "\n" + pointer_body))
             
             c.execute('DELETE FROM edges WHERE source_id = ?', (target_path,))
+            
+            # --- SQL-Backed WikiLinks Extraction ---
+            import re
+            pattern = r'\[\[(.*?)\]\]'
+            wiki_links = re.findall(pattern, content_str)
+            if wiki_links:
+                c.execute('''
+                    INSERT OR REPLACE INTO nodes (id, type, name, source_path) 
+                    VALUES (?, ?, ?, ?)
+                ''', (target_path, 'File', os.path.basename(target_path), target_path))
+                for link in wiki_links:
+                    parts = link.split('|')
+                    name = parts[0].strip()
+                    relation = parts[1].strip() if len(parts) > 1 else "mentions"
+                    c.execute('''
+                        INSERT OR REPLACE INTO nodes (id, type, name, source_path) 
+                        VALUES (?, ?, ?, ?)
+                    ''', (name, 'WikiNode', name, target_path))
+                    c.execute('''
+                        INSERT OR IGNORE INTO edges (source_id, target_id, relation)
+                        VALUES (?, ?, ?)
+                    ''', (target_path, name, relation))
+
+            # --- Structural Triplets ---
             if ext.lower() in RAW_EXTS and 'triplets' in locals() and triplets:
+                c.execute('''
+                    INSERT OR REPLACE INTO nodes (id, type, name, source_path) 
+                    VALUES (?, ?, ?, ?)
+                ''', (target_path, 'File', os.path.basename(target_path), target_path))
                 for caller, rel, callee in triplets:
+                    c.execute('''
+                        INSERT OR REPLACE INTO nodes (id, type, name, source_path) 
+                        VALUES (?, ?, ?, ?)
+                    ''', (callee, 'AST_Element', callee, target_path))
                     c.execute('''
                         INSERT OR IGNORE INTO edges (source_id, target_id, relation)
                         VALUES (?, ?, ?)
@@ -762,18 +789,18 @@ def get_file_summary(filepath):
 
 def find_backlinks(target_name):
     backlinks = []
-    target_pattern = re.compile(r'\[\[' + re.escape(target_name) + r'(?:\|.*?)?\]\]', re.IGNORECASE)
-    
     try:
         conn = get_db()
         c = conn.cursor()
-        c.execute('SELECT path, content FROM pages_fts')
+        # O(1) Graph Edge Resolution instead of O(N) FTS Regex Scan
+        c.execute('SELECT source_id FROM edges WHERE target_id = ?', (target_name,))
         rows = c.fetchall()
         conn.close()
         
-        for filepath, content in rows:
-            if target_pattern.search(content):
-                backlinks.append(os.path.basename(filepath))
+        for row in rows:
+            basename = os.path.basename(row[0])
+            if basename not in backlinks:
+                backlinks.append(basename)
     except Exception:
         pass
     return backlinks

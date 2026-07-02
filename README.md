@@ -1,7 +1,7 @@
 # 🧠 Portable Brainvibing — Plug and Play AI Infrastructure
 
 ![Foundation CI](https://github.com/Echo-Scion/Portable-Brainvibing/actions/workflows/foundation-ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-v0.0.14-blue)
+![Version](https://img.shields.io/badge/version-v0.0.15-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![AI Compatible](https://img.shields.io/badge/AI-Gemini%20%7C%20Claude%20%7C%20Copilot%20%7C%20Cursor%20%7C%20Windsurf-orange)
 
@@ -59,7 +59,7 @@ If the AI fails 3 times, the **Circuit Breaker** trips via strict prompt enforce
 ### 5. ✂️ Output Filtering & Universal AST Ingestion
 Verbose terminal logs (e.g., `npm install` or `cargo build`) flood the AI's context window.
 - **RTK (Rust Token Killer)**: Proxies all terminal commands and strips >80% of log output.
-- **Universal AST Parser**: Before saving source code to the `.orion` SQLite database, our Python-based utility scripts perform shallow extraction to strip out deep logic and noise, leaving mostly pure structural footprints. This reduces SQLite database bloat by 90%.
+- **Universal AST Parser (Multi-Tiered)**: Before saving source code to the `.orion` SQLite database, the system performs shallow structural extraction. It uses a 4-tier engine: 1) Rust RTK for ultra-fast hollow ASTs, 2) Native Python `ast` for Python files, 3) C-bindings via `tree-sitter` for JS/TS/Dart, and 4) Regex heuristics as a last resort. This strips out deep logic and noise, reducing SQLite database bloat by 90%.
 > **⚠️ REALITY CHECK (Anti-GIGO):** AST Ingestion causes "Agentic Blindness" because the AI cannot see the actual function implementation. Agents MUST use `view_file` to read the full source code before proposing any bug fixes to avoid hallucinations.
 
 ### 6. 🧬 The Self-Evolve Engine (Darwinian Mutation)
@@ -73,7 +73,7 @@ The ecosystem learns autonomously through a strictly mechanical evolution loop:
 ### 7. 🦖 True LightRAG (Graph + Vector + Lexical)
 To bypass heavy vector databases and bloated background daemons, we use a hybrid semantic engine requiring zero C-extensions:
 - **SQLite FTS5 + JSON Vectors**: Fast lexical search combined with native JSON vector embeddings. Cosine similarity is calculated in pure Python `math` to ensure 100% OS portability without `sqlite-vss` compilation errors.
-- **Relational Triplet Graph**: Explicit semantic linking of code symbols. Employs a Hybrid Strategy: shallow AST extraction via Python, and deep logical extraction delegated to Cloud LLMs.
+- **Unified Relational Triplet Graph (`orion.db`)**: Explicit semantic linking of code symbols stored purely in SQLite (no disjointed JSON graph files). Employs a Hybrid Strategy: mechanical AST extraction runs locally for structural edges (`imports`, `defines`), while deep semantic logic (Subject-Predicate-Object) is delegated to Cloud LLMs via the `inject_triplets` mechanism.
 - **Granular State Routing (NanoBrain)**: Natively integrated with Ollama (`nomic-embed-text` for vectors). Because small local LLMs are often unreliable ("dumb") for complex reasoning, we do not force them. Users can strictly configure state (e.g., `EMBED_ONLY`) to activate world-class vector search while keeping generative local LLMs fully disabled (**Graceful Degradation**), delegating deep logic to Cloud Agents and saving massive amounts of RAM.
 > **⚠️ REALITY CHECK (Graceful Degradation Flaw):** If Ollama is offline, the Semantic Keyword Expansion fails entirely. This must be bypassed by forcing the Cloud Agent to mentally generate synonyms before querying the database (Fixed via Mental Semantic Expansion hook in Master BIOS).
 - **Highly Portable OS-Agnostic Execution**: Most components run natively via standard `python` without hardcoded aliases, ensuring broad plug-and-play compatibility across Windows, macOS, and Linux virtual environments.

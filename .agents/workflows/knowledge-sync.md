@@ -1,6 +1,5 @@
 ---
-name: [[knowledge]])-sync.md
-description: "Internal workflow to synchronize all foundation [[knowledge]]) files, bump version, and push to origin at the end of a session."
+description: "Internal workflow to synchronize all foundation [[knowledge]] files, bump version, and push to origin at the end of a session."
 ---
 
 # Knowledge & Foundation Sync Workflow
