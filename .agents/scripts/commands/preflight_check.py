@@ -64,9 +64,12 @@ def run_preflight():
     scan_dirs = ["skills", "rules", "workflows", "canons", "templates"]
     files_to_scan = []
     
-    if os.path.exists(os.path.join(BASE_DIR, "GEMINI.md")):
-        files_to_scan.append(os.path.join(BASE_DIR, "GEMINI.md"))
-        
+    root_gemini = os.path.abspath(os.path.join(BASE_DIR, '..', 'GEMINI.md'))
+    if os.path.exists(root_gemini):
+        files_to_scan.append(root_gemini)
+    agents_gemini = os.path.join(BASE_DIR, "GEMINI.md")
+    if os.path.exists(agents_gemini) and agents_gemini not in files_to_scan:
+        files_to_scan.append(agents_gemini)
 
     for d in scan_dirs:
         folder = os.path.join(BASE_DIR, d)
@@ -108,7 +111,7 @@ def run_preflight():
             content = f.read()
 
         # 1. Check Skill Routing
-        if rel_src_path == "GEMINI.md" or "rules" in rel_src_path:
+        if "GEMINI.md" in rel_src_path or "rules" in rel_src_path:
             potential_skills = re.findall(r'`([a-z0-9]+-[a-z0-9-]+)`', content)
             for ps in set(potential_skills):
                 # Ignore common hyphenated terms that aren't skills

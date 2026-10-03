@@ -25,6 +25,8 @@
 .agents/.deployed_ais
 .agents/.genome.json
 .agents/.nanobrain_status
+.agents/logs/
+.agents/archive/prompts/
 
 .orion/
 __pycache__/

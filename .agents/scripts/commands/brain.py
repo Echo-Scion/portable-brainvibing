@@ -973,7 +973,7 @@ def main():
     subparsers = parser.add_subparsers(dest='command')
     
     sync_parser = subparsers.add_parser('sync', help='Sync brain context')
-    sync_parser.add_argument('intent', type=str, help='The task or intent')
+    sync_parser.add_argument('intent', nargs='?', type=str, default='latest context sync', help='The task or intent')
     sync_parser.add_argument('--delta', action='store_true', help='Only fetch new info without pulling full global rules')
     
     nb_parser = subparsers.add_parser('nanobrain', help='Execute NanoBrain tasks')

@@ -34,13 +34,13 @@ Before executing **ANY task** that heavily modifies the filesystem or infrastruc
 > 1. You **MUST** use `run_command` with `python .agents/scripts/orion.py <cmd>` instead of external binaries or native MCP tools.
 > 2. This centralizes context extraction and prevents fragile CLI string parsing or IDE-specific configuration friction.
 
-## 1.7 Omni-Buffer Context Protocol (Agent-Driven)
+## 1.7 Omni-Buffer Context Protocol (Tier-Aware Bootstrap) [Extends GEMINI.md §1.5]
 
-> **No-More-Copy-Paste Rule**: The `.agents` ecosystem utilizes an Omni-Buffer to synchronize context.
-> 1. In your **VERY FIRST TURN** of a session, you MUST execute `run_command` with `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` to generate the current workspace state.
-> 2. After it runs, execute a `view_file` on `.orion/working/context.json` to extract the `active_file`, `recent_errors`, and evolution flags.
-> 3. This ensures you have 100% accurate context without relying on magical IDE extensions. Do NOT skip this step.
-> 4. **JIT Active Drift Alert**: If `context.json` contains `drift_warnings`, you MUST immediately read (via `view_file`) the files listed in the warnings before making any code modifications. Failure to do so will result in Architectural Code Drift.
+> **Omni-Buffer Synchronization**: The `.agents` ecosystem utilizes an Omni-Buffer to synchronize context between the IDE and the AI.
+> 1. In Antigravity IDE, `hooks.json` automatically updates `.orion/working/context.json` via `pre-agent-wake.py` before agent invocation. If hooks are inactive, run `python .agents/hooks/pre-agent-wake.py --active-file "<extract_from_metadata>"` manually as a fallback.
+> 2. For STANDARD and PREMIUM tasks: If `.orion/working/context.json` exists, read it to extract `active_file`, `recent_errors`, and evolution flags.
+> 3. If `context.json` contains `"evolution_overdue": true`, run `python .agents/scripts/orion.py evolve mine-friction`.
+> 4. **JIT Active Drift Alert**: If `context.json` contains `drift_warnings`, you MUST immediately read (via `view_file`) the files listed in the warnings before making code modifications. Failure to do so will result in Architectural Code Drift.
 
 ## 1.8 IDE-Agnostic Tooling Execution
 

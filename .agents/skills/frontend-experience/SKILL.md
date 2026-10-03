@@ -40,9 +40,9 @@ When auditing interactions, ensure that the user experience is smooth and inform
 - **Success/Error Notifications:** Trigger appropriate toast/snackbar notifications after form submissions or critical operations.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
-*If your current task intersects with these domains, you MUST execute iew_file on the target BEFORE writing code:*
+*If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
 | **Flutter Debugger** | references/flutter-debugger.md |
-| **Ux Designer** | references/[[ux-designer]]) |
+| **Ux Designer** | references/ux-designer.md |

@@ -47,7 +47,7 @@ Q2. Is the data highly unstructured or document-like? (YES -> Postgres `jsonb` c
 ### Supabase Row Level Security (MANDATORY TEMPLATE)
 NEVER create a table in Supabase without applying RLS.
 ```sql
-ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY.md);
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public profiles are viewable by everyone." ON public.posts FOR SELECT USING ( is_public = true OR auth.uid() = user_id );
 CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WITH CHECK ( auth.uid() = user_id );
 ```
@@ -57,14 +57,7 @@ CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WIT
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Architectural Standards** | references/[[architectural_standards]]) |
-| **Startup Growth** | references/[[startup_growth]]) |
-| **Strategic Rigor** | references/[[strategic_rigor]]) |
-| **Structural Pillars** | references/[[structural_pillars]]) |
-| **Backend Architect** | references/backend-architect.md |
-| **Backend Optimizer** | references/backend-optimizer.md |
-| **Cache Optimizer** | references/cache-optimizer.md |
-| **Db Expert** | references/db-expert.md |
-| **Enterprise Patterns** | references/enterprise_patterns.md |
-| **Node Performance Tuning** | references/node_performance_tuning.md |
-| **Postgres Patterns** | references/postgres_patterns.md |
+| **Architectural Standards** | references/architectural_standards.md |
+| **Startup Growth** | references/startup_growth.md |
+| **Strategic Rigor** | references/strategic_rigor.md |
+| **Structural Pillars** | references/structural_pillars.md |

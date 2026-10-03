@@ -8,7 +8,7 @@ description: Step-by-step procedures for operating the Brain Graph (Ingest, Quer
 1. Calculate `source_sha256` of the target file.
 2. Classify the file using the Source Taxonomy (Rule, Skill, Canon, Context, etc.).
 3. **Analyze Topological Dependencies**: Identify parent concepts and ensure they are ingested/parsed before this child concept.
-4. Diff the [[knowledge]]) against `.orion/`.
+4. Diff the knowledge against `.orion/`.
 4. **Evaluate Autonomy Matrix**:
    - `[NEW]`, `[EXTEND]`: Execute auto-commit.
    - `[CONTRADICT]`, `[VIOLATION]`: Pause and emit a `TRIAGE_REPORT`. Wait for user approval.

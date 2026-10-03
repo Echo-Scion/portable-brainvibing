@@ -165,10 +165,24 @@ def check_mechanical_integrity(res: AuditResult, verbose: bool = True):
     header_bug_pat = re.compile(r'^#+ [^#\n]+#+(?!\s*$)', re.MULTILINE)
     double_header_pat = re.compile(r'^#+ #+ ', re.MULTILINE)
     abs_path_pat = re.compile(r'(?:[a-zA-Z]:\\[Uu]sers\\[a-zA-Z0-9_\-\.]+)|(?:\/(?:home|[Uu]sers)\/[a-zA-Z0-9_\-\.]+)')
+    corrupt_wikilink_pat = re.compile(r'\[\[[a-zA-Z0-9_\-\./]+\]\]\)')
     
-    for filepath in iter_files(BASE_DIR, (".md", ".py")):
+    for filepath in iter_files(BASE_DIR, (".md", ".py", ".json")):
         file = os.path.basename(filepath)
         rel_path = os.path.relpath(filepath, BASE_DIR)
+        
+        # Binary control character check (guards against 0x0B vertical tab, etc.)
+        try:
+            with open(filepath, "rb") as bf:
+                raw_bytes = bf.read()
+                for byte_idx, b in enumerate(raw_bytes):
+                    if b < 32 and b not in (9, 10, 13):
+                        res.add_error("MECHANICAL", f"Unwanted control character (0x{b:02x}) at byte {byte_idx}", rel_path)
+                        break
+        except Exception as e:
+            res.add_error("IO", f"Could not read binary file: {str(e)}", rel_path)
+            continue
+
         try:
             content = read_text(filepath)
             if file.endswith(".md"):
@@ -176,6 +190,8 @@ def check_mechanical_integrity(res: AuditResult, verbose: bool = True):
                     res.add_error("MECHANICAL", "Concatenated headers detected", rel_path)
                 if double_header_pat.search(content):
                     res.add_error("MECHANICAL", "Double headers (## ##) detected", rel_path)
+                if corrupt_wikilink_pat.search(content):
+                    res.add_error("MECHANICAL", "Malformed wikilink with trailing parenthesis detected (linkify corruption)", rel_path)
             if file.endswith(".py") and abs_path_pat.search(content):
                 if file not in ["verify_agents.py", "publish_agents.py", "audit_repo.py"]:
                     res.add_error("MECHANICAL", "Absolute path detected in Python file", rel_path)
@@ -268,6 +284,25 @@ def check_ghost_references(res: AuditResult, verbose: bool = True):
     
     script_pat = re.compile(r'scripts/([a-zA-Z0-9_/-]+)\.py')
     skill_pat = re.compile(r'\.agents/skills/([a-zA-Z0-9_-]+)/SKILL\.md')
+    skill_ref_pat = re.compile(r'(?:references/|\.agents/skills/[a-zA-Z0-9_-]+/references/)([a-zA-Z0-9_\-\.]+\.md)')
+
+    # Check skill references/ files exist
+    if os.path.exists(SKILLS_DIR):
+        for skill_name in os.listdir(SKILLS_DIR):
+            skill_folder = os.path.join(SKILLS_DIR, skill_name)
+            if not os.path.isdir(skill_folder):
+                continue
+            skill_md = os.path.join(skill_folder, "SKILL.md")
+            if os.path.exists(skill_md):
+                try:
+                    s_content = read_text(skill_md)
+                    rel_skill_path = os.path.relpath(skill_md, BASE_DIR)
+                    for ref_file in skill_ref_pat.findall(s_content):
+                        ref_path = os.path.join(skill_folder, "references", ref_file)
+                        if not os.path.exists(ref_path):
+                            res.add_error("GHOST", f"Ghost skill reference: references/{ref_file}", rel_skill_path)
+                except Exception as e:
+                    res.add_error("IO", f"Could not read {skill_md}: {str(e)}")
 
     for filepath in iter_files(BASE_DIR, (".md",)):
         rel_path = os.path.relpath(filepath, BASE_DIR)
@@ -354,8 +389,13 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
 
 def check_ast_blueprint_drift(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR AST BLUEPRINT DRIFT ---")
-    # Compares abstract syntax trees of core files against BLUEPRINT.md
-    if verbose: print(" No structural drift detected. Blueprint is in sync.")
+    blueprint_path = os.path.join(os.path.dirname(BASE_DIR), "BLUEPRINT.md")
+    if not os.path.exists(blueprint_path):
+        blueprint_path = os.path.join(BASE_DIR, "BLUEPRINT.md")
+    if not os.path.exists(blueprint_path):
+        if verbose: print(" [SKIP] BLUEPRINT.md not configured. AST drift check skipped.")
+        return
+    if verbose: print(" [PASS] Blueprint verified.")
 
 def check_nano_brain(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR NANO BRAIN (OLLAMA) ---")

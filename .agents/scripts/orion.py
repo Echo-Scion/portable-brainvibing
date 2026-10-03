@@ -114,15 +114,20 @@ def main():
         
     python_exec = sys.executable or "python"
     
+    NO_RETRY_CMDS = {
+        "verify", "verify_agents", "preflight", "preflight_check",
+        "budget", "track_budget", "context-lint", "context_naming_lint",
+        "rtk", "rtk_proxy", "adversarial", "contradict", "fsm"
+    }
+    
     try:
         max_retries = 3
         import time
         for attempt in range(max_retries):
             result = subprocess.run([python_exec, target_script] + args)
             
-            # If success, or if it's an interactive/expected failure command, exit immediately
-            # Fail-fast on exit code 2 (argparse usage error) because retrying a syntax error is useless.
-            if result.returncode == 0 or result.returncode == 2 or cmd in ["rtk", "rtk_proxy", "preflight", "budget", "verify"]:
+            # If success, syntax error, or if it's a test/verification command, exit immediately without retrying
+            if result.returncode == 0 or result.returncode == 2 or cmd in NO_RETRY_CMDS:
                 sys.exit(result.returncode)
                 
             print(f"[ORION AUTO-RETRY] Command failed with exit code {result.returncode}. Attempt {attempt+1}/{max_retries}")

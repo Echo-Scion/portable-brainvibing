@@ -48,8 +48,8 @@ python .agents/scripts/orion.py nano_compressor
 Verify that no obsolete task files remain in `.agents/workflows/tasks/`.
 
 ## 3.5. Auto-Context Sync (Conversational Extraction)
-If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational [[knowledge]]) is persisted into the `context/` 82-file structure before memory is wiped.
-> **TERMINATION GATE**: Execute [[auto-context]]) ONCE. Do not re-enter session-offload.md after [[auto-context]]) completes. After injection, proceed directly to Step 4 without re-evaluating steps 1-3.5.
+If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
+> **TERMINATION GATE**: Execute `/auto-context` ONCE. Do not re-enter session-offload.md after `/auto-context` completes. After injection, proceed directly to Step 4 without re-evaluating steps 1-3.5.
 
 ## 3.8. Self-Reflection (Evaluasi Diri)
 - **Mandatory Action**: Before ending the session, you MUST analyze any errors, failed executions, false assumptions, and cognitive biases that occurred during the session. Document these learnings in the session log so the system and user can evolve.

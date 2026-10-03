@@ -1,9 +1,9 @@
 ---
-description: Unified [[security]]) standards, zero-trust constraints, and offensive audit protocols.
+description: Unified security standards, zero-trust constraints, and offensive audit protocols.
 activation: always on
 ---
 
-# [[SECURITY]]) & OFFENSIVE AUDIT PROTOCOLS
+# SECURITY & OFFENSIVE AUDIT PROTOCOLS
 
 ## Security Guardrails
 # Security Guardrails
@@ -101,7 +101,7 @@ Proceed? Use IDE Artifact RequestFeedback to confirm.
 
 ## 6. Persistent Learning (Post-Mortem Protocol)
 
-After any [[security]]) incident or near-miss:
+After any security incident or near-miss:
 ```
 REQUIRED OUTPUT:
 - Root Cause: (1 sentence)
@@ -118,7 +118,7 @@ REQUIRED OUTPUT:
 
 ## 1. Core Mindset & Offensive Engineering Principles
 
-* **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and [[security]]) linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
+* **Assumption of Fragility (Mechanical Verification):** Run static analysis (e.g., `flutter analyze`, `mypy`) and security linters (e.g., `bandit`, `semgrep`). Reject any file with `>0` warnings. Categorize all manual findings strictly into a JSON array: `[Logic, Performance, Security, Concurrency]`.
 * **Anti Second-System Effect (Complexity Gate):** If a proposed refactor increases cyclomatic complexity or lines of code by >20% without measurable performance gain (proven via benchmark script), REJECT the refactor.
 * **The Decoupling Paradox (State Lock):** Validate state safety by writing a concurrent test script (e.g., spawning 10 parallel requests) to verify atomic overlapping limits.
 * **The "Good Enough" Principle:** If an anomaly is caught and logged safely without crashing the main process (exit code 0), it passes the audit.
@@ -142,7 +142,7 @@ These are mandatory guardrails to prevent AI from making typical Large Language 
 
 * **LOGIC BUGS:** Errors in the "thinking" of the program.
 * **PERFORMANCE & FINANCIAL BUGS:** Resource waste (e.g., N+1 queries) evaluated directly as $ USD Cloud/Token burn rate. You MUST execute `view_file .agents/skills/cost-optimizer/SKILL.md` NOW if financial blast-radius is high.
-* **[[SECURITY]]) BUGS:** Weak cryptography (e.g., XOR ciphers); logging private keys.
+* **SECURITY BUGS:** Weak cryptography (e.g., XOR ciphers); logging private keys.
 * **CONCURRENCY BUGS:** Double-deployments; state corruption.
 
 ## 4. LLM Execution Safety & Isolated Subagent Mandate (Anti-Degradation)

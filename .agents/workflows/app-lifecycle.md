@@ -15,7 +15,7 @@ Read the user's prompt. If it is vague, do NOT guess.
 - **STOP EXECUTION**: You are FORBIDDEN from proceeding to Step 2 until the user has explicitly answered this question. Do not anticipate or hallucinate requirements.
 
 ## 2. Generate Context (Lean 4-Pillar Scaffolding)
-Create the foundational [[knowledge]]) structure for the AI.
+Create the foundational knowledge structure for the AI.
 - **Action**: Use `run_command` to physically scaffold the directories: `mkdir -p context/00_Strategy context/01_Product context/02_Creative context/03_Tech`.
 - **Action**: Generate ONLY the 4 Master files inside `context/` (`00_Strategy/BLUEPRINT.md`, `01_Product/ROADMAP.md`, `02_Creative/STYLE_GUIDE.md`, `03_Tech/ARCHITECTURE.md`) using their respective templates in `.agents/templates/`.
 - **Rule (Anti-Bloat)**: DO NOT generate the other 82 detail files here. Detail files are generated Just-In-Time (JIT) later in the lifecycle.
@@ -38,7 +38,7 @@ Ensure the new project is searchable.
 - **Command**: `python .agents/scripts/orion.py orion_ops init`
 - **Action**: Scaffolds `.orion/` + scans all layers into `_manifest.json`
 - **Command (Safe Auto-Ingest)**: `python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .agents/canons .agents/workflows context/`
-- **Note**: Auto-ingest is SAFE here because it strictly targets high-signal [[knowledge]]) directories, preventing SQLite bloat from `build/` or `android/` folders.
+- **Note**: Auto-ingest is SAFE here because it strictly targets high-signal knowledge directories, preventing SQLite bloat from `build/` or `android/` folders.
 
 ## Full Lifecycle Pipeline
 # Workflow: Full Lifecycle (`/full-lifecycle`)

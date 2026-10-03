@@ -118,14 +118,15 @@ def smart_merge_config(template_content, target_path, project_name, fmt, dry_run
 
 # Folders that represent "The Brain" and should evolve
 EVOLVABLE_FOLDERS = ["skills", "rules", "workflows", "canons", "templates", "scripts", "evals", "docs", "hooks"]
-ROOT_SYNC_FILES = ["DEPLOY_ME.md", "AGENTS_INDEX.md"]
+ROOT_SYNC_FILES = ["DEPLOY_ME.md", "AGENTS_INDEX.md", "hooks.json"]
 SEED_FILES = [".agents/LEARNINGS.md", "MEMORY.md"]
 VERSION_BUMP_FILES = {"SKILL.md"}
 BLACKLIST = {
     "local", "tasks", "personal", "debug_scripts",
     "pull_planning_context.py", ".git", "node_modules",
     "__pycache__", "vitals", "MEMORY.md", "SAAS_MEMORY.md",
-    "EVOLUTION_LOG.jsonl"
+    "EVOLUTION_LOG.jsonl", ".project_manifest.json",
+    ".foundation_path", ".deployed_ais", ".genome.json"
 }
 
 # === DEPLOY ===
@@ -299,7 +300,7 @@ def cmd_deploy(args):
                 readme_md = os.path.join(target_dir, "README.md")
                 if not os.path.exists(readme_md):
                     with open(readme_md, "w", encoding="utf-8") as f:
-                        f.write(f"# {os.path.basename(os.path.abspath(target_dir))}\\n\\nProject initialized by Portable Brainvibing.\\n")
+                        f.write(f"# {os.path.basename(os.path.abspath(target_dir))}\n\nProject initialized by Portable Brainvibing.\n")
 
                 # 3. Auto-Hydrate Graph with Rules, Skills, and Context
                 print("  -> Auto-Hydrating Rules & Context into Brain Graph...")
@@ -314,7 +315,7 @@ def cmd_deploy(args):
     git_hooks_dir = os.path.join(target_dir, ".git", "hooks")
     if os.path.exists(git_hooks_dir):
         post_commit_path = os.path.join(git_hooks_dir, "post-commit")
-        hook_script = "#!/bin/sh\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync >/dev/null 2>&1 &\n"
+        hook_script = "#!/bin/sh\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n"
         if not args.dry_run:
             try:
                 existing_hook = ""
@@ -327,7 +328,7 @@ def cmd_deploy(args):
                         if not existing_hook:
                             f.write(hook_script)
                         else:
-                            f.write("\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync >/dev/null 2>&1 &\n")
+                            f.write("\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n")
                     
                     if os.name != 'nt':
                         os.chmod(post_commit_path, 0o755)
@@ -476,6 +477,10 @@ def sync_upstream(project_root, dry_run=False):
 
     # 2) Sync evolvable folders
     for folder in EVOLVABLE_FOLDERS:
+        # Hub templates are protected from spoke resolution drift
+        if folder == "templates":
+            continue
+
         src_path = os.path.join(project_agents, folder)
         dest_path = os.path.join(target_foundation_agents, folder)
 

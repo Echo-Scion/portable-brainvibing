@@ -23,9 +23,8 @@ def check_and_sync(base_agents_dir, base_dir):
             needs_sync = True
             
         if needs_sync:
-            print("[AUTO-SYNC] Ecosystem drift detected. Triggering background graph sync...")
+            print("[AUTO-SYNC] Ecosystem drift detected. Spawning background graph sync...", file=sys.stderr)
             orion_script = os.path.join(base_agents_dir, 'scripts', 'orion.py')
-            print("[AUTO-SYNC] Running synchronous ingest to prevent race conditions...")
             ingest_paths = [
                 os.path.join(base_agents_dir, 'rules'),
                 os.path.join(base_agents_dir, 'skills'),
@@ -33,12 +32,10 @@ def check_and_sync(base_agents_dir, base_dir):
                 os.path.join(base_agents_dir, 'workflows'),
             ]
             existing_paths = [p for p in ingest_paths if os.path.isdir(p)]
-            result = subprocess.run(
+            subprocess.Popen(
                 [sys.executable, orion_script, 'orion_ops', 'ingest'] + existing_paths, 
-                stdout=sys.stdout, stderr=sys.stderr,
+                stdout=subprocess.DEVNULL, stderr=sys.stderr,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             )
-            if result.returncode != 0:
-                print(f"[AUTO-SYNC] WARNING: Ingest exited with code {result.returncode}. Graph may be stale.")
     except Exception as e:
-        print(f"[AUTO-SYNC] Failed to run sync: {e}")
+        print(f"[AUTO-SYNC] Failed to run sync: {e}", file=sys.stderr)

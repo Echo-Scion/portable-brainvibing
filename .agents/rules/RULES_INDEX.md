@@ -14,7 +14,7 @@ This directory contains the core behavioral and operational constraints for the 
 | `core-guardrails.md` | **(START HERE)** The master AI behavioral protocol and operation constraints. |
 | `skills/ai-engineer/SKILL.md` | Concrete engineering algorithms to mitigate fundamental AI traits (Probabilistic nature, GIGO, Black Box). |
 | `tier-execution-protocol.md` | Execution depth per tier (Budget/Standard/Premium) and reasoning standards. |
-| `security-guardrails.md` | Absolute [[security]]) constraints, offensive zero-trust audits, and Red Team exploit generation. |
+| `security-guardrails.md` | Absolute security constraints, offensive zero-trust audits, and Red Team exploit generation. |
 | `skills/ui-finish/SKILL.md` | Frontend UI/UX constraints (Liquid Glass). |
 | `skills/api-contract/SKILL.md` | Strict backend data contracts (Zod, OpenAPI). |
 | `development-operations.md` | Git workflows, PR reviews, Auto-Harness validation pipelines. |

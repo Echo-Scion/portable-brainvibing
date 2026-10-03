@@ -14,17 +14,34 @@ def get_markdown_files(base_dir):
                     md_files[basename] = os.path.join(root, f)
     return md_files
 
+GENERIC_IGNORE = {
+    'readme', 'skill', 'knowledge', 'security', 'index', 'page', 'matrix', 
+    'agents', 'foundation', 'rules', 'canons', 'workflows', 'scripts', 'test', 'tests'
+}
+
 def linkify_text(text, md_files, current_file_path):
-    sorted_names = sorted(md_files.keys(), key=len, reverse=True)
+    sorted_names = [n for n in sorted(md_files.keys(), key=len, reverse=True) 
+                    if n.lower() not in GENERIC_IGNORE and len(n) > 3]
     
     # Pre-process: identify protected regions
     protected = []
+    # Frontmatter
+    fm = re.match(r'^---.*?---\s*', text, re.DOTALL)
+    if fm:
+        protected.append((fm.start(), fm.end()))
+    # Code blocks
     for m in re.finditer(r'```.*?```', text, re.DOTALL):
         protected.append((m.start(), m.end()))
+    # Inline code
     for m in re.finditer(r'`[^`\n]+`', text):
         protected.append((m.start(), m.end()))
+    # Headings
+    for m in re.finditer(r'^#+ .*$', text, re.MULTILINE):
+        protected.append((m.start(), m.end()))
+    # Markdown links
     for m in re.finditer(r'\[([^\]]+)\]\([^)]+\)', text):
         protected.append((m.start(), m.end()))
+    # Existing wikilinks
     for m in re.finditer(r'\[\[(.*?)\]\]', text):
         protected.append((m.start(), m.end()))
         
@@ -38,7 +55,7 @@ def linkify_text(text, md_files, current_file_path):
         if os.path.abspath(target_full_path) == os.path.abspath(current_file_path):
             continue
             
-        pattern = r'(?<!\[)(?<!\[\[)(?<!`)(?<!\w)(' + re.escape(name) + r')(?:\.md)?(?!\w)(?!\]\])(?!\])(?!`)'
+        pattern = r'(?<!\[)(?<!\[\[)(?<!`)(?<!\w)(' + re.escape(name) + r')(?:\.md)?(?!\w)(?!\]\])(?!\])(?!`)(?!\))'
         for m in re.finditer(pattern, text):
             if not is_protected(m.start()):
                 replacements.append((m.start(), m.end(), m.group(1)))

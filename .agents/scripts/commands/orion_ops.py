@@ -70,7 +70,10 @@ def init_db():
             sha256 TEXT,
             category TEXT,
             pillar TEXT,
-            updated TEXT
+            updated TEXT,
+            access_count INTEGER DEFAULT 0,
+            last_accessed TEXT,
+            importance REAL DEFAULT 1.0
         )
     ''')
     c.execute('''
@@ -93,6 +96,7 @@ def init_db():
             source_id TEXT,
             target_id TEXT,
             relation TEXT,
+            confidence REAL DEFAULT 1.0,
             PRIMARY KEY (source_id, target_id, relation)
         )
     ''')
@@ -115,6 +119,22 @@ def init_db():
             embedding_json TEXT
         )
     ''')
+
+    # Schema migration for existing databases
+    c.execute("PRAGMA table_info(pages);")
+    existing_page_cols = {row[1] for row in c.fetchall()}
+    if "access_count" not in existing_page_cols:
+        c.execute("ALTER TABLE pages ADD COLUMN access_count INTEGER DEFAULT 0;")
+    if "last_accessed" not in existing_page_cols:
+        c.execute("ALTER TABLE pages ADD COLUMN last_accessed TEXT;")
+    if "importance" not in existing_page_cols:
+        c.execute("ALTER TABLE pages ADD COLUMN importance REAL DEFAULT 1.0;")
+
+    c.execute("PRAGMA table_info(edges);")
+    existing_edge_cols = {row[1] for row in c.fetchall()}
+    if "confidence" not in existing_edge_cols:
+        c.execute("ALTER TABLE edges ADD COLUMN confidence REAL DEFAULT 1.0;")
+
     conn.commit()
     conn.close()
 
@@ -287,13 +307,17 @@ def prune_orphans() -> int:
                         if db_conn:
                             try:
                                 norm_path = normalize_path(full_wiki_path)
-                                db_c.execute('DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE source_path = ? OR source_path = ?)', (full_wiki_path, norm_path))
-                                db_c.execute('DELETE FROM nodes WHERE source_path = ? OR source_path = ?', (full_wiki_path, norm_path))
-                                db_c.execute('DELETE FROM pages WHERE path = ? OR path = ?', (full_wiki_path, norm_path))
-                                db_c.execute('DELETE FROM pages_fts WHERE path = ? OR path = ?', (full_wiki_path, norm_path))
-                                db_c.execute('DELETE FROM edges WHERE source_id = ? OR source_id = ?', (full_wiki_path, norm_path))
+                                rel_orig = os.path.relpath(original_path).replace("\\", "/") if original_path else ""
+                                norm_orig = normalize_path(original_path) if original_path else ""
+                                paths_to_delete = list({p for p in (full_wiki_path, norm_path, original_path, rel_orig, norm_orig) if p})
+                                placeholders = ",".join("?" for _ in paths_to_delete)
+                                db_c.execute(f'DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE source_path IN ({placeholders}))', paths_to_delete)
+                                db_c.execute(f'DELETE FROM nodes WHERE source_path IN ({placeholders})', paths_to_delete)
+                                db_c.execute(f'DELETE FROM pages WHERE path IN ({placeholders})', paths_to_delete)
+                                db_c.execute(f'DELETE FROM pages_fts WHERE path IN ({placeholders})', paths_to_delete)
+                                db_c.execute(f'DELETE FROM edges WHERE source_id IN ({placeholders})', paths_to_delete)
                             except Exception as e:
-                                print(f"DB cleanup error for {full_wiki_path}: {e}")
+                                print(f"DB cleanup error for {original_path}: {e}")
                 else:
                     valid_entries.append(entry)
             manifest["layers"][layer] = valid_entries
@@ -722,30 +746,23 @@ def ingest_main(paths, autonomy):
         print(f"\nBatch execution complete. Processed: {len(ingested_files)} | Pruned: {pruned}")
         
         # --- AUTO-COMPILE HOOK ---
-        if len(ingested_files) > 0:
-            print("\n[AUTO-COMPILE] Triggering Matrix Compilation for zero-drift...")
-            compile_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile_rules.py")
-            try:
-                subprocess.run([sys.executable, compile_script], check=True)
-            except Exception as e:
-                print(f"[ERROR] Failed to auto-compile rules: {e}")
-                
-            # --- AUTO-LINKIFY HOOK ---
-            print("\n[AUTO-LINKIFY] Injecting Wiki-links into Markdown context...")
-            linkify_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "linkify.py")
-            if os.path.exists(linkify_script):
-                try:
-                    subprocess.run([sys.executable, linkify_script], check=True)
-                except Exception as e:
-                    print(f"[ERROR] Failed to auto-linkify markdown: {e}")
-                
-            print(f"\n[TRIPLET_REQUEST] {len(ingested_files)} files need graph triplet extraction.")
-            print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
-            print("Files:")
-            for i, (orig, target) in enumerate(ingested_files, 1):
-                rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
-                rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
-                print(f"{i}. {rel_target} (source: {rel_orig})")
+        print("\n[AUTO-COMPILE] Triggering Matrix Compilation for zero-drift...")
+        compile_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile_rules.py")
+        try:
+            subprocess.run([sys.executable, compile_script], check=True)
+        except Exception as e:
+            print(f"[ERROR] Failed to auto-compile rules: {e}")
+            
+        # Note: linkify is decoupled from ingest to keep ingestion strictly read-only on source markdown.
+        # Run `python .agents/scripts/orion.py linkify` manually if source wikilinking is explicitly desired.
+            
+        print(f"\n[TRIPLET_REQUEST] {len(ingested_files)} files need graph triplet extraction.")
+        print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
+        print("Files:")
+        for i, (orig, target) in enumerate(ingested_files, 1):
+            rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
+            rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
+            print(f"{i}. {rel_target} (source: {rel_orig})")
             print("[ACTION] Read each source file, extract 3-5 Subject|Predicate|Object triplets,")
             print("then run: python .agents/scripts/orion.py orion_ops inject_triplets '<json>'")
             

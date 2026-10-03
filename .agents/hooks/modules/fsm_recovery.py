@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 
 def check_fsm(fsm_state_path):
     recovery_instruction = ""
@@ -18,6 +19,6 @@ def check_fsm(fsm_state_path):
                     "Resume your exact task immediately and do NOT restart from scratch."
                 )
         except Exception as e:
-            print(f"[FSM] Failed to parse execution state: {e}")
+            print(f"[FSM] Failed to parse execution state: {e}", file=sys.stderr)
             
     return recovery_instruction

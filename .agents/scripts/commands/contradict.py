@@ -42,24 +42,44 @@ def get_db():
             resolved_at TEXT
         )
     ''')
+    # Ensure confidence column exists on edges table
+    c = conn.cursor()
+    c.execute("PRAGMA table_info(edges);")
+    edge_cols = {row[1] for row in c.fetchall()}
+    if edge_cols and "confidence" not in edge_cols:
+        c.execute("ALTER TABLE edges ADD COLUMN confidence REAL DEFAULT 1.0;")
     conn.commit()
     return conn
 
+
+STRUCTURAL_RELATIONS = (
+    'mentions', 'imports', 'defines', 'inherits', 'depends_on', 
+    'has_method', 'uses', 'references', 'contains', 'calls'
+)
 
 def detect_contradictions():
     """Scan edges for predicate collisions: same source+relation, different target."""
     conn = get_db()
     cursor = conn.cursor()
     
-    # Find edges where same source_id + relation points to different targets
-    cursor.execute("""
+    # Purge legacy false-positive contradictions caused by multi-target structural relations
+    rel_placeholders = ",".join("?" for _ in STRUCTURAL_RELATIONS)
+    cursor.execute(f"""
+        DELETE FROM contradictions 
+        WHERE edge_a_relation IN ({rel_placeholders}) OR edge_b_relation IN ({rel_placeholders})
+    """, STRUCTURAL_RELATIONS + STRUCTURAL_RELATIONS)
+    conn.commit()
+
+    # Find edges where same source_id + exclusive relation points to different targets
+    cursor.execute(f"""
         SELECT e1.source_id, e1.relation, e1.target_id, e2.target_id
         FROM edges e1
         JOIN edges e2 ON e1.source_id = e2.source_id 
             AND e1.relation = e2.relation 
             AND e1.target_id != e2.target_id
-        WHERE e1.target_id < e2.target_id  -- avoid duplicates
-    """)
+        WHERE e1.target_id < e2.target_id
+            AND e1.relation NOT IN ({rel_placeholders})
+    """, STRUCTURAL_RELATIONS)
     
     collisions = cursor.fetchall()
     

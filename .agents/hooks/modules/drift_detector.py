@@ -1,4 +1,5 @@
 import os
+import sys
 
 def check_drift(active_file, base_dir):
     drift_warnings = []
@@ -19,6 +20,6 @@ def check_drift(active_file, base_dir):
                             drift_warnings.append(f"CRITICAL DRIFT RISK: `{source_base}` {relation} this active file. If you modify `{active_base}`, you MUST verify if `{source_base}` needs updating!")
                     conn.close()
             except Exception as e:
-                print(f"[DRIFT] Failed to query graph: {e}")
+                print(f"[DRIFT] Failed to query graph: {e}", file=sys.stderr)
                 
     return drift_warnings

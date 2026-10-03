@@ -13,10 +13,10 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 ## 2. MEMORY WRITE (PERSISTENCE)
 - [ ] **Update Learnings**: Use the `replace_file_content` or `write_to_file` tool to inject the finding into `.agents/LEARNINGS.md`. Do not wait or queue this action.
 
-## 3. DARWINIAN A/B [[SKILL]]) EVOLUTION (ANTI-DRIFT)
-- [ ] **Evolve Rule (V2 Fork)**: If a missing or contradictory rule caused the error, you MUST NOT blindly overwrite the rule. Instead, fork the rule (e.g. `cp SKILL.md) SKILL.md)-v2.md`).
+## 3. DARWINIAN A/B SKILL EVOLUTION (ANTI-DRIFT)
+- [ ] **Evolve Rule (V2 Fork)**: If a missing or contradictory rule caused the error, you MUST NOT blindly overwrite the rule. Instead, fork the rule (e.g. `cp SKILL.md SKILL-v2.md`).
 - [ ] **A/B Benchmark (MANDATORY)**: Run `python .agents/scripts/orion.py evolve bench --skill <skill_name>` on BOTH V1 and V2. 
-- [ ] **Fitness Gate**: If `score(V2) >= score(V1)`, promote it: `mv SKILL.md)-v2.md SKILL.md`. If it fails, ARCHIVE it (do not delete).
+- [ ] **Fitness Gate**: If `score(V2) >= score(V1)`, promote it: `mv SKILL-v2.md SKILL.md`. If it fails, ARCHIVE it (do not delete).
 - [ ] **Ledger Logging**: You MUST log this mutation. Run a Python script or write directly to `.agents/EVOLUTION_LOG.jsonl` noting the target, trigger, and fitness delta.
 
 ## 3.5. OFFENSIVE OPTIMIZATION (SUCCESS LOOP)

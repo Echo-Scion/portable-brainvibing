@@ -37,11 +37,11 @@ The Universal Framework mitigates this by replacing **prohibitions** ("Don't do 
 These are the core, framework-agnostic concepts that power this ecosystem:
 
 ### 1. 🦍 The Caveman Protocol (Token Optimization)
-An opt-in mode that structurally bans polite AI fluff. Activate with `/caveman` when token efficiency matters.
+A high-efficiency communication mode that structurally eliminates polite AI fluff while preserving 100% technical substance, exact code blocks, and blueprints.
 - **AI before:** *"I apologize for the confusion! Let's go ahead and fix the null pointer issue by adding a check..."*
 - **AI now:** `Auth crash. User null. Adding check.` 
 *Result: Context windows last longer. Compute cost drops significantly.*
-> **⚠️ REALITY CHECK (Anti-GIGO):** Forced Caveman Mode destroys the LLM's Chain-of-Thought (CoT) reasoning for complex tasks. This is why it's opt-in — the agent uses full reasoning by default and switches to Caveman only when explicitly requested.
+> **Default Behavior:** Built-in and active by default across technical turns to maximize token efficiency and prevent amnesia. Reverts to standard conversational English on demand when the user requests `"normal mode"` or `"stop caveman"`.
 
 ### 2. 🧠 IDE Agent Delegation & Modular CLI (`orion.py`)
 Instead of forcing the AI to manually search for rules or parse fragile CLI outputs, the system relies on structured IDE Agent Delegation. Your IDE AI explicitly triggers specialized CLI tools via standard `run_command` protocols. The standard CLI (`orion.py`) acts as the primary interface for both background cron-jobs and human/AI-driven task orchestration.

@@ -54,7 +54,24 @@ def print_telemetry_report():
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "--report":
-        print_telemetry_report()
+    import argparse
+    parser = argparse.ArgumentParser(description="Track budget, tiers, and Small Model Superiority KPIs.")
+    parser.add_argument("--report", action="store_true", help="View KPI summary report.")
+    parser.add_argument("--tier", "-t", type=str, choices=["BUDGET", "STANDARD", "PREMIUM", "budget", "standard", "premium"], help="Declared model tier.")
+    parser.add_argument("--task", type=str, default="adhoc_task", help="Name or description of task.")
+    parser.add_argument("--model", type=str, default="auto", help="Model name used.")
+    parser.add_argument("--harness", action="store_true", help="Was a test harness used.")
+    parser.add_argument("--aborted", action="store_true", help="Was task aborted / escalated to premium.")
+    
+    args = parser.parse_args()
+    
+    if args.tier:
+        log_task_execution(
+            task_name=args.task,
+            tier=args.tier.upper(),
+            model_used=args.model,
+            was_harness_used=args.harness,
+            aborted_to_premium=args.aborted
+        )
     else:
-        print("Use 'python track_budget.py --report' to view KPIs.")
+        print_telemetry_report()

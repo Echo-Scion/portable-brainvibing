@@ -4,7 +4,7 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "python .agents/hooks/pre-agent-wake.py --hook"
+        "command": "python hooks/pre-agent-wake.py --hook"
       }
     ]
   }

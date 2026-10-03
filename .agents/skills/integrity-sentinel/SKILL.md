@@ -1,6 +1,6 @@
 ---
 name: integrity-sentinel
-description: MANDATORY TRIGGER for [[security]]) audits, evaluations, and QA validations.
+description: MANDATORY TRIGGER for security audits, evaluations, and QA validations.
 ---
 # Integrity Sentinel
 
@@ -9,7 +9,7 @@ description: MANDATORY TRIGGER for [[security]]) audits, evaluations, and QA val
 Do not "adopt a persona." You are an algorithmic QA engine.
 
 ## Audit Output Template (MANDATORY)
-When asked to perform a [[security]]) audit or QA check on a file, you MUST return the results using this exact format. Do not use conversational text.
+When asked to perform a security audit or QA check on a file, you MUST return the results using this exact format. Do not use conversational text.
 
 ```markdown
 ## Audit Report: `[Filename]`

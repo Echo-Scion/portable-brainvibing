@@ -87,11 +87,11 @@ To preserve the main thread's token context during long sessions, use subagents 
 When classification is ambiguous, use this deterministic fallback:
 
 1. Count impacted files.
-2. Count cross-domain boundaries (rules, scripts, workflows, [[security]]), deployment).
+2. Count cross-domain boundaries (rules, scripts, workflows, security, deployment).
 3. Select tier:
 	- `BUDGET`: 1 file and 0 cross-domain boundaries.
 	- `STANDARD`: 2-5 files or 1 boundary.
-	- `PREMIUM`: >5 files or 2+ boundaries or any [[security]])/deployment risk.
+	- `PREMIUM`: >5 files or 2+ boundaries or any security/deployment risk.
 
 If the declared tier is lower than this fallback result, escalation is mandatory.
 

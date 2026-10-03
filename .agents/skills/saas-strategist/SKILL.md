@@ -4,8 +4,6 @@ description: Orchestrates SaaS business strategy, viability analysis, and produc
 ---
 # SaaS Strategist
 
-
-
 Your role is to ensure the technical architecture aligns with business goals. Do not output generic advice; use these concrete tools.
 
 ## 1. Context File Generation (MANDATORY)
@@ -36,11 +34,11 @@ When evaluating a new idea, you MUST output this scorecard, and append it to `.o
 If the total score < 25, you MUST recommend pivoting or reducing scope before writing any code.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
-*If your current task intersects with these domains, you MUST execute iew_file on the target BEFORE writing code:*
+*If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Saas Growth** | references/[[saas-growth]]) |
-| **Saas Viability** | references/[[saas-viability]]) |
-| **Technical Content** | references/[[technical_content]]) |
-| **Viral Growth** | references/[[viral_growth]]) |
+| **Saas Growth** | references/saas-growth.md |
+| **Saas Viability** | references/saas-viability.md |
+| **Technical Content** | references/technical_content.md |
+| **Viral Growth** | references/viral_growth.md |

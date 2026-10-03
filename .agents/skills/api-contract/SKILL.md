@@ -40,8 +40,8 @@ export const UpdateProfileSchema = z.object({
 Never proceed with an API implementation without defining the Zod schema first.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
-*If your current task intersects with these domains, you MUST execute iew_file on the target BEFORE writing code:*
+*If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Api Safety Patterns** | references/[[api_safety_patterns]]) |
+| **Api Safety Patterns** | references/api_safety_patterns.md |

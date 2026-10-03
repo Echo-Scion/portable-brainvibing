@@ -4,8 +4,6 @@ description: Maintains project deployments, release cycles, and chaos resilience
 ---
 # Project Operator
 
-
-
 Your role is to manage code releases, handle technical debt, and ensure deployment environments are pristine.
 
 ## Release Checklist (MANDATORY)
@@ -27,9 +25,9 @@ python .agents/scripts/orion.py scan tokens
 If ANY of these scripts return a non-zero exit code or flag a warning, the release is BLOCKED. You must fix the underlying issue and run the script again until it passes.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
-*If your current task intersects with these domains, you MUST execute iew_file on the target BEFORE writing code:*
+*If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
-| **Chaos Engineer** | references/[[chaos-engineer]]) |
-| **Release Manager** | references/[[release-manager]]) |
+| **Chaos Engineer** | references/chaos-engineer.md |
+| **Release Manager** | references/release-manager.md |
