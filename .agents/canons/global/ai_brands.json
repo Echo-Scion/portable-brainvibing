@@ -1,0 +1,8 @@
+{
+  "gemini": {"template": "AGENTS.template.md", "target_path": "GEMINI.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "copilot": {"template": "AGENTS.template.md", "target_path": ".github/copilot-instructions.md", "target_dir": ".github", "format": "markdown", "merge_strategy": "marker"},
+  "cursor": {"template": "AGENTS.template.md", "target_path": ".cursorrules", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "windsurf": {"template": "AGENTS.template.md", "target_path": ".windsurfrules", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "cline": {"template": "AGENTS.template.md", "target_path": ".clinerules", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "claude": {"template": "AGENTS.template.md", "target_path": "CLAUDE.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"}
+}

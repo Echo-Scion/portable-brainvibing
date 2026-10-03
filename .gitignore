@@ -1,0 +1,32 @@
+# 1. Ignore EVERYTHING in the root directory by default
+/*
+
+# 2. WHITELIST: Core Foundation Directories
+!/.agents/
+!/.github/
+!/context/
+
+# 3. WHITELIST: Core Foundation Files
+!/.gitignore
+!/README.md
+!/CHANGELOG.md
+!/PREREQUISITES.md
+!/VERSION
+!/CLAUDE.md
+!/GEMINI.md
+!/LICENSE
+!/CODEOWNERS
+!/.env.example
+
+# 4. BLACKLIST: Re-ignore specific internal things inside whitelisted folders
+.agents/LEARNINGS.md
+.agents/EVOLUTION_LOG.jsonl
+.agents/.foundation_path
+.agents/.project_manifest.json
+.agents/.deployed_ais
+.agents/.genome.json
+.agents/.nanobrain_status
+
+.orion/
+__pycache__/
+*.pyc
