@@ -1,0 +1,36 @@
+{
+  "replacements": {
+    "leverage": "use",
+    "leveraging": "using",
+    "synergize": "coordinate",
+    "synergy": "coordination",
+    "streamline": "simplify",
+    "streamlined": "simplified",
+    "paradigm shift": "change",
+    "bandwidth": "capacity",
+    "drill down": "examine",
+    "take offline": "discuss separately",
+    "touch base": "check in",
+    "wheelhouse": "domain",
+    "table-stakes": "baseline",
+    "boil the ocean": "overcomplicate",
+    "move the needle": "make progress",
+    "holistic approach": "systematic method",
+    "seamless integration": "integration",
+    "game changer": "useful change",
+    "best of breed": "standard",
+    "mission critical": "essential",
+    "delve": "investigate",
+    "tapestry": "structure",
+    "testament": "evidence",
+    "pivotal": "important",
+    "beacon": "guide",
+    "cornerstone": "basis",
+    "foster": "encourage"
+  },
+  "false_agency_patterns": [
+    "(?i)\\bthe function (?:wants|tries|attempts|hopes) to\\b",
+    "(?i)\\bthis module is designed to\\b",
+    "(?i)\\bwe should note that\\b"
+  ]
+}

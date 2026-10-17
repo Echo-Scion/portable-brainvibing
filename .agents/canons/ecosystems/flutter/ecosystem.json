@@ -1,0 +1,11 @@
+{
+  "framework": "flutter",
+  "language": "dart",
+  "extensions": [".dart", ".yaml", ".json"],
+  "ignore_dirs": [".git", "node_modules", "build", "dist", ".agents", ".dart_tool", "ios", "android"],
+  "cli_audit": "dart pub outdated --dependency-overrides",
+  "cli_test": "flutter test",
+  "cli_test_coverage": "flutter test --coverage",
+  "cli_lint": "dart analyze --fatal-warnings",
+  "package_file": "pubspec.yaml"
+}

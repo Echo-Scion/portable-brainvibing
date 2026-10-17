@@ -1,0 +1,25 @@
+{
+  "rtk-rewrite": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command|view_file|Read|read_file|view_file_outline",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/orion.py rtk hook antigravity"
+          }
+        ]
+      }
+    ]
+  },
+  "omni-buffer-update": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python hooks/pre-agent-wake.py --hook"
+      }
+    ]
+  }
+}

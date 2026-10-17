@@ -1,0 +1,703 @@
+"""
+Kernel DB & Foundation Data Layer
+Provides hardened, WAL-enabled SQLite connections, FTS5 sanitation, token budgeting,
+and safe console stream output.
+"""
+
+import os
+import sys
+import re
+import math
+import time
+import json
+import uuid
+import sqlite3
+import struct
+import argparse
+from pathlib import Path
+from contextlib import contextmanager
+from dataclasses import dataclass, asdict, field
+from typing import Union, List, Any, Optional, Dict, Tuple, Set, Generator
+
+_SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+def log_telemetry(err: Optional[Exception] = None, context: str = "") -> None:
+    """Centralized non-fatal telemetry logger."""
+    if os.environ.get("ORION_DEBUG"):
+        msg = f": {err}" if err else ""
+        sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
+
+
+def configure_utf8() -> None:
+    """Safely configure stdout and stderr to UTF-8 without raising exceptions."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            try:
+                stream.reconfigure(encoding='utf-8')
+            except Exception as _e:
+                log_telemetry(_e, "configure_utf8:reconfigure")
+
+
+def safe_print(*args: Any, **kwargs: Any) -> None:
+    """Print that safely handles broken pipes or unencodable characters."""
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        try:
+            text = " ".join(str(a) for a in args)
+            clean_text = text.encode('ascii', errors='replace').decode('ascii')
+            print(clean_text, **kwargs)
+        except Exception as _e:
+            log_telemetry(_e, "safe_print:fallback")
+    except BrokenPipeError:
+        try:
+            sys.stderr.close()
+        except Exception as _e:
+            log_telemetry(_e, "safe_print:broken_pipe_close")
+
+
+def atomic_write_text(filepath: Union[str, Path], content: str) -> None:
+    """Atomically write text content to a destination file via temporary file and atomic replace."""
+    abs_path = os.path.abspath(str(filepath))
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    tmp_path = f"{abs_path}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp_path, abs_path)
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+
+def read_omni_buffer(context_path: Union[str, Path], max_age_sec: float = 300.0) -> Dict[str, Any]:
+    """Reads context.json omni-buffer with stale-data guard (TTL validation)."""
+    p = str(context_path)
+    if not os.path.exists(p):
+        return {}
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        ts_ms = data.get("timestamp_ms", 0)
+        now_ms = time.time() * 1000
+        if (now_ms - ts_ms) > (max_age_sec * 1000):
+            data["stale"] = True
+        else:
+            data["stale"] = False
+        return data
+    except Exception as e:
+        log_telemetry(e, "read_omni_buffer")
+        return {}
+
+
+def connect_sqlite(
+    db_path: Union[str, Path],
+    wal: bool = True,
+    timeout_sec: float = 5.0,
+    mmap_size: int = 67108864,
+    cache_size: int = -16000
+) -> sqlite3.Connection:
+    """Open or create an SQLite database with production PRAGMAs.
+    - WAL journal mode for concurrent reading/writing
+    - busy_timeout for lock evasion
+    - temp_store in memory
+    - mmap_size for fast zero-copy OS paging
+    """
+    path_obj = Path(db_path)
+    path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(str(path_obj), timeout=timeout_sec)
+    conn.execute(f"PRAGMA busy_timeout={int(timeout_sec * 1000)};")
+
+    if wal:
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA temp_store=MEMORY;")
+            conn.execute(f"PRAGMA mmap_size={mmap_size};")
+            conn.execute(f"PRAGMA cache_size={cache_size};")
+        except Exception as _e:
+            log_telemetry(_e, f"connect_sqlite:pragmas:{db_path}")
+
+    return conn
+
+
+def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    """Check if a table exists in the connected database."""
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM sqlite_master WHERE type IN ('table', 'view') AND name = ?",
+        (table_name,)
+    )
+    return cur.fetchone() is not None
+
+
+def sanitize_fts_query(query: str) -> str:
+    """Sanitize query string for SQLite FTS5 MATCH clause, stripping dangerous syntax tokens."""
+    if not query:
+        return ""
+    cleaned = re.sub(r'[*"\'^:()\-+~{}]', ' ', query)
+    tokens = [t.strip() for t in cleaned.split() if len(t.strip()) >= 2]
+    if not tokens:
+        return ""
+    return " ".join(f'"{t}"' for t in tokens)
+
+
+def build_fts_query_or(terms: Any) -> str:
+    """Build an OR-joined FTS5 query string for broad lexical matching."""
+    if not terms:
+        return ""
+    if isinstance(terms, str):
+        cleaned = re.sub(r'[*"\'^:()\-+~{}]', ' ', terms)
+        tokens = [t.strip() for t in cleaned.split() if len(t.strip()) >= 2]
+    else:
+        tokens = []
+        for t in terms:
+            cleaned = re.sub(r'[*"\'^:()\-+~{}]', ' ', str(t))
+            for sub in cleaned.split():
+                if len(sub.strip()) >= 2:
+                    tokens.append(sub.strip())
+    if not tokens:
+        return ""
+    return " OR ".join(f'"{t}"' for t in tokens)
+
+
+def pack_vector(vector: List[float]) -> bytes:
+    """Serializes a float vector to compact bytes using struct pack."""
+    if not vector:
+        return b""
+    return struct.pack(f"{len(vector)}f", *vector)
+
+
+def unpack_vector(blob: bytes) -> List[float]:
+    """Deserializes compact binary blob back to float list."""
+    if not blob:
+        return []
+    count = len(blob) // 4
+    return list(struct.unpack(f"{count}f", blob))
+
+
+def cosine_similarity(v1: Any, v2: Any) -> float:
+    """Computes cosine similarity between two vectors or binary blobs."""
+    vec1 = unpack_vector(v1) if isinstance(v1, (bytes, bytearray)) else v1
+    vec2 = unpack_vector(v2) if isinstance(v2, (bytes, bytearray)) else v2
+    if not vec1 or not vec2 or len(vec1) != len(vec2):
+        return 0.0
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm_a = math.sqrt(sum(a * a for a in vec1))
+    norm_b = math.sqrt(sum(b * b for b in vec2))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def estimate_tokens(text: str) -> int:
+    """Fast, dependency-free token estimator (~4 chars per token on average)."""
+    if not text:
+        return 0
+    char_estimate = len(text) / 4.0
+    word_estimate = len(text.split()) * 1.3
+    return int(math.ceil((char_estimate + word_estimate) / 2.0))
+
+
+def truncate_tokens(text: str, max_tokens: int) -> str:
+    """Truncate text to approximate token budget, appending an omission marker."""
+    current_tokens = estimate_tokens(text)
+    if current_tokens <= max_tokens:
+        return text
+
+    ratio = max_tokens / float(current_tokens)
+    cutoff = int(len(text) * ratio)
+    truncated = text[:cutoff]
+    
+    last_nl = truncated.rfind('\n')
+    if last_nl > cutoff * 0.8:
+        truncated = truncated[:last_nl]
+
+    return truncated + f"\n\n... [Truncated: {current_tokens - max_tokens} tokens omitted] ...\n"
+
+
+# ==============================================================================
+# ACTION-OBSERVATION TRAJECTORY STREAM
+# ==============================================================================
+
+@dataclass(slots=True)
+class Event:
+    event_id: str
+    kind: str  # 'action' | 'observation' | 'system'
+    source: str
+    payload: Dict[str, Any]
+    action_type: Optional[str] = None
+    timestamp: float = field(default_factory=time.time)
+
+
+class ActionObservationStream:
+    """
+    Pillar 1: Action-Observation Trajectory Stream & Cycle Detector.
+    Maintains append-only JSON-L trajectory records, event replay,
+    and stuck-loop / cyclical execution detection.
+    """
+
+    def __init__(self, log_path: Union[str, Path] = ".orion/working/trajectory.jsonl"):
+        self.log_path = Path(log_path)
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def record(
+        self,
+        kind: str,
+        source: str,
+        payload: Dict[str, Any],
+        action_type: Optional[str] = None
+    ) -> Event:
+        evt = Event(
+            event_id=f"evt_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
+            kind=kind,
+            source=source,
+            payload=payload,
+            action_type=action_type,
+            timestamp=time.time()
+        )
+        try:
+            with open(self.log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(asdict(evt), default=str) + "\n")
+        except Exception as e:
+            log_telemetry(e, f"ActionObservationStream:record:{kind}")
+        return evt
+
+    def record_action(self, source: str, action_type: str, payload: Dict[str, Any]) -> Event:
+        return self.record(kind="action", source=source, payload=payload, action_type=action_type)
+
+    def record_observation(self, source: str, payload: Dict[str, Any]) -> Event:
+        return self.record(kind="observation", source=source, payload=payload)
+
+    def read_trajectory(self) -> List[Event]:
+        if not self.log_path.is_file():
+            return []
+
+        events: List[Event] = []
+        try:
+            with open(self.log_path, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped:
+                        data = json.loads(stripped)
+                        events.append(Event(
+                            event_id=data.get("event_id", ""),
+                            kind=data.get("kind", ""),
+                            source=data.get("source", ""),
+                            payload=data.get("payload", {}),
+                            action_type=data.get("action_type"),
+                            timestamp=data.get("timestamp", 0.0)
+                        ))
+        except Exception as e:
+            log_telemetry(e, "ActionObservationStream:read_trajectory")
+        return events
+
+    def get_last_action(self) -> Optional[Event]:
+        traj = self.read_trajectory()
+        for evt in reversed(traj):
+            if evt.kind == "action":
+                return evt
+        return None
+
+    def get_last_observation(self) -> Optional[Event]:
+        traj = self.read_trajectory()
+        for evt in reversed(traj):
+            if evt.kind == "observation":
+                return evt
+        return None
+
+    def detect_stuck_loop(self, window_size: int = 3) -> bool:
+        traj = self.read_trajectory()
+        actions = [evt for evt in traj if evt.kind == "action"]
+        if len(actions) < window_size:
+            return False
+
+        recent = actions[-window_size:]
+        if any(isinstance(a.payload, dict) and "args" in a.payload and not a.payload["args"] for a in recent):
+            return False
+        first_sig = (recent[0].action_type, json.dumps(recent[0].payload, sort_keys=True))
+        all_identical = all(
+            (a.action_type, json.dumps(a.payload, sort_keys=True)) == first_sig
+            for a in recent
+        )
+        if all_identical:
+            return True
+
+        if len(actions) >= 4 and window_size >= 4:
+            r4 = actions[-4:]
+            sig0 = (r4[0].action_type, json.dumps(r4[0].payload, sort_keys=True))
+            sig1 = (r4[1].action_type, json.dumps(r4[1].payload, sort_keys=True))
+            sig2 = (r4[2].action_type, json.dumps(r4[2].payload, sort_keys=True))
+            sig3 = (r4[3].action_type, json.dumps(r4[3].payload, sort_keys=True))
+            if sig0 == sig2 and sig1 == sig3 and sig0 != sig1:
+                return True
+
+        return False
+
+    def detect_sequential_paging(self, consecutive_threshold: int = 2) -> Optional[str]:
+        traj = self.read_trajectory()
+        actions = [evt for evt in traj if evt.kind == "action"]
+        if len(actions) < consecutive_threshold:
+            return None
+
+        read_tools = {"view_file", "Read", "read_file", "view_file_outline"}
+        target_file = None
+        consecutive_count = 0
+
+        for a in reversed(actions):
+            t_name = a.action_type or (a.payload.get("tool_name") if isinstance(a.payload, dict) else "")
+            if t_name not in read_tools:
+                break
+
+            args = a.payload.get("args", {}) if isinstance(a.payload, dict) else {}
+            curr_path = args.get("AbsolutePath") or args.get("file_path") or args.get("path") or args.get("TargetFile")
+            if not curr_path:
+                break
+
+            if target_file is None:
+                target_file = curr_path
+                consecutive_count = 1
+            elif target_file == curr_path:
+                consecutive_count += 1
+            else:
+                break
+
+            if consecutive_count >= consecutive_threshold:
+                return target_file
+
+        return None
+
+    def replay_trajectory(self, filter_kind: Optional[str] = None) -> List[Dict[str, Any]]:
+        traj = self.read_trajectory()
+        if filter_kind:
+            traj = [e for e in traj if e.kind == filter_kind]
+        return [asdict(e) for e in traj]
+
+
+# ==============================================================================
+# SOVEREIGN TRACER & SPAN OBSERVABILITY
+# ==============================================================================
+
+class SovereignTracer:
+    """
+    Pillar 1: Hierarchical Trace & Span Observability Engine.
+    Captures nested execution graphs, latency attribution, and token costs
+    into SQLite WAL database without cloud telemetry leakage.
+    """
+
+    def __init__(self, db_path: Optional[str] = None):
+        if not db_path:
+            from core.paths import get_persistence_db_path
+            self.db_path = str(get_persistence_db_path())
+        else:
+            self.db_path = db_path
+
+        self.conn = connect_sqlite(self.db_path)
+        self.conn.execute("PRAGMA foreign_keys = ON;")
+        self._active_trace_id: Optional[str] = None
+        self._span_stack: List[str] = []
+        self._span_counter: int = 0
+        self._init_db()
+
+    def _init_db(self) -> None:
+        try:
+            with self.conn:
+                self.conn.execute("""
+                    CREATE TABLE IF NOT EXISTS spans (
+                        span_id TEXT PRIMARY KEY,
+                        trace_id TEXT NOT NULL,
+                        parent_id TEXT,
+                        name TEXT NOT NULL,
+                        start_time REAL NOT NULL,
+                        end_time REAL NOT NULL,
+                        latency_ms REAL NOT NULL,
+                        prompt_tokens INTEGER DEFAULT 0,
+                        completion_tokens INTEGER DEFAULT 0,
+                        metadata_json TEXT
+                    );
+                """)
+                self.conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
+                """)
+                cur = self.conn.cursor()
+                cur.execute("PRAGMA table_info(spans);")
+                cols = {row[1] for row in cur.fetchall()}
+                if "latency_ms" not in cols:
+                    self.conn.execute("ALTER TABLE spans ADD COLUMN latency_ms REAL NOT NULL DEFAULT 0.0;")
+                if "metadata_json" not in cols:
+                    self.conn.execute("ALTER TABLE spans ADD COLUMN metadata_json TEXT;")
+        except Exception as e:
+            log_telemetry(e, "telemetry.py:_init_db")
+
+    def start_trace(self, trace_id: Optional[str] = None) -> str:
+        self._active_trace_id = trace_id or f"trace_{uuid.uuid4().hex[:12]}"
+        self._span_stack.clear()
+        return self._active_trace_id
+
+    def record_span(
+        self,
+        span_id: str,
+        trace_id: str,
+        parent_id: Optional[str],
+        name: str,
+        start_t: float,
+        end_t: float,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        latency_ms = max(0.0, (end_t - start_t) * 1000.0)
+        try:
+            with self.conn:
+                self.conn.execute("""
+                    INSERT OR REPLACE INTO spans (
+                        span_id, trace_id, parent_id, name,
+                        start_time, end_time, latency_ms,
+                        prompt_tokens, completion_tokens, metadata_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    span_id,
+                    trace_id,
+                    parent_id,
+                    name,
+                    start_t,
+                    end_t,
+                    latency_ms,
+                    prompt_tokens,
+                    completion_tokens,
+                    json.dumps(metadata or {}, default=str)
+                ))
+        except Exception as e:
+            log_telemetry(e, f"telemetry.py:record_span:{span_id}")
+
+    @contextmanager
+    def span(
+        self,
+        name: str,
+        parent_id: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Generator[Dict[str, Any], None, None]:
+        active_trace = trace_id or self._active_trace_id or self.start_trace()
+        active_parent = parent_id or (self._span_stack[-1] if self._span_stack else None)
+        span_id = f"span_{uuid.uuid4().hex[:10]}"
+
+        self._span_counter += 1
+        meta_dict = dict(metadata) if metadata else {}
+        meta_dict["_seq"] = self._span_counter
+
+        span_ctx: Dict[str, Any] = {
+            "span_id": span_id,
+            "trace_id": active_trace,
+            "parent_id": active_parent,
+            "name": name,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "metadata": meta_dict
+        }
+
+        self._span_stack.append(span_id)
+        start_t = time.time()
+        try:
+            yield span_ctx
+        finally:
+            end_t = time.time()
+            if self._span_stack and self._span_stack[-1] == span_id:
+                self._span_stack.pop()
+
+            self.record_span(
+                span_id=span_id,
+                trace_id=active_trace,
+                parent_id=active_parent,
+                name=name,
+                start_t=start_t,
+                end_t=end_t,
+                prompt_tokens=span_ctx.get("prompt_tokens", 0),
+                completion_tokens=span_ctx.get("completion_tokens", 0),
+                metadata=span_ctx.get("metadata", {})
+            )
+
+    def get_trace_spans(self, trace_id: str) -> List[Dict[str, Any]]:
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT span_id, trace_id, parent_id, name,
+                       start_time, end_time, latency_ms,
+                       prompt_tokens, completion_tokens, metadata_json
+                FROM spans
+                WHERE trace_id = ?
+            """, (trace_id,))
+            rows = cur.fetchall()
+
+            def _sort_key(r):
+                seq = 0
+                if r[9]:
+                    try:
+                        seq = json.loads(r[9]).get("_seq", 0)
+                    except Exception as _e:
+                        log_telemetry(_e, "telemetry:sort_key")
+                return (r[4], seq)
+
+            sorted_rows = sorted(rows, key=_sort_key)
+            result = []
+            for r in sorted_rows:
+                meta = json.loads(r[9]) if r[9] else {}
+                meta.pop("_seq", None)
+                result.append({
+                    "span_id": r[0],
+                    "trace_id": r[1],
+                    "parent_id": r[2],
+                    "name": r[3],
+                    "start_time": r[4],
+                    "end_time": r[5],
+                    "latency_ms": r[6],
+                    "prompt_tokens": r[7],
+                    "completion_tokens": r[8],
+                    "metadata": meta
+                })
+            return result
+        except Exception as e:
+            log_telemetry(e, f"telemetry.py:get_trace_spans:{trace_id}")
+            return []
+
+    def get_trace_summary(self, trace_id: str) -> Dict[str, Any]:
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT COUNT(*),
+                       COALESCE(SUM(latency_ms), 0.0),
+                       COALESCE(SUM(prompt_tokens), 0),
+                       COALESCE(SUM(completion_tokens), 0)
+                FROM spans
+                WHERE trace_id = ?
+            """, (trace_id,))
+            row = cur.fetchone()
+            if not row or row[0] == 0:
+                return {"trace_id": trace_id, "span_count": 0, "total_latency_ms": 0.0, "total_tokens": 0}
+
+            count, total_ms, p_tok, c_tok = row
+            return {
+                "trace_id": trace_id,
+                "span_count": count,
+                "total_latency_ms": round(total_ms, 2),
+                "prompt_tokens": p_tok,
+                "completion_tokens": c_tok,
+                "total_tokens": p_tok + c_tok
+            }
+        except Exception as e:
+            log_telemetry(e, f"telemetry.py:get_trace_summary:{trace_id}")
+            return {"trace_id": trace_id, "error": str(e)}
+
+    def list_traces(self, limit: int = 20) -> List[Dict[str, Any]]:
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT trace_id, COUNT(*) as span_count, MIN(start_time) as first_seen,
+                       COALESCE(SUM(latency_ms), 0.0) as total_latency,
+                       COALESCE(SUM(prompt_tokens + completion_tokens), 0) as total_tokens
+                FROM spans
+                GROUP BY trace_id
+                ORDER BY first_seen DESC
+                LIMIT ?
+            """, (limit,))
+            return [
+                {
+                    "trace_id": row[0],
+                    "span_count": row[1],
+                    "first_seen": row[2],
+                    "total_latency_ms": round(row[3] or 0.0, 2),
+                    "total_tokens": row[4] or 0
+                }
+                for row in cur.fetchall()
+            ]
+        except Exception as e:
+            log_telemetry(e, "telemetry.py:list_traces")
+            return []
+
+    def close(self) -> None:
+        if getattr(self, "conn", None):
+            try:
+                self.conn.close()
+            except Exception as _e:
+                log_telemetry(_e, "SovereignTracer:close")
+            self.conn = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+# ==============================================================================
+# MAIN CLI DISPATCHER
+# ==============================================================================
+
+def main():
+    raw_args = sys.argv[1:]
+    if raw_args and raw_args[0] in ["events", "event_stream"]:
+        e_args = raw_args[1:]
+        parser = argparse.ArgumentParser(description="Pillar 1: Action-Observation Event Stream")
+        parser.add_argument("action", choices=["view", "replay", "stuck"], default="view", nargs="?", help="Action to perform")
+        parser.add_argument("--log", type=str, default=".orion/working/trajectory.jsonl", help="Path to trajectory JSON-L file")
+        parser.add_argument("--window", type=int, default=3, help="Window size for stuck loop detection")
+        args = parser.parse_args(e_args)
+
+        stream = ActionObservationStream(args.log)
+        if args.action in ["view", "replay"]:
+            events = stream.read_trajectory()
+            print(f"[EVENT STREAM: {args.log}] Total events: {len(events)}")
+            for idx, evt in enumerate(events, start=1):
+                act_tag = f"({evt.action_type})" if evt.action_type else ""
+                print(f"  {idx:3d}. [{evt.kind.upper()}] from {evt.source} {act_tag}: {json.dumps(evt.payload)}")
+        elif args.action == "stuck":
+            stuck = stream.detect_stuck_loop(window_size=args.window)
+            if stuck:
+                print(f"⚠️ [STUCK LOOP DETECTED] Agent trajectory exhibits repeating/cyclical actions.")
+                sys.exit(1)
+            else:
+                print(f"[PROGRESS NORMAL] No stuck loop detected in the last {args.window} actions.")
+                sys.exit(0)
+        return
+
+    if raw_args and raw_args[0] in ["telemetry", "trace"]:
+        t_args = raw_args[1:]
+        parser = argparse.ArgumentParser(description="Pillar 1: Hierarchical Trace Telemetry")
+        parser.add_argument("action", choices=["view", "summary", "list"], default="summary", nargs="?", help="Action to perform")
+        parser.add_argument("--trace-id", type=str, help="Specific trace ID to inspect")
+        parser.add_argument("--db", type=str, help="Path to orion.db")
+        args = parser.parse_args(t_args)
+
+        tracer = SovereignTracer(args.db)
+        if args.action == "summary" and args.trace_id:
+            summary = tracer.get_trace_summary(args.trace_id)
+            print(json.dumps(summary, indent=2))
+        elif args.action == "view" and args.trace_id:
+            spans = tracer.get_trace_spans(args.trace_id)
+            print(f"[TRACE SPANS: {args.trace_id}] Total spans: {len(spans)}")
+            for s in spans:
+                print(f"  • {s['name']} (Latency: {s['latency_ms']}ms, Tokens: {s['prompt_tokens']}+{s['completion_tokens']})")
+        elif args.action == "list":
+            traces = tracer.list_traces()
+            print(f"[RECORDED TRACES] Total: {len(traces)}")
+            for t in traces:
+                print(f"  • {t['trace_id']} ({t['span_count']} spans, Latency: {t['total_latency_ms']}ms, Tokens: {t['total_tokens']})")
+        else:
+            print("Usage: orion.py telemetry [summary|view|list] [--trace-id <id>]")
+        return
+
+    print("Kernel DB & Foundation Data Layer active.")
+
+
+if __name__ == "__main__":
+    main()
+

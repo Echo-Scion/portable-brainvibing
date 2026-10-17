@@ -1,0 +1,15 @@
+{
+  "gemini": {"template": "AGENTS.template.md", "target_path": "GEMINI.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "claude": {"template": "AGENTS.template.md", "target_path": "CLAUDE.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "cursor": {"template": "CURSOR_RULE.template.mdc", "target_path": ".cursor/rules/portable-brainvibing.mdc", "target_dir": ".cursor/rules", "format": "mdc", "merge_strategy": "marker"},
+  "copilot": {"template": "AGENTS.template.md", "target_path": ".github/copilot-instructions.md", "target_dir": ".github", "format": "markdown", "merge_strategy": "marker"},
+  "windsurf": {"template": "AI_ADAPTER.template.md", "target_path": ".windsurf/rules/portable-brainvibing.md", "target_dir": ".windsurf/rules", "format": "markdown", "merge_strategy": "marker"},
+  "cline": {"template": "AI_ADAPTER.template.md", "target_path": ".clinerules/portable-brainvibing.md", "target_dir": ".clinerules", "legacy_target_path": ".clinerules", "format": "markdown", "merge_strategy": "marker"},
+  "minimax": {"template": "AGENTS.template.md", "target_path": "MINIMAX.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "mimo": {"template": "AGENTS.template.md", "target_path": "MIMO.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "kimi": {"template": "AGENTS.template.md", "target_path": "AGENTS.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker", "canonical": "agents"},
+  "qwen": {"template": "AGENTS.template.md", "target_path": "AGENTS.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker", "canonical": "agents"},
+  "codex": {"template": "AGENTS.template.md", "target_path": "AGENTS.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker", "canonical": "agents"},
+  "devin": {"template": "AGENTS.template.md", "target_path": "AGENTS.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker", "canonical": "agents"},
+  "agents": {"template": "AGENTS.template.md", "target_path": "AGENTS.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"}
+}
