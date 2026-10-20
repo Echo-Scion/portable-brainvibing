@@ -1,0 +1,54 @@
+# 1. Ignore EVERYTHING in the root directory by default
+/*
+/.scratch/
+/scratch/
+
+# 2. WHITELIST: Core Foundation Directories
+!/.agents/
+
+# 3. WHITELIST: Core Foundation Files
+!/.gitignore
+!/README.md
+!/CHANGELOG.md
+!/PREREQUISITES.md
+!/VERSION
+!/AGENTS.md
+!/CLAUDE.md
+!/LICENSE
+!/CODEOWNERS
+!/.env.example
+
+.agents/.agents/
+**/.agents/.agents/**
+.agents/LEARNINGS.md
+.agents/EVOLUTION_LOG.jsonl
+.agents/.foundation_path
+.agents/.project_manifest.json
+.agents/.deployed_ais
+.agents/.genome.json
+.agents/.nanobrain_status
+.agents/logs/
+.agents/archive/
+.agents/scratch/
+.agents/teamwork/
+.agents/skills/internal/
+.agents/skills/**/.sidecar.json
+.agents/skills/**/.ledger.jsonl
+.agents/skills/.archive/
+.agents/canons/local/*
+!.agents/canons/local/README.md
+!.agents/canons/local/.gitkeep
+.agents/rules/local/*
+!.agents/rules/local/README.md
+!.agents/rules/local/.gitkeep
+
+.orion/
+__pycache__/
+*.pyc
+.agents/**/__pycache__/
+.agents/**/*.pyc
+# Python bytecode (anti-bloat for .agents ecosystem)
+.agents/scripts/**/__pycache__/
+.agents/scripts/**/*.pyc
+.agents/**/__pycache__/
+.agents/**/*.pyc
