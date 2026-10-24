@@ -1,0 +1,20 @@
+{
+  "projectName": "portable-brainvibing",
+  "projectOwner": "Echo-Scion",
+  "contributors": [
+    {
+      "login": "Echo-Scion",
+      "name": "Echo Scion",
+      "avatar_url": "https://avatars.githubusercontent.com/u/234356781?v=4",
+      "profile": "https://github.com/Echo-Scion",
+      "contributions": ["code", "doc", "ideas", "infra", "maintenance"]
+    },
+    {
+      "login": "gemini",
+      "name": "Google Gemini",
+      "avatar_url": "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg",
+      "profile": "https://gemini.google.com",
+      "contributions": ["code", "doc", "test"]
+    }
+  ]
+}

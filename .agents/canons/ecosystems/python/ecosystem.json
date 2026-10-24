@@ -1,0 +1,11 @@
+{
+  "framework": "python",
+  "language": "python",
+  "extensions": [".py", ".toml", ".json", ".yaml", ".sql"],
+  "ignore_dirs": [".git", "__pycache__", ".venv", "venv", "dist", "build", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".agents", ".orion"],
+  "cli_audit": "pip-audit",
+  "cli_test": "pytest",
+  "cli_test_coverage": "pytest --cov=src",
+  "cli_lint": "ruff check .",
+  "package_file": "pyproject.toml"
+}
