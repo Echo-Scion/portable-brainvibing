@@ -37,8 +37,11 @@ def main() -> int:
             # Fail open gracefully
             return 0
 
-        # Execute orion.py rtk hook antigravity directly using same python interpreter
-        cmd = [sys.executable, orion_path, "rtk", "hook", "antigravity"]
+        # Execute orion.py rtk hook antigravity directly using same python interpreter with forced utf-8
+        cmd = [sys.executable, "-X", "utf8", orion_path, "rtk", "hook", "antigravity"]
+        child_env = os.environ.copy()
+        child_env["PYTHONUTF8"] = "1"
+        child_env["PYTHONIOENCODING"] = "utf-8:replace"
         
         # Read standard input if available (Antigravity passes tool invocation payload via stdin)
         stdin_data = None
@@ -53,6 +56,7 @@ def main() -> int:
             stdin=subprocess.PIPE if stdin_data else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=child_env,
             cwd=workspace_root if os.path.isdir(workspace_root) else os.getcwd()
         )
         stdout_bytes, stderr_bytes = proc.communicate(input=stdin_data)

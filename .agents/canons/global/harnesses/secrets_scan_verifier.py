@@ -12,8 +12,9 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 
 _HARNESS_DIR = os.path.dirname(os.path.abspath(__file__))
-_FOUNDATION_DIR = os.path.abspath(os.path.join(_HARNESS_DIR, '..', '..', '..'))
-_SCRIPTS_DIR = os.path.join(_FOUNDATION_DIR, '.agents', 'scripts')
+_AGENTS_DIR = os.path.abspath(os.path.join(_HARNESS_DIR, '..', '..', '..'))
+_FOUNDATION_DIR = os.path.dirname(_AGENTS_DIR)
+_SCRIPTS_DIR = os.path.join(_AGENTS_DIR, 'scripts')
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 if _HARNESS_DIR not in sys.path:

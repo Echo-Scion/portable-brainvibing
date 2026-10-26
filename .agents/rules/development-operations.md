@@ -123,5 +123,11 @@ If a trigger is present and no harness is used, the action must be blocked.
 - **Interrupted Operation Recovery (#16)**: After any interrupted command or mid-workflow session crash, execute `python .agents/scripts/orion.py verify` to confirm workspace state before resuming edits.
 - **Surgical Diff Preservation (#20)**: Every modified line must trace directly to user intent. Do not alter adjacent formatting, comments, or unrelated modules.
 
+## 11. Windows Shell & UTF-8 Terminal Guardrails
+
+- **Zero Inline Quoting Traps (`python -c`)**: On Windows PowerShell, NEVER run inline `python -c` snippets that contain complex regex, quotes (`\"`, `\'`), or square brackets (`[` / `]`). Always write temporary diagnostic scripts to a dedicated scratch file (e.g. via `write_file`) and execute it via `python <script>.py`, deleting it after verification.
+- **Mandatory `-X utf8` on Windows CLI**: To prevent `UnicodeEncodeError: 'charmap' codec can't encode character...` (Windows legacy `cp1252` default), all one-off Python terminal executions reading/printing UTF-8 or emoji MUST pass `python -X utf8` or set `PYTHONUTF8=1`.
+
+
 
 

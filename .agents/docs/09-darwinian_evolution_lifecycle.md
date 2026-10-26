@@ -118,3 +118,54 @@ When a spoke project develops improved patterns or discovers edge-case mitigatio
 python .agents/scripts/orion.py foundation push-upstream --source /path/to/spoke
 ```
 This merges hardened rules and canons back to the master framework hub, enabling continuous evolution across the entire organization.
+
+---
+
+## Chapter 25: Sovereign Skill Harness & Reflexion Auto-Heal (`core/harness/` & `reflexion.py`)
+
+To prevent unverified LLM-authored skills or repairs from polluting the production workspace, `.agents` implements a quarantined **Sovereign Skill Harness** (`core/harness/`, ~79 KB) paired with closed-loop **Reflexion Auto-Heal** (`commands/reflexion.py`).
+
+### 25.1. Tool Quantum Capture & Secret Redaction (`core/harness/capture.py`)
+- **`ToolQuantumCapture`**: Tracks every tool execution as an opportunity-relative **session quantum** (`total_quanta`) in `.orion/harness/quantum_state.json`, recording which skills were invoked or missed without relying on wall-clock timestamps.
+- **`SecretRedactor`**: Automatically scrubs API keys (`sk-...`, `AIza...`, `ghp_...`), bearer tokens, PEM blocks, and connection strings from captured tool arguments before any telemetry or staged skill intent is written to disk.
+
+### 25.2. Quarantine Intent Queue & Stdio MCP Staging Server (`core/harness/staging.py`)
+Agents cannot write directly into `.agents/skills/` during autonomous turns:
+1. Candidate skills are submitted as a `StagedIntent` to `.orion/harness/intents/<intent_id>.json` via `IntentQueue` or the built-in stdio JSON-RPC 2.0 MCP server (`python .agents/scripts/orion.py harness serve`, exposing the `stage_skill` tool).
+2. Each staged intent remains quarantined until evaluated by `SovereignPromoter` (`orion.py harness promote <intent_id>`).
+
+### 25.3. The 14-Gate Admission Barrier (`core/harness/admission.py`)
+`SovereignPromoter` validates every staged skill against 14 deterministic admission gates before permitting promotion into `.agents/skills/`:
+
+| Gate ID | Category | Deterministic Check |
+|:---|:---|:---|
+| `HARNESS-FM-01` | Frontmatter | Valid YAML frontmatter block present at line 1 |
+| `HARNESS-FM-02` | Frontmatter | Required keys (`name`, `description`) non-empty and kebab-case aligned |
+| `HARNESS-FM-03` | Frontmatter | `core_max_lines` integer declared and respected ($\le 200$ lines default) |
+| `HARNESS-STR-01` | Structure | Total `SKILL.md` line count $\le$ `core_max_lines` ceiling |
+| `HARNESS-STR-02` | Structure | Mandatory actionable sections (`Workflow`, `Verification`, or procedural steps) present |
+| `HARNESS-STR-03` | Structure | Zero hardcoded OS home-directory paths or `file://` URIs |
+| `HARNESS-STR-04` | Structure | Zero placeholder tokens (`TODO`, `TBD`, `FIXME`, `<fill-in>`) |
+| `HARNESS-T0-01` | Tier-0 Safety | Cannot weaken or contradict Section 1 Core Guardrails of `AGENTS.md` |
+| `HARNESS-SIB-01` | Deduplication | Lexical/prefix similarity check against existing sibling skills |
+| `HARNESS-CUR-01` | Curation | Triggers `ClusterCurator` check when $>3$ skills share a domain prefix |
+| `HARNESS-REF-01` | Integrity | All referenced `references/` and `scripts/` paths physically exist |
+| `HARNESS-SEC-01` | AST Security | Passes `core/security.py` static AST/regex scan with zero high-severity findings |
+| `HARNESS-VERIFY-01` | Executable Gate | Associated verification command or `--self-test` harness exits with Code `0` |
+| `HARNESS-CMT-01` | Prose & Hygiene | Passes comment hygiene and anti-slop prose authenticity checks |
+
+### 25.4. Opportunity-Relative Skill Lifecycle (`core/harness/lifecycle.py`)
+Unlike wall-clock TTL systems that wrongly archive skills simply because a developer was away on vacation, `LifecycleManager` (`orion.py harness lifecycle`) measures skill utility relative to **elapsed session quanta** (`maturity_window = 100` quanta, `active_capacity = 50` skills):
+- **`PROBATION`**: Newly promoted skills with `< 100` elapsed session quanta since promotion.
+- **`ESTABLISHED`**: Skills with $\ge 100$ elapsed quanta and positive hit utility (`hits / elapsed_quanta`).
+- **`ARCHIVE_CANDIDATE`**: Skills with $\ge 100$ elapsed quanta, zero hits across the maturity window, and active skill count exceeding `active_capacity`.
+
+### 25.5. Prefix Cluster Curation (`core/harness/curator.py`)
+`ClusterCurator` (`orion.py harness curate`) scans `.agents/skills/` for fragmented prefix clusters (e.g., multiple micro-skills sharing a `<domain>-*` prefix) and generates an umbrella consolidation plan that merges sibling playbooks into a single primary `SKILL.md` with on-demand `references/`.
+
+### 25.6. Closed-Loop Reflexion Auto-Heal (`commands/reflexion.py`)
+When a test or verification command fails, `ReflexionLoop.auto_heal(file_path, test_cmd, error_output)` coordinates with `resolve_elastic_execution_plan()`:
+1. Snapshots the original file contents in memory before attempting any repair.
+2. Allocates `0`–`3` local repair trials depending on the active local model parameter tier (`3B` `micro_syntax` $\to 1$ trial; `7B` `single_fn` $\to 2$ trials; `32B` `multi_fn` $\to 3$ trials).
+3. Validates every candidate patch via Python `ast.parse()` (for `.py` targets) and re-runs `test_cmd`.
+4. If `test_cmd` returns `Exit Code 0`, records the successful heal in `.orion/working/reflexion_heals.jsonl`. If all local trials fail, restores the exact original file snapshot and escalates a structured handoff to the Cloud IDE tier.

@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.1
+version: 0.0.2
 last_updated: 2026-09-26
 ---
 
@@ -45,6 +45,7 @@ last_updated: 2026-09-26
 - Because most IDEs (including **Antigravity IDE**) do not auto-route models and not all users have a Local LLM installed, model switching is performed **MANUALLY** by the user via the IDE model dropdown.
 - **Every-Turn Next-Task Reminder**: Whenever a response includes a non-empty `NEXT TASK` (i.e. not `"None"`), the agent **MUST** include `⚡ **RECOMMENDED TIER**` in the response footer specifying `BUDGET (Flash/Haiku)`, `STANDARD (Pro/Sonnet)`, or `PREMIUM (Thinking/Opus)` with a 1-phrase rationale for the next step.
 - **Pre-Implementation Plan Gate**: Every `implementation_plan.md` MUST include `> ⚡ **EXECUTION TIER RECOMMENDATION**: ...` at the top so the user can switch down (e.g. from `PREMIUM` planning to `STANDARD`/`BUDGET` execution) or escalate before approving the plan.
+- **Diagnosis-to-Plan Gate**: When a turn uncovers a defect, error, or architectural solution, `NEXT TASK` MUST NOT be `"None"`. It MUST proactively recommend `/plan` (or `/strict-tdd` for isolated bug fixes) to transition diagnosis into an executable plan.
 - **Escalation Advice**: If a user prompts for an architectural overhaul or deep audit on a BUDGET model, the agent MUST recommend switching to `PREMIUM (Gemini Thinking / Claude Opus)` in the initial plan.
 - **Overpowered Exemption**: If the user uses a PREMIUM model for a BUDGET task, proceed immediately without aborting, then recommend `BUDGET` for the follow-up turn.
 

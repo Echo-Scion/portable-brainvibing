@@ -945,8 +945,6 @@ def resolve_elastic_execution_plan(
     else:
         local_trials = 2
         eligible_model = best_model
-        local_trials = 2
-        eligible_model = best_model
 
     if blast_radius_files <= 1 and span_lines <= 80 and task_complexity in ("nano", "micro_syntax", "single_fn"):
         cloud_tier = "BUDGET"

@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.1 - English First & Built-In Lessword) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.2 - English First & Built-In Lessword) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1. CORE GUARDRAILS (Always Active)
@@ -19,6 +19,7 @@ These rules define the non-negotiable operational boundaries and core execution 
 - **Rule Precedence & Conflict Arbitration**: When rules conflict: `security-guardrails.md` > Root Instruction (`AGENTS.md`) > `tier-execution-protocol.md` > Domain rules > Skills/Workflows. If conflict remains unresolved: arbitrate internally before writing code (choose least privilege + minimal side effects).
 - **IDE-Native Interaction**: When a rule says "ask the user" or "interview the user", use your IDE's native interactive tools (e.g., `/grill-me`, Composer Ask) instead of plain text questions. When instructed to run long tasks, recommend `/goal`. When instructed to schedule checks, use `/schedule`.
 - **Surgical Diff Mandate**: Touch only what you must. NEVER alter adjacent code, comments, or formatting unrelated to the prompt. Match existing project style. Remove only imports/variables orphaned by your own changes. Never delete pre-existing dead code unless explicitly requested. Every changed line must trace directly to user intent.
+- **Vision Invariant Lock (`context/VISION.md`)**: If `context/VISION.md` exists, it is the immutable North Star of the application. NEVER modify `context/VISION.md` without explicit human instruction, and NEVER propose or implement "improvements", refactors, or features that contradict its Core Essence, Invariants, or Anti-Vision.
 - **Simplicity First (YAGNI)**: Implement minimum code that solves the problem. Zero speculative abstractions, single-use helper classes, unrequested flexibility, or error handling for impossible scenarios. If 50 lines suffice, 200 lines is a failure.
 - **Ambiguity Halt**: If multiple valid interpretations exist or a simpler alternative is obvious, present tradeoffs and ask via IDE tools before writing implementation. Do not pick silently.
 - **Code Authenticity**: Do not add empty catch blocks (`catch (e) {}`), simulated latency (`setTimeout`/`sleep`), or synthetic mock APIs to production code.
@@ -123,7 +124,9 @@ Because most IDEs do not auto-route models and not all users run a local LLM, yo
 - **`STANDARD` (Pro / Sonnet)**: 2–5 files, 1 domain boundary, standard feature coding, UI polish, or writing/running unit tests (`/strict-tdd`).
 - **`PREMIUM` (Thinking / Opus)**: >5 files, 2+ domain boundaries, initial system architecture (`BLUEPRINT`/`ARCHITECTURE`), deep security audit, or 3-strike Circuit Breaker escalation.
 
-**Proactive Playbook Trigger**: If the next logical step corresponds to a `.agents` skill or playbook, you MUST proactively recommend the corresponding Slash Command in the `NEXT TASK` line (e.g., `NEXT TASK: Recommend running /integrity-sentinel to verify logic`).
+**Proactive Playbook Trigger & Diagnosis-to-Plan Mandate**:
+- If the next logical step corresponds to a `.agents` skill or playbook, you MUST proactively recommend the corresponding Slash Command in the `NEXT TASK` line (e.g., `NEXT TASK: Recommend running /integrity-sentinel to verify logic`).
+- **Diagnosis-to-Plan Rule**: Whenever a turn diagnoses an error, runtime failure, technical debt, or outlines an architectural solution, `NEXT TASK` MUST NOT be `"None"`. You MUST proactively recommend `/plan` (or `/strict-tdd` for isolated bugs) to convert the finding into an executable plan (e.g., `NEXT TASK: Recommend running /plan to implement [Solution]`).
 
 **Conversational / Q&A Turn** (3 clean lines — No tools/commands executed; omit `RECOMMENDED TIER` ONLY if `NEXT TASK` is `"None"`):
 ```
@@ -181,8 +184,13 @@ Every implementation plan you create (`implementation_plan.md`) MUST include in 
    - **Bottom-Up Same-File Ordering**: Multiple edits within the same file MUST be ordered from highest line number to lowest line number.
 
 ---
-*Mandate Version: 0.0.1 (English First & Built-In Lessword)*
+*Mandate Version: 0.0.2 (English First & Built-In Lessword)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES
 <!-- Add your custom project rules here. They will be preserved during foundation updates. -->
+
+### Windows Terminal & Execution Invariants
+- **No Complex Inline Python (`python -c`)**: On Windows PowerShell, avoid complex inline `python -c` snippets with quotes or regex. Use temporary scratch files (`write_file`) or native file tools to prevent PowerShell quote stripping and bracket parsing syntax errors.
+- **Mandatory UTF-8 Mode (`python -X utf8`)**: Terminal commands running Python on Windows must include `-X utf8` (or ensure `PYTHONUTF8=1`) to prevent CP-1252 `UnicodeEncodeError` when dealing with UTF-8 documents or emojis.
+

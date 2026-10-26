@@ -199,6 +199,13 @@ This document defines the naming convention and location for the 82 granular Saa
 >    `<!-- [FLUTTERIN:AUTO-INFERRED:START source="..." confidence="..."] -->` ... `<!-- [FLUTTERIN:AUTO-INFERRED:END] -->`
 >    to guarantee that manual developer edits outside the anchors are preserved across re-scans.
 
+## 25-File Golden Ratio Canonical Registry (Default Topology)
+- **Root**: `context/VISION.md` *(Immutable North Star)*, `context/AGENT_IDENTITY.md`
+- **00_Strategy/**: `BLUEPRINT.md` *(Master)*, `MEMORY.md`, `PERSONAS_AND_MARKET.md`, `ACQUISITION_AND_GROWTH.md`, `MONETIZATION_AND_PRICING.md`, `RETENTION_AND_LEGAL.md`
+- **01_Product/**: `ROADMAP.md` *(Master)*, `PRD_CORE_FEATURES.md`, `USER_JOURNEYS_AND_FLOWS.md`, `ANALYTICS_AND_METRICS.md`, `INTEGRATIONS_AND_WEBHOOKS.md`, `FEEDBACK_AND_BACKLOG.md`
+- **02_Creative/**: `STYLE_GUIDE.md` *(Master)*, `UI_COMPONENTS_AND_PATTERNS.md`, `UX_AND_ACCESSIBILITY.md`, `BRAND_VOICE_AND_COPY.md`, `VISUAL_ASSETS_AND_MEDIA.md`
+- **03_Tech/**: `ARCHITECTURE.md` *(Master)*, `DATABASE_AND_STORAGE.md`, `API_AND_CONTRACTS.md`, `STATE_AND_DOMAIN_LOGIC.md`, `SECURITY_AND_AUTH.md`, `INFRA_AND_DEVOPS.md`
+
 <!-- <saas-registry-matrix> -->
 ## 1. Pillar: `00_Strategy/` (Master: `BLUEPRINT.md`)
 Contains files related to Idea, Validation, and Scaling.

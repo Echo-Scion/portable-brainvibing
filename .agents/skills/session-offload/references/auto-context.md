@@ -6,7 +6,7 @@ activation: Called automatically during /session-offload, or manually via /auto-
 
 # /auto-context.md (Conversational Context Extraction)
 
-This workflow is the bridge between human conversation and the structural 82-file `context/` matrix. It extracts business logic, architectural decisions, and domain rules from recent chats and automatically injects them into the correct context files.
+This workflow is the bridge between human conversation and the **25-File Golden Ratio `context/` matrix**. It extracts business logic, architectural decisions, and domain rules from recent chats and automatically injects them into the correct context files (never modifying `context/VISION.md`).
 
 ## 1. Context Harvest (Read Phase)
 - **Review Working Memory**: Analyze the contents of `.orion/working/handoff.md` and the recent transcript logs.
@@ -16,11 +16,11 @@ This workflow is the bridge between human conversation and the structural 82-fil
   - *"We decided to use Redis for this cache instead of local state."*
 
 ## 2. Structural Routing (Map Phase)
-For each extracted piece of knowledge, determine its proper destination within the 82-file structure.
-- **00_Strategy**: Business goals, user personas, revenue logic.
-- **01_Product**: User roles, feature requirements, UI/UX specs.
-- **02_Creative**: Color themes, typography, tone of voice.
-- **03_Tech**: Architecture, data schemas, API contracts, dependencies.
+For each extracted piece of knowledge, determine its proper destination within the **25-File Golden Ratio structure** (never modifying `context/VISION.md`):
+- **00_Strategy**: `BLUEPRINT.md`, `MEMORY.md`, `PERSONAS_AND_MARKET.md`, `ACQUISITION_AND_GROWTH.md`, `MONETIZATION_AND_PRICING.md`, `RETENTION_AND_LEGAL.md`.
+- **01_Product**: `ROADMAP.md`, `PRD_CORE_FEATURES.md`, `USER_JOURNEYS_AND_FLOWS.md`, `ANALYTICS_AND_METRICS.md`, `INTEGRATIONS_AND_WEBHOOKS.md`, `FEEDBACK_AND_BACKLOG.md`.
+- **02_Creative**: `STYLE_GUIDE.md`, `UI_COMPONENTS_AND_PATTERNS.md`, `UX_AND_ACCESSIBILITY.md`, `BRAND_VOICE_AND_COPY.md`, `VISUAL_ASSETS_AND_MEDIA.md`.
+- **03_Tech**: `ARCHITECTURE.md`, `DATABASE_AND_STORAGE.md`, `API_AND_CONTRACTS.md`, `STATE_AND_DOMAIN_LOGIC.md`, `SECURITY_AND_AUTH.md`, `INFRA_AND_DEVOPS.md`.
 
 *If the target file does not exist, the Agent MUST execute the `write_to_file` tool to create it inside the matching categorized folder.*
 

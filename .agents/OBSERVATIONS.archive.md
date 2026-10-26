@@ -1359,3 +1359,16 @@
 - **created**: 2026-10-24T15:22:00.366313
 - **resolved**: 2026-10-24T16:09:39.960071
 - **resolution**: Test tool failure isolated to temp directory
+
+## Observation 105: Test Resolved Entry
+- **id**: 105
+- **fingerprint**: 5bb011c49ac9
+- **status**: resolved
+- **kind**: improve
+- **target**: 
+- **rule_id**: TEST_RULE
+- **siblings_checked**: true
+- **scope**: project
+- **created**: 2026-10-27T04:40:34.910491
+- **resolved**: 2026-10-27T04:40:34.910491
+- **resolution**: Added directly with resolved status

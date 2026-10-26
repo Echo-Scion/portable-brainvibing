@@ -49,6 +49,10 @@ _MODULE_MAP = {
     "truncate_tokens": ".db",
     "ActionObservationStream": ".db",
     "SovereignTracer": ".db",
+    "configure_utf8": ".db",
+    "safe_print": ".db",
+    "transliterate_emojis": ".db",
+    "EMOJI_ASCII_MAP": ".db",
     # paths
     "normalize_path": ".paths",
     "get_workspace_dir": ".paths",

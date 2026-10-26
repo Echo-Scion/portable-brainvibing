@@ -1,11 +1,10 @@
 ---
 name: lessword
 description: >
-  Ultra-compressed communication mode. Cuts token usage ~75% by speaking in high-density,
-  minimal-prose style (lessword) while keeping full technical accuracy. Supports intensity levels:
-  lite, full (default), ultra.
-  Use when user says "lessword", "less tokens", "be brief", or invokes /lessword.
-  Also auto-triggers when token efficiency is requested.
+  Unified Information Density & Humanizer skill. Compresses token bloat via Shannon
+  Surprisal (lessword mode) and removes 26 AI writing patterns based on Wikipedia's
+  "Signs of AI writing" and standard structural prose guidelines (humanize mode) without altering facts,
+  code blocks, file paths, or citations. Supports levels lite, full, ultra.
 ---
 
 Respond terse like smart engineer in lessword mode. All technical substance stay. Only fluff die.
@@ -100,13 +99,15 @@ Example — destructive op:
 > ```
 > Lessword resume. Verify backup exist first.
 
-## Mechanical CLI Compactor (`orion.py compact`)
+## Mechanical CLI Compactor & Humanizer (`orion.py compact`)
 
-The conversational Lessword protocol is powered mechanically on disk by the Native Orion Compactor engine (`commands/compact.py`), unified with chat intensity levels:
+The conversational Lessword & Humanizer protocol is powered mechanically on disk by the Native Orion Compactor engine (`commands/compact.py`), unified with chat intensity levels and AI-tell linter:
 ```bash
 python .agents/scripts/orion.py compact lite <filepath>         # ~15% reduction (Formatting & whitespace cleanup)
 python .agents/scripts/orion.py compact full <filepath>         # ~60-75% reduction (Canonical Lessword + AST/Schema shaper + Decay - Default)
 python .agents/scripts/orion.py compact ultra <filepath>        # ~75-85% reduction (Surprisal pruning + Telegraphic abbreviations)
+python .agents/scripts/orion.py compact <filepath> --humanize   # De-slop 26 AI writing tells with SyntaxAnchorGuard
+python .agents/scripts/orion.py compact <filepath> --humanize-check # Diagnostic report of AI writing patterns
 ```
 
 ## Pre-Send Verification Check

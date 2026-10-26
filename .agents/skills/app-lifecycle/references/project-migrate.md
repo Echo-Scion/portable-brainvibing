@@ -66,15 +66,19 @@ When deploying `.agents` mid-flight into an existing repository or reverse-engin
    - **Command**: `python .agents/scripts/orion.py dna audit`
    - Computes DNA compliance score (0-100%) and reports any forbidden cross-layer dependency violations.
 
-## Phase 2: Scaffold Master Context & Signal-Driven Materialization
-Generate the foundational knowledge structure using the 82-file registry, practicing **Selective Signal-Driven Materialization**:
-- **Rule**: Scaffold ONLY the 4 Master files upfront:
-  - `context/00_Strategy/BLUEPRINT.md`
-  - `context/01_Product/ROADMAP.md`
-  - `context/02_Creative/STYLE_GUIDE.md`
-  - `context/03_Tech/ARCHITECTURE.md`
-- **Command**: Run `python .agents/scripts/orion.py brain sync "init SaaS structure"`.
-- **Action**: Materialize child detail files (e.g., `Dev_Database.md`, `Dev_APIs.md`, `Infra_Security.md`, `Design_Design_System.md`) ONLY when concrete code/asset signals exist. Unmaterialized slots remain documented in master indices without creating 82 empty files.
+## Phase 2: Universal Context Discovery, Vision Lock & Elastic Materialization
+Inspect whether the target project already has an existing `context/` or `docs/` directory before scaffolding:
+1. **Guard Against Source Code Collision**: If `context/` contains source code files (`.tsx`, `.ts`, `.py`, `.go`, `.dart`), do NOT treat them as markdown context notes; isolate code files in `.agents/.dna.json` (`epigenetic_aliases`).
+2. **Choose Context Migration Mode (If Pre-Existing `context/` Notes Exist)**:
+   - **Mode A (`Epigenetic Zero-Move` — Default if user wants custom folders preserved)**: Keep existing `context/` subfolders/files untouched on disk and map them to the 4 Pillars + `VISION.md` inside `.agents/.dna.json` (`context_aliases`).
+   - **Mode B (`Smart Assimilation` — Default for legacy 82-file or messy flat dumps)**: Backup originals to `.orion/archive/context_backup/`, then consolidate content into the **25-File Golden Ratio Registry** (max 5–6 facet files per pillar folder) using `<!-- [ORION:MIGRATED source="..."] -->` provenance blocks.
+3. **Seed Core Anchors & Immutable `VISION.md`**:
+   - `context/VISION.md` *(Immutable North Star — draft from README/manifests and request human sign-off)*
+   - `context/00_Strategy/BLUEPRINT.md` & `context/00_Strategy/MEMORY.md`
+   - `context/01_Product/ROADMAP.md`
+   - `context/02_Creative/STYLE_GUIDE.md`
+   - `context/03_Tech/ARCHITECTURE.md`
+4. **Elastic Facet Materialization**: Materialize additional domain facet files from the 25-File Registry (e.g., `03_Tech/DATABASE_AND_STORAGE.md`, `03_Tech/API_AND_CONTRACTS.md`, `03_Tech/SECURITY_AND_AUTH.md`, `00_Strategy/MONETIZATION_AND_PRICING.md`) ONLY when concrete signals exist or when a Master file exceeds 300 lines.
 
 ## Phase 3: Epistemic Context Extraction & Bounded Merging
 - **Action 1: Technical & Security Extraction (`[AST_VERIFIED]`)**:

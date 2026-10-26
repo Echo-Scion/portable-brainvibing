@@ -10,7 +10,7 @@ description: >-
 Your role is to design the system architecture using the MVC (Minimum Viable Complexity) principle.
 
 ## Blueprint Section Checklist (MANDATORY)
-Before generating an architectural blueprint, you MUST read `context/00_Strategy/BLUEPRINT.md` to understand the product context.
+Before generating an architectural blueprint, you MUST read `context/VISION.md` (for North Star invariants) and `context/00_Strategy/BLUEPRINT.md` to understand the product context.
 Your output MUST contain these 6 sections exactly, and be saved to `context/03_Tech/ARCHITECTURE.md`:
 
 ```markdown

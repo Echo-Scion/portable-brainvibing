@@ -15,6 +15,17 @@ if scripts_dir not in sys.path:
     sys.path.insert(0, scripts_dir)
 
 try:
+    from core.db import configure_utf8
+    configure_utf8()
+except ImportError:
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
+try:
     from core.db import log_telemetry as _log_telemetry
 except ImportError:
     def _log_telemetry(err: Exception, context: str = "") -> None:

@@ -7,7 +7,8 @@ This directory contains the master blueprints and boilerplates for the **Portabl
 
 | Template | Target File | Purpose |
 | :--- | :--- | :--- |
-| `PROJECT_SCAFFOLD.template.md` | `00_Strategy/BLUEPRINT.md` & `03_Tech/ARCHITECTURE.md` | Unified master generation prompt for new architectures, SaaS domains, and 82-file mapping. |
+| `VISION.template.md` | `context/VISION.md` | Immutable Foundational Vision, North Star invariants, and Anti-Vision filter. |
+| `PROJECT_SCAFFOLD.template.md` | `00_Strategy/BLUEPRINT.md` & `03_Tech/ARCHITECTURE.md` | Master architecture blueprint for 25-File Golden Ratio and legacy SaaS registry mapping. |
 | `STYLE_GUIDE.template.md` | `02_Creative/STYLE_GUIDE.md` | UI/UX tokens and flows. |
 | `DESIGN.template.md` | `DESIGN.md` | Master 20+ design archetypes, color palettes, and locked visual tokens. |
 | `AGENTS.template.md` | `.agents/AGENTS_INDEX.md` | Multi-AI instruction generator (DRY source). |

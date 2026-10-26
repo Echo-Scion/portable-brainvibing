@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.1-blue.svg?style=flat-square" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.2-blue.svg?style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/core-Python%203.10%2B%20Stdlib-brightgreen.svg?style=flat-square" alt="Core"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/database-SQLite3%20WAL-informational.svg?style=flat-square" alt="Database"></a>
@@ -55,6 +55,7 @@ Every subsystem addresses a specific failure mode of standard AI coding and runs
 ### 1. 🧠 Dual-Level GraphRAG & Observational Memory (`brain.py`, `rag.py`, `vault.py`, `core/memory.py`)
 * **Problem Solved**: Standard AI agents suffer from cross-session amnesia and RAG "flashbacks" where outdated, superseded architectural decisions pollute current retrieval.
 * **Hybrid Graph Retrieval**: Combines SQLite3 FTS5 Porter BM25 lexical search, local float32 vector embeddings (`archival_vectors`), 1-hop entity-relation traversal, and pure-Python Louvain modularity community clustering.
+* **In-Place Schema Auto-Migration**: Automatically detects and migrates legacy databases in-place, adding `superseded_by` and `generation_id` columns across `pages` and `archival_vectors` tables without data loss.
 * **3-Tier Epistemic Compression Funnel**: Progressively distills raw session turns (`recall_turns`) into an active observation ledger with ephemeral anchor IDs (`[O1]`–`[On]`) under a dynamic token budget (`max(3600, total // 2)`), and rolls older generations into a single Head Reflection (`memory_generations`) using zero-LLM Shannon Surprisal scoring.
 * **Anti-Flashback Supersession (`superseded_by`)**: Historical records replaced by newer generations are filtered out of default RAG queries while remaining inspectable on demand via `orion.py brain recall <anchor_id>`.
 * **Obsidian Second-Brain Export**: Generates an interactive wikilinked vault (`.orion/export/vault/`) and a 4-note cold-start architecture briefing.
@@ -70,24 +71,28 @@ Every subsystem addresses a specific failure mode of standard AI coding and runs
 * **AST Skeleton First & PageRank Repo-Map**: Extracts exact `[Lstart-Lend]` symbol spans (`orion.py scan map`) and PageRank-weighted core modules (`orion.py repomap`) so agents read only targeted functions.
 * **Strict TDD & Delta Mutation Testing**: Enforces `RED -> GREEN -> REFACTOR` cycles and runs AST mutations exclusively on `git diff` lines (`orion.py adversarial mutate <file> --diff`) to verify that tests actually catch regressions.
 * **Hermetic PEP 578 Sovereign Sandbox**: Executes exploratory scripts inside an AST-gated syscall jail that intercepts filesystem deletions/renames (`os.remove`, `rmdir`, `rename`, `shutil.rmtree`) and blocks subprocess spawning outside `_JAIL_ROOT`.
-* **8-Gate Ecosystem Verifier**: Audits link integrity, ghost references, schema parity, polyglot security rules, structural line ceilings (`core_max_lines`), and instruction language hygiene (`orion.py verify`).
+* **8-Gate Ecosystem Verifier with AST Caching**: Audits link integrity, ghost references, schema parity, polyglot security rules, structural line ceilings (`core_max_lines`), and instruction language hygiene (`orion.py verify`) backed by persistent `(mtime_ns, size)` AST caching.
+* **27-Suite Contract Test Matrix**: 210 standard library `unittest` suites in `.agents/scripts/tests/` running full coverage with 100% pass rates.
 
-### 4. 📦 Universal Project DNA & Context Packaging (`utils/packer.py`, `compact.py`, `tools/digestpack/`)
+### 4. 📦 Universal Project DNA, Context Packaging & Humanizer (`utils/packer.py`, `compact.py`, `tools/digestpack/`)
 * **Problem Solved**: Uploading large polyglot repositories to web LLMs hits file count limits, truncates critical logic, or triggers prompt-in-data XML breakouts.
 * **10-Bundle Ceiling & Topology Clustering**: Partitions any monorepo or polyglot codebase into at most 10 balanced Markdown bundles (`.md`) across `arch`, `hybrid`, and `full` tiers using PageRank centrality and AST import cohesion (`balance_into_k_bundles()`).
 * **Pre-Audit Static Radar & 4-Turn Playbook**: Embeds a cross-bundle import router and static risk radar (execution sinks, broad catch blocks) in Bundle 01, paired with an automated 4-turn review prompt (`00_GEMINI_WEB_AUDIT_PROMPT.txt`).
 * **Prompt-in-Data Shield**: Escapes literal closing tags (`</artifact>`) and neutralizes control tags (`<system>`, `<prompt_instructions>`) across all lines including code fences.
 * **5-Tier Context Compactor & Lessword Protocol**: Compresses terminal streams, AST payloads, and prose by 15%–85% across unified compaction tiers (`lite`, `stream`, `full`, `aggressive`, `ultra`).
+* **Prose Authenticity Engine (De-AI Prose Filter)**: Integrated 26-tell AI writing detector based on *Wikipedia: Signs of AI writing* and standard structural prose guidelines (`orion.py compact --humanize` and `--humanize-check`) guarded by syntax anchors so code, paths, and identifiers remain unmodified.
 
-### 5. 🛡️ Cache-Aware State Recovery & Fail-Closed Interception (`state_machine.py`, `pre-agent-wake.py`, `capabilities.py`)
+### 5. 🛡️ Cache-Aware State Recovery & Latency-Optimized Hooks (`state_machine.py`, `pre-agent-wake.py`, `capabilities.py`)
 * **Problem Solved**: IDE restarts wipe in-progress context, runaway tool loops repeat failing commands, and regenerating state files on every keystroke invalidates LLM KV prompt caches.
 * **SHA-256 Cache-Aware Omni-Buffer**: `pre-agent-wake.py` synchronizes active editor state, terminal errors, and active Bento tasks into `.orion/working/context.json`. A 5-minute idle activation gate compares structural SHA-256 hashes (`active_file`, `terminal_error`, `active_bento_task`, `evolution_overdue`) and skips file rewrites on unchanged turns to preserve LLM prompt-cache hits, emitting a `temporal_gap_marker` after idle gaps.
+* **Pruned Hook Matchers (Zero Read-Tool Overhead)**: `.agents/hooks.json` matches exclusively against terminal execution (`run_command|execute_command|Bash`), eliminating process startup latency during high-frequency file reads.
 * **Git-Bound FSM Checkpoints**: Snapshots working trees (`git stash create`) on state transitions so `orion.py fsm rollback --restore-code` restores both SQLite state and source files after a crash.
 * **Fail-Closed PreToolUse Circuit Breaker**: Intercepts IDE tool calls and blocks execution (`Exit Code 3`) after 3 consecutive command/test failures until root-cause analysis is performed.
 
-### 6. 🧬 Habit Observation, Self-Evolution & Multi-Platform Canons (`reflexion.py`, `foundation.py`, `audit_aesthetics.py`)
+### 6. 🧬 Habit Observation, Self-Evolution & Telemetry Ledger (`reflexion.py`, `foundation.py`, `core/db.py`)
 * **Problem Solved**: Agents repeat identical mistakes across sessions, accumulate bloated skills, and generate generic UI layouts or robotic prose.
 * **5-Status Observation Ledger & Barrier Escalation**: Captures tool friction, runtime exceptions, and operator habits into `.agents/OBSERVATIONS.md` (`open`, `validated`, `promoted`, `parked`, `superseded`) with cold archival to `OBSERVATIONS.archive.md`. A 2nd repeated violation of the same rule automatically escalates from an advisory warning to a Tier-0 mechanical gate (`[BARRIER_ESCALATION_CANDIDATE]`).
+* **Single-Sink Append-Only Telemetry**: Replaced $\mathcal{O}(N)$ whole-file rewrites with append-only `mechanical_catches.jsonl`, ensuring zero write contention and constant-time persistence.
 * **Operator Habit Miner**: Detects recurring manual developer command sequences (`mine_operator_habits`) and proposes reusable workflow automation.
 * **Framework Canons & Aesthetic Gatekeeper**: Ships production canons for **Flutter**, **React**, and **Python**, alongside `audit_aesthetics.py` (enforcing WCAG 2.x contrast math and 8pt grids) and `prose-authenticity.md` (banning 54 AI writing tells).
 

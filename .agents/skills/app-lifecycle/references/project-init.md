@@ -15,7 +15,7 @@ Read the user's prompt. If it is vague, do NOT guess.
 ## 2. Generate Context & Design Direction (Lean Scaffolding)
 Create the foundational knowledge and design direction for the AI.
 - **Action**: Use `run_command` to physically scaffold the workspace directories cross-platform: `python .agents/scripts/orion.py setup --yes --target .` (or `python .agents/scripts/orion.py orion_ops init`).
-- **Action**: Generate the 4 Master files inside `context/` (`00_Strategy/BLUEPRINT.md`, `01_Product/ROADMAP.md`, `02_Creative/STYLE_GUIDE.md`, `03_Tech/ARCHITECTURE.md`) using templates in `.agents/templates/`.
+- **Action**: Generate `context/VISION.md` (instantiated from `.agents/templates/VISION.template.md`) as the Immutable North Star, and the 4 Master files inside `context/` (`00_Strategy/BLUEPRINT.md`, `01_Product/ROADMAP.md`, `02_Creative/STYLE_GUIDE.md`, `03_Tech/ARCHITECTURE.md`) using templates in `.agents/templates/`.
 - **Action (Automatic DESIGN.md Generation)**: In the project root, automatically generate `DESIGN.md` instantiated from `.agents/templates/DESIGN.template.md`. 
   - Tailor its Identity, Palette Tokens, Typography, Macrostructure, and Liveliness Dials (`ENERGY`, `RHYTHM`, `MOTION`) uniquely to the project's philosophy, audience, and platform derived from Step 1.
   - If reference screenshots or URLs are provided, execute the Visual DNA Extraction protocol (extracting layout cadence, typographic scale, and palette tokens into `DESIGN.md` without copying pixels).

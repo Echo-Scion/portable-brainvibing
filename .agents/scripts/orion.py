@@ -12,12 +12,14 @@ if SCRIPTS_DIR not in sys.path:
 # Prevent Python from writing .pyc and __pycache__ inside .agents ecosystem
 sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8:replace")
 
-# Force utf-8 encoding for standard output to avoid UnicodeEncodeError on Windows
-if getattr(sys.stdout, 'encoding', None) and sys.stdout.encoding.lower() != 'utf-8':
+# Force utf-8 encoding with replace fallback for standard streams
+if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except (AttributeError, OSError, ValueError):
         pass
 
@@ -234,7 +236,7 @@ def main():
         python_exec = sys.executable or "python"
         t0 = time.time()
         try:
-            result = subprocess.run([python_exec, "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
             t1 = time.time()
             try:
                 from core.db import SovereignTracer
@@ -345,7 +347,7 @@ def main():
 
     if not in_process_success:
         try:
-            result = subprocess.run([python_exec, "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
             exit_code = result.returncode
         except KeyboardInterrupt:
             sys.exit(130)

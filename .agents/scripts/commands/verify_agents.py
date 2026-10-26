@@ -98,21 +98,46 @@ PILLAR_MASTERS: Dict[str, str] = {
     "03_Tech": "ARCHITECTURE.md",
 }
 
+# 25-File Golden Ratio Registry: 1 Master + 4-5 Cohesive Domain Facets per Pillar (<=6 files/folder)
 STANDARD_MASTERS: Dict[str, Set[str]] = {
-    "00_Strategy": {"MEMORY.md"},
-    "01_Product": set(),
-    "02_Creative": set(),
-    "03_Tech": set(),
+    "00_Strategy": {
+        "MEMORY.md",
+        "PERSONAS_AND_MARKET.md",
+        "ACQUISITION_AND_GROWTH.md",
+        "MONETIZATION_AND_PRICING.md",
+        "RETENTION_AND_LEGAL.md",
+    },
+    "01_Product": {
+        "PRD_CORE_FEATURES.md",
+        "USER_JOURNEYS_AND_FLOWS.md",
+        "ANALYTICS_AND_METRICS.md",
+        "INTEGRATIONS_AND_WEBHOOKS.md",
+        "FEEDBACK_AND_BACKLOG.md",
+    },
+    "02_Creative": {
+        "UI_COMPONENTS_AND_PATTERNS.md",
+        "UX_AND_ACCESSIBILITY.md",
+        "BRAND_VOICE_AND_COPY.md",
+        "VISUAL_ASSETS_AND_MEDIA.md",
+    },
+    "03_Tech": {
+        "DATABASE_AND_STORAGE.md",
+        "API_AND_CONTRACTS.md",
+        "STATE_AND_DOMAIN_LOGIC.md",
+        "SECURITY_AND_AUTH.md",
+        "INFRA_AND_DEVOPS.md",
+    },
 }
 
 TRANSITIONAL_ALLOWED: Dict[str, Set[str]] = {
-    "00_Strategy": set(),
-    "01_Product": {"PRD.md"},
-    "02_Creative": set(),
-    "03_Tech": set(),
+    "00_Strategy": {"MARKET_AND_GROWTH.md"},
+    "01_Product": {"PRD.md", "PRD_SPECS.md", "USER_ANALYTICS.md"},
+    "02_Creative": {"UX_AND_COPY.md"},
+    "03_Tech": {"DATA_AND_API.md", "INFRA_AND_SECURITY.md"},
 }
 
 ROOT_ALLOWED = {
+    "VISION.md",
     "README.md",
     "MIGRATION_MAP.md",
     "AGENT_IDENTITY.md",
@@ -163,14 +188,39 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
     registry_file = os.path.join(BASE_DIR, "templates", "PROJECT_SCAFFOLD.template.md")
 
     if not os.path.isdir(context_dir):
-        output.append("[INFO] Workspace lacks context/ dir. Bypassing 82-file SaaS lint.")
+        output.append("[INFO] Workspace lacks context/ dir. Bypassing context naming lint.")
         return 0, 0, output
 
-    allowed_from_registry = parse_registry(registry_file)
+    # Load optional epigenetic context_aliases from .agents/.dna.json for brownfield flexibility
+    epigenetic_context_files: Set[str] = set()
+    dna_json_path = os.path.join(BASE_DIR, ".dna.json")
+    if os.path.isfile(dna_json_path):
+        try:
+            with open(dna_json_path, "r", encoding="utf-8") as _df:
+                _dna_data = json.load(_df)
+                for _src_rel in (_dna_data.get("context_aliases") or {}).keys():
+                    epigenetic_context_files.add(_src_rel.replace("\\", "/"))
+        except Exception:
+            pass
+
+    # Source Code Collision Shield: check if context/ contains source code files
+    code_extensions = {".ts", ".tsx", ".js", ".jsx", ".py", ".dart", ".go", ".rs", ".kt", ".java", ".cpp", ".c"}
+    has_source_code_in_context = False
+    for root, _, files in os.walk(context_dir):
+        if any(os.path.splitext(f)[1].lower() in code_extensions for f in files):
+            has_source_code_in_context = True
+            break
+
+    if has_source_code_in_context:
+        output.append("[INFO] [CODE_COLLISION_GUARD] Source code detected inside context/ directory. Bypassing context naming lint.")
+        return 0, 0, output
+
+    allowed_from_registry = parse_registry(registry_file) if os.path.isfile(registry_file) else {}
 
     root_files = [f for f in os.listdir(context_dir) if os.path.isfile(os.path.join(context_dir, f))]
     for f in sorted(root_files):
-        if f not in ROOT_ALLOWED and not f.startswith("local-"):
+        rel_p = f"context/{f}"
+        if f not in ROOT_ALLOWED and not f.startswith("local-") and rel_p not in epigenetic_context_files:
             errors += 1
             output.append(
                 f"[ERROR] context/{f} is not allowed at context root. "
@@ -200,7 +250,8 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
         allowed.update(TRANSITIONAL_ALLOWED.get(pillar, set()))
 
         for f in sorted(files):
-            if f in allowed:
+            rel_p = f"context/{pillar}/{f}"
+            if f in allowed or rel_p in epigenetic_context_files:
                 if f in TRANSITIONAL_ALLOWED.get(pillar, set()):
                     warnings += 1
                     output.append(
@@ -212,29 +263,30 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
                 errors += 1
                 output.append(
                     f"[ERROR] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from PROJECT_SCAFFOLD.template.md"
+                    f"Use 25-file Golden Ratio registry names or add epigenetic alias."
                 )
             else:
                 warnings += 1
                 output.append(
                     f"[WARNING] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from PROJECT_SCAFFOLD.template.md"
+                    f"Use 25-file Golden Ratio registry names or add epigenetic alias."
                 )
 
     return errors, warnings, output
 
 
 def main_context_lint(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog="verify_agents.py context-lint", description="Lint context naming against 82-file registry.")
+    parser = argparse.ArgumentParser(prog="verify_agents.py context-lint", description="Lint context naming against 25-File Golden Ratio + Epigenetic Registry.")
     parser.add_argument("--non-strict", action="store_true", help="Downgrade non-registry files to warnings.")
     args = parser.parse_args(argv if argv is not None else sys.argv[2:])
 
     strict = not args.non_strict
-    print("Running Context Naming Lint (82-file registry + master anchors)...")
+    print("Running Context Naming Lint (25-File Golden Ratio + Epigenetic Registry)...")
 
     try:
         errors, warnings, output = lint_context(strict=strict)
     except Exception as ex:
+        _log_telemetry(ex, "verify_agents:main_context_lint")
         print(f"[ERROR] Lint failed unexpectedly: {ex}")
         return 1
 
@@ -1390,6 +1442,17 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR DEFENSIVE UTF-8 I/O & SUBPROCESS ENCODING ---")
     encoding_violations = []
 
+    # Persistent Verification Cache for AST acceleration
+    cache_path = os.path.join(os.path.dirname(BASE_DIR), ".orion", "verify_ast_cache.json")
+    cache = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as cf:
+                cache = json.load(cf)
+        except Exception:
+            cache = {}
+    new_cache = {}
+
     for root, dirs, files in os.walk(BASE_DIR):
         dirs[:] = [d for d in dirs if d not in (".git", ".gemini", ".system_generated", "node_modules", "__pycache__", "scratch", ".scratch")]
         for file_name in files:
@@ -1397,6 +1460,16 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                 continue
             filepath = os.path.join(root, file_name)
             rel_path = os.path.relpath(filepath, BASE_DIR).replace("\\", "/")
+
+            try:
+                st = os.stat(filepath)
+                sig = f"{st.st_mtime_ns}:{st.st_size}"
+                new_cache[rel_path] = sig
+                if cache.get(rel_path) == sig:
+                    continue  # Verified clean in previous run
+            except Exception:
+                sig = None
+
             try:
                 with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                     source = f.read()
@@ -1442,12 +1515,15 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                             f"subprocess.{subproc_fn}() text mode missing explicit encoding='utf-8'"
                         ))
 
-                # 2. open() calls
+                # 2. open() and Path.read_text() / Path.write_text() calls
                 is_open = False
+                is_path_text_io = False
                 if isinstance(func, ast.Name) and func.id == "open":
                     is_open = True
                 elif isinstance(func, ast.Attribute) and func.attr == "open" and isinstance(func.value, ast.Name) and func.value.id in ("builtins", "io"):
                     is_open = True
+                elif isinstance(func, ast.Attribute) and func.attr in ("read_text", "write_text"):
+                    is_path_text_io = True
 
                 if is_open:
                     kw_dict = {kw.arg: kw.value for kw in node.keywords if kw.arg}
@@ -1469,13 +1545,29 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                             node.lineno,
                             "open() text mode missing explicit encoding='utf-8'"
                         ))
+                elif is_path_text_io:
+                    kw_dict = {kw.arg: kw.value for kw in node.keywords if kw.arg}
+                    if "encoding" not in kw_dict:
+                        encoding_violations.append((
+                            rel_path,
+                            node.lineno,
+                            f"Path.{func.attr}() missing explicit encoding='utf-8'"
+                        ))
 
     for rel_path, lineno, msg in encoding_violations:
         res.add_error("HYGIENE", f"{msg} ({rel_path}:{lineno})", rel_path, severity="BLOCKER")
         if verbose: print(f" [FAIL] Defensive I/O Leak: {msg} ({rel_path}:{lineno})")
 
-    if not encoding_violations and verbose:
-        print(" [PASS] Defensive I/O & Encoding: All text subprocess and open() calls explicitly specify encoding='utf-8'.")
+    if not encoding_violations:
+        if new_cache:
+            try:
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                with open(cache_path, "w", encoding="utf-8") as cf:
+                    json.dump(new_cache, cf)
+            except Exception:
+                pass
+        if verbose:
+            print(" [PASS] Defensive I/O & Encoding: All text subprocess and open() calls explicitly specify encoding='utf-8'.")
 
 def check_command_parity(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- CHECKING SKILL JIT ROUTING PARITY ---")

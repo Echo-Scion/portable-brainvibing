@@ -1,6 +1,6 @@
 # Startup Domain Knowledge Base (`startup_knowledge_base.md`)
 
-This resource provides high-density, domain-specific instructions for auto-populating the 82 context files in a `--startup` project. It ensures that each file (from Revenue to Legal) is drafted with professional-grade expertise.
+This resource provides high-density, domain-specific instructions for auto-populating the **25-File Golden Ratio Context Registry** in a `--startup` project. It ensures that each file (from `context/VISION.md` to `03_Tech/INFRA_AND_DEVOPS.md`) is drafted with professional-grade expertise.
 
 ---
 
@@ -37,4 +37,4 @@ This resource provides high-density, domain-specific instructions for auto-popul
 <!-- </knowledge-index> -->
 
 ---
-*This Knowledge Base is the engine for the 82-file auto-population sequence.*
+*This Knowledge Base is the engine for the 25-File Golden Ratio auto-population sequence.*

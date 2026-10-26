@@ -37,7 +37,7 @@ The preflight script verifies:
 Identify the target codebase configuration:
 - Framework: `flutter`, `react`, `nextjs`, `python`, or `custom`.
 - Language: `dart`, `typescript`, `python`, etc.
-- Target AI IDEs: `gemini`, `cursor`, `claude`, `copilot`, `windsurf`, or `all`.
+- Target AI IDEs: `gemini`, `cursor`, `claude`, `copilot`, `windsurf`, or `all` (19 supported IDE platforms).
 
 If `.project_manifest.json` does not exist in the target directory, prompt the developer using native interactive questions.
 
@@ -87,7 +87,7 @@ python .agents/scripts/orion.py foundation deploy \
   --language typescript \
   --ai cursor,claude,copilot
 
-# Deploy with all 6 supported IDE adapters:
+# Deploy with all 19 supported IDE adapters:
 python .agents/scripts/orion.py foundation deploy \
   --target /path/to/target_repo \
   --framework react \
@@ -95,12 +95,54 @@ python .agents/scripts/orion.py foundation deploy \
   --ai all
 ```
 
-### 26.2. Dynamic Placeholder Resolution
-During deployment, `commands/foundation.py` resolves dynamic placeholders across templates:
-- `{{PROJECT_NAME}}`: Name of the target directory.
-- `{{FRAMEWORK}}`: Selected framework canon.
-- `{{LANGUAGE}}`: Target programming language.
-- `{{FOUNDATION_PATH}}`: Absolute reference to the parent framework repository for upstream syncing.
+### 26.2. Dynamic Placeholder Resolution & Dependency-Aware Stack Resolver
+During deployment, `commands/foundation.py` inspects the target project's actual manifests (`pubspec.yaml`, `package.json`, `pyproject.toml`, `requirements.txt`, `Cargo.toml`, `go.mod`) rather than copying static framework assumptions:
+1. **Isolated Target Manifest Resolution (`effective_manifest`)**: Target project stack detection runs against an isolated manifest dictionary so spoke deployments never inherit the hub repository's own `.project_manifest.json`.
+2. **Dependency-Aware Python Profiling (`_read_python_deps` & `_python_profile`)**: Parses `pyproject.toml` and `requirements*.txt` to classify Python projects into:
+   - **`fastapi`**: Detected when `fastapi`, `starlette`, `litestar`, `flask`, or `django` is present.
+   - **`pydantic`**: Detected when `pydantic`, `SQLAlchemy`, `sqlmodel`, or `msgspec` is present without a web framework.
+   - **`stdlib`**: Pure Python CLI/library/tooling projects (`Zero-Pip` / `stdlib`, `dataclasses`, `unittest`, `sqlite3`) — preventing false `FastAPI` or `SQLAlchemy` claims in generated `BLUEPRINT.md`, `ARCHITECTURE.md`, and `MEMORY.md` context files.
+3. **UI vs. Headless Detection (`_detect_ui_project`)**: Automatically suppresses `STYLE_GUIDE.md` generation for headless CLI, backend, and library repositories unless a frontend directory or UI framework is detected.
+4. **Dual-Tier Canon Pruning (`prune_unmatched_canons`)**: Removes unselected framework directories in `.agents/canons/ecosystems/` and prunes unmatched cheat-sheets in `.agents/canons/micro/` (preserving only the target stack's micro-canons, e.g., keeping `python.md` on Python targets while removing `flutter.md`, `pubspec.md`, `react.md`, and `supabase.md`).
+5. **Template Placeholder Substitution**:
+   - `{{PROJECT_NAME}}`: Name of the target directory.
+   - `{{FRAMEWORK}}` & `{{LANGUAGE}}`: Detected or explicitly passed target stack.
+   - `{{API_STYLE}}`, `{{VALIDATION_ENGINE}}`, `{{DATABASE_ENGINE}}`, `{{STATE_STRATEGY}}`: Dynamically populated from the resolved stack profile.
+   - `{{FOUNDATION_PATH}}`: Reference to the parent framework repository for upstream syncing.
+
+### 26.3. 2-Step Non-Interactive Diagnostic Inspector (`orion.py setup --inspect --json`) & 6 Power-Features
+For automated IDE onboarding (`DEPLOY_ME.md`), `orion.py setup --inspect --json` probes system RAM/VRAM, CPU cores, installed CLI binaries (`rtk`, `sg`, `bun`, `ollama`), and workspace stack in a single non-interactive JSON payload, then provisions up to 6 optional **Orion Power-Features** via `--features`:
+- **`graph-db`**: Initializes `.orion/orion.db` (21-table SQLite WAL + FTS5 + Louvain GraphRAG schema).
+- **`second-brain`**: Generates the 4-note executive developer briefing (`00-Home`, `01-Architecture-Map`, `02-Tech-Debt-Radar`, `03-Session-Timeline`).
+- **`vault`**: Exports an Obsidian-compatible knowledge graph vault to `.orion/export/vault/`.
+- **`design-md`**: Scaffolds `context/DESIGN.md` with locked visual tokens and WCAG contrast rules for UI projects.
+- **`security-baseline`**: Generates `.agents/.security-baseline.json` to lock current AST security findings.
+- **`pack-hybrid`**: Generates balanced `.orion/bundles/hybrid/` context bundles alongside `00_GEMINI_WEB_AUDIT_PROMPT.txt`.
+
+### 26.4. The 19-Platform Universal IDE Manifest Matrix (`core/platform_manifests.py`)
+`orion.py foundation deploy --ai <targets|all>` compiles native instruction files, rule adapters, and `PreToolUse` / wake hooks (`hooks.json`) across **19 AI coding platforms**:
+
+| Platform ID | IDE / Agent Host | Generated Native Artifact(s) |
+|:---|:---|:---|
+| `gemini` | Google Antigravity / Gemini CLI | `AGENTS.md`, `GEMINI.md`, `.gemini/settings.json` |
+| `claude` | Anthropic Claude Code | `CLAUDE.md`, `.claude/settings.local.json` (`PreToolUse` + `SessionStart` hooks) |
+| `cursor` | Cursor IDE | `.cursor/rules/orion-foundation.mdc`, `.cursor/hooks.json` |
+| `windsurf` | Codeium Windsurf | `.windsurfrules`, `.windsurf/rules/orion.md` |
+| `copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/` |
+| `cline` | Cline (VS Code) | `.clinerules/01-orion-foundation.md` |
+| `roocode` | Roo Code | `.roo/rules/01-orion-foundation.md` |
+| `kilocode` | Kilo Code | `.kilocode/rules/orion-foundation.md` |
+| `zed` | Zed Editor | `.rules` |
+| `aider` | Aider CLI | `.aider.conf.yml` (`read: [AGENTS.md]`) |
+| `continue` | Continue.dev | `.continue/rules/orion-foundation.md` |
+| `trae` | ByteDance Trae IDE | `.trae/rules/project_rules.md` |
+| `junie` | JetBrains Junie | `.junie/guidelines.md` |
+| `kiro` | AWS Kiro IDE | `.kiro/steering/orion-foundation.md` |
+| `codex` | OpenAI Codex CLI | `AGENTS.md` |
+| `opencode` | OpenCode CLI | `AGENTS.md`, `.opencode/config.json` |
+| `amp` | Sourcegraph Amp | `AGENT.md` |
+| `goose` | Block Goose | `.goosehints` |
+| `pearai` | PearAI | `.pearai/rules/orion-foundation.md` |
 
 ---
 

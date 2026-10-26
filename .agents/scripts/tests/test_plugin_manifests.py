@@ -76,7 +76,7 @@ class TestPluginManifests(unittest.TestCase):
                 if file_path.suffix == ".json":
                     data = json.loads(content)
                     self.assertEqual(data.get("name"), "portable-brainvibing")
-                    self.assertEqual(data.get("version"), "0.0.1")
+                    self.assertEqual(data.get("version"), "0.0.2")
 
     def test_foundation_root_cleanliness(self):
         """Ensure foundation repository root is not polluted by non-active platform folders."""

@@ -1493,11 +1493,6 @@ def get_cached_nanobrain():
     global _CACHED_NANOBRAIN
     if _CACHED_NANOBRAIN is None:
         try:
-            import sys
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            if script_dir not in sys.path:
-                sys.path.insert(0, script_dir)
-            from brain import NanoBrain
             _CACHED_NANOBRAIN = NanoBrain()
         except Exception:
             _CACHED_NANOBRAIN = False
@@ -1638,6 +1633,8 @@ def init_db():
             "category": "ALTER TABLE pages ADD COLUMN category TEXT;",
             "pillar": "ALTER TABLE pages ADD COLUMN pillar TEXT;",
             "updated": "ALTER TABLE pages ADD COLUMN updated TEXT;",
+            "generation_id": "ALTER TABLE pages ADD COLUMN generation_id TEXT;",
+            "superseded_by": "ALTER TABLE pages ADD COLUMN superseded_by TEXT;",
         }
         for col, stmt in cols_to_add.items():
             if col not in existing_page_cols:
@@ -1678,9 +1675,20 @@ def init_db():
             id TEXT PRIMARY KEY,
             content TEXT,
             embedding BLOB,
-            created_at REAL
+            created_at REAL,
+            generation_id TEXT,
+            superseded_by TEXT
         )
     ''')
+    try:
+        c.execute("PRAGMA table_info(archival_vectors);")
+        existing_vec_cols = {row[1] for row in c.fetchall()}
+        if "generation_id" not in existing_vec_cols:
+            c.execute("ALTER TABLE archival_vectors ADD COLUMN generation_id TEXT;")
+        if "superseded_by" not in existing_vec_cols:
+            c.execute("ALTER TABLE archival_vectors ADD COLUMN superseded_by TEXT;")
+    except Exception as _ve:
+        _log_telemetry(_ve, 'brain.py:archival_vectors_migration')
 
     conn.commit()
     conn.close()
@@ -2164,7 +2172,7 @@ def ingest_file(filepath: str, autonomy_level="balanced", manifest=None, log_lin
                 c.execute('DELETE FROM edges WHERE source_id = ?', (target_path,))
                 c.execute('DELETE FROM relations WHERE source_path = ? OR subject_id = ?', (target_path, target_path))
                 
-                # --- SQL-Backed WikiLinks Extraction ---
+                # --- SQL-Backed WikiLinks & Markdown Relationship Extraction ---
                 if ext.lower() == '.md':
                     import re
                     text_no_code = re.sub(r'```.*?```', '', content_str, flags=re.DOTALL)
@@ -2192,6 +2200,30 @@ def ingest_file(filepath: str, autonomy_level="balanced", manifest=None, log_lin
                                 INSERT OR IGNORE INTO edges (source_id, target_id, relation, confidence, source_path)
                                 VALUES (?, ?, ?, 1.0, ?)
                             ''', (target_path, name, relation, target_path))
+
+                    # Deterministic Markdown Header & Section Hierarchy Extraction
+                    headings = re.findall(r'(?m)^(#{1,4})\s+(.+)$', text_no_code)
+                    parent_stack = []
+                    for h_hashes, h_title in headings:
+                        h_level = len(h_hashes)
+                        clean_title = re.sub(r'\[.*?\]|\(.*?\)|[*_`]', '', h_title).strip()
+                        if not clean_title:
+                            continue
+                        section_id = f"{target_path}#{clean_title.lower().replace(' ', '-')[:40]}"
+                        c.execute('''
+                            INSERT OR IGNORE INTO nodes (id, type, name, source_path)
+                            VALUES (?, ?, ?, ?)
+                        ''', (section_id, 'MarkdownSection', clean_title, target_path))
+                        
+                        while parent_stack and parent_stack[-1][0] >= h_level:
+                            parent_stack.pop()
+                            
+                        parent_id = parent_stack[-1][1] if parent_stack else target_path
+                        c.execute('''
+                            INSERT OR IGNORE INTO edges (source_id, target_id, relation, confidence, source_path)
+                            VALUES (?, ?, 'has_section', 1.0, ?)
+                        ''', (parent_id, section_id, target_path))
+                        parent_stack.append((h_level, section_id))
                 # --- Structural Triplets ---
                 if ext.lower() in RAW_EXTS and 'triplets' in locals() and triplets:
                     c.execute('''
@@ -2627,13 +2659,14 @@ def ingest_main(paths, autonomy, embed=False):
                     reason="local_model_cannot_extract_triplets",
                 )
             print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
-            print("Files:")
-            for i, (orig, target) in enumerate(pending_files, 1):
-                rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
-                rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
-                print(f"{i}. {rel_target} (source: {rel_orig})")
-                print("[ACTION] Read each source file, extract 3-5 triplets and format as JSON list of dicts with keys: `s` (subject), `p` (predicate), `o` (object), `src` (source path).")
-                print("then run: python .agents/scripts/orion.py orion_ops inject_triplets '<json>'")
+            if pending_files:
+                print("Files:")
+                for i, (orig, target) in enumerate(pending_files, 1):
+                    rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
+                    rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
+                    print(f"{i}. {rel_target} (source: {rel_orig})")
+                print("[ACTION] Read each source file, extract 3-5 triplets, save as JSON list to `.orion/scratch/triplets.json` (`s`, `p`, `o`, `src`),")
+                print("then run: python .agents/scripts/orion.py brain inject_triplets .orion/scratch/triplets.json")
                 
         else:
             print("No new or updated markdown files found to ingest. Graph is up to date.")

@@ -13,14 +13,15 @@ It operates as a **State Machine**. Do not blindly execute steps 1 to 5 sequenti
 ## 0. PRE-FLIGHT (JIT CONTEXT)
 - [ ] **State Initialization**: Create or update `.orion/task.md` with the phases below. Update checkboxes to `[/]` and `[x]` as you progress.
 - [ ] **Verify Environment**: Ensure `.agents/` is synced and active.
+- [ ] **Vision Alignment**: Verify proposed changes strictly align with `context/VISION.md` Core Essence, Invariants, and Anti-Vision.
 - [ ] **Rule Alignment**: Verify alignment with active Master BIOS mandates and `rules/memory-hygiene.md`.
-- [ ] **Surgical Entry**: Identify the target folder (00-03) and the relevant Prefix from `templates/PROJECT_SCAFFOLD.template.md`.
+- [ ] **Surgical Entry**: Identify the target folder (00-03) and the relevant Facet File from the 25-File Golden Ratio Registry.
 
 ## 1. SHAPE SPEC & SPECIFICATION (LIVING DATA)
 - [ ] **Reference Check**: Find Reference Implementations (similar existing code) and consult `.agents/rules/RULES_INDEX.md` to deploy relevant standards.
 - [ ] **Draft Shape**: Write a Shape Document (e.g., in `.orion/specs/`) outlining the scope, visual/UX goals, references, and deployed standards.
 - [ ] **Master Update**: Add the feature summary to `context/00_Strategy/BLUEPRINT.md` and `01_Product/ROADMAP.md`.
-- [ ] **Registry Expansion**: Create a new Prefix-based detail file (e.g., `01_Product/Rev_Payment_Gateways.md`) if the domain is new or requires high depth.
+- [ ] **Registry Expansion**: Materialize a 25-File Golden Ratio domain facet file (e.g., `00_Strategy/MONETIZATION_AND_PRICING.md`, `03_Tech/DATABASE_AND_STORAGE.md`) if a Master file exceeds 300 lines or requires deep specialization.
 - [ ] **Approval**: Present the "Shape Spec" to the user for approval via IDE Artifact RequestFeedback before writing any code.
 - [ ] **Auto-Chain Trigger**: Set `NEXT TASK: Design layout and implement logic`
 

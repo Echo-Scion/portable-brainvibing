@@ -112,6 +112,7 @@ Tier: {{tier}}
 
 ## 🔗 Context Dependencies (MANDATORY READ)
 *Executor MUST execute `view_file` on these specific files before planning. (Delete unused ones during task creation).*
+- [ ] `context/VISION.md` (Immutable North Star & Anti-Vision invariants)
 - [ ] `context/00_Strategy/BLUEPRINT.md` (For overall logic)
 - [ ] `context/01_Product/ROADMAP.md` (For feature logic)
 - [ ] `context/02_Creative/STYLE_GUIDE.md` (For UI/UX tasks)

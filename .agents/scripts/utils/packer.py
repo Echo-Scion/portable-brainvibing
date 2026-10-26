@@ -2613,22 +2613,29 @@ _LOCAL_CLI_DIRECTIVE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_WEB_PROMPT_CLEAN_RE = re.compile(
+    r"(?m)^[ \t]*[-*]?\s*(?:Verify mechanically:\s*`python\s+\.agents[^\n`]+`|Execute\s+`python\s+\.agents[^\n`]+`|\bpython\s+\.agents/scripts/orion\.py\s+verify[^\n]*)[ \t]*\n?",
+    re.IGNORECASE,
+)
+
 
 def _adapt_skill_prose_for_web_bundle(md_text: str) -> str:
     """
     Adapts SKILL.md prose (written for local IDE agents) into static audit instructions
     for Web LLM consumption (Gemini Web / Claude Projects):
-    - Strips local terminal execution commands.
+    - Strips local terminal execution commands and slash commands.
     - Replaces local `view_file` / `run_command` directives with static bundle inspection rules.
     """
     if not md_text:
         return ""
     cleaned = _LOCAL_CLI_DIRECTIVE_RE.sub("", md_text)
+    cleaned = _WEB_PROMPT_CLEAN_RE.sub("", cleaned)
     cleaned = re.sub(
         r"\bExecute `run_command`[^\n.]*\.",
         "Inspect the Pre-Computed Static Audit Radar and `<artifact>` blocks directly.",
         cleaned,
     )
+    cleaned = re.sub(r"`python \.agents/scripts/orion\.py [^`]+`", "static bundle inspection", cleaned)
     return cleaned.strip()
 
 
@@ -2683,13 +2690,109 @@ def _extract_markdown_sections(file_path: str, headers: List[str]) -> str:
     return "\n".join(extracted).strip()
 
 
+def _extract_project_domain_brief(root_dir: str, dna: Optional[ProjectDNA] = None) -> str:
+    """
+    Extracts real domain architecture, foundational VISION.md invariants, capabilities, and system identity from project files
+    (context/VISION.md, README.md, skills/*/SKILL.md, and context/03_Tech/ARCHITECTURE.md) while skipping unpopulated template placeholders.
+    """
+    abs_root = os.path.abspath(root_dir)
+    brief_parts: List[str] = []
+
+    # 0. Inspect context/VISION.md (Immutable North Star)
+    vision_path = os.path.join(abs_root, "context", "VISION.md")
+    if not os.path.isfile(vision_path) and dna and dna.context_aliases:
+        for src_rel, target in dna.context_aliases.items():
+            if target == "VISION.md":
+                candidate = os.path.join(abs_root, src_rel)
+                if os.path.isfile(candidate):
+                    vision_path = candidate
+                    break
+    if os.path.isfile(vision_path):
+        try:
+            content = read_text_safe(vision_path)
+            if "PROJECT_SCAFFOLD" not in content and "Auto-filled by AI" not in content:
+                for block in content.split("## "):
+                    block_stripped = block.strip()
+                    if block_stripped and not block_stripped.startswith("FOUNDATIONAL VISION"):
+                        lines = [line.strip() for line in block_stripped.splitlines() if line.strip() and not line.strip().startswith("#")]
+                        if lines:
+                            header = block_stripped.split("\n")[0].strip()
+                            brief_parts.append(f"**Vision ({header})**: {' '.join(lines[:3])}")
+                        if len(brief_parts) >= 1:
+                            break
+        except Exception:
+            pass
+
+    # 1. Inspect README.md
+    readme_path = os.path.join(abs_root, "README.md")
+    if os.path.isfile(readme_path):
+        try:
+            content = read_text_safe(readme_path)
+            # Take top substantive paragraphs (skip badge lines, blank lines, and scaffold template notices)
+            paragraphs = re.split(r"\r?\n\r?\n", content)
+            found_paragraphs = []
+            for p in paragraphs[:8]:
+                p_str = p.strip()
+                if (
+                    p_str
+                    and not p_str.startswith("#")
+                    and not p_str.startswith("![")
+                    and not p_str.startswith("<!--")
+                    and not p_str.startswith("---")
+                    and "Auto-filled by AI" not in p_str
+                    and len(p_str) >= 40
+                ):
+                    clean_p = " ".join(line.strip() for line in p_str.splitlines() if line.strip())
+                    found_paragraphs.append(clean_p)
+                    if len(found_paragraphs) >= 2:
+                        break
+            if found_paragraphs:
+                brief_parts.append("\n\n".join(found_paragraphs))
+        except Exception:
+            pass
+
+    # 2. Inspect context/03_Tech/ARCHITECTURE.md or context/00_Strategy/BLUEPRINT.md
+    arch_path = os.path.join(abs_root, "context", "03_Tech", "ARCHITECTURE.md")
+    if not os.path.isfile(arch_path):
+        arch_path = os.path.join(abs_root, "context", "00_Strategy", "BLUEPRINT.md")
+    if os.path.isfile(arch_path):
+        try:
+            content = read_text_safe(arch_path)
+            if "PROJECT_SCAFFOLD" not in content and "Auto-filled by AI" not in content:
+                # Extract first meaningful section
+                for block in content.split("## "):
+                    if len(block.strip()) > 80 and not block.startswith("Foundation Architecture"):
+                        header = block.split("\n")[0].strip()
+                        body = "\n".join(block.split("\n")[1:4]).strip()
+                        if body:
+                            brief_parts.append(f"**Architecture ({header})**: {body}")
+                        break
+        except Exception:
+            pass
+
+    # 3. Inspect domain-specific skills (e.g. skills/*/SKILL.md)
+    skills_dir = os.path.join(abs_root, "skills")
+    if os.path.isdir(skills_dir):
+        discovered_skills = []
+        for s_name in sorted(os.listdir(skills_dir)):
+            s_skill_p = os.path.join(skills_dir, s_name, "SKILL.md")
+            if os.path.isfile(s_skill_p):
+                discovered_skills.append(s_name)
+        if discovered_skills:
+            brief_parts.append(f"**Domain Agent Skills & Capabilities**: {', '.join(discovered_skills[:8])}")
+
+    return "\n\n".join(brief_parts).strip()
+
+
 def _compile_stitched_audit_methodology(
     root_dir: str = ".",
     is_foundation: bool = False,
     dna: Optional[ProjectDNA] = None,
+    has_ui: bool = True,
 ) -> Optional[str]:
     """
     Compiles audit methodology by stitching SSOT Skills + Project DNA + Phased Playbooks.
+    Respects has_ui: completely eliminates UI/DOM/Shimmer/Riverpod rubrics on backend/quant/CLI repositories.
     """
     candidates = [
         os.path.join(root_dir, ".agents", "skills"),
@@ -2749,6 +2852,48 @@ def _compile_stitched_audit_methodology(
     pb_c_delivery = _adapt_skill_prose_for_web_bundle(
         _extract_markdown_sections(sentinel_skill, ["Audit Findings Delivery Contract"])
     )
+
+    # If backend/headless without UI, strip UI-specific rubric lines from stitched playbooks
+    if not has_ui:
+        for ui_term in (
+            "- 5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
+            "5-State Visual Coverage",
+            "- *Keyboard Focus Traps*: Verify modal dialogs contain Tab focus within the active overlay and restore focus to trigger element upon dismissal.",
+            "Keyboard Focus Traps",
+            "Zero-Data Empty States",
+            "i18n Text Expansion",
+            "Error Boundary Containment",
+            "Design Tokens",
+            "UI & Rendering Bottlenecks",
+            "UI Debounce/Disable",
+            "### Tier 3: DOM & Render Consequence",
+            "Tier 3: DOM Existence & Render Consequence",
+            "Tier 3 DOM",
+            "Riverpod,",
+            "Riverpod",
+        ):
+            pb_a_vectors = pb_a_vectors.replace(ui_term, "")
+            pb_b_vectors = pb_b_vectors.replace(ui_term, "")
+            pb_b_sentinel = pb_b_sentinel.replace(ui_term, "")
+            pb_c_conseq = pb_c_conseq.replace(ui_term, "")
+
+    # Clean up any leftover UI terms from final assembled playbook blocks
+    if not has_ui:
+        cleaned_sentinel = []
+        for line in pb_b_sentinel.splitlines():
+            if any(term in line for term in ("Keyboard Focus Traps", "i18n Text Expansion", "Zero-Data Empty States", "Error Boundary Containment", "UI Hardening")):
+                continue
+            cleaned_sentinel.append(line)
+        pb_b_sentinel = "\n".join(cleaned_sentinel)
+
+        cleaned_conseq = []
+        for line in pb_c_conseq.splitlines():
+            if "Riverpod" in line:
+                line = line.replace("Riverpod,", "").replace("Riverpod", "")
+            if any(term in line for term in ("DOM Existence", "UI Moved, State Stagnant", "Tier 3: DOM")):
+                continue
+            cleaned_conseq.append(line)
+        pb_c_conseq = "\n".join(cleaned_conseq)
 
     parts = [p for p in [pb_a_vectors, pb_b_vectors, pb_c_tdd] if p]
     if not parts:
@@ -2829,12 +2974,24 @@ def generate_gemini_web_audit_prompt(
             "**Deliverable**: Report only confirmed material defects with exact `path/to/file.ext#Lxx-Lyy` citations and minimal surgical diffs.\n"
         )
 
+    has_ui = False
+    if dna:
+        has_ui = dna.primary_framework.lower() in ("flutter", "react", "vue", "svelte", "nextjs", "angular") or sum(
+            1 for t in dna.file_tier_map.values() if t == "5_presentation"
+        ) >= 3
+    else:
+        has_ui = any("presentation" in c.lower() or "ui" in c.lower() or "screen" in c.lower() for c, _, _, _, _ in bundle_files)
+
+    t3_title = "Presentation Screens, UI Tokens & Web/Native Bridges" if has_ui else "Persistence Adapters, Data Pipelines & Integration Bridges"
     turn1_md = _render_turn_block(1, "Workspace Architecture, Core Contracts & Primary Domains", turn1_bundles)
     turn2_md = _render_turn_block(2, "Core Services, Business Logic & State Execution", turn2_bundles)
-    turn3_md = _render_turn_block(3, "Presentation, Platform Bridges & Edge-Case Resilience", turn3_bundles)
+    turn3_md = _render_turn_block(3, t3_title, turn3_bundles)
 
-    stitched_methodology = _compile_stitched_audit_methodology(root_dir=root_dir, is_foundation=is_foundation, dna=dna)
+    stitched_methodology = _compile_stitched_audit_methodology(root_dir=root_dir, is_foundation=is_foundation, dna=dna, has_ui=has_ui)
     methodology_section = f"\n---\n\n{stitched_methodology}\n" if stitched_methodology else ""
+
+    domain_brief = _extract_project_domain_brief(root_dir, dna=dna)
+    domain_brief_section = f"\n### System Identity & Domain Capabilities:\n{domain_brief}\n" if domain_brief else ""
 
     dna_section = ""
     if dna and getattr(dna, "is_dna_app", False):
@@ -2865,7 +3022,7 @@ def generate_gemini_web_audit_prompt(
 **Target Repository**: `{project_name}` ({proj_summary})
 **Package Tier**: `{tier_label}` | **Taxonomy Engine**: `{tax_provider}`
 **Total Bundles**: {len(bundle_files)} (~{total_tokens:,} estimated tokens across {total_files} files)
-
+{domain_brief_section}
 ---
 
 ## 1. UPLOADED DOMAIN BUNDLES & ARCHITECTURAL MAP
@@ -2905,9 +3062,10 @@ All {len(bundle_files)} bundles are attached in your context window. To prevent 
 #### 📋 Turn 4 / Phase 4: Cross-Bundle Seam Synthesis, Final Score & Surgical Remediation Plan
 **Target**: Complete repository synthesis across all {len(bundle_files)} bundles.
 **Directives**:
-1. Verify **Cross-Bundle Seams**: Check whether API contracts, state models, and event payloads between bundles match without drift.
-2. Compute the **Deterministic Forensic Score (0-100)** with an explicit deduction table.
-3. Present the prioritized **Dual-Regime Remediation Plan & Bento Action Cards**:
+1. Verify **Cross-Bundle Seams**: Trace Producers and Consumers across bundles to verify exact key names, data types, and symbol formats. Check whether API contracts, state models, and event payloads match without drift.
+2. Verify **Target Architecture Alignment**: Compare current capabilities against the project's stated architectural goals (identifying production-ready components vs. components needing upgrade).
+3. Compute the **Deterministic Forensic Score (0-100)** with an explicit deduction table.
+4. Present the prioritized **Dual-Regime Remediation Plan & Bento Action Cards**:
    - **Topological Blast-Radius Phasing (Coupled Chains)**: Group tasks that depend on each other into sequential phases ordered by Blast Radius (Phase 1: Central contracts & root primitives `T0/T1` -> Phase 2: Core domain & services `T2/T3` -> Phase 3: Presentation & entrypoints `T4/T5`). Solving root contracts in Phase 1 eliminates cascading regressions in higher layers.
    - **Disjoint Parallel Partitioning (Independent Tracks)**: When tasks touch separate domains without import dependencies (J <= 0.20), label them as `[PARALLEL-TRACK-A]`, `[PARALLEL-TRACK-B]` so multi-agent systems (`/worker-delegate`) can execute them concurrently.
    - **Bottom-Up Same-File Ordering**: Within each file, order Action Cards from highest line number to lowest line number (`start_line` descending) to prevent line shifts.

@@ -22,6 +22,17 @@ _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
+try:
+    from core.db import configure_utf8
+    configure_utf8()
+except ImportError:
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
 from core.paths import get_persistence_db_path, get_agents_dir, get_workspace_dir, get_orion_dir
 from core.memory import calculate_retrieval_score
 

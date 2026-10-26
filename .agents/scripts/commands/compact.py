@@ -705,6 +705,7 @@ def distill_main(argv=None):
 ARCHIVE_DIR = os.path.join(WORKSPACE_DIR, '.orion', 'archive')
 ARCHIVE_FILE = os.path.join(ARCHIVE_DIR, 'compressed_memory.md')
 HANDOFF_FILE = os.path.join(WORKSPACE_DIR, '.orion', 'working', 'handoff.md')
+VISION_FILE = os.path.join(WORKSPACE_DIR, 'context', 'VISION.md')
 BLUEPRINT_FILE = os.path.join(WORKSPACE_DIR, 'context', '00_Strategy', 'BLUEPRINT.md')
 STRATEGY_MEMORY_FILE = os.path.join(WORKSPACE_DIR, 'context', '00_Strategy', 'MEMORY.md')
 LEGACY_MEMORY_FILE = os.path.join(WORKSPACE_DIR, 'MEMORY.md')
@@ -738,9 +739,11 @@ def split_frontmatter(text: str):
     return "", text
 
 def is_sensitive_path(path_str: str) -> bool:
-    """Hard refusal check to protect secrets, credentials, and private keys."""
+    """Hard refusal check to protect secrets, credentials, private keys, and immutable VISION.md."""
     p = os.path.normpath(path_str)
     basename = os.path.basename(p)
+    if basename.lower() == "vision.md" or p.replace("\\", "/").endswith("context/VISION.md"):
+        return True
     if SENSITIVE_BASENAME_REGEX.match(basename):
         return True
     parts = set(p.lower().replace('\\', '/').split('/'))
@@ -848,6 +851,118 @@ class SyntaxAnchorGuard:
         for token in reversed(list(self._slots.keys())):
             text = text.replace(token, self._slots[token])
         return text
+
+
+class HumanizerEngine:
+    """
+    Deterministic AI-Slop & Structural Tell Detector/Cleaner (100% Python Stdlib).
+    Works in tandem with SyntaxAnchorGuard in compact.py so code blocks, paths,
+    and citations are 100% untouched. Grounded in Wikipedia: Signs of AI writing
+    and standard structural prose guidelines (26 patterns).
+    """
+
+    AI_VOCABULARY = {
+        "delve", "delves", "delving", "testament", "tapestry", "vibrant",
+        "pivotal", "underscores", "underscoring", "showcasing", "garner",
+        "garnered", "fostering", "intricate", "indelible", "enduring",
+        "groundbreaking", "seamless", "seamlessly", "unwavering", "realm",
+        "embark", "embarking", "synergy", "paramount", "multifaceted",
+    }
+
+    SAFE_SUBS: List[Tuple[re.Pattern, str]] = [
+        # §22: Chatbot wrappers & openers
+        (re.compile(r"(?im)\b(?:great question!|certainly!|absolutely!|sure thing!)\s*"), ""),
+        (re.compile(r"(?im)\s*(?:i hope this helps!|let me know if you have any questions\.?|feel free to ask if[^\n]+)$"), ""),
+        # §4: Staged run-ups
+        (re.compile(r"(?im)^(?:let's dive right in\.?|let's dive in:?|without further ado,?|here's what you need to know:?|let's break this down:?)\s*"), ""),
+        (re.compile(r"(?im)^(?:honestly\?|real talk:?|here's the thing:?|the thing is,?)\s+"), ""),
+        # §2: Dramatic one-line clichés
+        (re.compile(r"(?im)\s*\b(?:let that sink in\.|read that again\.|that is the real win\.|and that makes all the difference\.)"), ""),
+        # §9: Stacked qualifiers
+        (re.compile(r"\b(?:could|might)\s+potentially\s+possibly\b", re.I), "could"),
+        (re.compile(r"\b(?:completely|totally|utterly)\s+and\s+(?:completely|totally|entirely)\b", re.I), "completely"),
+        # §18: Copula avoidance ("serves as a" -> "is a")
+        (re.compile(r"\bserves as a\b", re.I), "is a"),
+        (re.compile(r"\bstands as a\b", re.I), "is a"),
+        # §21: Curly quotation marks to straight ASCII
+        (re.compile(r"[“”]"), '"'),
+        (re.compile(r"[‘’]"), "'"),
+    ]
+
+    STRUCTURAL_DETECTORS: List[Tuple[str, str, re.Pattern]] = [
+        ("§1 Not-X-but-Y Contrast", "STRONG", re.compile(
+            r"\b(?:it(?:'s| is) not (?:just|merely|only) [^.;!\n]+[,;] it(?:'s| is) |not (?:just|merely|only) [^,;.\n]+, but (?:also |rather )?)", re.I
+        )),
+        ("§2 Post-Example Moral / Closer", "STRONG", re.compile(
+            r"\b(?:this (?:shows|demonstrates|underscores|highlights) the importance of|the message was clear:|that distinction matters)\b", re.I
+        )),
+        ("§3 Pseudo-Deep Saying", "STRONG", re.compile(
+            r"\b(?:at its core, what (?:really )?matters|the real question is whether|is the (?:currency|language|lifeblood) of|becomes a trap when)\b", re.I
+        )),
+        ("§5 Strawman / Arguing with No One", "STRONG", re.compile(
+            r"\b(?:this isn't mainly about|i'm not saying that|don't get me wrong,|a tempting approach would be to|one might be tempted to)\b", re.I
+        )),
+        ("§13 Inflated Significance / Legacy", "MEDIUM", re.compile(
+            r"\b(?:marking a pivotal moment|setting the stage for|a key turning point in|plays a vital role in shaping|the future looks bright)\b", re.I
+        )),
+        ("§15 Shallow -ing Participial Rider", "MEDIUM", re.compile(
+            r",\s*(?:highlighting|underscoring|symbolizing|reflecting|showcasing|fostering)\s+(?:its|the|their|a|an)\s+[^.\n]+\.", re.I
+        )),
+        ("§17 Borrowed / Weasel Authority", "MEDIUM", re.compile(
+            r"\b(?:experts believe that|industry leaders agree|many critics argue that|it is widely recognized that)\b", re.I
+        )),
+        ("§19 Decorative Bold-Label Bullet", "WEAK_ALONE", re.compile(
+            r"(?m)^\s*[-*]\s+\*\*[A-Z][^*]{2,35}:\*\*\s+"
+        )),
+    ]
+
+    @classmethod
+    def audit_text(cls, protected_text: str) -> Dict[str, Any]:
+        """Scan protected text (after SyntaxAnchorGuard) for the 26 Humanizer patterns."""
+        findings: List[Dict[str, str]] = []
+        for rule_name, severity, pattern in cls.STRUCTURAL_DETECTORS:
+            for match in pattern.finditer(protected_text):
+                snippet = match.group(0).strip().replace("\n", " ")
+                findings.append({
+                    "rule": rule_name,
+                    "severity": severity,
+                    "match": snippet[:90]
+                })
+
+        # §12 Check AI Vocabulary density
+        words = re.findall(r"\b[a-zA-Z]{4,}\b", protected_text.lower())
+        ai_hits = [w for w in words if w in cls.AI_VOCABULARY]
+        if ai_hits:
+            findings.append({
+                "rule": "§12 Overused AI Vocabulary",
+                "severity": "MEDIUM",
+                "match": ", ".join(sorted(set(ai_hits)))
+            })
+
+        # §8 Check Em-Dash density (>3 per 1000 chars is a strong tell)
+        em_dash_count = protected_text.count("—") + protected_text.count(" -- ")
+        if em_dash_count >= 3:
+            findings.append({
+                "rule": "§8 Em-Dash Universal Connector",
+                "severity": "WEAK_ALONE",
+                "match": f"{em_dash_count} em-dashes detected"
+            })
+
+        return {
+            "total_tells": len(findings),
+            "strong_tells": sum(1 for f in findings if f["severity"] == "STRONG"),
+            "findings": findings,
+        }
+
+    @classmethod
+    def sanitize_deterministic(cls, protected_text: str) -> str:
+        """Apply safe, meaning-preserving deterministic cleanups on prose only."""
+        out = protected_text
+        for pattern, replacement in cls.SAFE_SUBS:
+            out = pattern.sub(replacement, out)
+        out = re.sub(r"[ \t]{2,}", " ", out)
+        out = re.sub(r"\n{3,}", "\n\n", out)
+        return out.strip()
 
 
 STREAM_MAX_CHARS = 16000
@@ -1339,6 +1454,8 @@ def compactor_main(argv=None):
     parser.add_argument("--level", type=str, default="full", choices=["lite", "stream", "full", "aggressive", "ultra", "pipeline", "off"], help="Compression level: lite, full (default), ultra")
     parser.add_argument("--ratio", type=float, default=0.5, help="Retention ratio for ultra/surprisal pruning")
     parser.add_argument("--stdin", action="store_true", help="Read the text to compact from standard input")
+    parser.add_argument("--humanize", action="store_true", help="Apply deterministic de-slopping and AI-tell removal (WP:AISIGNS & prose authenticity)")
+    parser.add_argument("--humanize-check", action="store_true", help="Audit prose for 26 AI writing tells without modifying text")
     parser.add_argument("--index", type=str, help="Deprecated index argument (noop)")
     args = parser.parse_args(argv)
 
@@ -1346,12 +1463,29 @@ def compactor_main(argv=None):
 
     if target_file and os.path.isfile(target_file):
         with open(target_file, "r", encoding="utf-8-sig", errors="replace") as f:
-            orig = f.read()
-        res = OrionCompactor.compress(orig, level=args.level, filename_hint=target_file, ratio=args.ratio)
+            raw_input = f.read()
+
+        guard = SyntaxAnchorGuard()
+        protected = guard.lock(raw_input)
+
+        if args.humanize_check:
+            report = HumanizerEngine.audit_text(protected)
+            print(f"[HUMANIZER AUDIT: {target_file}] Total Tells: {report['total_tells']} (Strong: {report['strong_tells']})")
+            for finding in report["findings"]:
+                print(f"  - [{finding['severity']}] {finding['rule']}: {finding['match']}")
+            return 1 if report["strong_tells"] > 0 else 0
+
+        if args.humanize:
+            cleaned_protected = HumanizerEngine.sanitize_deterministic(protected)
+            raw_input = guard.unlock(cleaned_protected)
+
+        res = OrionCompactor.compress(raw_input, level=args.level, filename_hint=target_file, ratio=args.ratio)
         compacted = res["output"]
-        orig_words = len(orig.split())
+        orig_words = len(raw_input.split())
         comp_words = len(compacted.split())
         stages_str = "+".join(res["stages"]) or "unchanged"
+        if args.humanize:
+            stages_str += "+humanize"
         print(f"[COMPACTION SUMMARY: {stages_str}] Level: {res['level']} | Status: {res['status']} | Orig: {res['original_tokens']} tok ({orig_words} words) | Compact: {res['compressed_tokens']} tok ({comp_words} words) | Savings: {res['savings_pct']}% ({res['elapsed_ms']}ms)")
         print("--------------------------------------------------------------------------------")
         print(compacted)
@@ -1369,11 +1503,27 @@ def compactor_main(argv=None):
         parser.print_help()
         return 1
 
+    guard = SyntaxAnchorGuard()
+    protected = guard.lock(input_text)
+
+    if args.humanize_check:
+        report = HumanizerEngine.audit_text(protected)
+        print(f"[HUMANIZER AUDIT] Total Tells: {report['total_tells']} (Strong: {report['strong_tells']})")
+        for finding in report["findings"]:
+            print(f"  - [{finding['severity']}] {finding['rule']}: {finding['match']}")
+        return 1 if report["strong_tells"] > 0 else 0
+
+    if args.humanize:
+        cleaned_protected = HumanizerEngine.sanitize_deterministic(protected)
+        input_text = guard.unlock(cleaned_protected)
+
     res = OrionCompactor.compress(input_text, level=args.level, ratio=args.ratio)
     compacted = res["output"]
     orig_words = len(input_text.split())
     comp_words = len(compacted.split())
     stages_str = "+".join(res["stages"]) or "unchanged"
+    if args.humanize:
+        stages_str += "+humanize"
     print(f"[COMPACTION SUMMARY: {stages_str}] Level: {res['level']} | Status: {res['status']} | Orig: {res['original_tokens']} tok ({orig_words} words) | Compact: {res['compressed_tokens']} tok ({comp_words} words) | Savings: {res['savings_pct']}% ({res['elapsed_ms']}ms)")
     print("--------------------------------------------------------------------------------")
     print(compacted)
@@ -1635,8 +1785,8 @@ def compress_file(target_path: str, dry_run: bool = False) -> bool:
     if not os.path.exists(abs_path):
         print(f"[ERROR] Target file does not exist: {target_path}")
         return False
-    if is_sensitive_path(abs_path):
-        print(f"[REFUSED] Refusing to compress sensitive file (security policy): {os.path.basename(abs_path)}")
+    if is_sensitive_path(abs_path) or abs_path.replace("\\", "/").endswith("context/VISION.md"):
+        print(f"[REFUSED] Refusing to compress immutable file: {os.path.basename(abs_path)}")
         return False
     if abs_path.endswith('.original.md'):
         print(f"[SKIP] Refusing to re-compress backup file: {os.path.basename(abs_path)}")

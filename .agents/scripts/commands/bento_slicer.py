@@ -28,6 +28,17 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
 try:
+    from core.db import configure_utf8
+    configure_utf8()
+except ImportError:
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
+try:
     from core.paths import get_workspace_dir, get_orion_dir, atomic_write_text
     from core.db import log_telemetry as _log_telemetry
     from core.dna import classify_file_to_tier

@@ -61,15 +61,15 @@ CANONICAL_5_TIERS: Dict[str, Dict[str, Any]] = {
     "0_pillars_and_manifests": {
         "gravity": 0,
         "slug": "WORKSPACE_PILLARS_AND_MANIFESTS",
-        "title": "Workspace Manifests & 4-Pillar Architecture Blueprint",
-        "folder_tokens": ["context", "blueprint", "architecture", "style_guide", "roadmap", "design"],
+        "title": "Workspace Manifests, Foundational Vision & 4-Pillar Architecture Blueprint",
+        "folder_tokens": ["context", "vision", "blueprint", "architecture", "style_guide", "roadmap", "design"],
         "manifest_files": [
-            "pubspec.yaml", "package.json", "tsconfig.json", "cargo.toml", "go.mod",
+            "vision.md", "pubspec.yaml", "package.json", "tsconfig.json", "cargo.toml", "go.mod",
             "pom.xml", "build.gradle", "build.gradle.kts", "pyproject.toml", "requirements.txt",
             "cmakelists.txt", "gemini.md", "agents.md", "claude.md", "design.md", "readme.md"
         ],
         "symbol_stereotypes": [],
-        "audit_focus": "Audit build constraints, dependency pins, security configurations, and global architectural blueprints."
+        "audit_focus": "Audit alignment with foundational VISION.md invariants, build constraints, dependency pins, security configurations, and global architectural blueprints."
     },
     "1_contracts": {
         "gravity": 1,
@@ -199,6 +199,9 @@ class ProjectDNA:
     origin: str = "foundation_init"
     primary_framework: str = "generic"
     primary_language: str = "generic"
+    vision_path: Optional[str] = None
+    context_topology: str = "adaptive_25"
+    context_aliases: Dict[str, str] = field(default_factory=dict)
     workspaces: List[Dict[str, Any]] = field(default_factory=list)
     pillars: Dict[str, str] = field(default_factory=dict)
     tiers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -317,6 +320,28 @@ def _match_stem_tier(stem_lower: str) -> Optional[str]:
     return None
 
 
+def _is_matching_stereotype(sym_lower: str, stereotype: str) -> bool:
+    """Checks if a stereotype matches as a word boundary, prefix, or suffix in an AST symbol, preventing false positives like 'review' matching 'view' or 'screener' matching 'screen'."""
+    if stereotype == sym_lower:
+        return True
+    if len(stereotype) >= 7 and stereotype in sym_lower:
+        return True
+    # For UI tokens like 'view', 'screen', 'page', 'theme', 'route', 'router', require explicit UI morphology
+    # e.g. UserView, view_user, app_router vs review_candidate, preview_data, build_screener_prompt, ScreeningPipeline
+    if stereotype in ("view", "screen", "page", "route", "router", "theme"):
+        if sym_lower.startswith(f"{stereotype}_") or sym_lower.endswith(f"_{stereotype}"):
+            return True
+        if sym_lower.endswith(stereotype) and not any(sym_lower.endswith(fp) for fp in ("review", "overview", "preview", "interview")):
+            return True
+        if sym_lower.startswith(stereotype) and not any(sym_lower.startswith(fp) for fp in ("review", "preview", "screen_data")):
+            # Distinguish UI screen from filter/scanner screener
+            if stereotype == "screen" and ("screener" in sym_lower or "screening" in sym_lower):
+                return False
+            return True
+        return False
+    return stereotype in sym_lower
+
+
 def classify_file_to_tier(
     rel_path: str,
     symbols: Optional[List[str]] = None,
@@ -415,7 +440,7 @@ def classify_file_to_tier(
 
     # Tier 5: Presentation, Screens, Widgets & Design System
     is_pres_path = any(seg in CANONICAL_5_TIERS["5_presentation"]["folder_tokens"] for seg in parts[:-1]) or norm_lower.endswith((".tsx", ".jsx", ".vue", ".svelte", ".arb"))
-    is_pres_sym = any(any(st in s for st in CANONICAL_5_TIERS["5_presentation"]["symbol_stereotypes"]) for s in syms_lower)
+    is_pres_sym = any(any(_is_matching_stereotype(s, st) for st in CANONICAL_5_TIERS["5_presentation"]["symbol_stereotypes"]) for s in syms_lower)
     if is_pres_path or stem_tier == "5_presentation" or is_pres_sym:
         t5 = CANONICAL_5_TIERS["5_presentation"]
         return "5_presentation", t5["gravity"], t5["slug"], t5["title"]
@@ -967,6 +992,113 @@ def discover_epigenetic_aliases(root_dir: str, files: List[str], existing_aliase
     return discovered
 
 
+def discover_context_epigenetic_map(root_dir: str) -> Tuple[str, Dict[str, str]]:
+    """
+    Analyzes the context/ directory structure to detect its topology and generate
+    semantic context_aliases for non-canonical files or custom brownfield layouts.
+    Returns (topology, context_aliases).
+    Topologies:
+    - 'code_collision_shield': Source code (.tsx, .ts, .py, .go, .dart, .rs, .kt, .java) found inside context/
+    - 'seed_7': Minimal 7-file seed topology
+    - 'adaptive_25': 25-File Golden Ratio topology
+    - 'legacy_82': 82-file legacy SaaS topology
+    - 'epigenetic_custom': Non-standard custom brownfield context topology
+    """
+    abs_root = os.path.abspath(root_dir)
+    context_dir = os.path.join(abs_root, "context")
+    context_aliases: Dict[str, str] = {}
+
+    if not os.path.isdir(context_dir):
+        return "seed_7", context_aliases
+
+    # Guard 0: Code Collision Shield
+    code_extensions = {".ts", ".tsx", ".js", ".jsx", ".py", ".dart", ".go", ".rs", ".kt", ".java", ".cpp", ".c"}
+    for root, _, files in os.walk(context_dir):
+        if any(os.path.splitext(f)[1].lower() in code_extensions for f in files):
+            return "code_collision_shield", context_aliases
+
+    facet_keyword_map = [
+        ("vision", "VISION.md"),
+        ("blueprint", "00_Strategy/BLUEPRINT.md"),
+        ("memory", "00_Strategy/MEMORY.md"),
+        ("persona", "00_Strategy/PERSONAS_AND_MARKET.md"),
+        ("market", "00_Strategy/PERSONAS_AND_MARKET.md"),
+        ("acquisition", "00_Strategy/ACQUISITION_AND_GROWTH.md"),
+        ("growth", "00_Strategy/ACQUISITION_AND_GROWTH.md"),
+        ("monetization", "00_Strategy/MONETIZATION_AND_PRICING.md"),
+        ("pricing", "00_Strategy/MONETIZATION_AND_PRICING.md"),
+        ("retention", "00_Strategy/RETENTION_AND_LEGAL.md"),
+        ("legal", "00_Strategy/RETENTION_AND_LEGAL.md"),
+        ("roadmap", "01_Product/ROADMAP.md"),
+        ("prd", "01_Product/PRD_CORE_FEATURES.md"),
+        ("feature", "01_Product/PRD_CORE_FEATURES.md"),
+        ("journey", "01_Product/USER_JOURNEYS_AND_FLOWS.md"),
+        ("flow", "01_Product/USER_JOURNEYS_AND_FLOWS.md"),
+        ("analytics", "01_Product/ANALYTICS_AND_METRICS.md"),
+        ("metric", "01_Product/ANALYTICS_AND_METRICS.md"),
+        ("integration", "01_Product/INTEGRATIONS_AND_WEBHOOKS.md"),
+        ("webhook", "01_Product/INTEGRATIONS_AND_WEBHOOKS.md"),
+        ("feedback", "01_Product/FEEDBACK_AND_BACKLOG.md"),
+        ("backlog", "01_Product/FEEDBACK_AND_BACKLOG.md"),
+        ("style_guide", "02_Creative/STYLE_GUIDE.md"),
+        ("style", "02_Creative/STYLE_GUIDE.md"),
+        ("component", "02_Creative/UI_COMPONENTS_AND_PATTERNS.md"),
+        ("ux", "02_Creative/UX_AND_ACCESSIBILITY.md"),
+        ("accessibility", "02_Creative/UX_AND_ACCESSIBILITY.md"),
+        ("brand", "02_Creative/BRAND_VOICE_AND_COPY.md"),
+        ("copy", "02_Creative/BRAND_VOICE_AND_COPY.md"),
+        ("asset", "02_Creative/VISUAL_ASSETS_AND_MEDIA.md"),
+        ("media", "02_Creative/VISUAL_ASSETS_AND_MEDIA.md"),
+        ("architecture", "03_Tech/ARCHITECTURE.md"),
+        ("database", "03_Tech/DATABASE_AND_STORAGE.md"),
+        ("storage", "03_Tech/DATABASE_AND_STORAGE.md"),
+        ("api", "03_Tech/API_AND_CONTRACTS.md"),
+        ("contract", "03_Tech/API_AND_CONTRACTS.md"),
+        ("state", "03_Tech/STATE_AND_DOMAIN_LOGIC.md"),
+        ("logic", "03_Tech/STATE_AND_DOMAIN_LOGIC.md"),
+        ("security", "03_Tech/SECURITY_AND_AUTH.md"),
+        ("auth", "03_Tech/SECURITY_AND_AUTH.md"),
+        ("infra", "03_Tech/INFRA_AND_DEVOPS.md"),
+        ("devops", "03_Tech/INFRA_AND_DEVOPS.md"),
+    ]
+
+    all_context_files = []
+    for root, _, files in os.walk(context_dir):
+        for f in files:
+            if f.endswith((".md", ".txt")):
+                full_p = os.path.join(root, f)
+                rel_p = os.path.relpath(full_p, abs_root).replace("\\", "/")
+                all_context_files.append(rel_p)
+
+    has_legacy_prefixes = False
+    for rel_p in all_context_files:
+        filename = os.path.basename(rel_p)
+        if any(filename.startswith(pfx) for pfx in ("Acq_", "Conv_", "Rev_", "Ret_", "Plan_", "Idea_", "Data_", "Dev_", "Infra_", "Design_")):
+            has_legacy_prefixes = True
+            break
+
+    for rel_p in all_context_files:
+        fn_lower = os.path.basename(rel_p).lower()
+        mapped_target = None
+        for kw, target in facet_keyword_map:
+            if kw in fn_lower:
+                mapped_target = target
+                break
+        if mapped_target:
+            context_aliases[rel_p] = mapped_target
+
+    if len(all_context_files) <= 7 and not has_legacy_prefixes:
+        topology = "seed_7"
+    elif has_legacy_prefixes or len(all_context_files) > 25:
+        topology = "legacy_82"
+    elif len(context_aliases) > 0 and len(context_aliases) != len(all_context_files):
+        topology = "epigenetic_custom"
+    else:
+        topology = "adaptive_25"
+
+    return topology, context_aliases
+
+
 def sequence_project_dna(
     root_dir: str,
     audit_files: Optional[List[str]] = None,
@@ -1101,9 +1233,10 @@ def sequence_project_dna(
 
     archetype = f"Multi-Stack Workspace ({', '.join(stacks[:3])})" if stacks else "Software Repository"
 
-    # 5. Extract 4 Lean Pillars & Design Contract
+    # 5. Extract Lean Pillars, Foundational Vision & Design Contract
     pillars: Dict[str, str] = {}
     pillar_candidates = {
+        "vision": "context/VISION.md",
         "strategy": "context/00_Strategy/BLUEPRINT.md",
         "product": "context/01_Product/ROADMAP.md",
         "creative": "context/02_Creative/STYLE_GUIDE.md",
@@ -1114,11 +1247,16 @@ def sequence_project_dna(
         if os.path.isfile(os.path.join(abs_root, p_path)):
             pillars[p_key] = p_path
 
+    vision_path = pillars.get("vision") or ("context/VISION.md" if os.path.isfile(os.path.join(abs_root, "context/VISION.md")) else None)
     blueprint_path = pillars.get("tech") or pillars.get("strategy") or ("ARCHITECTURE.md" if os.path.isfile(os.path.join(abs_root, "ARCHITECTURE.md")) else None)
 
-    # 6. Epigenetic Aliases from Stored DNA (normalized across canonical and inverted schemas)
+    # 6. Epigenetic Aliases from Stored DNA & Context Topology
     raw_aliases = stored_dna.get("mutation_ledger", {}).get("epigenetic_aliases", {}) or stored_dna.get("epigenetic_aliases", {})
     epigenetic_aliases = normalize_epigenetic_aliases(raw_aliases)
+    context_topology, discovered_context_aliases = discover_context_epigenetic_map(abs_root)
+    stored_context_aliases = stored_dna.get("context_aliases", {}) or {}
+    if discovered_context_aliases:
+        stored_context_aliases.update(discovered_context_aliases)
 
     # 7. Classify all files to 5-Tier Strata (enriched with cached AST symbols when available)
     file_tier_map: Dict[str, str] = {}
@@ -1144,16 +1282,17 @@ def sequence_project_dna(
     spine = detect_execution_spine(abs_root, files)
 
     # 9. Invariants Synthesis
-    invariants = [
-        "Unidirectional Data Flow (UI -> State Notifier -> Domain/Service -> Immutable Model)",
-        "5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
-        "Zero raw DB/HTTP calls in Presentation widgets",
-        "Deterministic verification with mechanical exit code assertion",
-        "SCAL Synergy: Pair domain/service logic with verification tests and stack-native invariant guards (@sovereign_catch, Zod, Freezed, Pydantic, Result<T,E>) to unlock low-cost autonomous self-healing",
-    ]
-    if detected_fw == "flutter":
-        invariants.append("Thread Isolation: heavy JSON parsing must run in compute() / Isolate on mobile")
-        invariants.append("Type-Safe Native Bridge: use Pigeon for mobile channels")
+    has_ui = detected_fw in ("flutter", "react", "vue", "svelte", "nextjs", "angular") or sum(
+        1 for t in file_tier_map.values() if t == "5_presentation"
+    ) >= 3
+    # Dynamic synthesis ensures non-UI / headless / backend projects don't carry stale UI invariants
+    invariants = _synthesize_invariants_for_stack(detected_fw, has_ui=has_ui)
+    if os.path.isfile(dna_path) and stored_dna.get("invariants") != invariants:
+        try:
+            stored_dna["invariants"] = invariants
+            atomic_write_text(dna_path, json.dumps(stored_dna, indent=2))
+        except Exception as _e:
+            _log_telemetry(_e, "sequence_project_dna:update_dna_invariants")
 
     # Polyglot Invariant Guard & Test Suite Evaluation (SCAL Readiness)
     verification_count = sum(1 for t in file_tier_map.values() if t == "9_verification")
@@ -1215,6 +1354,9 @@ def sequence_project_dna(
         origin=stored_dna.get("origin", "foundation_init" if has_explicit_dna else "virtual_sequencer"),
         primary_framework=detected_fw,
         primary_language=detected_lang,
+        vision_path=vision_path,
+        context_topology=context_topology,
+        context_aliases=stored_context_aliases,
         workspaces=workspaces,
         pillars=pillars,
         tiers=CANONICAL_5_TIERS,
@@ -1229,6 +1371,31 @@ def sequence_project_dna(
     )
 
 
+def _synthesize_invariants_for_stack(framework: str, has_ui: bool) -> List[str]:
+    """Synthesizes domain-accurate architectural invariants based on whether the project has UI or is headless/backend."""
+    if has_ui:
+        invariants = [
+            "Unidirectional Data Flow (UI -> State Notifier -> Domain/Service -> Immutable Model)",
+            "5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
+            "Zero raw DB/HTTP calls inside Presentation widgets",
+            "Deterministic verification with mechanical exit code assertion",
+            "SCAL Synergy: Pair domain/service logic with verification tests and stack-native invariant guards (@sovereign_catch, Zod, Freezed, Pydantic, Result<T,E>) to unlock low-cost autonomous self-healing",
+        ]
+        if framework == "flutter":
+            invariants.append("Thread Isolation: heavy JSON parsing must run in compute() / Isolate on mobile")
+            invariants.append("Type-Safe Native Bridge: use Pigeon for mobile channels")
+    else:
+        invariants = [
+            "Deterministic Pipeline & Sim-to-Live Mathematical Parity (Simulation/Backtest <-> Live Execution Engine)",
+            "Strict Concurrency & Persistence Hygiene (Zero unclosed DB connections, dangling transactions, or thread-local locks)",
+            "Zero Blocking I/O or Unbounded Retries in Critical Real-Time Execution Paths",
+            "Cross-Module Contract & Schema Integrity (Producer <-> Consumer JSON/DTO key and type parity)",
+            "Deterministic verification with mechanical exit code assertion and production DB isolation in tests",
+            "SCAL Synergy: Pair domain/service logic with verification tests and stack-native invariant guards (@sovereign_catch, Pydantic, Zod, Result<T,E>) to unlock low-cost autonomous self-healing",
+        ]
+    return invariants
+
+
 def build_initial_dna_manifest(
     framework: str,
     language: str,
@@ -1236,6 +1403,7 @@ def build_initial_dna_manifest(
 ) -> Dict[str, Any]:
     """Generates the canonical .agents/.dna.json payload during project initialization or brownfield deploy."""
     abs_p = os.path.abspath(target_dir)
+    has_ui = framework.lower() in ("flutter", "react", "vue", "svelte", "nextjs", "angular")
     return {
         "schema_version": "0.0.1",
         "dna_state": "BORN",
@@ -1248,23 +1416,21 @@ def build_initial_dna_manifest(
         "dna_compliance_score": 100,
         "deployed_at": datetime.now(timezone.utc).isoformat(),
         "pillars": {
+            "vision": "context/VISION.md",
             "strategy": "context/00_Strategy/BLUEPRINT.md",
             "product": "context/01_Product/ROADMAP.md",
             "creative": "context/02_Creative/STYLE_GUIDE.md",
             "tech": "context/03_Tech/ARCHITECTURE.md",
             "design_contract": "DESIGN.md"
         },
+        "context_topology": "adaptive_25",
+        "context_aliases": {},
         "architecture_topology": {
             "layout_style": "adaptive_hybrid",
             "tiers": CANONICAL_5_TIERS,
             "dependency_laws": CANONICAL_DEPENDENCY_LAWS
         },
-        "invariants": [
-            "Unidirectional Data Flow (UI -> State Notifier -> Domain/Service -> Immutable Model)",
-            "5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
-            "Zero raw DB/HTTP calls inside Presentation widgets",
-            "Mechanical Exit Code 0 verification required"
-        ],
+        "invariants": _synthesize_invariants_for_stack(framework, has_ui=has_ui),
         "epigenetic_aliases": {},
         "layer_violations": [],
         "chimera_files": [],
@@ -1310,6 +1476,12 @@ def mutate_project_dna(
         payload["execution_spine"] = dna.execution_spine
         payload["dna_compliance_score"] = dna.dna_compliance_score
         payload["epigenetic_aliases"] = discovered_aliases
+        ctx_topology, discovered_context_aliases = discover_context_epigenetic_map(abs_root)
+        payload["context_topology"] = ctx_topology
+        if discovered_context_aliases:
+            merged_ctx = payload.get("context_aliases", {}) or {}
+            merged_ctx.update(discovered_context_aliases)
+            payload["context_aliases"] = merged_ctx
         payload["layer_violations"] = dna.layer_violations[:15]
         payload["chimera_files"] = dna.chimera_files[:15]
         payload["mutation_ledger"]["epigenetic_aliases"] = discovered_aliases

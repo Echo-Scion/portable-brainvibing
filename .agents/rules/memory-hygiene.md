@@ -1,7 +1,7 @@
 ---
 description: Memory Hygiene Policy — smart compression eligibility rules protecting important [[knowledge]] from pruning.
 activation: triggered during orion compress and [[skills/session-offload/SKILL.md]]
-version: 0.0.1
+version: 0.0.2
 last_updated: 2026-06-30
 ---
 
@@ -32,6 +32,7 @@ A [[knowledge]] node (page or source) is eligible for compression **ONLY** if AL
 3. **Preserve metadata**: Keep the node entry in DB with `importance = 0` marker
 
 ## Protected Categories (never compress regardless of rules)
+- `context/VISION.md` — immutable foundational vision (HUMAN_ONLY)
 - `context/AGENT_IDENTITY.md` — agent identity layer
 - `.orion/working/handoff.md` — active session handoff
 - Any file with `importance >= 4` set manually by user or agent

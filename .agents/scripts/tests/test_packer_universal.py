@@ -510,7 +510,7 @@ class SampleService:
                 content = f.read()
             self.assertIn("Phase 1: Workspace Architecture, Core Contracts", content)
             self.assertIn("Phase 2: Core Services, Business Logic", content)
-            self.assertIn("Phase 3: Presentation, Platform Bridges", content)
+            self.assertIn("Phase 3: Presentation Screens, UI Tokens", content)
             self.assertIn("INTERACTIVE 4-TURN AUDIT PROTOCOL", content)
             self.assertIn("BEGIN IMMEDIATELY WITH TURN 1", content)
             self.assertIn("Signature Preservation Mandate", content)

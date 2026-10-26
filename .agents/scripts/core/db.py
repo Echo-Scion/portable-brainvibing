@@ -87,21 +87,6 @@ def log_telemetry(
             except Exception:
                 record["state_snapshot"] = {"raw": str(state_snapshot)[:300]}
 
-        catches_json_path = os.path.join(working_dir, "mechanical_catches.json")
-        existing: List[Dict[str, Any]] = []
-        if os.path.exists(catches_json_path):
-            try:
-                with open(catches_json_path, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                    if isinstance(loaded, list):
-                        existing = loaded
-            except Exception:
-                existing = []
-        existing.append(record)
-        if len(existing) > 100:
-            existing = existing[-100:]
-        atomic_write_text(catches_json_path, json.dumps(existing, indent=2))
-
         catches_jsonl_path = os.path.join(working_dir, "mechanical_catches.jsonl")
         with open(catches_jsonl_path, "a", encoding="utf-8") as jf:
             jf.write(json.dumps(record) + "\n")
@@ -143,25 +128,35 @@ def log_telemetry(
 
 
 def drain_mechanical_catches(clear: bool = False) -> List[Dict[str, Any]]:
-    """Reads structured mechanical catch events from .orion/working/mechanical_catches.json."""
+    """Reads structured mechanical catch events from .orion/working/mechanical_catches.jsonl."""
     try:
         from core.paths import get_orion_dir
         working_dir = os.path.join(str(get_orion_dir()), "working")
     except Exception:
         working_dir = os.path.join(os.getcwd(), ".orion", "working")
 
-    catches_json_path = os.path.join(working_dir, "mechanical_catches.json")
-    if not os.path.exists(catches_json_path):
+    jsonl_path = os.path.join(working_dir, "mechanical_catches.jsonl")
+    if not os.path.exists(jsonl_path):
         return []
+    records = []
     try:
-        with open(catches_json_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        records.append(json.loads(line))
+                    except Exception:
+                        pass
         if clear:
-            atomic_write_text(catches_json_path, "[]")
-            jsonl_path = os.path.join(working_dir, "mechanical_catches.jsonl")
-            if os.path.exists(jsonl_path):
-                atomic_write_text(jsonl_path, "")
-        return records if isinstance(records, list) else []
+            atomic_write_text(jsonl_path, "")
+            legacy_json = os.path.join(working_dir, "mechanical_catches.json")
+            if os.path.exists(legacy_json):
+                try:
+                    os.remove(legacy_json)
+                except OSError:
+                    pass
+        return records
     except Exception as _e:
         log_telemetry(_e, "db.py:drain_mechanical_catches")
         return []
@@ -240,24 +235,91 @@ def sovereign_catch(
 mechanical_catch = sovereign_catch
 
 
+EMOJI_ASCII_MAP: Dict[str, str] = {
+    "🟢": "[OK]",
+    "🟡": "[WARN]",
+    "🔴": "[FAIL]",
+    "⚡": "[!]",
+    "🚦": "[CHECKPOINT]",
+    "📋": "[EVIDENCE]",
+    "🔮": "[NEXT]",
+    "🧠": "[BRAIN]",
+    "👁️": "[OBS]",
+    "⚠️": "[WARN]",
+    "📦": "[MAP]",
+    "📄": "[FILE]",
+    "🎨": "[UI]",
+    "🛡️": "[SEC]",
+    "🗺️": "[INDEX]",
+    "🛠️": "[SKILL]",
+    "📚": "[RULE]",
+    "🚀": "[PLAYBOOK]",
+    "🧰": "[SCRIPT]",
+    "🧪": "[TEST]",
+    "•": "*",
+    "│": "|",
+    "─": "-",
+    "└": "`--",
+    "├": "|--",
+}
+
+
+def transliterate_emojis(text: str) -> str:
+    """Translates common emojis and Unicode markers to human-readable ASCII tags."""
+    if not text:
+        return text
+    result = text
+    for glyph, ascii_tag in EMOJI_ASCII_MAP.items():
+        if glyph in result:
+            result = result.replace(glyph, ascii_tag)
+    return result
+
+
 def configure_utf8() -> None:
-    """Safely configure stdout and stderr to UTF-8 without raising exceptions."""
+    """Safely configure stdout and stderr to UTF-8 with replace error handler, propagating env."""
+    os.environ.setdefault("PYTHONUTF8", "1")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8:replace")
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, 'reconfigure'):
             try:
-                stream.reconfigure(encoding='utf-8')
+                stream.reconfigure(encoding='utf-8', errors='replace')
             except Exception as _e:
                 log_telemetry(_e, "configure_utf8:reconfigure")
 
 
+# Auto-configure streams and environment when core.db is loaded
+configure_utf8()
+
+
 def safe_print(*args: Any, **kwargs: Any) -> None:
-    """Print that safely handles broken pipes or unencodable characters."""
+    """Print that safely handles broken pipes, NO_EMOJI / ORION_ASCII_ONLY, or unencodable characters."""
+    force_ascii = (
+        os.environ.get("NO_EMOJI") == "1"
+        or os.environ.get("ORION_ASCII_ONLY") == "1"
+    )
+    if force_ascii:
+        text = " ".join(str(a) for a in args)
+        clean_text = transliterate_emojis(text)
+        try:
+            print(clean_text, **kwargs)
+            return
+        except UnicodeEncodeError:
+            print(clean_text.encode('ascii', errors='replace').decode('ascii'), **kwargs)
+            return
+        except BrokenPipeError:
+            try:
+                sys.stdout.flush()
+            except Exception:
+                pass
+            return
+
     try:
         print(*args, **kwargs)
     except UnicodeEncodeError:
         try:
             text = " ".join(str(a) for a in args)
-            clean_text = text.encode('ascii', errors='replace').decode('ascii')
+            clean_text = transliterate_emojis(text)
+            clean_text = clean_text.encode('ascii', errors='replace').decode('ascii')
             print(clean_text, **kwargs)
         except Exception as _e:
             log_telemetry(_e, "safe_print:fallback")

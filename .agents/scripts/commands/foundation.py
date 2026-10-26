@@ -90,7 +90,8 @@ def prune_unmatched_canons(target_agents_dir, active_framework):
         return []
 
     eco_dir = os.path.join(target_agents_dir, "canons", "ecosystems")
-    if not os.path.exists(eco_dir):
+    micro_dir = os.path.join(target_agents_dir, "canons", "micro")
+    if not os.path.exists(eco_dir) and not os.path.exists(micro_dir):
         return
 
     fw_clean = active_framework.lower().strip()
@@ -104,20 +105,189 @@ def prune_unmatched_canons(target_agents_dir, active_framework):
 
     framework_canons = {"flutter", "react", "python"}
 
-    for item in os.listdir(eco_dir):
-        item_lower = item.lower()
-        item_path = os.path.join(eco_dir, item)
-        if os.path.isdir(item_path) and item_lower in framework_canons and item_lower != active_canon_dir:
-            try:
-                for root, dirs, files in os.walk(item_path, topdown=False):
-                    for f in files:
-                        os.remove(os.path.join(root, f))
-                    for d in dirs:
-                        os.rmdir(os.path.join(root, d))
-                os.rmdir(item_path)
-                print(f"  -> Pruned irrelevant ecosystem canon: canons/ecosystems/{item}/")
-            except Exception as e:
-                _log_telemetry(e, "prune_unmatched_canons")
+    if os.path.exists(eco_dir):
+        for item in os.listdir(eco_dir):
+            item_lower = item.lower()
+            item_path = os.path.join(eco_dir, item)
+            if os.path.isdir(item_path) and item_lower in framework_canons and item_lower != active_canon_dir:
+                try:
+                    for root, dirs, files in os.walk(item_path, topdown=False):
+                        for f in files:
+                            os.remove(os.path.join(root, f))
+                        for d in dirs:
+                            os.rmdir(os.path.join(root, d))
+                    os.rmdir(item_path)
+                    print(f"  -> Pruned irrelevant ecosystem canon: canons/ecosystems/{item}/")
+                except Exception as e:
+                    _log_telemetry(e, "prune_unmatched_canons:ecosystems")
+
+    micro_dir = os.path.join(target_agents_dir, "canons", "micro")
+    if os.path.exists(micro_dir):
+        micro_framework_map = {
+            "flutter.md": "flutter",
+            "pubspec.md": "flutter",
+            "react.md": "react",
+            "python.md": "python",
+        }
+        for fname in os.listdir(micro_dir):
+            fpath = os.path.join(micro_dir, fname)
+            if not os.path.isfile(fpath) or fname == "README.md":
+                continue
+            should_prune = False
+            if fname in micro_framework_map:
+                if micro_framework_map[fname] != active_canon_dir:
+                    should_prune = True
+            elif fname == "supabase.md":
+                has_supabase = False
+                try:
+                    for check_file in ["requirements.txt", "package.json", "pubspec.yaml"]:
+                        cfp = os.path.join(target_root, check_file)
+                        if os.path.isfile(cfp):
+                            with open(cfp, "r", encoding="utf-8", errors="ignore") as _f:
+                                if "supabase" in _f.read().lower():
+                                    has_supabase = True
+                                    break
+                except Exception as _se:
+                    _log_telemetry(_se, "prune_unmatched_canons:supabase_check")
+                if not has_supabase:
+                    should_prune = True
+
+            if should_prune:
+                try:
+                    os.remove(fpath)
+                    print(f"  -> Pruned irrelevant micro canon: canons/micro/{fname}")
+                except Exception as _me:
+                    _log_telemetry(_me, f"prune_unmatched_canons:micro:{fname}")
+
+def _read_python_deps(root: str) -> set[str]:
+    """Extract normalized package dependencies from requirements.txt or pyproject.toml."""
+    deps = set()
+    if not root or not os.path.isdir(root):
+        return deps
+
+    # 1. Inspect requirements.txt
+    req_file = os.path.join(root, "requirements.txt")
+    if os.path.isfile(req_file):
+        try:
+            with open(req_file, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    clean = line.strip()
+                    if not clean or clean.startswith(("#", "-", "@")):
+                        continue
+                    # Match package name before delimiters [<>=~! ;#]
+                    match = re.match(r"^([a-zA-Z0-9_\-\.]+)", clean)
+                    if match:
+                        deps.add(match.group(1).lower().replace("_", "-"))
+        except Exception as e:
+            _log_telemetry(e, "_read_python_deps:requirements")
+
+    # 2. Inspect pyproject.toml
+    pyproject_file = os.path.join(root, "pyproject.toml")
+    if os.path.isfile(pyproject_file):
+        try:
+            with open(pyproject_file, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    clean = line.strip()
+                    if not clean or clean.startswith("#"):
+                        continue
+                    # Match inside quotes if in dependencies list, e.g. "fastapi>=0.100.0"
+                    m = re.search(r'["\']([a-zA-Z0-9_\-\.]+)', clean)
+                    if m:
+                        pkg = m.group(1).lower().replace("_", "-")
+                        # Skip table headers or common non-pkg words
+                        if pkg not in ("project", "build-system", "tool", "dependencies", "true", "false"):
+                            deps.add(pkg)
+        except Exception as e:
+            _log_telemetry(e, "_read_python_deps:pyproject")
+
+    return deps
+
+
+def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
+    """Generate dynamic stack configuration for Python projects based on detected dependencies."""
+    # Web Framework
+    if "fastapi" in deps:
+        fw_name = "FastAPI"
+        arch_fw = "FastAPI Clean Architecture"
+    elif "django" in deps:
+        fw_name = "Django"
+        arch_fw = "Django MVT / Clean Architecture"
+    elif "flask" in deps:
+        fw_name = "Flask"
+        arch_fw = "Flask Application Factory Architecture"
+    else:
+        fw_name = "Headless / CLI / Daemon"
+        arch_fw = "Clean Python Architecture"
+
+    # UI Framework
+    if has_ui:
+        ui_fw = "HTML / Tailwind CSS" if fw_name != "Headless / CLI / Daemon" else "Modular UI"
+        ui_ref = "Tailwind CSS"
+    else:
+        ui_fw = "None (headless)"
+        ui_ref = "N/A — headless project"
+
+    # Persistence
+    pers_parts = []
+    if "sqlalchemy" in deps:
+        pers_parts.append("SQLAlchemy")
+    if "sqlmodel" in deps:
+        pers_parts.append("SQLModel")
+    if "tortoise-orm" in deps or "tortoise" in deps:
+        pers_parts.append("Tortoise ORM")
+    if "peewee" in deps:
+        pers_parts.append("Peewee")
+    if "redis" in deps:
+        pers_parts.append("Redis")
+    if "asyncpg" in deps or "psycopg" in deps or "psycopg2" in deps:
+        pers_parts.append("Postgres")
+    if "pymongo" in deps or "motor" in deps:
+        pers_parts.append("MongoDB")
+
+    if not pers_parts or any("sql" in p.lower() for p in pers_parts) or "sqlite3" in deps or "sqlite" in deps:
+        pers_parts.append("SQLite")
+
+    backend_persistence = " / ".join(dict.fromkeys(pers_parts)) if pers_parts else "Persistent Storage / SQLite"
+
+    # State / Models
+    if "pydantic" in deps or "pydantic-core" in deps:
+        model_type = "pydantic"
+        state_mgmt = "Pydantic Models"
+    elif "attrs" in deps:
+        model_type = "attrs"
+        state_mgmt = "Attrs Models"
+    else:
+        model_type = "dataclasses"
+        state_mgmt = "Dataclasses / Typed Dicts"
+
+    tech_stack_parts = ["Python"]
+    if fw_name != "Headless / CLI / Daemon":
+        tech_stack_parts.append(fw_name)
+    if pers_parts:
+        tech_stack_parts.append(pers_parts[0])
+    tech_stack = ", ".join(tech_stack_parts)
+
+    return {
+        "FRAMEWORK": "python",
+        "LANGUAGE": "python",
+        "STATE_MANAGEMENT": model_type,
+        "MODEL_TYPE": model_type,
+        "tech_stack": tech_stack,
+        "primary_languages": "Python",
+        "frontend_framework": fw_name,
+        "backend_persistence": backend_persistence,
+        "state_management_choice": state_mgmt,
+        "arch_framework": arch_fw,
+        "state_management": state_mgmt,
+        "ui_framework": ui_fw,
+        "ui_kit_reference": ui_ref,
+        "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
+        "decision_1_logic": "Separates domain logic from I/O for testability.",
+        "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
+        "topic_1": "Codebase Invariants & Quirks",
+        "knowledge_1": "Document operational runtime quirks and concurrency rules here.",
+    }
+
 
 def scan_monorepo_workspaces(target_dir):
     """Scan root and sub-directories (apps, packages, services, etc.) to detect distinct workspaces."""
@@ -185,7 +355,7 @@ def detect_stack(target_dir):
 
     return workspaces[0]["framework"], workspaces[0]["language"]
 
-def get_stack_defaults(framework, language):
+def get_stack_defaults(framework, language, target_dir=None):
     fw_lower = (framework or "generic").lower()
     lang_lower = (language or "generic").lower()
     if fw_lower == "flutter" or lang_lower == "dart":
@@ -194,15 +364,20 @@ def get_stack_defaults(framework, language):
             "LANGUAGE": "dart",
             "STATE_MANAGEMENT": "riverpod",
             "MODEL_TYPE": "Freezed",
-            "tech_stack": "Dart/Flutter, Python, SQLite",
-            "primary_languages": "Dart, Python",
+            "tech_stack": "Dart/Flutter, SQLite",
+            "primary_languages": "Dart",
             "frontend_framework": "Flutter",
             "backend_persistence": "Supabase / SQLite",
             "state_management_choice": "Riverpod 2.x",
-            "arch_framework": "Flutter",
+            "arch_framework": "Flutter Clean Architecture",
             "state_management": "Riverpod",
             "ui_framework": "Flutter Material 3",
             "ui_kit_reference": "Tailwind / Flutter Material 3",
+            "decision_1_title": "Adopt Feature-First Riverpod Architecture",
+            "decision_1_logic": "Isolates feature domains and enables concurrent development.",
+            "decision_1_tradeoffs": "Slight initial boilerplate in exchange for testability.",
+            "topic_1": "State Management Lifecycle",
+            "knowledge_1": "AutoDispose providers require explicit watch or keepAlive to maintain cache.",
         }
     if fw_lower in ["react", "next"]:
         return {
@@ -219,6 +394,11 @@ def get_stack_defaults(framework, language):
             "state_management": "Zustand",
             "ui_framework": "Tailwind CSS / Radix UI",
             "ui_kit_reference": "Tailwind CSS / shadcn/ui",
+            "decision_1_title": "Adopt Unidirectional State Flow with Zustand",
+            "decision_1_logic": "Centralizes transient state without prop-drilling.",
+            "decision_1_tradeoffs": "Requires distinct selectors to prevent unnecessary re-renders.",
+            "topic_1": "Component Re-render Boundaries",
+            "knowledge_1": "Keep selector functions granular to avoid whole-tree re-renders.",
         }
     if fw_lower == "node":
         return {
@@ -235,23 +415,37 @@ def get_stack_defaults(framework, language):
             "state_management": "Service & State Layer",
             "ui_framework": "CLI / MCP / Web",
             "ui_kit_reference": "Standard Design Tokens",
+            "decision_1_title": "Adopt Layered Service Architecture",
+            "decision_1_logic": "Decouples business services from HTTP transport and storage.",
+            "decision_1_tradeoffs": "Requires dedicated service and repository interfaces.",
+            "topic_1": "Service Lifecycle & Disposal",
+            "knowledge_1": "Ensure asynchronous handles and db pools gracefully close on SIGTERM.",
         }
     if fw_lower == "python" or lang_lower == "python":
-        resolved_fw = "python" if fw_lower in ["generic", "fastapi", "django", "flask"] else fw_lower
+        if target_dir:
+            has_ui = _detect_ui_project(target_dir)
+            deps = _read_python_deps(target_dir)
+            return _python_profile(deps, has_ui=has_ui)
+        # Fallback if no target_dir provided
         return {
-            "FRAMEWORK": resolved_fw,
+            "FRAMEWORK": "python",
             "LANGUAGE": "python",
-            "STATE_MANAGEMENT": "pydantic",
-            "MODEL_TYPE": "pydantic",
-            "tech_stack": "Python, SQLite / Postgres",
+            "STATE_MANAGEMENT": "dataclasses",
+            "MODEL_TYPE": "dataclasses",
+            "tech_stack": "Python, SQLite",
             "primary_languages": "Python",
-            "frontend_framework": "FastAPI / Standard UI",
-            "backend_persistence": "SQLAlchemy / SQLite",
-            "state_management_choice": "Pydantic Models",
+            "frontend_framework": "Not detected — fill in manually",
+            "backend_persistence": "Persistent Storage / SQLite",
+            "state_management_choice": "Dataclasses / Typed Dicts",
             "arch_framework": "Clean Python Architecture",
-            "state_management": "Pydantic Models",
-            "ui_framework": "HTML/Tailwind",
-            "ui_kit_reference": "Tailwind CSS",
+            "state_management": "Dataclasses / Typed Dicts",
+            "ui_framework": "None (headless)",
+            "ui_kit_reference": "N/A — headless project",
+            "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
+            "decision_1_logic": "Separates domain logic from I/O for testability.",
+            "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
+            "topic_1": "Codebase Invariants & Quirks",
+            "knowledge_1": "Document operational runtime quirks and concurrency rules here.",
         }
     return {
         "FRAMEWORK": fw_lower,
@@ -260,13 +454,18 @@ def get_stack_defaults(framework, language):
         "MODEL_TYPE": "typed_models",
         "tech_stack": "Modular Architecture",
         "primary_languages": lang_lower.capitalize(),
-        "frontend_framework": "Modular UI",
+        "frontend_framework": "Modular Architecture",
         "backend_persistence": "Persistent Storage",
         "state_management_choice": "Predictable State",
         "arch_framework": "Feature-First Clean Architecture",
         "state_management": "Unidirectional State Flow",
         "ui_framework": "Standard UI Kit",
         "ui_kit_reference": "Standard Design System",
+        "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
+        "decision_1_logic": "Separates domain logic from I/O for testability.",
+        "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
+        "topic_1": "Codebase Invariants & Quirks",
+        "knowledge_1": "Document operational runtime quirks and concurrency rules here.",
     }
 
 TEMPLATE_VARS = {
@@ -372,11 +571,11 @@ TEMPLATE_VARS = {
     "retention_category_summary": "Engagement loops and churn prevention.",
     "growth_category_summary": "Viral mechanics and referral programs.",
     "scaling_category_summary": "System automation and capacity scaling.",
-    "decision_1_title": "Adopt Feature-First Riverpod Architecture",
-    "decision_1_logic": "Isolates feature domains and enables concurrent development.",
-    "decision_1_tradeoffs": "Slight initial boilerplate in exchange for testability.",
-    "topic_1": "State Management Lifecycle",
-    "knowledge_1": "AutoDispose providers require explicit watch or keepAlive to maintain cache.",
+    "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
+    "decision_1_logic": "Separates domain logic from I/O for testability.",
+    "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
+    "topic_1": "Codebase Invariants & Quirks",
+    "knowledge_1": "Document operational runtime quirks and concurrency rules here.",
     "friction_pattern_description": "Manual template variable substitution across fresh spokes.",
     "proposed_automation_fix": "Comprehensive TEMPLATE_VARS substitution engine in foundation.py.",
     "feature_1": "Authentication",
@@ -432,14 +631,6 @@ def resolve_template_string(content: str, manifest: dict, project_name: str = ""
                 canon_fw = "python" # generic fallback
 
         new_content = new_content.replace("{{FRAMEWORK}}", canon_fw).replace("{{framework}}", canon_fw)
-        # BUGFIX: Template loop replaces ANY {{KEY}} from TEMPLATE_VARS including FRAMEWORK.
-        # It restores the old framework "node" if we don't also update TEMPLATE_VARS!
-        # Instead of global modification, let's just make sure we update it if we can,
-        # but since we can't use global easily, let's modify the dict directly since it's mutable.
-        if "FRAMEWORK" in TEMPLATE_VARS and TEMPLATE_VARS["FRAMEWORK"].lower() != canon_fw:
-            TEMPLATE_VARS["FRAMEWORK"] = canon_fw
-            if "framework" in TEMPLATE_VARS:
-                TEMPLATE_VARS["framework"] = canon_fw
     if language:
         new_content = new_content.replace("{{LANGUAGE}}", language).replace("{{language}}", language)
         
@@ -468,15 +659,18 @@ def resolve_template_string(content: str, manifest: dict, project_name: str = ""
     if llm_profile:
         new_content = new_content.replace("{{LLM_TIER}}", llm_profile.get("intelligence_tier", "cloud_agent"))
 
-    for var_key, default_val in TEMPLATE_VARS.items():
+    effective_vars = dict(TEMPLATE_VARS)
+    effective_vars.update(manifest)
+
+    for var_key, default_val in effective_vars.items():
         placeholder_curly = "{{" + var_key + "}}"
         if placeholder_curly in new_content:
             val = manifest.get(var_key) or default_val
             new_content = new_content.replace(placeholder_curly, str(val))
 
     for m in re.findall(r"\{\{([a-zA-Z0-9_]+)\}\}", new_content):
-        if m in TEMPLATE_VARS:
-            new_content = new_content.replace("{{" + m + "}}", str(TEMPLATE_VARS[m]))
+        if m in effective_vars:
+            new_content = new_content.replace("{{" + m + "}}", str(effective_vars[m]))
             
     return new_content
 
@@ -493,10 +687,13 @@ def resolve_templates(target_dir, manifest, target_files=None):
         
     project_name = os.path.basename(os.path.abspath(target_dir))
 
-    # Use global TEMPLATE_VARS so mutations from resolve_template_string apply
-    global TEMPLATE_VARS
-    stack_vars = get_stack_defaults(manifest.get("framework"), manifest.get("language"))
-    TEMPLATE_VARS.update(stack_vars)
+    # Pull target_dir context if present in manifest
+    ctx_target_dir = manifest.get("_target_dir") or target_dir
+    stack_vars = get_stack_defaults(manifest.get("framework"), manifest.get("language"), target_dir=ctx_target_dir)
+    effective_manifest = dict(manifest)
+    for k, v in stack_vars.items():
+        if k not in effective_manifest or not effective_manifest[k]:
+            effective_manifest[k] = v
 
     for filepath in target_files:
         if not os.path.exists(filepath):
@@ -508,7 +705,7 @@ def resolve_templates(target_dir, manifest, target_files=None):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
-            new_content = resolve_template_string(content, manifest, project_name)
+            new_content = resolve_template_string(content, effective_manifest, project_name)
             if new_content != content:
                 atomic_write_text(filepath, new_content)
         except Exception as e:
@@ -611,6 +808,7 @@ def smart_merge_config(template_content, target_path, project_name, fmt, dry_run
 EVOLVABLE_FOLDERS = ["skills", "rules", "canons", "templates", "scripts", "evals", "docs", "hooks"]
 ROOT_SYNC_FILES = ["DEPLOY_ME.md", "AGENTS_INDEX.md", "hooks.json", ".security-baseline.json"]
 SEED_FILES = [
+    "context/VISION.md",
     "context/00_Strategy/BLUEPRINT.md",
     "context/00_Strategy/MEMORY.md",
     "context/01_Product/ROADMAP.md",
@@ -620,6 +818,7 @@ SEED_FILES = [
     "context/README.md"
 ]
 SEED_FILE_MAP = {
+    "context/VISION.md": ".agents/templates/VISION.template.md",
     "context/00_Strategy/BLUEPRINT.md": ".agents/templates/PROJECT_SCAFFOLD.template.md",
     "context/00_Strategy/MEMORY.md": ".agents/templates/MEMORY.template.md",
     "context/01_Product/ROADMAP.md": ".agents/templates/TASK_PLANNING.template.md",
@@ -698,7 +897,7 @@ def cmd_deploy(args):
         else:
             llm_tier = "unknown_local"
 
-    stack_vars = get_stack_defaults(framework, language)
+    stack_vars = get_stack_defaults(framework, language, target_dir=target_dir)
     workspaces = scan_monorepo_workspaces(target_dir)
     manifest = {
         "framework": framework,
@@ -2419,7 +2618,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.1)     ║")
+    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.2)     ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")

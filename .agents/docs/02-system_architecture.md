@@ -44,6 +44,7 @@ The `AGENTS.md` file (with host adapter aliases such as `GEMINI.md` and `CLAUDE.
 
 ### 2.1. Core Guardrails & Behavioral Mandates (§1)
 - **Evidence Mandate**: Never claim success without verifiable proof. `Exit Code 0` is required, but agents must verify stdout/stderr assertions, test counts, and state transitions to prevent masked failures.
+- **Vision Invariant Lock (`context/VISION.md`)**: If `context/VISION.md` exists, it is the immutable North Star of the application. Agents MUST NOT modify `context/VISION.md` without explicit human instruction, and MUST NOT propose or implement changes that contradict its Core Essence, Invariants, or Anti-Vision.
 - **Circuit Breaker**: If any specific tool call or test fails 3 times consecutively, STOP calling tools immediately. Output root-cause error analysis and request operator intervention.
 - **Code Skeleton First (Zero Contiguous Paging)**: Files $\le 350$ lines may be read directly. For files $> 350$ lines, agents must run `python .agents/scripts/orion.py scan map <file>` first to obtain exact `[Lstart-Lend]` symbol spans before reading targeted blocks.
 - **No Raw CLI Patching**: Forbidden from editing source code via terminal strings (`python -c`, `sed`, `awk`). All modifications must route through native IDE file editing tools.
@@ -204,6 +205,19 @@ Hardware and toolchain capability detection is centralized in `core/capabilities
 python .agents/scripts/orion.py preflight --pillars
 ```
 
+### 5.1. Elastic Neuro-Symbolic Continuum (`core/capabilities.py`)
+Rather than treating local models as a binary on/off switch, `resolve_elastic_execution_plan(task_type, blast_radius_files, span_lines)` computes a deterministic execution contract based on detected local model parameter count (`max_model_params_b`) and task blast radius:
+
+| Parameter Tier | Capability Class | Max Local Repair Trials | Allowed Autonomous Tasks | Cloud Handoff Strategy |
+|:---|:---|:---|:---|:---|
+| **`0B` (Offline)** | `none` | `0` | Mechanical AST/Regex/SQLite FTS5 only | `cloud_ide_direct` (`BUDGET`/`STANDARD`/`PREMIUM`) |
+| **`1.5B`–`2.9B`** | `nano` | `2` | `triplets`, `summarize`, `json_extract` | `cloud_ide_code` (defers code edits to Cloud IDE) |
+| **`3.0B`–`6.9B`** | `micro_syntax` | `1` (AST-guarded) | `triplets`, `summarize`, `syntax_fix` (1 file, $\le 50$ lines) | `local_micro_then_cloud` |
+| **`7.0B`–`31.9B`** | `single_fn` | `2` | Single-file refactoring & `auto_heal` ($\le 150$ lines) | `local_first_then_cloud` |
+| **`>= 32.0B`** | `multi_fn` | `3` | Multi-function synthesis ($\le 3$ files, $\le 350$ lines) | `local_autonomous_with_cloud_fallback` |
+
+To prevent reasoning models (such as `deepseek-r1` or `qwen3`) from corrupting structured JSON outputs, `_strip_reasoning_and_fences()` strips both closed `<think>...</think>` blocks and truncated unclosed `<think>` tails before `_extract_json_payload()` parses the response.
+
 ---
 
 ## Chapter 6: Centaur Exoskeleton & Fail-Closed Enforcement Architecture
@@ -260,3 +274,20 @@ To enable multi-model frontier code audits without file upload limit friction or
   - *CLI Entrypoint Preservation*: Preserves executable entrypoints in `bin/` (e.g. `bin/flutterin.mjs`).
   - *Symlink Loop Protection*: Enforces realpath containment and disables recursive symlink traversal.
 - **Balanced Subtree Bin-Packing**: Uses `balance_into_k_bundles()` with an overflow penalty to partition repository volume into at most 10 balanced Markdown files (`.md`) across isolated tier subfolders (`.orion/bundles/{arch,hybrid,full}/`).
+
+### 6.7. Sovereign & Mechanical Exception Boundaries (`@sovereign_catch` & `@mechanical_catch` in `core/db.py`)
+To eliminate silent failures and mutable fallback corruption across the Python engine, `core/db.py` provides two deterministic exception decorators:
+- **`@mechanical_catch(fallback_value, context, log_Warning, post_condition)`**:
+  1. Executes the target function and validates the return value against an optional `post_condition` callable. If `post_condition(result)` returns `False`, raises `ValueError("Post-condition failed")` to trap silent semantic corruption before it propagates.
+  2. Returns `copy.deepcopy(fallback_value)` on failure so callers cannot mutate shared default lists or dicts across turns.
+  3. Appends structured failure records (`ts`, `context`, `func`, `error_type`, `error`) to `.orion/working/mechanical_catches.jsonl`.
+- **`@sovereign_catch(fallback_fn, context, severity)`**:
+  Executes a dynamic `fallback_fn(*args, **kwargs)` recovery path while recording structured diagnostics to `.orion/working/mechanical_catches.jsonl` and surfacing `[SOVEREIGN_CATCH]` warnings when `ORION_DEBUG=1`.
+
+### 6.8. Living Architectural DNA Engine (`core/dna.py`)
+Every workspace is continuously sequenced by `core/dna.py` (`orion.py dna scan|verify|discover|trend`) and persisted in `.agents/.dna.json`:
+1. **6-Strata Architectural Classification**: Classifies every source file into one of 6 canonical tiers: `0_pillars_and_manifests`, `1_contracts_and_schemas`, `2_domain_and_models`, `3_services_and_repositories`, `4_state_and_controllers`, `5_presentation_and_ui`, and `6_tests_and_evals` (plus `other_unclassified`).
+2. **Genomic Lifecycle State (`BORN` vs `MUTATING`)**: New workspaces start in `BORN` state (discovery mode) and transition to `MUTATING` once the architectural baseline is locked.
+3. **Brownfield Epigenetic Aliasing (`epigenetic_aliases`)**: Rather than forcing existing brownfield repositories to rename directories to match rigid framework templates, `orion.py dna discover` inspects actual directory trees and binds project-specific folder names (e.g., `adapters/`, `handlers/`, `screens/`) to canonical strata in `.dna.json`.
+4. **Directional Import Layer Enforcement**: Static AST/regex import analysis verifies that lower-level strata (`1_contracts_and_schemas`, `2_domain_and_models`) never import upward from `5_presentation_and_ui`.
+5. **DNA Compliance Score (`0`–`100`) & Trend Telemetry**: Computes a composite health score penalized only by real structural violations (`unclassified_ratio`, upward layer violations, and files exceeding line ceilings) and records historical snapshots in `.orion/dna_history.jsonl`.

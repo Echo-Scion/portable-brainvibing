@@ -600,6 +600,11 @@ class ObservationLedger:
         content = header + "\n".join(self._format_entry(e) for e in entries)
         atomic_write_text(self.archive_path, content)
 
+    def _append_to_archive(self, entry: Dict[str, Any]) -> None:
+        arch = self.get_archive_observations()
+        arch.append(entry)
+        self._write_archive_list(arch)
+
     def list_observations(self, status: str = None, limit: int = None) -> List[Dict[str, Any]]:
         active = self.get_all_observations()
         if status:
