@@ -54,30 +54,31 @@ python .agents/scripts/orion.py foundation deploy --target /path/to/project
 
 ---
 
-### 3.1. Universal 18-Platform Manifest & Discovery Matrix
+### 3.1. Universal 19-Platform Manifest & Discovery Matrix
 
-Each AI coding environment has its native discovery mechanism. The Foundation supports all 18 platforms cleanly using lightweight manifests (`< 10` lines) and declarative instructions:
+Each AI coding environment has its native discovery mechanism. The Foundation supports all 19 platforms cleanly using lightweight manifests (`< 10` lines) and declarative instructions:
 
 | # | Platform / IDE | Instruction Path | Plugin Manifest (< 10 lines) | Session Hook Dispatch |
 |---|---|---|---|---|
 | 1 | **Google Antigravity** | `GEMINI.md` / `AGENTS.md` | `.antigravity-plugin/plugin.json` | `.gemini/settings.json` (`SessionStart`) |
-| 2 | **VS Code / Copilot** | `AGENTS.md` / `.github/copilot-instructions.md` | `.copilot-plugin/plugin.json` | Project launch |
-| 3 | **Claude Code** | `CLAUDE.md` / `AGENTS.md` | `.claude-plugin/plugin.json` | `.claude/settings.json` (`SessionStart`) |
-| 4 | **Cursor** | `.cursor/rules/portable-brainvibing.mdc` | `.cursor-plugin/plugin.json` | `.cursor/hooks.json` (`sessionStart`) |
-| 5 | **OpenAI Codex App** | `AGENTS.md` | `.codex-plugin/plugin.json` | App session load |
-| 6 | **OpenAI Codex CLI** | `AGENTS.md` | `.codex-plugin/plugin.json` | CLI wake trigger |
-| 7 | **Devin CLI** | `AGENTS.md` | `.devin-plugin/plugin.json` | Devin environment boot |
-| 8 | **Gemini CLI** | `GEMINI.md` | `gemini-extension.json` | Extension start |
-| 9 | **Kimi Code** | `AGENTS.md` | `.kimi-plugin/plugin.json` | Kimi agent start |
-| 10 | **Hermes Agent** | `AGENTS.md` | `.hermes-plugin/plugin.yaml` | Agent session start |
-| 11 | **Muse Coding Agent** | `AGENTS.md` | `.muse-plugin/plugin.json` | Workspace init |
-| 12 | **Factory Droid** | `AGENTS.md` | `.droid-plugin/plugin.json` | Droid runner start |
-| 13 | **Grok Build CLI** | `AGENTS.md` | `.grok-plugin/plugin.json` | Grok pipeline start |
-| 14 | **OpenCode** | `AGENTS.md` | `.opencode/INSTALL.md` | Local agent runtime |
-| 15 | **Pi Coding Agent** | `AGENTS.md` | `.pi-plugin/plugin.json` | Interface bootstrap |
-| 16 | **Qwen Code** | `AGENTS.md` | `.qwen-plugin/plugin.json` | Qwen CLI wake |
-| 17 | **MiniMax** | `MINIMAX.md` / `AGENTS.md` | `.minimax-plugin/plugin.json` | Session wake |
-| 18 | **Xiaomi MiMo** | `MIMO.md` / `AGENTS.md` | `.mimo-plugin/plugin.json` | Session wake |
+| 2 | **Android Studio (Gemini)** | `GEMINI.md` | `.idea/gemini.json` | Studio Bot session wake |
+| 3 | **VS Code / Copilot** | `AGENTS.md` / `.github/copilot-instructions.md` | `.copilot-plugin/plugin.json` | Project launch |
+| 4 | **Claude Code** | `CLAUDE.md` / `AGENTS.md` | `.claude-plugin/plugin.json` | `.claude/settings.json` (`SessionStart`) |
+| 5 | **Cursor** | `.cursor/rules/portable-brainvibing.mdc` | `.cursor-plugin/plugin.json` | `.cursor/hooks.json` (`sessionStart`) |
+| 6 | **OpenAI Codex App** | `AGENTS.md` | `.codex-plugin/plugin.json` | App session load |
+| 7 | **OpenAI Codex CLI** | `AGENTS.md` | `.codex-plugin/plugin.json` | CLI wake trigger |
+| 8 | **Devin CLI** | `AGENTS.md` | `.devin-plugin/plugin.json` | Devin environment boot |
+| 9 | **Gemini CLI** | `GEMINI.md` | `gemini-extension.json` | Extension start |
+| 10 | **Kimi Code** | `AGENTS.md` | `.kimi-plugin/plugin.json` | Kimi agent start |
+| 11 | **Hermes Agent** | `AGENTS.md` | `.hermes-plugin/plugin.yaml` | Agent session start |
+| 12 | **Muse Coding Agent** | `AGENTS.md` | `.muse-plugin/plugin.json` | Workspace init |
+| 13 | **Factory Droid** | `AGENTS.md` | `.droid-plugin/plugin.json` | Droid runner start |
+| 14 | **Grok Build CLI** | `AGENTS.md` | `.grok-plugin/plugin.json` | Grok pipeline start |
+| 15 | **OpenCode** | `AGENTS.md` | `.opencode/INSTALL.md` | Local agent runtime |
+| 16 | **Pi Coding Agent** | `AGENTS.md` | `.pi-plugin/plugin.json` | Interface bootstrap |
+| 17 | **Qwen Code** | `AGENTS.md` | `.qwen-plugin/plugin.json` | Qwen CLI wake |
+| 18 | **MiniMax** | `MINIMAX.md` / `AGENTS.md` | `.minimax-plugin/plugin.json` | Session wake |
+| 19 | **Xiaomi MiMo** | `MIMO.md` / `AGENTS.md` | `.mimo-plugin/plugin.json` | Session wake |
 
 ---
 
@@ -98,7 +99,7 @@ For the active AI platform, create its manifest in the target project root point
 ```json
 {
   "name": "portable-brainvibing",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
   "skills": ".agents/skills"
 }
@@ -196,5 +197,5 @@ when unavailable.
 
 ---
 > [!NOTE]
-> **Version**: 0.0.1 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
+> **Version**: 0.0.2 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
 > All 18 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.

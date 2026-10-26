@@ -15,8 +15,8 @@ import argparse
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
 
@@ -290,10 +290,20 @@ def run_audit(target_dir: str = ".", strict: bool = False) -> int:
         elif target_dir.endswith(".md"):
             md_files.append(target_dir)
     else:
-        for root, _, files in os.walk(target_dir):
-            if any(ignored in root for ignored in [".git", "node_modules", "build", ".dart_tool", "scratch"]):
-                continue
-            if ".agents" in root and target_dir != ".agents" and not target_dir.startswith(".agents"):
+        ignored_dirs = {
+            ".git", "node_modules", "build", ".dart_tool", "scratch", ".scratch",
+            ".orion", ".worktrees", "__pycache__", ".venv", "venv",
+        }
+        target_norm = os.path.normpath(target_dir)
+        allow_agents = target_norm == ".agents" or target_norm.startswith(".agents" + os.sep)
+        for root, dirs, files in os.walk(target_dir):
+            dirs[:] = [
+                d for d in dirs
+                if d not in ignored_dirs and (allow_agents or d != ".agents")
+            ]
+            rel_root = os.path.relpath(root, target_dir)
+            rel_parts = set() if rel_root == "." else set(rel_root.replace("\\", "/").split("/"))
+            if rel_parts & ignored_dirs or (not allow_agents and ".agents" in rel_parts):
                 continue
             for file in files:
                 if file.endswith((".dart", ".tsx", ".jsx", ".css", ".html", ".vue")):

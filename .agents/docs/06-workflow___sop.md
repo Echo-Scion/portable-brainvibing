@@ -28,8 +28,8 @@ In the `.agents` ecosystem, procedural workflows are organized according to the 
 
 ### 14.1. Lifecycle & Scaffolding SOPs
 1. **`app-lifecycle` (`/app-lifecycle`)**: Master Full Lifecycle Pipeline. Evaluates project maturity and orchestrates phased progression through the state machine.
-2. **`project-init` (`/project-init`)**: Greenfield Scaffolding Engine. Enforces 3-question requirements intake and constructs the 4 lean pillars in `context/` (`BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`).
-3. **`project-migrate` (`/project-migrate`)**: Brownfield & Legacy Onboarding. Safely embeds `.agents` infrastructure into existing codebases without disrupting active builds or production code.
+2. **`project-init` (`/project-init`)**: Greenfield Scaffolding Engine. Enforces 3-question requirements intake and constructs `context/VISION.md` North Star and the 4 lean pillars in `context/` (`BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`).
+3. **`project-migrate` (`/project-migrate`)**: Brownfield & Legacy Onboarding. Seeds `context/VISION.md` and integrates existing notes into the 25-File Elastic Context Registry (Mode A Epigenetic / Mode B Assimilation).
 4. **`app-builder` (`/app-builder`)**: Surgical Feature Construction. Shape Spec → Bento-Box UI Design → Immutable Data Models → Adversarial Verification.
 5. **`feature-sunset` (`/feature-sunset`)**: Phased Deprecation & Sunset. Dual-write transition → Telemetry deprecation notice → Systematic dead code removal.
 
@@ -41,7 +41,7 @@ In the `.agents` ecosystem, procedural workflows are organized according to the 
 10. **`audit-ledger` (`/audit-ledger`)**: Multi-Session Audit Ledger. Manages persistent tracking of findings and remediations across extended refactoring initiatives.
 
 ### 14.3. Knowledge & Cognitive Memory SOPs
-11. **`auto-context` (`/auto-context`)**: Conversational Business Rule Extraction. Captures user design feedback and architectural decisions, updating `context/` markdown files.
+11. **`auto-context` (`/auto-context`)**: Conversational Business Rule Extraction. Captures user design feedback and architectural decisions, updating the 25-File Golden Ratio Context Registry (never modifying `context/VISION.md`).
 12. **`knowledge-extraction` (`/knowledge-extraction`)**: Semantic Graph Triplet Extraction. Parses code syntax, extracts 3–5 structural triplets `(Subject, Predicate, Object)`, and inserts them into `orion.db`.
 13. **`orion-ops` (`/orion-ops`)**: Local Knowledge Base Administration. Initializes `.orion/`, rebuilds FTS5 indexes, validates database schemas, and runs graph maintenance.
 

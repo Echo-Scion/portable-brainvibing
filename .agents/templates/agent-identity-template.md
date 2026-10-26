@@ -1,7 +1,6 @@
 ---
 description: Template for generating AGENT_IDENTITY.md in target projects.
 usage: Used by pre-agent-wake.py to auto-generate context/AGENT_IDENTITY.md if missing.
-version: 1.0.0
 ---
 
 # Agent Identity — {{project_name}}

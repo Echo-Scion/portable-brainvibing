@@ -26,12 +26,14 @@ Before accepting or approving code changes (`git diff --name-only HEAD`), perfor
 - [ ] **Step 3:** Check for **HIGH Code Quality** violations (Block commit if found):
   - **Logic/Math**: Precision loss, division by zero, contradictory branches, unsafe mutations.
   - **Performance/Financial**: Nested loops `O(N^2)`, heavy synchronous logic in `build()`, memory leaks. Evaluate Big-O as actual $ USD Cloud/Token burn rate.
+  - **Spec-to-Code Parity & Anti-Cosplay (Vector 8)**: Verify imports vs dependency manifests (`package.json`, `pubspec.yaml`). Block regex heuristics posing as AST parsers, dead-end extractions, empty fallback widget shims, and shallow substring unit tests.
   - **Tech Debt**: Hardcoded magic numbers, tight coupling across boundaries.
   - *Silent fail*: Missing error handling (empty catch blocks), orphaned async promises.
   - *Note: DO NOT focus on superficial syntax (line counts). Focus on algorithmic integrity.*
-- [ ] **Step 4:** Provide **MEDIUM Best Practices** suggestions:
+- [ ] **Step 4:** Provide **MEDIUM Best Practices & SCAL Readiness Advisories**:
+  - **Boundary Invariant Guard Advisory (`🟡 risk` / `🔵 nit`)**: Check if new `domain/` or `services/` boundaries include stack-native post-condition/schema guards (`@sovereign_catch`, Zod, Freezed, Pydantic, `Result<T,E>`). Remind the author that invariant guards enable automated local/`BUDGET` self-healing.
+  - **State-Delta Unit Tests**: Flag newly added business logic lacking state-delta unit tests or triggering `orion.py consequence audit-tests` (False Green).
   - Variable mutation present (prioritize immutable patterns / data copying).
-  - No unit tests for newly added logic/functions.
   - Missing JSDoc/docstrings for public functions or external APIs.
 
 ## 3. Offensive Deep Audit (Triad Stress-Test)
@@ -40,6 +42,7 @@ Actively probe for concrete failure modes. For deep vectors, refer to `.agents/s
 - [ ] **Resource & Async Drains**: Unbounded async buffers, unclosed sockets/handles, missing timeout guards, and rate limit event-loop starvation.
 - [ ] **Silent Failure & Masked Fallback**: Swallowed errors in try/catch blocks, fallback stubs returning empty collections without telemetry, or unhandled promise rejections.
 - [ ] **Concurrency & Shared Mutation**: Race conditions on mutable state, missing transactional locks, and non-idempotent retry handlers.
+- [ ] **Spec-to-Code Parity & Cosplay Probing (Vector 8)**: Disregard unverified documentation claims; check that claimed AST parsers or compilers exist in manifests; audit unit tests for shallow `.includes()` assertions.
 
 ## 4. The Plan Checklist (Execution Safety)
 Every plan or logic execution must pass:

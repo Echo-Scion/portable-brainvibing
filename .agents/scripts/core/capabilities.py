@@ -862,6 +862,106 @@ def save_neuro_symbolic_cache(key: str, val: Any) -> None:
         _log_telemetry(_e, "save_neuro_symbolic_cache")
 
 
+def _strip_reasoning_and_fences(raw_text: str) -> str:
+    """
+    Deterministically strips <think>...</think> blocks, unclosed <think> prefixes,
+    and markdown ```json fences from local reasoning SLM responses before JSON parsing.
+    """
+    if not raw_text:
+        return ""
+    cleaned = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL | re.IGNORECASE)
+    if "<think>" in cleaned.lower():
+        idx = cleaned.lower().find("<think>")
+        cleaned = cleaned[:idx]
+    cleaned = cleaned.strip()
+    fence_match = re.search(r"```(?:json|python)?\s*(.*?)```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    if fence_match:
+        cleaned = fence_match.group(1).strip()
+    return cleaned
+
+
+def _extract_json_payload(raw_text: str) -> Any:
+    """Extracts first valid JSON object or array from cleaned LLM output."""
+    cleaned = _strip_reasoning_and_fences(raw_text)
+    if not cleaned:
+        raise ValueError("Empty response after stripping reasoning tags")
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        decoder = json.JSONDecoder()
+        for idx, ch in enumerate(cleaned):
+            if ch in ("{", "["):
+                try:
+                    obj, _ = decoder.raw_decode(cleaned[idx:])
+                    return obj
+                except Exception:
+                    continue
+        raise ValueError(f"No valid JSON object found in output: {cleaned[:120]}")
+
+
+def resolve_elastic_execution_plan(
+    task_complexity: str = "micro",
+    blast_radius_files: int = 1,
+    span_lines: int = 20,
+    host: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Dynamic Capability-to-Complexity Matcher across the full Local + Cloud continuum:
+    - Evaluates installed local model size (0B offline, 1.5B, 3B, 7B, 14B, 30B+) against mechanical task metrics.
+    - Dynamically computes:
+      1. min_params_b floor for the task (reduced when Tier-0 AST pre-digestion narrows span_lines)
+      2. local_max_trials (0 if offline/under-spec, 1 for borderline models like 3B on small spans, 2-3 for >=7B)
+      3. recommended_cloud_tier ('BUDGET', 'STANDARD', or 'PREMIUM') if cloud handoff is needed.
+    """
+    complexity_floors = {
+        "nano": 0.5,          # Keyword synonyms, binary classification, short slugging (1.5B shines)
+        "micro_syntax": 2.5,  # Single-line syntax/import/typo repair with narrow AST span (3B+ can attempt 1-shot)
+        "single_fn": 6.0,     # Single-function logic repair or structured triplet extraction (7B+ sweet spot)
+        "multi_fn": 13.0,     # Multi-function / cross-contract refactor (14B-30B+ local or Cloud STANDARD)
+        "architectural": 30.0 # Deep multi-file architecture / security synthesis (30B+ local or Cloud PREMIUM)
+    }
+    base_floor = complexity_floors.get(task_complexity, 6.0)
+
+    # Mechanical Synergy Discount: if Tier-0 narrowed the target span to <= 15 lines in 1 file, lower the floor slightly
+    if blast_radius_files == 1 and span_lines <= 15 and base_floor > 2.5:
+        effective_floor = max(2.8, base_floor * 0.5)
+    else:
+        effective_floor = base_floor
+
+    base_url = host or resolve_ollama_base_url()
+    best_model = select_optimal_ollama_model(host=base_url, min_params_b=0.5) if base_url else None
+    installed_b = parse_model_parameters_b(best_model) if best_model else 0.0
+
+    if not best_model or installed_b < effective_floor:
+        local_trials = 0
+        eligible_model = None
+    elif installed_b < effective_floor * 1.25 and installed_b <= 3.5:
+        # Borderline small model (e.g. 3B on a 2.5B micro_syntax span): allow 1 fast AST-guarded trial
+        local_trials = 1
+        eligible_model = best_model
+    elif installed_b >= 14.0:
+        local_trials = 3
+        eligible_model = best_model
+    else:
+        local_trials = 2
+        eligible_model = best_model
+
+    if blast_radius_files <= 1 and span_lines <= 80 and task_complexity in ("nano", "micro_syntax", "single_fn"):
+        cloud_tier = "BUDGET"
+    elif blast_radius_files <= 4 and task_complexity != "architectural":
+        cloud_tier = "STANDARD"
+    else:
+        cloud_tier = "PREMIUM"
+
+    return {
+        "eligible_local_model": eligible_model,
+        "installed_params_b": installed_b,
+        "effective_min_params_b": round(effective_floor, 2),
+        "local_max_trials": local_trials,
+        "recommended_cloud_tier": cloud_tier,
+    }
+
+
 def execute_neuro_symbolic(
     task_type: str,
     prompt: str,
@@ -876,99 +976,82 @@ def execute_neuro_symbolic(
     force_refresh: bool = False,
 ) -> Tuple[Any, str]:
     """
-    3-Tier Neuro-Symbolic Execution Cascade:
-      Tier 0: Content-Addressed Local Cache (.orion/working/neuro_symbolic_cache.json) -> (result, "cache")
-      Tier 1: Local Ollama (format=json, Assertion Matrix + 1 self-correction retry) -> (result, "ollama")
-      Tier 2: Enqueue Cloud Agent Handoff (.orion/working/cloud_handoff_queue.json) + Deterministic Shadow -> (result, "deterministic_shadow")
+    Elastic Neuro-Symbolic Execution Cascade:
+    Adapts dynamically across 0B (offline), 1.5B, 3B, 7B, 14B, 30B+ local models,
+    deterministic Tier-0 fallbacks, and proportional Cloud Tier handoffs (BUDGET / STANDARD / PREMIUM).
     """
     full_cache_key = f"{task_type}:{cache_key or hashlib.sha256(prompt.encode('utf-8')).hexdigest()[:16]}"
 
-    # 1. Tier 0: Cache Check
     if not force_refresh:
         cached = load_neuro_symbolic_cache(full_cache_key)
         if cached is not None:
-            if validator_fn:
-                ok, _ = validator_fn(cached)
-                if ok:
-                    return cached, "cache"
-            else:
-                return cached, "cache"
+            if validator_fn is None or validator_fn(cached)[0]:
+                return cached, "cache_hit"
 
-    # 2. Tier 1: Local AI (NanoBrain / llama-server / Ollama)
-    base_url = resolve_ollama_base_url()
-    fail_reason = "local_ai_offline"
-    if base_url:
-        model_name = select_optimal_ollama_model(base_url, min_params_b=min_params_b)
-        if model_name:
-            curr_prompt = prompt
-            for attempt in range(2):
-                try:
-                    raw_response = generate_completion(
-                        prompt=curr_prompt,
-                        model=model_name,
-                        system_prompt=system_prompt,
-                        host=base_url,
-                        timeout_sec=timeout_sec,
-                        temperature=temperature,
-                    )
-                    if not raw_response:
-                        fail_reason = "empty_or_failed_completion"
-                        break
+    base_url = resolve_ollama_base_url(force_refresh=force_refresh)
+    model = select_optimal_ollama_model(host=base_url, min_params_b=min_params_b) if base_url else None
 
-                    parsed = json.loads(raw_response.strip())
-                    if validator_fn:
-                        ok, err_msg = validator_fn(parsed)
-                        if ok:
-                            save_neuro_symbolic_cache(full_cache_key, parsed)
-                            clear_cloud_handoff(task_type, lambda t: t.get("payload", {}).get("cache_key") == full_cache_key)
-                            return parsed, "local_ai"
-                        else:
-                            fail_reason = f"validation_error: {err_msg}"
-                            if attempt == 0:
-                                curr_prompt = f"{prompt}\n\n[VALIDATION_ERROR]: {err_msg}\nPlease correct the output and return strictly valid JSON matching the schema."
-                                continue
-                    else:
-                        save_neuro_symbolic_cache(full_cache_key, parsed)
-                        clear_cloud_handoff(task_type, lambda t: t.get("payload", {}).get("cache_key") == full_cache_key)
-                        return parsed, "local_ai"
-                except json.JSONDecodeError as _jde:
-                    fail_reason = f"json_decode_error: {_jde}"
-                    # Try to extract JSON substring if wrapped in markdown
-                    m_json = re.search(r"\{.*\}|\[.*\]", raw_response, re.DOTALL)
-                    if m_json:
-                        try:
-                            parsed = json.loads(m_json.group(0))
-                            if validator_fn:
-                                ok, err_msg = validator_fn(parsed)
-                                if ok:
-                                    save_neuro_symbolic_cache(full_cache_key, parsed)
-                                    clear_cloud_handoff(task_type, lambda t: t.get("payload", {}).get("cache_key") == full_cache_key)
-                                    return parsed, "local_ai"
-                            else:
-                                save_neuro_symbolic_cache(full_cache_key, parsed)
-                                clear_cloud_handoff(task_type, lambda t: t.get("payload", {}).get("cache_key") == full_cache_key)
-                                return parsed, "local_ai"
-                        except Exception:
-                            pass
-                    if attempt == 0:
-                        curr_prompt = f"{prompt}\n\n[VALIDATION_ERROR]: Output was not valid JSON. Please return STRICTLY raw JSON."
+    if base_url and model:
+        model_b = parse_model_parameters_b(model)
+        max_attempts = 1 if model_b <= 3.5 else 2
+        sys_msg = system_prompt or (
+            "You are a deterministic JSON extraction and surgical code repair engine. "
+            "Respond ONLY with valid JSON. Do not include commentary."
+        )
+        active_prompt = prompt
+        last_err_reason = "generation_failed"
+        for attempt in range(max_attempts):
+            try:
+                raw_resp = generate_completion(
+                    prompt=active_prompt,
+                    model=model,
+                    system_prompt=sys_msg,
+                    host=base_url,
+                    timeout_sec=timeout_sec,
+                    temperature=temperature if attempt == 0 else 0.0,
+                )
+                if not raw_resp:
+                    last_err_reason = "empty_llm_response"
+                    continue
+                parsed = _extract_json_payload(raw_resp)
+                if validator_fn is not None:
+                    is_valid, err_msg = validator_fn(parsed)
+                    if not is_valid:
+                        last_err_reason = f"validation_failed:{err_msg}"
+                        active_prompt = (
+                            f"{prompt}\n\n[PREVIOUS ATTEMPT FAILED VALIDATION]: {err_msg}\n"
+                            "Fix the JSON structure and return ONLY valid JSON matching the contract."
+                        )
                         continue
-                except Exception as _oe:
-                    fail_reason = str(_oe)
-                    _log_telemetry(_oe, f"execute_neuro_symbolic:local_ai_attempt_{attempt}")
-                    break
-        else:
-            fail_reason = "no_suitable_local_model"
+                save_neuro_symbolic_cache(full_cache_key, parsed)
+                clear_cloud_handoff(task_type, lambda t: t.get("payload", {}).get("cache_key") == full_cache_key)
+                return parsed, f"local_slm:{model}"
+            except Exception as _e:
+                last_err_reason = f"parse_error:{_e}"
+                active_prompt = (
+                    f"{prompt}\n\n[PREVIOUS ATTEMPT PARSE ERROR]: {_e}\n"
+                    "Return ONLY raw valid JSON without markdown or prose."
+                )
+                _log_telemetry(_e, f"capabilities.py:execute_neuro_symbolic:{task_type}:attempt_{attempt + 1}")
+    else:
+        last_err_reason = f"local_slm_below_{min_params_b}B_or_offline"
 
-    # 3. Tier 2: Cloud Agent Handoff + Deterministic Shadow Fallback
-    h_payload = dict(handoff_payload or {})
-    h_payload["cache_key"] = full_cache_key
-    h_payload["task_type"] = task_type
-    h_payload["prompt_preview"] = prompt[:1000]
-    enqueue_cloud_handoff(task_type, h_payload, reason=fail_reason)
+    if handoff_payload is not None:
+        if "recommended_tier" not in handoff_payload:
+            handoff_payload["recommended_tier"] = "BUDGET"
+        enqueue_cloud_handoff(
+            task_type=task_type,
+            payload=handoff_payload,
+            reason=last_err_reason,
+        )
 
-    fallback_val = fallback_fn() if fallback_fn else None
-    return fallback_val, "deterministic_shadow"
+    if callable(fallback_fn):
+        try:
+            return fallback_fn(), "tier0_fallback"
+        except Exception as _fe:
+            _log_telemetry(_fe, f"capabilities.py:execute_neuro_symbolic:fallback:{task_type}")
+
+    return None, "fallback_exhausted"
 
 
 # ==============================================================================
@@ -1109,6 +1192,11 @@ def run_rtk_proxy(args: List[str]) -> int:
             or tool_name in ("reset-circuit-breaker", "reset_circuit_breaker", "reflexion")
         )
 
+        target_path_str = str(tool_args.get("filePath") or tool_args.get("file_path") or tool_args.get("absolutePath") or tool_args.get("path") or "")
+        norm_target_path = target_path_str.replace("\\", "/")
+        if norm_target_path and (".agents/skills/" in norm_target_path or "skills/" in norm_target_path):
+            sys.stderr.write("[PATH GUARD WARNING]: Modifying skill files under .agents/skills/ directly. Ensure changes conform to authoring guidelines in .agents/skills/meta-agent-admin/references/skills-catalog.md\n")
+
         if is_tripped and not is_recovery_cmd:
             reason = f"Circuit breaker tripped ({fail_count} consecutive command failures detected in failures.log). Stop calling tools and conduct root-cause analysis or run reflexion."
             sys.stderr.write(f"[CIRCUIT BREAKER]: {reason}\n")
@@ -1136,6 +1224,19 @@ def run_rtk_proxy(args: List[str]) -> int:
                 _log_telemetry(_he, "capabilities:rtk_hook_record")
 
         if has_rtk and tool_name == "run_command":
+            cmd_line = ""
+            if isinstance(tool_args, dict):
+                cmd_line = str(tool_args.get("CommandLine") or tool_args.get("command") or "")
+
+            # Anti-Hang Guard: Detect lethal stdin-hanging pattern on CLI tools
+            if cmd_line and any(cmd_line.strip().startswith(s) or f" {s}" in cmd_line for s in ("rg ", "grep ", "findstr ")):
+                import re as _re_cmd
+                if _re_cmd.search(r'\b(rg|grep)\b.*(?:\s["\']\s*["\'])(?:\s|$)', cmd_line):
+                    reason = "[ANTI-HANG GUARD]: Empty pattern (\"\" or '') in rg/grep causes infinite stdin wait in background IDE processes. Use a non-empty regex like '.' or specific pattern instead."
+                    sys.stderr.write(f"{reason}\n")
+                    sys.stdout.write(json.dumps({"decision": "block", "reason": reason}))
+                    return 0
+
             try:
                 proc = subprocess.run(
                     [rtk_bin, 'hook', 'antigravity'],
@@ -1148,6 +1249,27 @@ def run_rtk_proxy(args: List[str]) -> int:
                     shell=False,
                 )
                 if proc.stdout and proc.stdout.strip():
+                    try:
+                        hook_res = json.loads(proc.stdout)
+                        rewritten_args = (
+                            hook_res.get("tool_args")
+                            or hook_res.get("toolArgs")
+                            or hook_res.get("tool_input")
+                            or hook_res.get("toolInput")
+                            or hook_res.get("parameters")
+                            or hook_res.get("arguments")
+                            or {}
+                        )
+                        rewritten_cmd = rewritten_args.get("CommandLine") or rewritten_args.get("command")
+                        if rewritten_cmd:
+                            # Verify quote balance: unclosed quotes from buggy proxy will break shell or hang
+                            dquotes = str(rewritten_cmd).count('"')
+                            squotes = str(rewritten_cmd).count("'")
+                            if (dquotes % 2 != 0) or (squotes % 2 != 0):
+                                sys.stdout.write('{"decision": "allow"}')
+                                return 0
+                    except Exception:
+                        pass
                     sys.stdout.write(proc.stdout)
                 else:
                     sys.stdout.write('{"decision": "allow"}')

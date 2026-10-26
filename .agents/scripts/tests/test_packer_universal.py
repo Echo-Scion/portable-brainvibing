@@ -21,6 +21,10 @@ from utils.packer import (
 
 
 class TestUniversalPacker(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.environ["ORION_OFFLINE_PACK"] = "1"
+
     def test_foundation_detection(self):
         # Current repo root is the foundation root
         self.assertTrue(is_foundation_root("."))
@@ -51,16 +55,16 @@ class TestUniversalPacker(unittest.TestCase):
 
     def test_is_audit_worthy_lean_vs_all(self):
         # App project lean excludes docs and examples
-        self.assertFalse(is_audit_worthy("docs/intro.md", is_foundation=False, mode="lean"))
-        self.assertFalse(is_audit_worthy("examples/sample.json", is_foundation=False, mode="lean"))
-        self.assertFalse(is_audit_worthy("tests/test_api.py", is_foundation=False, mode="lean"))
-        self.assertTrue(is_audit_worthy("src/index.ts", is_foundation=False, mode="lean"))
-        self.assertTrue(is_audit_worthy("context/BLUEPRINT.md", is_foundation=False, mode="lean"))
+        self.assertFalse(is_audit_worthy("docs/intro.md", mode="lean"))
+        self.assertFalse(is_audit_worthy("examples/sample.json", mode="lean"))
+        self.assertFalse(is_audit_worthy("tests/test_api.py", mode="lean"))
+        self.assertTrue(is_audit_worthy("src/index.ts", mode="lean"))
+        self.assertTrue(is_audit_worthy("context/BLUEPRINT.md", mode="lean"))
 
         # App project all includes docs and examples
-        self.assertTrue(is_audit_worthy("docs/intro.md", is_foundation=False, mode="all"))
-        self.assertTrue(is_audit_worthy("examples/sample.json", is_foundation=False, mode="all"))
-        self.assertTrue(is_audit_worthy("tests/test_api.py", is_foundation=False, mode="all"))
+        self.assertTrue(is_audit_worthy("docs/intro.md", mode="all"))
+        self.assertTrue(is_audit_worthy("examples/sample.json", mode="all"))
+        self.assertTrue(is_audit_worthy("tests/test_api.py", mode="all"))
 
     def test_export_audit_bundles_temp_dir(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -354,7 +358,7 @@ class SampleService:
             gi_path = os.path.join(td, ".gitignore")
             with open(gi_path, "w", encoding="utf-8") as f:
                 f.write("build/\n.gradle/\n!/.agents/\n")
-            gif = GitIgnoreFilter(td)
+            gif = GitIgnoreFilter(td, exclude_agent_tooling=False)
             self.assertTrue(gif.is_ignored("build/output.apk", is_dir=False))
             self.assertTrue(gif.is_ignored("android/build/intermediates/res.xml", is_dir=False))
             self.assertTrue(gif.is_ignored(".gradle/caches/file.bin", is_dir=False))
@@ -464,15 +468,15 @@ class SampleService:
 
             # Assert Bundle 01 has DNA Governance Stamp
             b1_text = next((v for k, v in bundle_contents.items() if k.startswith("01_")), "")
-            self.assertIn(".agents DNA & Governance Stamp", b1_text)
+            self.assertIn("DNA & Governance Stamp", b1_text)
 
             # Assert 00_GEMINI_WEB_AUDIT_PROMPT.txt was generated
             prompt_path = os.path.join(out_dir, "00_GEMINI_WEB_AUDIT_PROMPT.txt")
             self.assertTrue(os.path.isfile(prompt_path))
             with open(prompt_path, "r", encoding="utf-8") as pf:
                 prompt_content = pf.read()
-            self.assertIn("Attached are the audit bundles", prompt_content)
-            self.assertIn("Triad Threat Matrix", prompt_content)
+            self.assertIn("bundles are attached in your context window", prompt_content)
+            self.assertIn("Triad Threat Probe Enforcement", prompt_content)
 
     def test_global_ast_symbol_compass(self):
         """TEST-13: Global AST Symbol Compass extracts top-level classes and functions mapped to bundles."""
@@ -494,17 +498,23 @@ class SampleService:
                 td,
                 project_name="my_project",
                 tier_label="TIER 2: HYBRID",
-                bundle_files=[("01_CORE", "Core logic", 2, 10.5)],
+                bundle_files=[
+                    ("01_CORE", "Core logic", 2, 10.5, "Audit core invariants"),
+                    ("02_SERVICES", "Services", 3, 15.0, "Audit services"),
+                    ("03_UI", "Presentation", 4, 12.0, "Audit UI"),
+                ],
                 total_tokens=2500,
             )
             self.assertTrue(os.path.isfile(p_path))
             with open(p_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            self.assertIn("Playbook A: Full Panoramic System Architecture", content)
-            self.assertIn("Playbook B: Targeted Security & Runtime Sinks", content)
-            self.assertIn("Playbook C: Protocol & Governance Compliance", content)
+            self.assertIn("Phase 1: Workspace Architecture, Core Contracts", content)
+            self.assertIn("Phase 2: Core Services, Business Logic", content)
+            self.assertIn("Phase 3: Presentation Screens, UI Tokens", content)
             self.assertIn("INTERACTIVE 4-TURN AUDIT PROTOCOL", content)
             self.assertIn("BEGIN IMMEDIATELY WITH TURN 1", content)
+            self.assertIn("Signature Preservation Mandate", content)
+            self.assertIn("inspect your diff, preserve signatures, integrate the logic, and verify with automated tests", content)
             txt_files = [f for f in os.listdir(td) if f.endswith(".txt")]
             self.assertEqual(txt_files, ["00_GEMINI_WEB_AUDIT_PROMPT.txt"])
 
@@ -646,8 +656,8 @@ class SampleService:
 
             # Core models.py must remain FULL
             self.assertIn('mode="FULL"', joined)
-            # Secondary tool_helper.py (>150 lines) must be AST-SKELETON when reclaim=False
-            self.assertIn('mode="AST-SKELETON"', joined)
+            # Secondary tool_helper.py (>150 lines) must be SKELETON when reclaim=False
+            self.assertIn('mode="SKELETON"', joined)
 
     def test_hybrid_mode_universal_water_filling(self):
         """TEST-23: Hybrid mode with reclaim=True promotes candidate skeletons when headroom is under soft cap."""
@@ -676,7 +686,7 @@ class SampleService:
 
             # With reclaim=True and tiny total size (~2.5k tokens << 45k soft cap), tool_helper.py is reclaimed to FULL
             self.assertIn('mode="FULL"', joined)
-            self.assertNotIn('mode="AST-SKELETON"', joined)
+            self.assertNotIn('mode="SKELETON"', joined)
 
     def test_symbol_compass_excludes_private_and_main(self):
         """TEST-22: Global AST Symbol Compass filters out private functions and generic main."""
@@ -694,7 +704,7 @@ class SampleService:
             self.assertIn("`real_feature`", compass)
 
     def test_fence_safe_prompt_tag_neutralization(self):
-        """F-07: Code fences protect internal tags while outside tags are neutralized."""
+        """F-07: DEFECT-04 hardening: tags are neutralized unconditionally across fences."""
         from utils.packer import neutralize_prompt_tags, escape_artifact_boundaries
         raw = (
             "Outside <system>tag</system> and <artifact identifier='test'>body</artifact>\n"
@@ -707,8 +717,8 @@ class SampleService:
         neutralized = neutralize_prompt_tags(raw, is_markdown=True)
         # Outside tag neutralized
         self.assertIn("&lt;system&gt;", neutralized)
-        # Inside fenced code block preserved
-        self.assertIn("<system>code tag</system>", neutralized)
+        # Inside fenced code block also neutralized to prevent prompt-in-data bleed (DEFECT-04)
+        self.assertIn("&lt;system&gt;code tag&lt;/system&gt;", neutralized)
 
     def test_js_dart_arrow_function_skeletonization(self):
         """F-04: JS/TS and Dart arrow functions recognized during skeletonization."""
@@ -729,6 +739,339 @@ class SampleService:
         manifesto = build_universal_audit_manifesto("my_awesome_app", "hybrid")
         self.assertIn("REPOSITORY ARCHITECTURE & AUDIT MANIFESTO: `my_awesome_app`", manifesto)
         self.assertIn("MULTI-BUNDLE CONTEXT PACKAGE — HYBRID TIER", manifesto)
+
+
+class TestPackerF01ToF08(unittest.TestCase):
+    """Forensic verification tests for findings F-01 through F-08."""
+
+    def test_f01_kotlin_multiline_class_preservation(self):
+        """F-01: Multi-line class declarations in Kotlin/Dart do not hollow out the whole class."""
+        from core.scanner import skeletonize_code
+        kt_code = (
+            "package com.example\n\n"
+            "data class UserProfile(\n"
+            "    val id: String,\n"
+            "    val email: String,\n"
+            "    val displayName: String\n"
+            ") : Serializable {\n"
+            "    fun formattedName(): String {\n"
+            "        val prefix = \"Name: \"\n"
+            "        return prefix + displayName\n"
+            "    }\n"
+            "}\n"
+        )
+        skel = skeletonize_code(kt_code, "kt")
+        # Class header must be intact
+        self.assertIn("data class UserProfile", skel)
+        # Inner method signature must be preserved, not swallowed by class header
+        self.assertIn("fun formattedName(): String", skel)
+        # Inner method body implementation must be hollowed out
+        self.assertNotIn("val prefix = \"Name: \"", skel)
+
+    def test_f02_reserved_keywords_and_non_functions(self):
+        """F-02: Control flow, throw, await, and keywords are not extracted as functions."""
+        from core.scanner import extract_file_symbols, RESERVED_KEYWORDS
+        self.assertIn("when", RESERVED_KEYWORDS)
+        self.assertIn("late", RESERVED_KEYWORDS)
+        self.assertIn("required", RESERVED_KEYWORDS)
+
+        ts_code = (
+            "function process(x: any) {\n"
+            "    if (x == null) {\n"
+            "        throw new Error('missing x');\n"
+            "    }\n"
+            "    const val = await fetchData();\n"
+            "}\n"
+        )
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "test.ts")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(ts_code)
+            defs, refs = extract_file_symbols(p)
+            self.assertIn("process", defs)
+            self.assertNotIn("Error", defs)
+            self.assertNotIn("throw", defs)
+            self.assertNotIn("fetchData", defs)
+
+    def test_f03_android_and_feature_subpackage_clustering(self):
+        """F-03: Sub-clusters native Android source trees and recognizes custom feature containers."""
+        from utils.packer import _compute_natural_bucket_prefix
+        # Android kotlin package clustering
+        prefix_kt = _compute_natural_bucket_prefix("android/app/src/main/kotlin/com/example/echont/MainActivity.kt")
+        self.assertTrue(prefix_kt.startswith("android/app/src/main/kotlin/com"))
+        # Android res clustering
+        prefix_res = _compute_natural_bucket_prefix("android/app/src/main/res/values/strings.xml")
+        self.assertEqual(prefix_res, "android/res")
+        # Feature container targets
+        prefix_targets = _compute_natural_bucket_prefix("src/targets/compiler/visitor.ts")
+        self.assertEqual(prefix_targets, "src/targets/compiler")
+
+    def test_f04_cross_bundle_stem_map_filters_non_code(self):
+        """F-04: Non-code files (.md, .json) do not pollute cross-bundle code imports."""
+        from utils.packer import extract_cross_bundle_imports
+        file_to_bundle = {
+            "README.md": "01_ROOT",
+            "src/user_service.ts": "02_CORE",
+            "src/index.ts": "03_APP",
+        }
+        # Code importing user_service should link to 02_CORE
+        imports = extract_cross_bundle_imports("src/index.ts", "import { getUser } from './user_service';", file_to_bundle)
+        self.assertTrue(any("Bundle 02" in imp for imp in imports))
+
+        # Code referencing 'README' shouldn't link to Bundle 01
+        imports_md = extract_cross_bundle_imports("src/index.ts", "const text = 'README';", file_to_bundle)
+        self.assertFalse(any("Bundle 01" in imp for imp in imports_md))
+
+    def test_f05_mode_label_parity(self):
+        """F-05: render_bundle_file_entry and pack_digest preserve exact mode tags."""
+        from utils.packer import ContextPacker
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, "doc.md"), "w", encoding="utf-8") as f:
+                f.write("# Heading\n" * 150)
+            packer = ContextPacker(td)
+            digest = packer.pack_digest(["doc.md"], skeleton={"doc.md": True})
+            self.assertIn('mode="MD-SKELETON"', digest)
+            self.assertIn("MD-SKELETON", digest)
+
+    def test_f06_json_compaction_and_gemini_offset(self):
+        """F-06: Large JSON compaction and GEMINI.md line numbering offset."""
+        from utils.packer import render_bundle_file_entry, is_minified_or_asset
+        # 1. l10n generated file recognized
+        self.assertTrue(is_minified_or_asset("lib/l10n/app_localizations.dart"))
+        self.assertTrue(is_minified_or_asset("lib/l10n/app_localizations_en.dart"))
+
+        # 2. Large JSON compacting (> AUTO_SKELETON_LINE_THRESHOLD=350)
+        large_json = '{\n  "items": [\n' + ",\n".join(f'    {{"id": {i}, "name": "item_{i}"}}' for i in range(400)) + '\n  ]\n}'
+        block, tok = render_bundle_file_entry("catalog.json", large_json, adaptive=True)
+        self.assertIn('mode="JSON-SCHEMA-SAMPLE"', block)
+        self.assertIn("__collapsed_items__", block)
+
+        # 3. GEMINI.md line numbers start after mandates marker (line 51)
+        gemini_content = "Intro\n" * 50 + "## PROJECT-SPECIFIC MANDATES\nSpecific mandate line 1\n"
+        block_gemini, _ = render_bundle_file_entry("GEMINI.md", gemini_content)
+        self.assertIn('lines="51-52"', block_gemini)
+
+    def test_f07_bundle_overflow_penalty(self):
+        """F-07: balance_into_k_bundles applies penalty when merging clusters exceeding max_tokens."""
+        from utils.packer import balance_into_k_bundles, ProjectTaxonomy
+        with tempfile.TemporaryDirectory() as td:
+            files = ["a.py", "b.py", "c.py"]
+            for f in files:
+                with open(os.path.join(td, f), "w", encoding="utf-8") as fh:
+                    fh.write("def foo():\n    pass\n" * 50)
+            taxonomy = ProjectTaxonomy(
+                tree_hash="test",
+                provider="test",
+                project_summary="test",
+                clusters={
+                    "cluster_a": {"gravity": 2, "title": "A", "files": ["a.py"]},
+                    "cluster_b": {"gravity": 3, "title": "B", "files": ["b.py"]},
+                    "cluster_c": {"gravity": 4, "title": "C", "files": ["c.py"]},
+                }
+            )
+            # k=2 should merge smallest
+            bundles = balance_into_k_bundles(td, files, k=2, max_tokens_per_bundle=50000, taxonomy=taxonomy)
+            self.assertEqual(len(bundles), 2)
+
+    def test_f08_static_radar_precision(self):
+        """F-08: Radar flags Node/TS async execution sinks and multi-line empty catches."""
+        from utils.packer import generate_bundle_pre_audit_radar
+        with tempfile.TemporaryDirectory() as td:
+            sub = os.path.join(td, "src", "services")
+            os.makedirs(sub, exist_ok=True)
+            ts_file = os.path.join(sub, "runner.ts")
+            with open(ts_file, "w", encoding="utf-8") as fh:
+                fh.write(
+                    "import { execAsync, spawnSync } from 'child_process';\n"
+                    "export function runTask() {\n"
+                    "    execAsync('ls');\n"
+                    "    spawnSync('pwd');\n"
+                    "    try {\n"
+                    "        doWork();\n"
+                    "    } catch (err) {\n"
+                    "        // ignored\n"
+                    "    }\n"
+                    "}\n"
+                )
+            radar = generate_bundle_pre_audit_radar(td, ["src/services/runner.ts"])
+            self.assertIn("execAsync()", radar)
+            self.assertIn("`catch {}` [SILENT]", radar)
+            self.assertIn("services/runner.ts:L", radar)
+
+
+class TestProjectDNALivingSystem(unittest.TestCase):
+    """
+    Forensic verification suite for the Universal Living Project DNA:
+    1. Canonical 5-Tier Strata classification (Standard & Option A Feature Organs)
+    2. Execution Spine & Pillar protection against hybrid skeletonization
+    3. Architecture Layer Violation detection & Radar integration
+    4. Brownfield Epigenetic Mutation & Scaffolding
+    """
+
+    def test_dna_canonical_5_tier_classification(self):
+        """Verifies classify_file_to_tier maps paths and AST stereotypes accurately across 5 tiers."""
+        from core.dna import classify_file_to_tier
+
+        # Tier 1 Contracts
+        t1, g1, _, _ = classify_file_to_tier("lib/contracts/api_contract.dart")
+        self.assertEqual(t1, "1_contracts")
+        self.assertEqual(g1, 1)
+
+        # Tier 2 Domain
+        t2, g2, _, _ = classify_file_to_tier("lib/domain/usecases/login_usecase.dart")
+        self.assertEqual(t2, "2_domain")
+        self.assertEqual(g2, 2)
+
+        # Tier 3 Services
+        t3, g3, _, _ = classify_file_to_tier("lib/services/api_service.dart")
+        self.assertEqual(t3, "3_services")
+        self.assertEqual(g3, 4)
+
+        # Tier 4 State
+        t4, g4, _, _ = classify_file_to_tier("lib/state/auth_notifier.dart")
+        self.assertEqual(t4, "4_state")
+        self.assertEqual(g4, 6)
+
+        # Tier 5 Presentation
+        t5, g5, _, _ = classify_file_to_tier("lib/presentation/screens/home_screen.dart")
+        self.assertEqual(t5, "5_presentation")
+        self.assertEqual(g5, 7)
+
+        # Option A Adaptive Hybrid: feature organ nesting
+        t_feat_dom, _, _, _ = classify_file_to_tier("lib/features/billing/domain/invoice.dart")
+        self.assertEqual(t_feat_dom, "2_domain")
+
+        t_feat_ui, _, _, _ = classify_file_to_tier("lib/features/billing/presentation/invoice_page.dart")
+        self.assertEqual(t_feat_ui, "5_presentation")
+
+    def test_dna_execution_spine_protection(self):
+        """Verifies files in dna.execution_spine and dna.pillars are NEVER skeletonized in hybrid mode."""
+        from utils.packer import balance_into_k_bundles, ProjectTaxonomy
+        from core.dna import ProjectDNA
+
+        with tempfile.TemporaryDirectory() as td:
+            spine_file = "lib/main.dart"
+            full_p = os.path.join(td, spine_file)
+            os.makedirs(os.path.dirname(full_p), exist_ok=True)
+            # Create a 250-line file that would normally be a candidate for skeletonization
+            with open(full_p, "w", encoding="utf-8") as fh:
+                fh.write("void main() {\n" + "\n".join(f"  print({i});" for i in range(250)) + "\n}\n")
+
+            mock_dna = ProjectDNA(
+                is_dna_app=True,
+                archetype="Flutter App",
+                version="0.0.1",
+                blueprint_path=None,
+                stacks=["Flutter/Dart"],
+                active_native_roots=[],
+                dormant_roots=[],
+                verified_gates="",
+                origin="test",
+                dna_state="GREENFIELD",
+                primary_framework="flutter",
+                execution_spine=[spine_file],
+                pillars={},
+            )
+
+            mock_tax = ProjectTaxonomy(
+                tree_hash="test_hash",
+                provider="test",
+                project_summary="Spine App",
+                clusters={"core": {"gravity": 8, "title": "Core", "files": [spine_file]}},
+                file_to_cluster={spine_file: (8, "core", "Core")},
+                skeleton_candidates={spine_file},
+            )
+
+            bundles = balance_into_k_bundles(
+                td,
+                audit_files=[spine_file],
+                hybrid=True,
+                taxonomy=mock_tax,
+                dna=mock_dna,
+            )
+
+            self.assertEqual(len(bundles), 1)
+            b_code, b_title, b_files, b_skel_map, _ = bundles[0]
+            # Verify spine file is protected (apply_skel is False)
+            self.assertFalse(b_skel_map[spine_file])
+
+    def test_dna_layer_violations_radar(self):
+        """Verifies generate_bundle_pre_audit_radar includes architectural layer violation warnings."""
+        from utils.packer import generate_bundle_pre_audit_radar
+        from core.dna import ProjectDNA
+
+        mock_dna = ProjectDNA(
+            is_dna_app=True,
+            archetype="Architecture App",
+            version="0.0.1",
+            blueprint_path=None,
+            stacks=["Flutter/Dart"],
+            active_native_roots=[],
+            dormant_roots=[],
+            verified_gates="",
+            origin="test",
+            dna_state="GREENFIELD",
+            primary_framework="flutter",
+            layer_violations=[
+                {
+                    "file": "lib/domain/usecase.dart",
+                    "line": 4,
+                    "source_tier": "2_domain",
+                    "target_tier": "5_presentation",
+                    "import_target": "lib/presentation/screen.dart",
+                }
+            ],
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            f = "lib/domain/usecase.dart"
+            full_p = os.path.join(td, f)
+            os.makedirs(os.path.dirname(full_p), exist_ok=True)
+            with open(full_p, "w", encoding="utf-8") as fh:
+                fh.write("import '../presentation/screen.dart';\nclass Usecase {}\n")
+
+            radar = generate_bundle_pre_audit_radar(td, [f], dna=mock_dna)
+            self.assertIn("DNA Architecture Layer Violations", radar)
+            self.assertIn("2_domain -> 5_presentation", radar)
+
+    def test_dna_brownfield_mutation(self):
+        """Verifies mutate_project_dna generates plan, epigenetic aliases, and scaffolds."""
+        from core.dna import mutate_project_dna, classify_file_to_tier
+
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "lib", "network"), exist_ok=True)
+            os.makedirs(os.path.join(td, "lib", "models"), exist_ok=True)
+            with open(os.path.join(td, "pubspec.yaml"), "w", encoding="utf-8") as f:
+                f.write("name: brownfield_app\n")
+            with open(os.path.join(td, "lib", "network", "client.dart"), "w", encoding="utf-8") as f:
+                f.write("class Client {}\n")
+            with open(os.path.join(td, "lib", "models", "dto.dart"), "w", encoding="utf-8") as f:
+                f.write("class Dto {}\n")
+
+            # 1. Plan mode
+            plan_res = mutate_project_dna(td, mode="plan")
+            self.assertEqual(plan_res["status"], "success")
+            self.assertIn("plan_file", plan_res)
+
+            # 2. Epigenetic mode
+            epi_res = mutate_project_dna(td, mode="epigenetic")
+            self.assertEqual(epi_res["status"], "success")
+            self.assertIn("lib/network", epi_res["epigenetic_aliases"])
+            dna_path = os.path.join(td, ".agents", ".dna.json")
+            self.assertTrue(os.path.isfile(dna_path))
+
+            # Epigenetic mapping verification
+            tier_mapped, _, _, _ = classify_file_to_tier(
+                "lib/network/client.dart",
+                epigenetic_aliases=epi_res["epigenetic_aliases"]
+            )
+            self.assertEqual(tier_mapped, "3_services")
+
+            # 3. Scaffold mode
+            scaff_res = mutate_project_dna(td, mode="scaffold")
+            self.assertEqual(scaff_res["status"], "success")
+            self.assertTrue(os.path.isdir(os.path.join(td, "lib", "services")))
+            self.assertTrue(os.path.isdir(os.path.join(td, "lib", "presentation")))
 
 
 if __name__ == "__main__":

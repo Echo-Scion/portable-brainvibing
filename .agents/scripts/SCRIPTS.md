@@ -45,11 +45,13 @@ python .agents/scripts/orion.py <command> [args...]
 | `instruction-lint` | Validates natural language and imperative modality across agent instructions. | `commands/verify_agents.py` |
 | `consequence` | Static consequence assertion analysis and false-green test audit. | `commands/verify_agents.py` |
 | `validate-response` | Validates agent output formatting against mandatory footer contract. | `evals/assertion_engine.py` |
+| `delegate-check <tasks...>` | Deterministic Jaccard dependency overlap gate for worker delegation (<20% threshold). | `core/scanner.py` |
 
 ### 3. Execution State, Runtime & Orchestration
 | Command | Purpose | Target Script |
 | :--- | :--- | :--- |
 | `fsm <action>` | Crash-proof formal state machine tracker with Git-bound checkpoint rollbacks (`--restore-code`). | `commands/state_machine.py` |
+| `bento <action>` | Universal atomic task dispenser & plan slicer with live line recalibration (`slice`, `next`, `status`, `done`). | `commands/bento_slicer.py` |
 | `state_graph` | Superstep cyclic execution graph engine with channel reducers. | `commands/state_machine.py` |
 | `harness` | Sovereign autonomous evolution harness engine. | `core/harness/engine.py` |
 | `rtk` | Rust Token Killer proxy for CLI token minimization. | `core/capabilities.py` |
@@ -63,6 +65,10 @@ python .agents/scripts/orion.py <command> [args...]
 | `compress` | Compresses episodic memory into English Lessword format. | `commands/compact.py` (via `commands/brain.py`) |
 | `consolidate` | Activity-based temporal pulse knowledge synthesis. | `commands/reflexion.py` |
 | `record` | Verbal reflective learning and failure invariant logging. | `commands/reflexion.py` |
+| `observe` | Logs a raw signal/observation entry into `.agents/OBSERVATIONS.md`. | `commands/reflexion.py` |
+| `observations` | Lists and filters active observations from `.agents/OBSERVATIONS.md`. | `commands/reflexion.py` |
+| `resolve` | Resolves an observation and moves it to `.agents/OBSERVATIONS.archive.md`. | `commands/reflexion.py` |
+| `habits` | Mines operator habits and action n-gram patterns into `operator_profile.json`. | `commands/reflexion.py` |
 | `amnesia` | Rule eviction mechanism (usage-based pruning). | `commands/state_machine.py` |
 | `compact` | Native 5-tier context compactor (`orion compact <lite|full|aggressive|ultra|pipeline>` or `<shrink|distill|fts5|stopword>`). | `commands/compact.py` |
 | `memory` | Virtual Core Memory & Archival store manager. | `commands/brain.py` |
@@ -75,6 +81,9 @@ python .agents/scripts/orion.py <command> [args...]
 | `foundation deploy` | Physically deploys/syncs Foundation template to a local project. | `commands/foundation.py` |
 | `foundation sync-ai` | Syncs AI brand configs to a local project. | `commands/foundation.py` |
 | `foundation push-upstream` | Guides manual curation and promotion of local learnings to Foundation. | `commands/foundation.py` |
+| `evolve` | Project-aware architectural DNA evolution with archetype profile alignment (`orion evolve [archetype]`). | `commands/foundation.py` |
+| `dna` | Universal Living Project DNA sequencer, brownfield epigenetic mutation & architectural violation auditor (`orion dna <sequence|mutate|audit|lint>`). | `commands/foundation.py` (via `core/dna.py`) |
+| `dna-lint` | Direct JIT dependency linter verifying 5-Tier Directed Dependency Laws (`orion dna-lint <file_or_dir>`). | `commands/foundation.py` (via `core/dna.py`) |
 | `pack` | Universal context packager & multi-platform AI audit exporter with auto-intent vibe coding (`orion pack [audit|arch|hybrid|pr|diff|security|stats|<url>]`). | `utils/packer.py` |
 
 ---

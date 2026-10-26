@@ -2,7 +2,7 @@
 
 > "Every changed line must trace directly to user intent." — Section 1 (Core Guardrails)
 
-This document consolidates the 7 primary static and semantic audit vectors into a single, cohesive evaluation matrix. When conducting quality assurance or deep code review, evaluate the target codebase against these vectors sequentially while enforcing the **Calibration & Anti-Moving-Goalposts Clauses**:
+This document consolidates the 9 primary static and semantic audit vectors into a single, cohesive evaluation matrix. When conducting quality assurance or deep code review, evaluate the target codebase against these vectors sequentially while enforcing the **Calibration & Anti-Moving-Goalposts Clauses**:
 - **Materiality Threshold**: Flag findings ONLY when proven to cause runtime failures (`Exception`/`Crash`), data/state corruption, exploitable security vulnerabilities, or non-functional empty stubs. Do not flag minor stylistic variations.
 - **Intentional Architecture Exemption**: Defensive fallbacks inside `except ImportError:` blocks and standalone hook scripts (`hooks/`) with local helpers (`_atomic_write_text`, `_log_telemetry`) are NOT DRY violations. Documented retrieval-only modes are NOT shallow shims.
 - **Convergence Guarantee**: When all mechanical gates pass (`Exit Code 0`) and zero material bugs exist, conclude with zero findings rather than inventing microscopic nitpicks.
@@ -15,7 +15,10 @@ This document consolidates the 7 primary static and semantic audit vectors into 
 ### Inspection Rubric:
 1. **Entry Points & Flows**: Map user interaction -> API/Controller -> Service -> Data Persistence.
 2. **Outside Services**: Identify external dependencies (payment gateways, third-party APIs, auth providers).
-3. **Boundary Coupling**: Check if layers violate separation of concerns (e.g., UI directly executing SQL or querying persistence models).
+3. **Boundary Coupling & 5-Tier Directed Dependency Laws**: Check if layers violate separation of concerns and single-direction dependency flow:
+   - Tier 1 (`1_contracts` / Primitives) MUST NOT import upwards from higher tiers (`2_data`, `3_services`, `4_state`, `5_presentation`).
+   - Tier 5 (`5_presentation` / UI) MUST NOT bypass Tier 4 (`4_state`) to invoke Tier 3 (`3_services`) or database models directly.
+   - Core execution spine files MUST preserve strict layer isolation.
 4. **Output Shape**: Produce a high-level summary of architecture, main pieces, and high-risk hotspots without overwhelming line numbers.
 
 ---
@@ -103,3 +106,44 @@ This document consolidates the 7 primary static and semantic audit vectors into 
    - Enforce localized state updates instead of full-screen widget tree rebuilds.
    - Enforce `const` constructors on static UI trees.
    - Avoid performing synchronous parsing or heavy transformations inside render/build loops.
+
+---
+
+## Vector 8: Spec-to-Code Parity & Anti-Cosplay Gate (LLM Scaffold Detection)
+*Goal: Detect fake implementations, regex-as-AST cosplay, ungrounded spec claims, and shallow tests.*
+
+### Inspection Rubric:
+1. **Dependency Truth Check**:
+   - Inspect project manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`).
+   - Verify every library or parser claimed in `ARCHITECTURE.md`, `BLUEPRINT.md`, or `README.md` is actually installed and actively imported in `src/`.
+   - Never accept documentation claims or `epistemic_status: AST_VERIFIED` tags at face value without source code verification.
+2. **Parser Authenticity Check**:
+   - Inspect files named `*Parser*`, `*Converter*`, `*Analyzer*`, `*Reader*`, or `*Reconstructor*`.
+   - Verify whether modules parse syntax using legitimate AST parsers, compiler interfaces, or robust state machines rather than brittle single-line regex `.match()` heuristics.
+3. **Exhaustive IR / AST Switch Check**:
+   - Compare union type contracts (e.g. `WidgetType` in `types.ts` or AST Node variants) against `switch (node.type)` in the code generator.
+   - Every defined union variant MUST emit a real widget/code structure rather than falling through to dummy stubs (`SizedBox.shrink()`, empty comments, or unhandled no-ops).
+4. **Pipeline End-to-End Trace**:
+   - Trace extraction and decompilation outputs (e.g. `.ipa`, `.dex`, `jadx`, `arsc`, `sqlite`).
+   - Verify that extracted assets and sources are consumed and transformed by subsequent pipeline steps rather than dropped into dead-end directories.
+5. **Shallow Test Detection**:
+   - Reject unit tests that assert code generator or transpiler outputs using only shallow substring checks (`assert.ok(code.includes(...))`) without syntax, AST, or target compiler validation.
+
+---
+
+## Vector 9: Cross-Boundary Persistence, IPC & System Permission Safety
+*Goal: Prevent silent runtime failures, state desynchronization, and permission traps across native mobile daemons, shared preferences, and UI capability toggles.*
+
+### Inspection Rubric:
+1. **Shared Preferences Binding Parity**:
+   - Check that native listeners (`OnSharedPreferenceChangeListener`) bind unconditionally to `"FlutterSharedPreferences"` (`Context.MODE_PRIVATE`) and do NOT conditionally fallback based on initial empty file state (`all.isEmpty()`).
+2. **Collection Serialization Parity**:
+   - For collections shared across Flutter and native daemons, confirm that Flutter uses explicit JSON strings (`jsonEncode(list)`) rather than `setStringList` (which introduces unparseable Base64 prefix headers in native readers).
+3. **UI Permission & Capability Gates**:
+   - Inspect all UI switches controlling system-level capabilities (`AccessibilityService`, `SYSTEM_ALERT_WINDOW`, `WRITE_SETTINGS`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`).
+   - Confirm that the UI queries active service status via `MethodChannel` before toggling, prompts with educational rationale on failure, and validates state upon app resume.
+4. **Overlay Lifecycle & Orientation Resilience**:
+   - For floating overlays and system window managers, verify that `onConfigurationChanged` handles display metrics shifts without throwing floating coordinates off-screen.
+   - Confirm that repeatable actions (volume/brightness) do NOT dismiss overlay menus prematurely.
+5. **Clean-Room Dependency Hygiene**:
+   - Check build manifests for residual native UI/navigation bloatware (`androidx.navigation`, `constraintlayout`, `viewBinding`, unreferenced styles) that was replaced by cross-platform views.

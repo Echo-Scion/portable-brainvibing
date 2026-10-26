@@ -825,6 +825,108 @@ def main():
         except Exception as _he:
             _log_telemetry(_he, "pre_wake:cloud_handoff_queue")
 
+    delegation_dirs = [
+        os.path.join(BASE_DIR, ".agents", "working", "delegations"),
+        os.path.join(BASE_DIR, ".orion", "working", "delegations"),
+    ]
+    delegation_deltas = []
+    for d_dir in delegation_dirs:
+        if os.path.exists(d_dir):
+            try:
+                for d_file in os.listdir(d_dir):
+                    if d_file.startswith("result-") and (d_file.endswith(".md") or d_file.endswith(".jsonl")):
+                        d_path = os.path.join(d_dir, d_file)
+                        try:
+                            with open(d_path, "r", encoding="utf-8", errors="ignore") as _df:
+                                raw_lines = _df.readlines()
+                            for line in raw_lines:
+                                line_s = line.strip()
+                                if line_s.startswith("{") and line_s.endswith("}") and "target_file" in line_s:
+                                    try:
+                                        delta_item = json.loads(line_s)
+                                        if isinstance(delta_item, dict) and "target_file" in delta_item:
+                                            delta_item["source_delegation"] = d_file
+                                            delegation_deltas.append(delta_item)
+                                    except Exception:
+                                        pass
+                            full_text = "".join(raw_lines)
+                            fenced_blocks = re.findall(r'```(?:jsonl|json)\s*\n(.*?)\n```', full_text, flags=re.DOTALL)
+                            for block in fenced_blocks:
+                                for blk_line in block.splitlines():
+                                    blk_s = blk_line.strip()
+                                    if blk_s.startswith("{") and blk_s.endswith("}") and "target_file" in blk_s:
+                                        try:
+                                            item = json.loads(blk_s)
+                                            if isinstance(item, dict) and "target_file" in item:
+                                                if not any(d.get("target_file") == item.get("target_file") and d.get("ast_span") == item.get("ast_span") for d in delegation_deltas):
+                                                    item["source_delegation"] = d_file
+                                                    delegation_deltas.append(item)
+                                        except Exception:
+                                            pass
+                        except Exception as _fe:
+                            _log_telemetry(_fe, f"pre_wake:read_delegation:{d_file}")
+            except Exception as _de:
+                _log_telemetry(_de, "pre_wake:delegations_dir")
+    delegation_deltas = delegation_deltas[:25]
+
+    project_dna_data = None
+    dna_file = os.path.join(WORKSPACE_DIR, ".agents", ".dna.json")
+    if os.path.isfile(dna_file):
+        try:
+            with open(dna_file, "r", encoding="utf-8", errors="ignore") as df:
+                raw_dna = json.load(df)
+                ledger = raw_dna.get("mutation_ledger", {}) if isinstance(raw_dna.get("mutation_ledger"), dict) else {}
+                viols = raw_dna.get("layer_violations") if "layer_violations" in raw_dna else ledger.get("layer_violations", [])
+                comp_score = raw_dna.get("dna_compliance_score") if "dna_compliance_score" in raw_dna else ledger.get("dna_compliance_score", 100)
+                project_dna_data = {
+                    "schema_version": raw_dna.get("schema_version", "0.0.1"),
+                    "dna_state": raw_dna.get("dna_state", "BORN"),
+                    "archetype": raw_dna.get("archetype", "Software Repository"),
+                    "ecosystem": raw_dna.get("ecosystem") or raw_dna.get("primary_framework") or raw_dna.get("framework", "generic"),
+                    "stacks": raw_dna.get("stacks", []),
+                    "compliance_score": comp_score,
+                    "execution_spine": raw_dna.get("execution_spine", [])[:6],
+                    "invariants": raw_dna.get("invariants", [])[:5],
+                    "layer_violations_count": len(viols) if isinstance(viols, list) else 0,
+                }
+        except Exception as _de:
+            _log_telemetry(_de, "pre-agent-wake:read_dna")
+
+    obs_digest = None
+    obs_broken_probe = False
+    try:
+        from commands.reflexion import ObservationLedger
+        obs_ledger = ObservationLedger(
+            active_path=os.path.join(base_agents_dir, "OBSERVATIONS.md"),
+            archive_path=os.path.join(base_agents_dir, "OBSERVATIONS.archive.md")
+        )
+        obs_digest = obs_ledger.get_digest()
+        if obs_digest == "OBSERVATION SCAN BROKEN":
+            obs_broken_probe = True
+    except Exception as _obs_err:
+        _log_telemetry(_obs_err, "pre_wake:observation_ledger")
+
+    active_bento_task_data = None
+    bento_queue_file = os.path.join(CONTEXT_DIR, "bento_queue.json")
+    if os.path.isfile(bento_queue_file):
+        try:
+            with open(bento_queue_file, "r", encoding="utf-8") as _bqf:
+                _bqdata = json.load(_bqf)
+            _bidx = int(_bqdata.get("current_index", 0))
+            _btasks = _bqdata.get("tasks", [])
+            if _bidx < len(_btasks):
+                _bt = _btasks[_bidx]
+                active_bento_task_data = {
+                    "index": f"{_bidx + 1}/{len(_btasks)}",
+                    "task_id": _bt.get("task_id"),
+                    "title": _bt.get("title"),
+                    "target_file": _bt.get("target_file"),
+                    "lines": f"L{_bt.get('start_line')}-L{_bt.get('end_line')}",
+                    "instruction": f"Read .orion/working/ACTIVE_TASK.md and execute ONLY Task {_bt.get('task_id')}.",
+                }
+        except Exception as _bqe:
+            _log_telemetry(_bqe, "pre_wake:bento_queue")
+
     context_payload = {
         "timestamp_ms": int(time.time() * 1000),
         "active_file": active_file,
@@ -837,6 +939,7 @@ def main():
         "top_lessons": top_lessons,
         "drift_warnings": drift_warnings,
         "pending_cloud_handoffs": pending_cloud_handoffs,
+        "delegation_deltas": delegation_deltas,
         "core_memory": core_memory_data,
         "core_memory_prompt": core_memory_prompt,
         "multi_layer_facts": multi_layer_facts,
@@ -848,6 +951,9 @@ def main():
             "probation_count": harness_lifecycle.get("probation_count", 0),
             "archived_count": harness_lifecycle.get("archived_count", 0)
         } if harness_lifecycle else None,
+        "project_dna": project_dna_data,
+        "observation_digest": obs_digest,
+        "active_bento_task": active_bento_task_data,
         "antigravity": {
             "conversation_id": conversation_id,
             "transcript_path": transcript_path,
@@ -860,22 +966,68 @@ def main():
     
     if recovery_instruction:
         context_payload["recovery_instruction"] = recovery_instruction
-        
-    temp_file = f"{CONTEXT_FILE}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}"
-    try:
-        with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(context_payload, f, indent=2)
-        os.replace(temp_file, CONTEXT_FILE)
-    finally:
-        if os.path.exists(temp_file):
-            try:
-                os.remove(temp_file)
-            except OSError:
-                pass
+
+    # Cache-Aware Idle Activation & Temporal Gap Marker
+    DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000  # 5 minutes prompt-cache TTL
+    now_ms = context_payload["timestamp_ms"]
+    skip_write = False
+
+    if os.path.exists(CONTEXT_FILE):
+        try:
+            with open(CONTEXT_FILE, "r", encoding="utf-8") as f:
+                prev_ctx = json.load(f)
+            prev_time_ms = int(prev_ctx.get("timestamp_ms", 0))
+
+            # Temporal gap marker (>1 hour)
+            if prev_time_ms > 0 and (now_ms - prev_time_ms) >= 3600 * 1000:
+                elapsed_hrs = (now_ms - prev_time_ms) / (3600 * 1000)
+                context_payload["temporal_gap_marker"] = f"⏳ Temporal Gap: {elapsed_hrs:.1f}h elapsed since previous agent turn."
+
+            # Compute structural fingerprint (excluding volatile timestamp_ms)
+            def _struct_hash(d: dict) -> str:
+                import hashlib
+                subset = {
+                    "active_file": d.get("active_file"),
+                    "terminal_error": d.get("terminal_error"),
+                    "active_bento_task": d.get("active_bento_task"),
+                    "recovery_instruction": d.get("recovery_instruction"),
+                    "drift_warnings": d.get("drift_warnings"),
+                    "observation_digest": d.get("observation_digest"),
+                    "matched_skills": [s.get("name") for s in d.get("matched_skills", [])]
+                }
+                return hashlib.sha256(json.dumps(subset, sort_keys=True).encode("utf-8")).hexdigest()
+
+            curr_hash = _struct_hash(context_payload)
+            prev_hash = _struct_hash(prev_ctx)
+
+            # Preserve cache prefix if structural state is identical and within TTL window
+            if curr_hash == prev_hash and (now_ms - prev_time_ms) < DEFAULT_CACHE_TTL_MS:
+                skip_write = True
+        except Exception as _ctx_err:
+            _log_telemetry(_ctx_err, "pre_wake:ttl_check")
+
+    if not skip_write:
+        temp_file = f"{CONTEXT_FILE}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}"
+        try:
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(context_payload, f, indent=2)
+            os.replace(temp_file, CONTEXT_FILE)
+        finally:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
         
     _check_passive_orion_gc(BASE_DIR)
 
     active_warnings = []
+    if active_bento_task_data:
+        active_warnings.append(
+            f"🎯 ACTIVE BENTO TASK ({active_bento_task_data['index']}): "
+            f"Task {active_bento_task_data['task_id']} on `{active_bento_task_data['target_file']}` ({active_bento_task_data['lines']}). "
+            "Execute ONLY this single task in .orion/working/ACTIVE_TASK.md before verifying."
+        )
     if recovery_instruction:
         active_warnings.append(recovery_instruction)
     if drift_warnings:
@@ -885,6 +1037,22 @@ def main():
             f"⚡ PENDING CLOUD HANDOFFS ({len(pending_cloud_handoffs)}): " +
             ", ".join(f"{h.get('task_type')} ({h.get('reason')})" for h in pending_cloud_handoffs[:3])
         )
+    if delegation_deltas:
+        active_warnings.append(
+            f"🧩 ACTIVE DELEGATION DELTAS ({len(delegation_deltas)}): " +
+            ", ".join(f"{d.get('target_file')}:{d.get('ast_span', '')} ({d.get('action_recipe', '')[:35]})" for d in delegation_deltas[:3])
+        )
+    if project_dna_data and project_dna_data.get("layer_violations_count", 0) > 0:
+        active_warnings.append(
+            f"⚠️ DNA ARCHITECTURE VIOLATIONS ({project_dna_data['layer_violations_count']}): Run 'python .agents/scripts/orion.py dna audit' to inspect."
+        )
+    if obs_broken_probe:
+        active_warnings.append(
+            "🚨 OBSERVATION SCAN BROKEN: Raw observations present in .agents/OBSERVATIONS.md but parser returned 0 entries!"
+        )
+    elif obs_digest:
+        active_warnings.append(f"👁️ OBSERVATION DIGEST: {obs_digest}")
+
     ephemeral_msg = "\n\n".join(active_warnings) if active_warnings else ""
         
     if args.hook:

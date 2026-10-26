@@ -70,7 +70,7 @@ Every HTTP endpoint must return a structured, predictable response envelope:
 ```json
 {
   "success": true,
-  "data": { ... },
+  "data": {},
   "error": null,
   "meta": {
     "timestamp": "2026-10-11T22:45:00Z",

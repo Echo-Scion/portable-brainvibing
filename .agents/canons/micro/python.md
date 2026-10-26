@@ -1,7 +1,6 @@
 ---
 name: python-micro
 description: Micro-canon cheat sheet for Python 3.10+ typing, Pydantic v2, FastAPI, SQLite WAL, and pytest.
-version: 1.0.0
 ---
 
 # Python Micro-Canon & Syntax Cheat Sheet

@@ -144,6 +144,19 @@ class SovereignPromoter:
                 elif not TRIGGER_CUE_RE.search(desc_text):
                     findings.append(AdmissionFinding("structure", "Description must state WHEN to trigger (e.g. 'Use when...' or quote trigger words)", "HARNESS-STR-03"))
 
+                for k, val in fm.items():
+                    if isinstance(val, str):
+                        raw_lines = [l.strip() for l in body.splitlines() if l.strip().startswith(f"{k}:")]
+                        if raw_lines:
+                            val_part = raw_lines[0].split(":", 1)[1].strip()
+                            if ":" in val_part and not (val_part.startswith('"') or val_part.startswith("'") or val_part.startswith("[")):
+                                findings.append(AdmissionFinding(
+                                    "frontmatter_lint",
+                                    f"Unquoted colon in frontmatter key '{k}': quote values containing colons to prevent YAML parse errors",
+                                    "HARNESS-FM-01"
+                                ))
+                                break
+
         # --- CLASS 3: LED Evidence & Provenance ---
         if not intent.reason or not intent.reason.strip():
             findings.append(AdmissionFinding("provenance", "Missing required ledger reason", "HARNESS-LED-01"))
@@ -157,6 +170,29 @@ class SovereignPromoter:
                 findings.append(AdmissionFinding("altitude", f"Progressive disclosure cap exceeded: {total_lines} lines (max 500). Hoist detail into references/", "HARNESS-ALT-01"))
             if PLACEHOLDER_RE.search(body):
                 findings.append(AdmissionFinding("completeness", "Body contains unexpanded placeholder (TODO/FIXME/XXX)", "HARNESS-CMP-01"))
+
+            # Tier-0 Forced Structural Barrier Check (2nd violation escalation)
+            is_tier_0 = (
+                getattr(intent, "forced_tier", "") == "TIER-0" or
+                getattr(intent, "resting_tier", "") == "TIER-0" or
+                "resting_tier: TIER-0" in body.upper() or
+                "tier: TIER-0" in body.upper() or
+                "2ND VIOLATION" in (intent.reason or "").upper() or
+                "FORCED TIER-0" in (intent.reason or "").upper()
+            )
+            if is_tier_0:
+                has_executable = False
+                if intent.files:
+                    for rel_path in intent.files:
+                        if rel_path.endswith((".py", ".sh", ".cmd", ".bat", ".ts", ".js")):
+                            has_executable = True
+                            break
+                if not has_executable and "```python" not in body and "def " not in body:
+                    findings.append(AdmissionFinding(
+                        "tier_0_barrier",
+                        "Tier-0 forced barrier proposal must include an executable script or Python AST check (text-only proposals are rejected)",
+                        "HARNESS-T0-01"
+                    ))
 
         # --- CLASS 5: Path Escapes & Absolute Path Denial ---
         if level == "global" and action in ("create", "update"):
@@ -173,7 +209,19 @@ class SovereignPromoter:
                 if rel_path not in body and not rel_path.replace("\\", "/") in body:
                     findings.append(AdmissionFinding("completeness", f"Carried subfile '{rel_path}' is never referenced in SKILL.md body", "HARNESS-REF-01"))
 
-        # --- CLASS 6: Self-Authored Marker & Umbrella Verification ---
+        # --- CLASS 6: Self-Authored Marker, Sibling Family & Umbrella Verification ---
+        if action == "create":
+            siblings_checked = getattr(intent, "siblings_checked", "true")
+            if siblings_checked.lower() in ("false", "0", "no"):
+                findings.append(AdmissionFinding("curation", f"Skill creation requires mandatory siblings_checked verification for {name}", "HARNESS-SIB-01"))
+            else:
+                try:
+                    from core.harness.curator import ClusterCurator
+                    curator = ClusterCurator(self.skills_dir)
+                    siblings = curator.propose_siblings(name)
+                except Exception as _e_sib:
+                    _log_telemetry(_e_sib, "admission:propose_siblings")
+
         if action == "delete" and intent.absorbed_into:
             target = intent.absorbed_into
             if target not in live_skills:

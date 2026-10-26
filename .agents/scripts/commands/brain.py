@@ -60,6 +60,7 @@ from core.capabilities import (
     enqueue_cloud_handoff,
     clear_cloud_handoff,
     save_neuro_symbolic_cache,
+    execute_neuro_symbolic,
 )
 
 try:
@@ -1049,20 +1050,22 @@ def compile_skill_routes():
                     references.append(os.path.join(".agents", "skills", skill_name, "references", ref_file).replace("\\", "/"))
 
         triggers = list(JIT_TRIGGERS.get(skill_name, []))
+        if skill_name not in triggers:
+            triggers.append(skill_name)
         desc_lower = desc.lower()
-        if "use when" in desc_lower:
-            when_part = desc_lower.split("use when", 1)[1]
-            stopwords = {
-                "when", "user", "code", "files", "using", "across", "before", "after",
-                "with", "from", "into", "that", "this", "your", "make", "task", "tasks",
-                "tool", "tools", "file", "data", "system", "project", "run", "running",
-                "check", "checking", "needs", "need", "should", "could", "would", "about"
-            }
-            words = [
-                w.strip(" .,();:\"'[]") for w in when_part.split()
-                if len(w) >= 5 and w.strip(" .,();:\"'[]") not in triggers and w.strip(" .,();:\"'[]") not in stopwords
-            ]
-            triggers = list(dict.fromkeys(triggers + words[:6]))
+        source_clause = desc_lower.split("use when", 1)[1] if "use when" in desc_lower else desc_lower
+        stopwords = {
+            "when", "user", "code", "files", "using", "across", "before", "after",
+            "with", "from", "into", "that", "this", "your", "make", "task", "tasks",
+            "tool", "tools", "file", "data", "system", "project", "run", "running",
+            "check", "checking", "needs", "need", "should", "could", "would", "about",
+            "orchestrates", "provides", "defines", "manages"
+        }
+        words = [
+            w.strip(" .,();:\"'[]") for w in source_clause.split()
+            if len(w) >= 4 and w.strip(" .,();:\"'[]") not in triggers and w.strip(" .,();:\"'[]") not in stopwords
+        ]
+        triggers = list(dict.fromkeys(triggers + words[:8]))
 
         routes.append({
             "name": skill_name,
@@ -1269,95 +1272,98 @@ STRUCTURAL_RELATIONS = (
 def detect_contradictions():
     """Scan edges for predicate collisions: same source+relation, different target."""
     conn = get_db()
-    cursor = conn.cursor()
-    
-    # Purge legacy false-positive contradictions caused by multi-target structural relations
-    rel_placeholders = ",".join("?" for _ in STRUCTURAL_RELATIONS)
-    cursor.execute(f"""
-        DELETE FROM contradictions 
-        WHERE edge_a_relation IN ({rel_placeholders}) OR edge_b_relation IN ({rel_placeholders})
-    """, STRUCTURAL_RELATIONS + STRUCTURAL_RELATIONS)
-    conn.commit()
-
-    # Check if canonical relations table exists and has rows
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relations'")
-    has_relations = bool(cursor.fetchone())
-    use_canonical = False
-    if has_relations:
-        cursor.execute("SELECT COUNT(*) FROM relations")
-        if cursor.fetchone()[0] > 0:
-            use_canonical = True
-
-    if use_canonical:
-        cursor.execute(f"""
-            SELECT r1.subject_id, r1.predicate, r1.object_id, r2.object_id
-            FROM relations r1
-            JOIN relations r2 ON r1.subject_id = r2.subject_id 
-                AND r1.predicate = r2.predicate 
-                AND r1.object_id != r2.object_id
-            WHERE r1.object_id < r2.object_id
-                AND r1.predicate NOT IN ({rel_placeholders})
-        """, STRUCTURAL_RELATIONS)
-    else:
-        # Find edges where same source_id + exclusive relation points to different targets
-        cursor.execute(f"""
-            SELECT e1.source_id, e1.relation, e1.target_id, e2.target_id
-            FROM edges e1
-            JOIN edges e2 ON e1.source_id = e2.source_id 
-                AND e1.relation = e2.relation 
-                AND e1.target_id != e2.target_id
-            WHERE e1.target_id < e2.target_id
-                AND e1.relation NOT IN ({rel_placeholders})
-        """, STRUCTURAL_RELATIONS)
-    
-    collisions = cursor.fetchall()
-    
-    if not collisions:
-        print("[OK] No predicate collisions detected in the graph.")
-        conn.close()
-        return
-    
-    print(f"[DETECT] Found {len(collisions)} potential contradictions:\n")
-    
-    new_count = 0
-    for src, rel, target_a, target_b in collisions:
-        # Check if this contradiction is already recorded
-        cursor.execute("""
-            SELECT id FROM contradictions 
-            WHERE edge_a_source = ? AND edge_a_relation = ? 
-            AND edge_a_target = ? AND edge_b_target = ?
-        """, (src, rel, target_a, target_b))
+    try:
+        cursor = conn.cursor()
         
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO contradictions 
-                (edge_a_source, edge_a_target, edge_a_relation, edge_b_source, edge_b_target, edge_b_relation)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (src, target_a, rel, src, target_b, rel))
-            new_count += 1
-            print(f"  [NEW] ({src}) --[{rel}]--> ({target_a}) vs ({target_b})")
+        # Purge legacy false-positive contradictions caused by multi-target structural relations
+        rel_placeholders = ",".join("?" for _ in STRUCTURAL_RELATIONS)
+        cursor.execute(f"""
+            DELETE FROM contradictions 
+            WHERE edge_a_relation IN ({rel_placeholders}) OR edge_b_relation IN ({rel_placeholders})
+        """, STRUCTURAL_RELATIONS + STRUCTURAL_RELATIONS)
+        conn.commit()
+
+        # Check if canonical relations table exists and has rows
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relations'")
+        has_relations = bool(cursor.fetchone())
+        use_canonical = False
+        if has_relations:
+            cursor.execute("SELECT COUNT(*) FROM relations")
+            if cursor.fetchone()[0] > 0:
+                use_canonical = True
+
+        if use_canonical:
+            cursor.execute(f"""
+                SELECT r1.subject_id, r1.predicate, r1.object_id, r2.object_id
+                FROM relations r1
+                JOIN relations r2 ON r1.subject_id = r2.subject_id 
+                    AND r1.predicate = r2.predicate 
+                    AND r1.object_id != r2.object_id
+                WHERE r1.object_id < r2.object_id
+                    AND r1.predicate NOT IN ({rel_placeholders})
+            """, STRUCTURAL_RELATIONS)
         else:
-            print(f"  [KNOWN] ({src}) --[{rel}]--> ({target_a}) vs ({target_b})")
-    
-    conn.commit()
-    conn.close()
-    print(f"\n[DETECT] {new_count} new contradictions recorded, {len(collisions) - new_count} already known.")
+            # Find edges where same source_id + exclusive relation points to different targets
+            cursor.execute(f"""
+                SELECT e1.source_id, e1.relation, e1.target_id, e2.target_id
+                FROM edges e1
+                JOIN edges e2 ON e1.source_id = e2.source_id 
+                    AND e1.relation = e2.relation 
+                    AND e1.target_id != e2.target_id
+                WHERE e1.target_id < e2.target_id
+                    AND e1.relation NOT IN ({rel_placeholders})
+            """, STRUCTURAL_RELATIONS)
+        
+        collisions = cursor.fetchall()
+        
+        if not collisions:
+            print("[OK] No predicate collisions detected in the graph.")
+            return
+        
+        print(f"[DETECT] Found {len(collisions)} potential contradictions:\n")
+        
+        new_count = 0
+        for src, rel, target_a, target_b in collisions:
+            # Check if this contradiction is already recorded
+            cursor.execute("""
+                SELECT id FROM contradictions 
+                WHERE edge_a_source = ? AND edge_a_relation = ? 
+                AND edge_a_target = ? AND edge_b_target = ?
+            """, (src, rel, target_a, target_b))
+            
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO contradictions 
+                    (edge_a_source, edge_a_target, edge_a_relation, edge_b_source, edge_b_target, edge_b_relation)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (src, target_a, rel, src, target_b, rel))
+                new_count += 1
+                print(f"  [NEW] ({src}) --[{rel}]--> ({target_a}) vs ({target_b})")
+            else:
+                print(f"  [KNOWN] ({src}) --[{rel}]--> ({target_a}) vs ({target_b})")
+        
+        conn.commit()
+        print(f"\n[DETECT] {new_count} new contradictions recorded, {len(collisions) - new_count} already known.")
+    finally:
+        conn.close()
 
 
 def list_unresolved():
     """List all unresolved contradictions."""
     conn = get_db()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, edge_a_source, edge_a_relation, edge_a_target, edge_b_target, detected_at
-        FROM contradictions 
-        WHERE resolution = 'unresolved'
-        ORDER BY detected_at DESC
-    """)
-    
-    rows = cursor.fetchall()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, edge_a_source, edge_a_relation, edge_a_target, edge_b_target, detected_at
+            FROM contradictions 
+            WHERE resolution = 'unresolved'
+            ORDER BY detected_at DESC
+        """)
+        
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
     
     if not rows:
         print("[OK] No unresolved contradictions.")
@@ -1487,11 +1493,6 @@ def get_cached_nanobrain():
     global _CACHED_NANOBRAIN
     if _CACHED_NANOBRAIN is None:
         try:
-            import sys
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            if script_dir not in sys.path:
-                sys.path.insert(0, script_dir)
-            from brain import NanoBrain
             _CACHED_NANOBRAIN = NanoBrain()
         except Exception:
             _CACHED_NANOBRAIN = False
@@ -1632,6 +1633,8 @@ def init_db():
             "category": "ALTER TABLE pages ADD COLUMN category TEXT;",
             "pillar": "ALTER TABLE pages ADD COLUMN pillar TEXT;",
             "updated": "ALTER TABLE pages ADD COLUMN updated TEXT;",
+            "generation_id": "ALTER TABLE pages ADD COLUMN generation_id TEXT;",
+            "superseded_by": "ALTER TABLE pages ADD COLUMN superseded_by TEXT;",
         }
         for col, stmt in cols_to_add.items():
             if col not in existing_page_cols:
@@ -1672,9 +1675,20 @@ def init_db():
             id TEXT PRIMARY KEY,
             content TEXT,
             embedding BLOB,
-            created_at REAL
+            created_at REAL,
+            generation_id TEXT,
+            superseded_by TEXT
         )
     ''')
+    try:
+        c.execute("PRAGMA table_info(archival_vectors);")
+        existing_vec_cols = {row[1] for row in c.fetchall()}
+        if "generation_id" not in existing_vec_cols:
+            c.execute("ALTER TABLE archival_vectors ADD COLUMN generation_id TEXT;")
+        if "superseded_by" not in existing_vec_cols:
+            c.execute("ALTER TABLE archival_vectors ADD COLUMN superseded_by TEXT;")
+    except Exception as _ve:
+        _log_telemetry(_ve, 'brain.py:archival_vectors_migration')
 
     conn.commit()
     conn.close()
@@ -1834,7 +1848,14 @@ def classify_file(filepath: str, content: str) -> tuple:
     _, ext = os.path.splitext(filepath_normalized.lower())
     if ext in RAW_EXTS:
         category = "raw-source"
-        confidence = "raw"
+        try:
+            from core.dna import classify_file_to_tier
+            rel_p = os.path.relpath(filepath, WORKSPACE_DIR).replace("\\", "/")
+            tier_key, _, _, _ = classify_file_to_tier(rel_p)
+            category = f"dna:{tier_key}"
+        except Exception as _de:
+            _log_telemetry(_de, "brain.py:classify_file:dna")
+        confidence = "authoritative"
         pillar = "tech"
         return category, confidence, pillar
     elif ext in [".yaml", ".json"]:
@@ -2151,7 +2172,7 @@ def ingest_file(filepath: str, autonomy_level="balanced", manifest=None, log_lin
                 c.execute('DELETE FROM edges WHERE source_id = ?', (target_path,))
                 c.execute('DELETE FROM relations WHERE source_path = ? OR subject_id = ?', (target_path, target_path))
                 
-                # --- SQL-Backed WikiLinks Extraction ---
+                # --- SQL-Backed WikiLinks & Markdown Relationship Extraction ---
                 if ext.lower() == '.md':
                     import re
                     text_no_code = re.sub(r'```.*?```', '', content_str, flags=re.DOTALL)
@@ -2179,6 +2200,30 @@ def ingest_file(filepath: str, autonomy_level="balanced", manifest=None, log_lin
                                 INSERT OR IGNORE INTO edges (source_id, target_id, relation, confidence, source_path)
                                 VALUES (?, ?, ?, 1.0, ?)
                             ''', (target_path, name, relation, target_path))
+
+                    # Deterministic Markdown Header & Section Hierarchy Extraction
+                    headings = re.findall(r'(?m)^(#{1,4})\s+(.+)$', text_no_code)
+                    parent_stack = []
+                    for h_hashes, h_title in headings:
+                        h_level = len(h_hashes)
+                        clean_title = re.sub(r'\[.*?\]|\(.*?\)|[*_`]', '', h_title).strip()
+                        if not clean_title:
+                            continue
+                        section_id = f"{target_path}#{clean_title.lower().replace(' ', '-')[:40]}"
+                        c.execute('''
+                            INSERT OR IGNORE INTO nodes (id, type, name, source_path)
+                            VALUES (?, ?, ?, ?)
+                        ''', (section_id, 'MarkdownSection', clean_title, target_path))
+                        
+                        while parent_stack and parent_stack[-1][0] >= h_level:
+                            parent_stack.pop()
+                            
+                        parent_id = parent_stack[-1][1] if parent_stack else target_path
+                        c.execute('''
+                            INSERT OR IGNORE INTO edges (source_id, target_id, relation, confidence, source_path)
+                            VALUES (?, ?, 'has_section', 1.0, ?)
+                        ''', (parent_id, section_id, target_path))
+                        parent_stack.append((h_level, section_id))
                 # --- Structural Triplets ---
                 if ext.lower() in RAW_EXTS and 'triplets' in locals() and triplets:
                     c.execute('''
@@ -2339,8 +2384,74 @@ def rebuild_index():
         print(f"Failed to rebuild index: {e}")
 
 
+def semantic_discovery(paths) -> tuple:
+    """
+    Shallow scans the topology of the provided paths and uses execute_neuro_symbolic
+    to classify which directories are canonical (docs, logic) and which are noise (build, cache).
+    Returns (canonical_dirs, noise_dirs).
+    """
+    print("[NEURAL COPROCESSOR] Analyzing workspace topology...")
+
+    topology = {}
+    for path in paths:
+        if os.path.isdir(path):
+            try:
+                entries = os.listdir(path)
+                topology[path] = entries
+            except Exception as e:
+                pass
+
+    if not topology:
+        return [], []
+
+    prompt = f"""
+Analyze this workspace topology and classify the root level directories.
+Topology:
+{json.dumps(topology, indent=2)}
+
+Return a valid JSON object with two arrays:
+"canonical_dirs": [directories containing rules, docs, logic, source code, canonical knowledge]
+"noise_dirs": [directories containing build outputs, vendor libs, caches, binary outputs, generated code, scratch pads]
+
+Be aggressive in filtering noise.
+"""
+
+    def validate_classification(result):
+        if not isinstance(result, dict):
+            return False, "Result must be a dictionary."
+        if "canonical_dirs" not in result or "noise_dirs" not in result:
+            return False, "Result must contain canonical_dirs and noise_dirs."
+        if not isinstance(result["canonical_dirs"], list) or not isinstance(result["noise_dirs"], list):
+            return False, "canonical_dirs and noise_dirs must be lists."
+        return True, ""
+
+    def fallback_classification():
+        return {"canonical_dirs": [], "noise_dirs": []}
+
+    try:
+        result, _ = execute_neuro_symbolic(
+            task_type="semantic_discovery",
+            prompt=prompt,
+            validator_fn=validate_classification,
+            fallback_fn=fallback_classification,
+            system_prompt="You are a senior system architect analyzing workspace topology. Output ONLY valid JSON containing 'canonical_dirs' and 'noise_dirs' lists.",
+            timeout_sec=3.0,
+            force_refresh=False
+        )
+        if result:
+            return result.get("canonical_dirs", []), result.get("noise_dirs", [])
+    except Exception as e:
+        print(f"[NEURAL COPROCESSOR] Semantic discovery failed: {e}. Falling back to static rules.")
+
+    return [], []
+
 def get_smart_ignore_dirs(target_path):
-    ignores = {".git", ".orion", "__pycache__", "node_modules", "build", ".dart_tool", ".idea", ".vscode", ".gradle", "target", "venv", "env", "archive", "docs", "templates", "tests", "evals", "scratch", ".scratch", "test"}
+    ignores = {
+        ".git", ".orion", "__pycache__", "node_modules", "build", "dist", "out", "bin",
+        ".dart_tool", ".idea", ".vscode", ".gradle", "target", "venv", "env", "archive",
+        "docs", "templates", "tests", "evals", "scratch", ".scratch", "test", ".gemini",
+        ".antigravity-plugin", "coverage", ".pytest_cache"
+    }
     if os.path.isfile(target_path):
         target_path = os.path.dirname(target_path)
     curr = os.path.abspath(target_path)
@@ -2394,15 +2505,45 @@ def ingest_main(paths, autonomy, embed=False):
                 _log_telemetry(_e, 'orion_ops.py:806')
 
         missing_paths = []
+
+        # [SMART INGESTION]: LLM Phase 1 - Discovery & Phase 2 - Reasoning
+        canonical_dirs, noise_dirs = semantic_discovery(paths)
+        if noise_dirs:
+            print(f"[NEURAL COPROCESSOR] Identified noise directories to skip: {', '.join(noise_dirs)}")
+
         for path in paths:
             ignore_dirs = get_smart_ignore_dirs(path)
+            # Inject LLM-identified noise dirs into static ignores
+            for noise_dir in noise_dirs:
+                ignore_dirs.add(noise_dir)
+
             if os.path.isdir(path):
+                sub_repo_indicators = {"package.json", "pyproject.toml", "pubspec.yaml", "Cargo.toml", ".git", "go.mod"}
+                sub_repo_build_ignores = {"dist", "build", "node_modules", ".pytest_cache", "out", "bin", ".scratch", "coverage", ".dart_tool", "target", "__pycache__"}
+
                 for root, dirs, files in os.walk(path):
+                    # Dynamic Sub-Repo Awareness: If sub-directory is a nested project root
+                    if any(f in files for f in sub_repo_indicators):
+                        for b_ignore in sub_repo_build_ignores:
+                            if b_ignore in dirs:
+                                dirs.remove(b_ignore)
+
                     dirs[:] = [d for d in dirs if d not in ignore_dirs]
                         
                     for f in files:
                         if f.lower().endswith(valid_exts):
                             full_path = os.path.join(root, f)
+
+                            # File Size Circuit Breaker: Skip oversized configuration/data files
+                            if f.lower().endswith((".json", ".yaml", ".yml")):
+                                try:
+                                    f_size = os.path.getsize(full_path)
+                                    if f_size > 100 * 1024:  # 100 KB limit
+                                        print(f"[SKIP] Ignored oversized data file ({f_size // 1024} KB): {full_path}")
+                                        continue
+                                except Exception:
+                                    pass
+
                             target_path = ingest_file(full_path, autonomy, manifest=manifest, log_lines=log_lines, conn=shared_conn, embed=embed, commit=False)
                             if target_path:
                                 ingested_files.append((full_path, target_path))
@@ -2466,7 +2607,11 @@ def ingest_main(paths, autonomy, embed=False):
             pending_files = []
             if nb.ping(capability="LLM"):
                 print(f"\n[NEURAL COPROCESSOR] Attempting automated triplet extraction via Ollama ({nb.model})...")
-                for orig, target in ingested_files:
+                max_local_triplet_files = 3
+                for idx, (orig, target) in enumerate(ingested_files):
+                    if idx >= max_local_triplet_files:
+                        pending_files.append((orig, target))
+                        continue
                     try:
                         with open(target, "r", encoding="utf-8", errors="ignore") as tf:
                             t_content = tf.read()
@@ -2514,13 +2659,14 @@ def ingest_main(paths, autonomy, embed=False):
                     reason="local_model_cannot_extract_triplets",
                 )
             print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
-            print("Files:")
-            for i, (orig, target) in enumerate(pending_files, 1):
-                rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
-                rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
-                print(f"{i}. {rel_target} (source: {rel_orig})")
-                print("[ACTION] Read each source file, extract 3-5 triplets and format as JSON list of dicts with keys: `s` (subject), `p` (predicate), `o` (object), `src` (source path).")
-                print("then run: python .agents/scripts/orion.py orion_ops inject_triplets '<json>'")
+            if pending_files:
+                print("Files:")
+                for i, (orig, target) in enumerate(pending_files, 1):
+                    rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
+                    rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
+                    print(f"{i}. {rel_target} (source: {rel_orig})")
+                print("[ACTION] Read each source file, extract 3-5 triplets, save as JSON list to `.orion/scratch/triplets.json` (`s`, `p`, `o`, `src`),")
+                print("then run: python .agents/scripts/orion.py brain inject_triplets .orion/scratch/triplets.json")
                 
         else:
             print("No new or updated markdown files found to ingest. Graph is up to date.")
@@ -3086,6 +3232,66 @@ def gc_main(argv=None):
     except Exception as _amm_err:
         _log_telemetry(_amm_err, "brain.py:gc_vectors")
 
+    # 4d. Compact processed episodic session and milestone files into SQLite pages and sweep redundant disk files
+    try:
+        episodic_processed_dirs = [
+            os.path.join(ORION_DIR, "episodic", "sessions", "processed"),
+            os.path.join(ORION_DIR, "episodic", "milestones", "processed"),
+        ]
+        for ep_dir in episodic_processed_dirs:
+            if os.path.exists(ep_dir):
+                for f in os.listdir(ep_dir):
+                    if f.endswith(".md"):
+                        f_path = os.path.join(ep_dir, f)
+                        try:
+                            with open(f_path, "r", encoding="utf-8", errors="replace") as ef:
+                                f_content = ef.read()
+                            # Ingest into pages archive with superseded marker
+                            rel_ep_path = os.path.relpath(f_path, WORKSPACE_DIR).replace(os.sep, "/")
+                            if os.path.exists(DB_PATH):
+                                conn_ep = connect_sqlite(DB_PATH)
+                                with conn_ep:
+                                    conn_ep.execute("""
+                                    INSERT OR REPLACE INTO pages (path, sha256, category, pillar, updated, access_count, importance, superseded_by)
+                                    VALUES (?, ?, 'episodic_archive', 'history', datetime('now'), 0, 0.5, 'GC_COMPACTED')
+                                    """, (rel_ep_path, hashlib.sha256(f_content.encode('utf-8')).hexdigest()))
+                                conn_ep.close()
+                            reclaimed_bytes += os.path.getsize(f_path)
+                            os.remove(f_path)
+                            cleaned_items += 1
+                        except Exception as _ef_err:
+                            _log_telemetry(_ef_err, f"brain.py:gc_ep_file:{f}")
+    except Exception as _ep_err:
+        _log_telemetry(_ep_err, "brain.py:gc_episodic_sweep")
+
+    # 4e. Compact stale delegations and temporary working caches
+    try:
+        delegations_dir = os.path.join(ORION_DIR, "working", "delegations")
+        if os.path.exists(delegations_dir):
+            for df in os.listdir(delegations_dir):
+                df_path = os.path.join(delegations_dir, df)
+                if os.path.isfile(df_path) and (df.startswith("result-") or df.endswith((".tmp", ".bak", ".log"))):
+                    try:
+                        reclaimed_bytes += os.path.getsize(df_path)
+                        os.remove(df_path)
+                        cleaned_items += 1
+                    except Exception:
+                        pass
+    except Exception as _del_err:
+        _log_telemetry(_del_err, "brain.py:gc_delegations_sweep")
+
+    # 4f. Check if active observations require generational rollover
+    try:
+        from commands.reflexion import ObservationLedger
+        ledger = ObservationLedger()
+        active_obs = ledger.get_all_observations()
+        if len(active_obs) > 20:
+            rollover_res = ledger.rollover_generation(max_active_keep=10)
+            if rollover_res.get("superseded_count", 0) > 0:
+                print(f" [PASS] Generational Rollover executed: archived {rollover_res['superseded_count']} observations into {rollover_res['head_generation_id']}.")
+    except Exception as _ro_err:
+        _log_telemetry(_ro_err, "brain.py:gc_obs_rollover")
+
     # Record GC timestamp
     last_gc_file = os.path.join(ORION_DIR, "working", ".last_gc")
     try:
@@ -3215,25 +3421,40 @@ def handoff_main(sub_args: List[str]) -> int:
 
         if matched_type == "PACK_TAXONOMY":
             try:
-                from utils.packer import ProjectTaxonomy, save_taxonomy_cache
-                tree_hash = parsed_result.get("tree_hash", "cloud_resolved")
-                clusters = parsed_result.get("clusters", {})
-                f2c = {}
-                skel_cand = set(parsed_result.get("skeleton_candidates", []))
-                for slug, info in clusters.items():
-                    grav = info.get("gravity", 5)
-                    title = info.get("title", slug)
-                    for f in info.get("files", []):
-                        f2c[f] = (grav, slug.lower(), title)
-                tax = ProjectTaxonomy(
-                    tree_hash=tree_hash,
-                    provider="cloud_agent",
-                    clusters=clusters,
-                    file_to_cluster=f2c,
-                    skeleton_candidates=skel_cand,
+                from utils.packer import (
+                    ProjectTaxonomy,
+                    save_taxonomy_cache,
+                    ContextPacker,
+                    summarize_module_buckets,
+                    _compile_prefix_taxonomy_response,
+                    compute_tree_hash,
                 )
-                save_taxonomy_cache(WORKSPACE_DIR, tax)
-                print(f"[SUCCESS] Injected cloud-resolved taxonomy ({len(clusters)} clusters) into cache.")
+                packer = ContextPacker(WORKSPACE_DIR)
+                all_f = packer.collect_files()
+                tree_hash = parsed_result.get("tree_hash") or compute_tree_hash(WORKSPACE_DIR, all_f)
+                if "bundles" in parsed_result or "domains" in parsed_result:
+                    buckets = summarize_module_buckets(WORKSPACE_DIR, all_f)
+                    tax = _compile_prefix_taxonomy_response(parsed_result, "cloud_agent", tree_hash, buckets, all_f)
+                else:
+                    clusters = parsed_result.get("clusters", {})
+                    f2c = {}
+                    skel_cand = set(parsed_result.get("skeleton_candidates", []))
+                    for slug, info in clusters.items():
+                        grav = int(info.get("gravity", 5))
+                        title = info.get("title", slug)
+                        for f in info.get("files", []):
+                            f2c[f] = (grav, slug, title)
+                    tax = ProjectTaxonomy(
+                        tree_hash=tree_hash,
+                        provider="cloud_agent",
+                        project_summary=parsed_result.get("project_summary", "Cloud Resolved Repository"),
+                        clusters=clusters,
+                        file_to_cluster=f2c,
+                        skeleton_candidates=skel_cand,
+                    )
+                if tax:
+                    save_taxonomy_cache(WORKSPACE_DIR, tax)
+                    print(f"[SUCCESS] Injected cloud-resolved taxonomy ({len(tax.clusters)} clusters) into cache.")
             except Exception as pe:
                 print(f"[WARN] Failed to save taxonomy cache: {pe}")
 
@@ -3419,6 +3640,15 @@ def main():
         return diagnostics_main(sub_args)
     elif cmd == "memory":
         return memory_main(sub_args)
+    elif cmd in ("recall", "anchor"):
+        from commands.rag import rag_main
+        return rag_main(["recall"] + sub_args)
+    elif cmd in ("rollover", "rollover-observations"):
+        from commands.reflexion import ObservationLedger
+        ledger = ObservationLedger()
+        res = ledger.rollover_generation(max_active_keep=10)
+        print(json.dumps(res, indent=2))
+        return 0
     elif cmd in ("handoff", "cloud_handoff", "cloud-handoff"):
         return handoff_main(sub_args)
     else:

@@ -1,6 +1,6 @@
-# 🛡️ Meta-Agent & Foundation Infrastructure Audit Protocol (v2.0 — Calibrated & Convergent)
+# 🛡️ Meta-Agent & Foundation Infrastructure Audit Protocol (Calibrated & Convergent)
 
-> **Purpose**: Algorithmic self-audit protocol for the `.agents/` ecosystem, CLI tools, hooks, local graph databases, templates, and agentic workflows. Codified from the Calibrated Principal Systems, Anti-Cosplay Architecture & Deterministic Zero-Trust Scoring Audit (v2.0).
+> **Purpose**: Algorithmic self-audit protocol for the `.agents/` ecosystem, CLI tools, hooks, local graph databases, templates, and agentic workflows. Codified from the Calibrated Principal Systems, Anti-Cosplay Architecture & Deterministic Zero-Trust Scoring Audit.
 
 ---
 
@@ -36,7 +36,7 @@ The Agent MUST apply a calibrated, evidence-bound auditor posture to prevent unb
 
 ---
 
-## 2. Deterministic 100-Point Locked Ledger (v2.0)
+## 2. Deterministic 100-Point Locked Ledger
 
 Scoring starts at **100 Points** across 7 Audit Vectors. Deduct points mechanically ONLY for findings that cross the **Materiality Threshold (§ 1.5)**. Minimum score per vector is `0`.
 
@@ -230,23 +230,58 @@ If material defects exist, the Agent MUST organize tasks into 4 topological depe
 - **Phase 3: Gateway, Dispatcher & Manifest Harmonization** (CLI router `orion.py`, help groups, documentation metrics)
 - **Phase 4: Mechanical Verification & End-to-End Evidence** (Running the 8 verification gates and test suites)
 
-Every remediation task MUST be formatted as an **AI Execution Action Card**:
+**Bottom-Up Same-File Ordering Law (Mandatory for BUDGET/STANDARD Executors)**:
+When multiple tasks modify the **same `Target File`**, tasks MUST be ordered **Bottom-Up** (from highest line number to lowest line number, e.g. `L450-L470` before `L80-L95`) so applying earlier edits never shifts line numbers for subsequent edits.
+
+**Dual-Regime Phasing Law (Topological Blast-Radius Unlocking vs Disjoint Parallel Partitioning)**:
+- **Coupled Tasks (Topological Chain)**: Tasks that depend on each other MUST be sequenced from high blast radius (central contracts/primitives `T0/T1`) to low blast radius (`T3/T4`). Completing Phase 1 unlocks and simplifies Phase 2.
+- **Disjoint Tasks (Parallel Tracks)**: Independent tasks touching separate domains with zero dependency overlap ($J \le 0.20$) MUST be tagged as `[PARALLEL-TRACK-A]`, `[PARALLEL-TRACK-B]` so they can be partitioned and executed across multiple subagents concurrently.
+
+Every remediation task MUST be formatted as a self-contained **AI Execution Action Card** with verbatim `Search` and `Replacement` blocks:
 ```markdown
 ### Task [PHASE].[NUMBER]: [Brief Action Title]
 - **Target File**: `relative/path/to/file.py`
-- **Target Span / Symbol**: Lines X-Y or function `func_name()`
+- **Target Span / Symbol**: Lines X-Y (`func_name`)
 - **Defect Category & Penalty**: `[PENALTY_CODE]` (-X Pts)
 - **Root Cause**: [Concise 1-sentence explanation of the runtime or AST defect]
 - **Prerequisite Imports**: [Explicit symbols required at the top of the file]
-- **Exact Drop-In Code Replacement**:
+- **Verbatim Search Block (Current Code on Disk — Include 2 Unchanged Anchor Lines)**:
   ```python
-  # Complete, production-ready replacement code block without dummy placeholders
+  def existing_function_anchor():
+      buggy_call()
+  ```
+- **Exact Drop-In Replacement Block**:
+  ```python
+  def existing_function_anchor():
+      fixed_call()
   ```
 - **Verification Gate**:
   ```bash
-  # Exact terminal command to mechanically verify this fix (Exit Code 0 required)
+  python .agents/scripts/orion.py verify --fast
   ```
 ```
 
 ### 4. EXECUTIVE TO-DO CHECKLIST
 An interactive task checklist (`[ ]`) summarizing all Phase 1–4 action items for sequential progress tracking.
+
+---
+
+## 5. 7-Seam Synergy Matrix & Subsystem Catalog (Foundation Subsystems)
+
+### A. Subsystem Catalog (Master Core Map)
+1. **Pillar 1: Knowledge Kernel & Local Brain (`core/orion_graph.py`, `commands/brain.py`, `commands/rag.py`)**: SQLite FTS5 lexical matching, float32 BLOB vector cosine similarity, RRF fusion ranking, graph 1-hop traversal via `relations`/`edges`.
+2. **Pillar 2: Capability Engine & RTK Proxy (`core/capabilities.py`)**: Bun runtime execution, token budgeting, RTK capability proxy.
+3. **Pillar 3: Self-Learning Harness & Admission (`core/harness/engine.py`, `core/harness/staging.py`)**: Skill staging, validation, auto-harness promotion, reflection loop.
+4. **Pillar 4: Hermetic Execution & Verification (`core/sandbox.py`, `commands/verify_agents.py`, `evals/`)**: AST-gated scratchpad runner, mechanical/security assertions, consequence verification.
+5. **Support & CLI Utilities (`orion.py`, `utils/packer.py`, `commands/compact.py`)**: Unified CLI router, universal context packager, multi-tier compactor.
+
+### B. 7-Seam Synergy Matrix
+The 7 structural seams connect foundation components across runtime execution:
+- **Seam 1 (`@sovereign_catch`)**: Wraps runtime exceptions into structured telemetry and errors.
+- **Seam 2 (`failures.log`)**: Appends structured failure traces for offline analysis.
+- **Seam 3 (`ReflexionLoop.auto_heal`)**: Analyzes failure traces to synthesize self-healing fixes.
+- **Seam 4 (`HarnessEngine`)**: Evaluates auto-healed skill proposals against admission safety gates.
+- **Seam 5 (`OrionGraphStore`)**: Persists admitted patterns and knowledge graph triplets into SQLite.
+- **Seam 6 (`OrionCompactor`)**: Compacts graph memory across 5 compression tiers (lite, stream, full, aggressive, ultra).
+- **Seam 7 (`SovereignSandbox`)**: Executes AST-gated sandbox checks to ensure zero state degradation.
+

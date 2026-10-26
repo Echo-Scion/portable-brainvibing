@@ -116,6 +116,123 @@ def calculate_retrieval_score(base_relevance: float, created_timestamp: float) -
     return base_relevance * decay_factor
 
 
+# === OBSERVATIONAL MEMORY: EPHEMERAL ANCHOR IDS & DYNAMIC TOKEN BUDGETING ===
+
+ANCHOR_ID_PATTERN = re.compile(r"^\[(O\d+(?:-N\d+)?)\]\s*")
+OBSERVATION_DATE_HEADER_PATTERN = re.compile(r"^\s*Date:\s+")
+XML_TAG_PATTERN = re.compile(r"^\s*</?[a-z][^>]*>\s*$", re.IGNORECASE)
+MARKDOWN_GROUP_HEADING_PATTERN = re.compile(r"^\s*##\s+Group\s+`[^`]+`\s*$")
+MARKDOWN_GROUP_METADATA_PATTERN = re.compile(r"^\s*_range:\s*`[^`]*`_\s*$")
+
+
+def parse_anchor_id(line: str) -> Optional[str]:
+    """Extracts anchor ID from line like '[O1] ...' or '[O1-N2] ...'."""
+    m = ANCHOR_ID_PATTERN.match(line.strip())
+    return m.group(1) if m else None
+
+
+def should_anchor_line(line: str) -> bool:
+    trimmed = line.strip()
+    if not trimmed:
+        return False
+    if parse_anchor_id(trimmed):
+        return False
+    if (
+        OBSERVATION_DATE_HEADER_PATTERN.match(trimmed)
+        or XML_TAG_PATTERN.match(trimmed)
+        or MARKDOWN_GROUP_HEADING_PATTERN.match(trimmed)
+        or MARKDOWN_GROUP_METADATA_PATTERN.match(trimmed)
+    ):
+        return False
+    return True
+
+
+def get_indentation_depth(line: str) -> int:
+    m = re.match(r"^\s*", line)
+    leading = m.group(0) if m else ""
+    return len(leading.replace("\t", "  ")) // 2
+
+
+def inject_anchor_ids(observations: str) -> str:
+    """
+    Injects hierarchical ephemeral anchor IDs ([O1], [O1-N1], etc.) into observation text.
+    Preserves structural headers, XML blocks, and existing anchors.
+    """
+    if not observations:
+        return observations
+
+    lines = observations.split("\n")
+    top_counter = 0
+    nested_counter = 0
+    changed = False
+    in_fence = False
+
+    for i in range(len(lines)):
+        line = lines[i]
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+
+        if in_fence or not should_anchor_line(line):
+            continue
+
+        depth = get_indentation_depth(line)
+        if depth == 0:
+            top_counter += 1
+            nested_counter = 0
+        else:
+            if top_counter == 0:
+                top_counter = 1
+            nested_counter += 1
+
+        anchor_id = f"O{top_counter}" if nested_counter == 0 else f"O{top_counter}-N{nested_counter}"
+        m = re.match(r"^\s*", line)
+        leading = m.group(0) if m else ""
+        content = line[len(leading):]
+        lines[i] = f"{leading}[{anchor_id}] {content}"
+        changed = True
+
+    return "\n".join(lines) if changed else observations
+
+
+def strip_anchor_ids(observations: str) -> str:
+    """Strips ephemeral anchor IDs from observation lines."""
+    if not observations:
+        return observations
+    return re.sub(r"(^|\n)([^\S\n]*)\[(O\d+(?:-N\d+)?)\][^\S\n]*", r"\1\2", observations)
+
+
+def calculate_dynamic_memory_budget(
+    observation_tokens: int,
+    max_message_budget: int = 12000,
+    max_observation_budget: int = 4000,
+    retention_floor: int = 2000
+) -> Dict[str, Any]:
+    """
+    Dynamic token budget sharing with retention floor.
+    When observations are small, messages can expand.
+    When observations grow large, observation budget tightens and triggers rollover.
+    """
+    total_budget = max_message_budget + max_observation_budget
+    safe_obs = max(0, observation_tokens)
+
+    # Effective message budget is what's left after observations, with a guaranteed retention floor
+    effective_message_budget = max(retention_floor, total_budget - safe_obs)
+    effective_obs_budget = min(max_observation_budget, total_budget - effective_message_budget)
+
+    needs_rollover = safe_obs >= max_observation_budget
+
+    return {
+        "observation_tokens": safe_obs,
+        "max_observation_budget": max_observation_budget,
+        "effective_message_budget": effective_message_budget,
+        "effective_observation_budget": effective_obs_budget,
+        "total_budget": total_budget,
+        "retention_floor": retention_floor,
+        "needs_rollover": needs_rollover
+    }
+
+
 # === FLOAT32 VECTOR BLOB SERIALIZATION & COSINE SIMILARITY (Tier 2 Archival Memory) ===
 
 from core.db import pack_vector, unpack_vector, cosine_similarity
@@ -347,9 +464,22 @@ class ArchivalMemoryManager:
             pillar TEXT,
             updated TEXT,
             access_count INTEGER DEFAULT 0,
-            importance REAL DEFAULT 1.0
+            importance REAL DEFAULT 1.0,
+            generation_id TEXT,
+            superseded_by TEXT
         );
         """)
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(pages)")
+            cols = {row[1] for row in cur.fetchall()}
+            if "generation_id" not in cols:
+                conn.execute("ALTER TABLE pages ADD COLUMN generation_id TEXT;")
+            if "superseded_by" not in cols:
+                conn.execute("ALTER TABLE pages ADD COLUMN superseded_by TEXT;")
+        except Exception as _e:
+            _log_telemetry(_e, "ArchivalMemoryManager:_init_pages_migration")
+
         try:
             conn.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
@@ -366,10 +496,24 @@ class ArchivalMemoryManager:
             id TEXT PRIMARY KEY,
             content TEXT,
             embedding BLOB,
-            created_at REAL
+            created_at REAL,
+            generation_id TEXT,
+            superseded_by TEXT
         );
         """)
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(archival_vectors)")
+            cols = {row[1] for row in cur.fetchall()}
+            if "generation_id" not in cols:
+                conn.execute("ALTER TABLE archival_vectors ADD COLUMN generation_id TEXT;")
+            if "superseded_by" not in cols:
+                conn.execute("ALTER TABLE archival_vectors ADD COLUMN superseded_by TEXT;")
+        except Exception as _e:
+            _log_telemetry(_e, "ArchivalMemoryManager:_init_vectors_migration")
+
         conn.execute("CREATE INDEX IF NOT EXISTS idx_archival_vectors_created_at ON archival_vectors(created_at);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_archival_vectors_superseded ON archival_vectors(superseded_by);")
 
     def prune_vectors(self, max_rows: int = 5000) -> int:
         """Prunes excess vector embeddings from archival_vectors keeping the latest max_rows."""
@@ -430,13 +574,16 @@ class ArchivalMemoryManager:
             _log_telemetry(e, 'memory.py:ArchivalMemoryManager.insert_vector')
             return False
 
-    def search_vectors(self, query_vec: List[float], top_k: int = 5) -> List[Tuple[str, str, float]]:
-        """Performs in-memory cosine similarity search across float32 BLOB vectors."""
+    def search_vectors(self, query_vec: List[float], top_k: int = 5, include_superseded: bool = False) -> List[Tuple[str, str, float]]:
+        """Performs in-memory cosine similarity search across float32 BLOB vectors. Filters superseded vectors by default."""
         try:
             conn = self._get_connection()
             self._init_vectors(conn)
             cur = conn.cursor()
-            cur.execute("SELECT id, content, embedding FROM archival_vectors")
+            if include_superseded:
+                cur.execute("SELECT id, content, embedding FROM archival_vectors")
+            else:
+                cur.execute("SELECT id, content, embedding FROM archival_vectors WHERE superseded_by IS NULL OR superseded_by = ''")
             rows = cur.fetchall()
 
             scored = []
@@ -450,7 +597,7 @@ class ArchivalMemoryManager:
             _log_telemetry(e, 'memory.py:ArchivalMemoryManager.search_vectors')
             return []
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5, include_superseded: bool = False) -> List[Dict[str, Any]]:
         if not os.path.exists(self.db_path) and self.db_path != ":memory:":
             return []
         # Sanitize query for FTS5 using core.db single source of truth
@@ -463,17 +610,30 @@ class ArchivalMemoryManager:
             conn = self._get_connection()
             self._init_pages(conn)
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT p.path, p.category, p.pillar, p.updated, snippet(pages_fts, 1, '«', '»', '...', 20), rank
-                FROM pages_fts
-                JOIN pages p ON pages_fts.path = p.path
-                WHERE pages_fts MATCH ?
-                ORDER BY rank
-                LIMIT ?
-                """,
-                (match_expr, limit)
-            )
+            if include_superseded:
+                cursor.execute(
+                    """
+                    SELECT p.path, p.category, p.pillar, p.updated, snippet(pages_fts, 1, '«', '»', '...', 20), rank
+                    FROM pages_fts
+                    JOIN pages p ON pages_fts.path = p.path
+                    WHERE pages_fts MATCH ?
+                    ORDER BY rank
+                    LIMIT ?
+                    """,
+                    (match_expr, limit)
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT p.path, p.category, p.pillar, p.updated, snippet(pages_fts, 1, '«', '»', '...', 20), rank
+                    FROM pages_fts
+                    JOIN pages p ON pages_fts.path = p.path
+                    WHERE pages_fts MATCH ? AND (p.superseded_by IS NULL OR p.superseded_by = '')
+                    ORDER BY rank
+                    LIMIT ?
+                    """,
+                    (match_expr, limit)
+                )
             for row in cursor.fetchall():
                 results.append({
                     "path": row[0],
@@ -533,9 +693,35 @@ class RecallMemoryManager:
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             tool_calls TEXT,
+            created_at REAL NOT NULL,
+            generation_id TEXT,
+            superseded_by TEXT
+        );
+        """)
+        # Idempotent migration for existing schemas
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(recall_turns)")
+            cols = {row[1] for row in cur.fetchall()}
+            if "generation_id" not in cols:
+                conn.execute("ALTER TABLE recall_turns ADD COLUMN generation_id TEXT;")
+            if "superseded_by" not in cols:
+                conn.execute("ALTER TABLE recall_turns ADD COLUMN superseded_by TEXT;")
+        except Exception as _e:
+            _log_telemetry(_e, "RecallMemoryManager:_init_turns_migration")
+
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS memory_generations (
+            id TEXT PRIMARY KEY,
+            generation_count INTEGER NOT NULL,
+            active_reflection TEXT NOT NULL,
+            anchor_index_json TEXT,
+            superseded_by TEXT,
             created_at REAL NOT NULL
         );
         """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_recall_turns_superseded ON recall_turns(superseded_by);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mem_gen_superseded ON memory_generations(superseded_by);")
 
     def _init_telemetry(self, conn: sqlite3.Connection) -> None:
         conn.execute("""
@@ -563,25 +749,33 @@ class RecallMemoryManager:
             _log_telemetry(e, 'memory.py:RecallMemoryManager.record_turn')
             return False
 
-    def get_recent_turns(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Retrieves recent conversation turns ordered by recency descending."""
+    def get_recent_turns(self, limit: int = 10, include_superseded: bool = False) -> List[Dict[str, Any]]:
+        """Retrieves recent conversation turns ordered by recency descending. Excludes superseded turns by default."""
         try:
             if not os.path.exists(self.db_path) and self.db_path != ":memory:":
                 return []
             conn = self._get_connection()
             self._init_turns(conn)
             cur = conn.cursor()
-            cur.execute(
-                "SELECT id, role, content, tool_calls, created_at FROM recall_turns ORDER BY id DESC LIMIT ?",
-                (limit,)
-            )
+            if include_superseded:
+                cur.execute(
+                    "SELECT id, role, content, tool_calls, created_at, generation_id, superseded_by FROM recall_turns ORDER BY id DESC LIMIT ?",
+                    (limit,)
+                )
+            else:
+                cur.execute(
+                    "SELECT id, role, content, tool_calls, created_at, generation_id, superseded_by FROM recall_turns WHERE superseded_by IS NULL OR superseded_by = '' ORDER BY id DESC LIMIT ?",
+                    (limit,)
+                )
             rows = [
                 {
                     "id": r[0],
                     "role": r[1],
                     "content": r[2],
                     "tool_calls": r[3],
-                    "created_at": r[4]
+                    "created_at": r[4],
+                    "generation_id": r[5],
+                    "superseded_by": r[6]
                 }
                 for r in cur.fetchall()
             ]
@@ -589,6 +783,161 @@ class RecallMemoryManager:
         except Exception as e:
             _log_telemetry(e, 'memory.py:RecallMemoryManager.get_recent_turns')
             return []
+
+    def get_head_generation(self) -> Optional[Dict[str, Any]]:
+        """Retrieves the active Head Generation (where superseded_by IS NULL)."""
+        try:
+            conn = self._get_connection()
+            self._init_turns(conn)
+            cur = conn.cursor()
+            cur.execute("""
+            SELECT id, generation_count, active_reflection, anchor_index_json, superseded_by, created_at
+            FROM memory_generations
+            WHERE superseded_by IS NULL OR superseded_by = ''
+            ORDER BY generation_count DESC
+            LIMIT 1
+            """)
+            r = cur.fetchone()
+            if not r:
+                return None
+            return {
+                "id": r[0],
+                "generation_count": r[1],
+                "active_reflection": r[2],
+                "anchor_index": json.loads(r[3]) if r[3] else {},
+                "superseded_by": r[4],
+                "created_at": r[5]
+            }
+        except Exception as e:
+            _log_telemetry(e, 'memory.py:RecallMemoryManager.get_head_generation')
+            return None
+
+    def create_reflection_generation(
+        self,
+        reflection_text: str,
+        anchor_map: Optional[Dict[str, Any]] = None,
+        retention_floor_turns: int = 6
+    ) -> Dict[str, Any]:
+        """
+        Creates a new generation row (generation_count + 1).
+        Marks previous head generation with superseded_by = new_gen_id.
+        Marks older recall_turns outside retention_floor_turns with superseded_by = new_gen_id.
+        """
+        now = time.time()
+        conn = self._get_connection()
+        with conn:
+            self._init_turns(conn)
+            cur = conn.cursor()
+            cur.execute("""
+            SELECT id, generation_count FROM memory_generations
+            WHERE superseded_by IS NULL OR superseded_by = ''
+            ORDER BY generation_count DESC LIMIT 1
+            """)
+            row = cur.fetchone()
+            old_gen_id = row[0] if row else None
+            gen_count = (row[1] + 1) if row else 1
+            new_gen_id = f"GEN-{gen_count}-{int(now * 1000)}"
+
+            # Retire previous head generation
+            if old_gen_id:
+                cur.execute(
+                    "UPDATE memory_generations SET superseded_by = ? WHERE id = ?",
+                    (new_gen_id, old_gen_id)
+                )
+
+            # Insert new head generation
+            anchor_json = json.dumps(anchor_map or {})
+            cur.execute("""
+            INSERT INTO memory_generations (id, generation_count, active_reflection, anchor_index_json, superseded_by, created_at)
+            VALUES (?, ?, ?, ?, NULL, ?)
+            """, (new_gen_id, gen_count, reflection_text, anchor_json, now))
+
+            # Apply Retention Floor to raw recall_turns: keep latest retention_floor_turns active
+            cur.execute("SELECT id FROM recall_turns WHERE superseded_by IS NULL OR superseded_by = '' ORDER BY id DESC LIMIT ?", (retention_floor_turns,))
+            kept_ids = [r[0] for r in cur.fetchall()]
+            if kept_ids:
+                placeholders = ",".join("?" for _ in kept_ids)
+                cur.execute(f"""
+                UPDATE recall_turns
+                SET superseded_by = ?, generation_id = COALESCE(generation_id, ?)
+                WHERE (superseded_by IS NULL OR superseded_by = '') AND id NOT IN ({placeholders})
+                """, [new_gen_id, new_gen_id] + kept_ids)
+            else:
+                cur.execute("""
+                UPDATE recall_turns
+                SET superseded_by = ?, generation_id = COALESCE(generation_id, ?)
+                WHERE superseded_by IS NULL OR superseded_by = ''
+                """, (new_gen_id, new_gen_id))
+
+            return {
+                "id": new_gen_id,
+                "generation_count": gen_count,
+                "active_reflection": reflection_text,
+                "superseded_previous": old_gen_id
+            }
+
+    def page_generation_timeline(
+        self,
+        anchor_or_group_id: str,
+        direction: str = "after",
+        limit: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Timeline paging across historical memory generations.
+        Supports drill-down into retired generations without dumping everything into active context.
+        """
+        try:
+            conn = self._get_connection()
+            self._init_turns(conn)
+            cur = conn.cursor()
+
+            # Find matching generation containing the anchor
+            cur.execute("SELECT id, generation_count, active_reflection, anchor_index_json, superseded_by, created_at FROM memory_generations ORDER BY generation_count ASC")
+            all_gens = cur.fetchall()
+            target_idx = -1
+            target_gen = None
+
+            for idx, g in enumerate(all_gens):
+                g_id, g_count, g_refl, g_anchors, g_sup, g_created = g
+                anchors = json.loads(g_anchors) if g_anchors else {}
+                if anchor_or_group_id in g_id or anchor_or_group_id in g_refl or anchor_or_group_id in anchors:
+                    target_idx = idx
+                    target_gen = g
+                    break
+
+            if target_idx == -1 and all_gens:
+                target_idx = len(all_gens) - 1
+                target_gen = all_gens[-1]
+
+            if not target_gen:
+                return {"results": f"No generation timeline found for anchor '{anchor_or_group_id}'.", "count": 0, "has_more": False}
+
+            if direction == "before":
+                page_slice = all_gens[max(0, target_idx - limit):target_idx]
+            else:
+                page_slice = all_gens[target_idx:min(len(all_gens), target_idx + limit)]
+
+            results = []
+            for g in page_slice:
+                results.append({
+                    "generation_id": g[0],
+                    "generation_count": g[1],
+                    "active_reflection": g[2],
+                    "anchor_index": json.loads(g[3]) if g[3] else {},
+                    "superseded_by": g[4],
+                    "created_at": g[5]
+                })
+
+            has_more = (target_idx + limit < len(all_gens)) if direction == "after" else (target_idx - limit > 0)
+            return {
+                "results": results,
+                "count": len(results),
+                "has_more": has_more,
+                "current_anchor": anchor_or_group_id
+            }
+        except Exception as e:
+            _log_telemetry(e, "memory.py:RecallMemoryManager.page_generation_timeline")
+            return {"results": [], "count": 0, "has_more": False, "error": str(e)}
 
     def record_event(self, event_type: str, exit_code: int = 0, context_load: int = 0) -> bool:
         try:
@@ -985,11 +1334,30 @@ class SecondBrainManager:
             except Exception:
                 pass
 
+        dna_summary_block = ""
+        try:
+            from core.dna import sequence_project_dna
+            dna = sequence_project_dna(WORKSPACE_DIR, allow_foundation=True)
+            if dna:
+                from collections import Counter
+                tier_counts = Counter(dna.file_tier_map.values())
+                strata_str = ", ".join(f"`{k}` ({v})" for k, v in sorted(tier_counts.items()))
+                spine_str = ", ".join(f"`{s}`" for s in dna.execution_spine[:5]) or "Auto-detected"
+                dna_summary_block = (
+                    f"\n## Project DNA Genome\n"
+                    f"- **DNA State**: `{dna.dna_state}` | **Compliance Score**: `{dna.dna_compliance_score}/100`\n"
+                    f"- **Execution Spine**: {spine_str}\n"
+                    f"- **5-Tier Strata Distribution**: {strata_str}\n"
+                )
+        except Exception as _de:
+            _log_telemetry(_de, "SecondBrainManager:dna_summary")
+
         overview_content = (
             f"# 00 Overview — {project_name} System Architecture & Mission\n\n"
             f"> **Project**: {project_name} | **Detected Stack**: {stack}\n\n"
             f"## System Context\n"
-            f"{doc_briefing if doc_briefing else '- Autonomous Multi-Agent Habitat & Developer Workspace.'}\n\n"
+            f"{doc_briefing if doc_briefing else '- Autonomous Multi-Agent Habitat & Developer Workspace.'}\n"
+            f"{dna_summary_block}\n"
             "## Core Invariants\n"
             "- All memory operations persist to `.orion/`.\n"
             "- Source files use relative paths or `[[wikilinks]]`.\n"

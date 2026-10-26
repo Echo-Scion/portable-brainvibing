@@ -1,4 +1,4 @@
-# VOLUME V: SKILL & PERSONA (`skills/`) — 22 Domain Specializations
+# VOLUME V: SKILL & PERSONA (`skills/`) — 21 Public Domain Skills (+1 Internal)
 
 ---
 
@@ -13,12 +13,12 @@ Each skill represents a distinct operational domain worn by the agent. To preven
 │ Tier              │ File / Scope                  │ Token Footprint    │
 ├───────────────────┼───────────────────────────────┼────────────────────┤
 │ 1. Metadata       │ YAML frontmatter (name, desc) │ < 100 tokens       │
-│ 2. Runbook        │ SKILL.md body                 │ < 500 lines        │
+│ 2. Runbook        │ SKILL.md body                 │ <= core_max_lines  │
 │ 3. Deep Knowledge │ references/ & scripts/        │ Loaded on demand   │
 └───────────────────┴───────────────────────────────┴────────────────────┘
 ```
 
-The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT routing, and accesses Tier 3 references only when navigating specific edge cases or executing specialized playbooks.
+The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT routing, and accesses Tier 3 references only when navigating specific edge cases or executing specialized playbooks. Each `SKILL.md` declares a `core_max_lines` frontmatter ceiling (default 200 lines) enforced by `verify_agents.py`.
 
 ---
 
@@ -82,7 +82,7 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 
 ### 12.11. `meta-agent-admin`
 - **Domain**: AI agent ecosystem architecture, rule creation, and foundation governance.
-- **Core Directives**: Rule authoring standards, JIT router integrity, MCP server scaffolding, and ecosystem health audits.
+- **Core Directives**: Rule authoring standards, JIT router integrity, structural line ceiling enforcement (`core_max_lines`), MCP server scaffolding, and ecosystem health audits.
 - **References**: `agent-architect.md`, `agent-evolution.md`, `context-manager.md`, `knowledge.md`, `loop_design_patterns.md`, `mcp-builder.md`, `meta-agent-audit.md`, `skills-catalog.md`, `system-admin.md`, `tech-writer.md`.
 
 ### 12.12. `palette`
@@ -105,9 +105,9 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 - **References**: `saas-viability.md`, `saas-growth.md`, `technical_content.md`, `viral_growth.md`.
 
 ### 12.16. `self-evolve`
-- **Domain**: Post-task reflection and deterministic learning loop.
-- **Core Directives**: 4-phase evolution cycle: Error extraction → Append to `LEARNINGS.md` → Darwinian evaluation → Pattern synthesis into permanent rules.
-- **Reference**: `.agents/skills/self-evolve/references/temporal-pulse.md` (Session, Milestone, and Epoch cadences).
+- **Domain**: Post-task reflection, Habit Observation ledger governance, and deterministic learning loop.
+- **Core Directives**: 5-status Observation Ledger (`OBSERVATIONS.md` / `OBSERVATIONS.archive.md`), 2nd-violation Tier-0 Barrier Escalation, Operator Habit Mining, and pattern synthesis into permanent rules.
+- **References**: `temporal-pulse.md` (Session, Milestone, and Epoch cadences) and `starter-principles.md`.
 
 ### 12.17. `session-offload`
 - **Domain**: Clean session shutdown, context eviction, and handoff persistence.
@@ -129,4 +129,4 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 
 ### 12.21. `worker-delegate`
 - **Domain**: Sub-agent task decomposition and asynchronous delegation.
-- **Core Directives**: Isolates heavy codebase scans into parallel sub-agents; saves context by storing intermediate results in `.agents/working/delegations/`.
+- **Core Directives**: Context-isolating read-only scout, Jaccard dependency overlap gate (`orion.py delegate-check`), patch-spec drafting, and Omni-Buffer (`context.json`) Context Delta auto-ingestion. Stores delegation outputs in `.agents/working/delegations/`.

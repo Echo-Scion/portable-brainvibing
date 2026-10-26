@@ -15,11 +15,11 @@ Use this template to create project-specific Copilot agents for specialized task
 
 ## Template
 
-```yaml
+```markdown
 ---
 name: my-custom-agent
 type: specialized|general-purpose
-version: 1.0.0
+
 description: "One-line description of what this agent does"
 tools: ["code_execution", "file_operations", "terminal_execution"]
 context_window: 60000
@@ -183,7 +183,7 @@ Before deployment, verify:
 ## Maintenance
 
 - **Last Updated**: [DATE]
-- **Version**: 0.0.1
+- **Version**: 0.0.2
 - **Owner**: [Team/Person]
 - **Review Schedule**: [Frequency]
 
@@ -210,7 +210,7 @@ If this agent would benefit all projects:
 
 ---
 
-Template Version: 1.0.0 | Last Updated: March 31, 2026
+Last Updated: March 31, 2026
 ```
 
 ## Quick Stats

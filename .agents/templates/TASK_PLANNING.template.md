@@ -9,7 +9,7 @@ description: Schema definition for the core $PROJECT_BRIEF object holding intake
 
 During `/project-init` (Step 0 Intake), the agent MUST compile the user's answers into this JSON schema. **Crucially, the AI must then perform a "Deepening Phase" to infer the architectural slots needed for the Blueprint.**
 
-<brief-objective>
+<!-- <brief-objective> -->
 ```json
 {
   "project_info": {
@@ -34,7 +34,7 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
   }
 }
 ```
-</brief-objective>
+<!-- </brief-objective> -->
 
 ## High-Level Roadmap
 # ROADMAP Template
@@ -49,7 +49,7 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
 
 ---
 
-<roadmap-phases>
+<!-- <roadmap-phases> -->
 ## 🚀 Phase 1 — Foundation (MVP)
 **Goal**: {{phase_1_goal}}
 **Target**: {{phase_1_timeline}}
@@ -81,7 +81,7 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
 | {{feature_6}} | P2 | 🔴 Not Started |
 
 ---
-</roadmap-phases>
+<!-- </roadmap-phases> -->
 
 ## ❌ Out of Scope (v1)
 {{out_of_scope_list}}
@@ -97,14 +97,14 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
 *Update status: 🔴 Not Started | 🟡 In Progress | 🟢 Done*
 
 ## Atomic Execution Task
-<task-meta>
+<!-- <task-meta> -->
 ---
 TaskID: {{task_id}}
 Status: IN_PROGRESS
 Priority: {{priority}}
 Tier: {{tier}}
 ---
-</task-meta>
+<!-- </task-meta> -->
 
 # Atomic Task: {{task_name}}
 
@@ -112,6 +112,7 @@ Tier: {{tier}}
 
 ## 🔗 Context Dependencies (MANDATORY READ)
 *Executor MUST execute `view_file` on these specific files before planning. (Delete unused ones during task creation).*
+- [ ] `context/VISION.md` (Immutable North Star & Anti-Vision invariants)
 - [ ] `context/00_Strategy/BLUEPRINT.md` (For overall logic)
 - [ ] `context/01_Product/ROADMAP.md` (For feature logic)
 - [ ] `context/02_Creative/STYLE_GUIDE.md` (For UI/UX tasks)
@@ -129,11 +130,11 @@ Tier: {{tier}}
 - [ ] Execution step 1
 
 ## 3. Verify
-<task-verify>
+<!-- <task-verify> -->
 - [ ] Verification step 1
 - **Expected Outcome:** [What must happen for this task to be considered COMPLETE]
 - [ ] **Memory Commit:** Execute `write_to_file` or `replace_file_content` on `MEMORY.md` to log any friction, technical debt, or architectural pivots encountered.
-</task-verify>
+<!-- </task-verify> -->
 
 ---
 *Created via ATOMIC_TASK Protocol*

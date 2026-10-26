@@ -43,6 +43,56 @@ GestureDetector(
 )
 ```
 
+## 🛡️ Permission Gate & Educational Dialog Pattern
+When a system permission or accessibility service is required, present a clear rationale before redirecting:
+```dart
+class PermissionGateDialog extends StatelessWidget {
+  final String title;
+  final String rationale;
+  final VoidCallback onOpenSettings;
+
+  const PermissionGateDialog({
+    super.key,
+    required this.title,
+    required this.rationale,
+    required this.onOpenSettings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(title),
+      content: Text(rationale),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            onOpenSettings();
+          },
+          child: const Text('Open Settings'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+## 📐 ConstraintLayout to Idiomatic Flutter Translation Heuristics
+When translating Android XML layouts (`ConstraintLayout`) into Flutter widgets:
+1. **Horizontal Chains (`constraintStart_toEndOf`, `constraintEnd_toStartOf`)**:
+   - Map to **`Row`** with `Expanded` widgets for elements with `layout_width="0dp"`.
+   - If children follow `[Icon, Column(Title, Subtitle), Action/Switch]`, map directly to **`ListTile`** or **`SwitchListTile`**.
+2. **Vertical Chains (`constraintTop_toBottomOf`, `constraintBottom_toTopOf`)**:
+   - Map to **`Column`** with `CrossAxisAlignment.start` and spacing tokens.
+3. **True Spatial Overlap**:
+   - Reserve **`Stack`** strictly for overlays, badges, floating controls, or progress spinners centered over lists. Never flatten an entire screen layout into a single root `Stack`.
+4. **Dimension & Padding Tokens**:
+   - Map `paddingHorizontal="@dimen/..."` and `paddingVertical="@dimen/..."` to `EdgeInsets.symmetric(horizontal: ..., vertical: ...)`. Always resolve `@dimen/` tokens against the project's design token scale.
+
 ---
 ## 🚀 Performance Guardrails (60 FPS Mandate)
 - **Raster Cache**: For static complex glass layers, wrap in `RepaintBoundary` to cache pixels and avoid GPU re-blurring.

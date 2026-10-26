@@ -41,6 +41,16 @@ final state = ref.watch(featureNotifierProvider);
 final title = ref.watch(featureNotifierProvider.select((v) => v.value?.title));
 ```
 
+## 🎛️ System Daemon & Overlay Behavioral Invariants
+When developing or reverse-engineering native overlays, floating controls, or background daemons:
+1. **Repeatable vs. Dismissive Actions**:
+   - Actions representing incremental or continuous adjustments (Volume Up/Down, Brightness Up/Down, Media Seek) MUST NOT trigger auto-dismissal of radial or overlay menus. Suppress dismissal callbacks on repeatable actions so users can tap repeatedly without reopening.
+   - Dismissive actions (Home, Recents, Back, Launch App) SHOULD dismiss or stash the overlay upon execution.
+2. **Multi-Orientation Coordinate Preservation**:
+   - Native overlays must handle `onConfigurationChanged`.
+   - Store separate relative coordinates for Portrait and Landscape modes.
+   - When orientation flips, re-clamp coordinates against the new display boundaries ($x_{\min}, x_{\max}, y_{\min}, y_{\max}$) with dampened springs to prevent the floating element from being cast off-screen.
+
 ---
 ## 🚀 Logic Performance Guardrails
 - **Minimal Rebuilds**: Always use `.select()` in complex screens to keep the main thread lean.

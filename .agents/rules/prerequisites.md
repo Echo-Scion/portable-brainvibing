@@ -1,7 +1,7 @@
 ---
 description: Mandatory and optional prerequisites.md for the agent ecosystem and their explicit fallback strategies.
 activation: when a tool or command fails
-version: 0.0.1
+version: 0.0.2
 ---
 
 # 🛠️ Prerequisites & Graceful Fallbacks
@@ -25,6 +25,7 @@ To maintain a "plug and play" environment while avoiding brittle failures, this 
 ## 3. Pillar 3: Ollama Local Neural Coprocessor
 - **Role**: Local zero-cloud vector embeddings (`nomic-embed-text`) and heuristic SLM evaluation (`127.0.0.1:11434`).
 - **Prerequisite**: Local Ollama daemon running on port 11434.
+- **Hardware Architecture Note**: Consumer GPU Ollama endpoints operate on single-stream FIFO queues ($N_{\text{parallel}}=1$). Parallel subagents serialize into sequential turns unless backed by CUDA continuous in-flight batching with shared prefix caching (vLLM / SGLang / TensorRT-LLM).
 - **Fallback Chain**:
   - If Ollama service is offline or unreachable:
     - Automatically degrade to pure SQLite3 FTS5 BM25 lexical search inside `.orion/orion.db`.
@@ -41,6 +42,7 @@ To maintain a "plug and play" environment while avoiding brittle failures, this 
 
 ## 5. Subagent Orchestration
 - **Role**: Spawning isolated sub-agents via `invoke_subagent` or MCP tools.
+- **Execution Invariant**: Use subagents strictly for **Context-Isolating Scouts** with $<10\%$ context overlap. Do not fracture interdependent code construction tasks ($\ge 20\%$ shared context) across subagents.
 - **Fallback**: If `invoke_subagent` is unavailable in the active runtime, execute tasks sequentially in the main thread with continuous execution and surgical file reads.
 
 ## 6. Shared Runtime Contract

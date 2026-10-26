@@ -2,9 +2,7 @@
 activation: glob
 description: Comprehensive Flutter architecture, development standards, and styling guidelines.
 globs: *.dart
-
-version: 1.0.0
-last_updated: 2026-05-20
+last_updated: 2026-10-23
 ---
 
 # Flutter Hybrid Architecture & Standards
@@ -40,3 +38,8 @@ Every UI component MUST account for and implement all states. Do NOT write only 
 - **Speed**: Target load times under 1.5 seconds.
 - **FPS**: Maintain 60fps during transitions.
 - **Lists**: MANDATORY use of `ListView.builder` for dynamic lists. Never use standard `ListView`.
+
+## 6. Platform Daemons, Permission Gates & Asset Standards
+- **Permission Onboarding Mandate**: Whenever a UI switch or action controls a native OS capability (`AccessibilityService`, `SYSTEM_ALERT_WINDOW`, `BIND_NOTIFICATION_LISTENER_SERVICE`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`), the UI MUST NOT optimistically toggle state. It MUST verify service status via `MethodChannel` first, prompt the user with an educational rationale dialog (`PermissionGateDialog`), and re-check permission on app lifecycle `resumed`.
+- **Localization Directory Standard**: Localization files MUST reside in `lib/l10n/app_<locale>.arb` backed by `l10n.yaml` in the project root (`arb-dir: lib/l10n`, `template-arb-file: app_en.arb`), never in arbitrary subdirectories like `lib/core/l10n/`.
+- **Real-time App Icon Extraction**: When querying installed packages (`QUERY_ALL_PACKAGES`), the native layer MUST extract `Drawable` icons into compressed PNG byte arrays ($48\times 48\text{dp}$) on a background thread (`Dispatchers.IO`) and pass them to Flutter as `Uint8List` with an in-memory LRU cache to prevent generic placeholder icons.

@@ -19,35 +19,307 @@ from contextlib import contextmanager
 from dataclasses import dataclass, asdict, field
 from typing import Union, List, Any, Optional, Dict, Tuple, Set, Generator
 
+import copy
+import functools
+import concurrent.futures
+
 _SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
-def log_telemetry(err: Optional[Exception] = None, context: str = "") -> None:
-    """Centralized non-fatal telemetry logger."""
+
+class MechanicalInvariantError(RuntimeError):
+    """Raised when a function completes without throwing an exception but violates a mechanical post-condition or SLA timeout."""
+    pass
+
+
+def log_telemetry(
+    err: Optional[Exception] = None,
+    context: str = "",
+    severity: str = "WARN",
+    state_snapshot: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Centralized non-fatal telemetry logger & Self-Evolve Auto-Catch Sink."""
     if os.environ.get("ORION_DEBUG"):
         msg = f": {err}" if err else ""
-        sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
+        try:
+            sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
+        except Exception:
+            pass
+
+    if err is None and not context:
+        return
+
+    try:
+        from core.paths import get_orion_dir
+        orion_dir = str(get_orion_dir())
+    except Exception:
+        orion_dir = os.path.join(os.getcwd(), ".orion")
+
+    working_dir = os.path.join(orion_dir, "working")
+    if not os.path.isdir(orion_dir):
+        return
+
+    try:
+        os.makedirs(working_dir, exist_ok=True)
+        err_msg = str(err) if err else "unclassified_anomaly"
+        err_type = type(err).__name__ if err else "MechanicalAnomaly"
+
+        try:
+            from core.security import redact_secrets
+            err_msg = redact_secrets(err_msg)[:600]
+        except Exception:
+            err_msg = err_msg[:600]
+
+        module_name = context.split(":")[0] if ":" in context else "core"
+        record: Dict[str, Any] = {
+            "timestamp": time.time(),
+            "module": module_name,
+            "context": context or "unspecified",
+            "exception_type": err_type,
+            "error": err_msg,
+            "severity": severity,
+        }
+        if state_snapshot:
+            try:
+                raw_snap = json.dumps(state_snapshot, default=str)[:500]
+                record["state_snapshot"] = json.loads(raw_snap)
+            except Exception:
+                record["state_snapshot"] = {"raw": str(state_snapshot)[:300]}
+
+        catches_jsonl_path = os.path.join(working_dir, "mechanical_catches.jsonl")
+        with open(catches_jsonl_path, "a", encoding="utf-8") as jf:
+            jf.write(json.dumps(record) + "\n")
+
+        if severity in ("INVARIANT_BREACH", "ERROR"):
+            try:
+                is_testing = "unittest" in sys.modules or "pytest" in sys.modules or bool(os.environ.get("PYTEST_CURRENT_TEST"))
+                from commands.reflexion import ObservationLedger, BASE_DIR as _REFLEXION_BASE
+                norm_orion = os.path.abspath(orion_dir)
+                ws_root = os.path.abspath(os.path.dirname(_REFLEXION_BASE))
+                is_in_workspace = norm_orion.startswith(ws_root)
+                if is_testing and is_in_workspace:
+                    pass  # Prevent test suites from polluting production observation ledger
+                elif not is_in_workspace:
+                    ledger = ObservationLedger(
+                        active_path=os.path.join(working_dir, "OBSERVATIONS.md"),
+                        archive_path=os.path.join(working_dir, "OBSERVATIONS.archive.md"),
+                    )
+                    ledger.add_observation(
+                        title=f"Mechanical catch in {context}: {err_type}",
+                        kind="violation",
+                        target=context,
+                        rule_id="MECHANICAL_INVARIANT_BREACH",
+                        evidence=err_msg[:200]
+                    )
+                else:
+                    ledger = ObservationLedger()
+                    ledger.add_observation(
+                        title=f"Mechanical catch in {context}: {err_type}",
+                        kind="violation",
+                        target=context,
+                        rule_id="MECHANICAL_INVARIANT_BREACH",
+                        evidence=err_msg[:200]
+                    )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def drain_mechanical_catches(clear: bool = False) -> List[Dict[str, Any]]:
+    """Reads structured mechanical catch events from .orion/working/mechanical_catches.jsonl."""
+    try:
+        from core.paths import get_orion_dir
+        working_dir = os.path.join(str(get_orion_dir()), "working")
+    except Exception:
+        working_dir = os.path.join(os.getcwd(), ".orion", "working")
+
+    jsonl_path = os.path.join(working_dir, "mechanical_catches.jsonl")
+    if not os.path.exists(jsonl_path):
+        return []
+    records = []
+    try:
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        records.append(json.loads(line))
+                    except Exception:
+                        pass
+        if clear:
+            atomic_write_text(jsonl_path, "")
+            legacy_json = os.path.join(working_dir, "mechanical_catches.json")
+            if os.path.exists(legacy_json):
+                try:
+                    os.remove(legacy_json)
+                except OSError:
+                    pass
+        return records
+    except Exception as _e:
+        log_telemetry(_e, "db.py:drain_mechanical_catches")
+        return []
+
+
+def sovereign_catch(
+    context: str,
+    fallback_value: Any = None,
+    *,
+    post_condition: Optional[Any] = None,
+    timeout_sec: Optional[float] = None,
+    fallback_fn: Optional[Any] = None,
+    enforce_hard_timeout: bool = False,
+):
+    """
+    Universal Mechanical Catch Decorator for .agents functions.
+    Traps standard exceptions, execution timeouts, and silent semantic post-condition violations,
+    routing structured telemetry into Seam 1 (.orion/working/mechanical_catches.json).
+    Preserves 100% backward compatibility with @sovereign_catch(context, fallback_value).
+    """
+    def _resolve_fallback(*args: Any, **kwargs: Any) -> Any:
+        if callable(fallback_fn):
+            try:
+                return fallback_fn(*args, **kwargs)
+            except TypeError:
+                return fallback_fn()
+        try:
+            return copy.deepcopy(fallback_value)
+        except Exception:
+            return fallback_value
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            t0 = time.perf_counter()
+            try:
+                if timeout_sec is not None and timeout_sec > 0 and enforce_hard_timeout:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        future = pool.submit(func, *args, **kwargs)
+                        try:
+                            result = future.result(timeout=timeout_sec)
+                        except concurrent.futures.TimeoutError as te:
+                            raise MechanicalInvariantError(
+                                f"Hard timeout exceeded ({timeout_sec:.2f}s) in {context}"
+                            ) from te
+                else:
+                    result = func(*args, **kwargs)
+
+                elapsed = time.perf_counter() - t0
+                if timeout_sec is not None and timeout_sec > 0 and elapsed > timeout_sec:
+                    raise MechanicalInvariantError(
+                        f"SLA timeout violated ({elapsed:.2f}s > {timeout_sec:.2f}s) in {context}"
+                    )
+
+                if callable(post_condition):
+                    verdict = post_condition(result)
+                    if isinstance(verdict, tuple):
+                        ok, reason = bool(verdict[0]), str(verdict[1])
+                    else:
+                        ok, reason = bool(verdict), "Post-condition predicate returned False"
+                    if not ok:
+                        raise MechanicalInvariantError(
+                            f"Semantic post-condition failed in {context}: {reason}"
+                        )
+                return result
+            except Exception as exc:
+                sev = "INVARIANT_BREACH" if isinstance(exc, MechanicalInvariantError) else "ERROR"
+                snap = {"args_count": len(args), "kwargs_keys": list(kwargs.keys())[:5]}
+                log_telemetry(exc, context=context, severity=sev, state_snapshot=snap)
+                return _resolve_fallback(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
+mechanical_catch = sovereign_catch
+
+
+EMOJI_ASCII_MAP: Dict[str, str] = {
+    "🟢": "[OK]",
+    "🟡": "[WARN]",
+    "🔴": "[FAIL]",
+    "⚡": "[!]",
+    "🚦": "[CHECKPOINT]",
+    "📋": "[EVIDENCE]",
+    "🔮": "[NEXT]",
+    "🧠": "[BRAIN]",
+    "👁️": "[OBS]",
+    "⚠️": "[WARN]",
+    "📦": "[MAP]",
+    "📄": "[FILE]",
+    "🎨": "[UI]",
+    "🛡️": "[SEC]",
+    "🗺️": "[INDEX]",
+    "🛠️": "[SKILL]",
+    "📚": "[RULE]",
+    "🚀": "[PLAYBOOK]",
+    "🧰": "[SCRIPT]",
+    "🧪": "[TEST]",
+    "•": "*",
+    "│": "|",
+    "─": "-",
+    "└": "`--",
+    "├": "|--",
+}
+
+
+def transliterate_emojis(text: str) -> str:
+    """Translates common emojis and Unicode markers to human-readable ASCII tags."""
+    if not text:
+        return text
+    result = text
+    for glyph, ascii_tag in EMOJI_ASCII_MAP.items():
+        if glyph in result:
+            result = result.replace(glyph, ascii_tag)
+    return result
 
 
 def configure_utf8() -> None:
-    """Safely configure stdout and stderr to UTF-8 without raising exceptions."""
+    """Safely configure stdout and stderr to UTF-8 with replace error handler, propagating env."""
+    os.environ.setdefault("PYTHONUTF8", "1")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8:replace")
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, 'reconfigure'):
             try:
-                stream.reconfigure(encoding='utf-8')
+                stream.reconfigure(encoding='utf-8', errors='replace')
             except Exception as _e:
                 log_telemetry(_e, "configure_utf8:reconfigure")
 
 
+# Auto-configure streams and environment when core.db is loaded
+configure_utf8()
+
+
 def safe_print(*args: Any, **kwargs: Any) -> None:
-    """Print that safely handles broken pipes or unencodable characters."""
+    """Print that safely handles broken pipes, NO_EMOJI / ORION_ASCII_ONLY, or unencodable characters."""
+    force_ascii = (
+        os.environ.get("NO_EMOJI") == "1"
+        or os.environ.get("ORION_ASCII_ONLY") == "1"
+    )
+    if force_ascii:
+        text = " ".join(str(a) for a in args)
+        clean_text = transliterate_emojis(text)
+        try:
+            print(clean_text, **kwargs)
+            return
+        except UnicodeEncodeError:
+            print(clean_text.encode('ascii', errors='replace').decode('ascii'), **kwargs)
+            return
+        except BrokenPipeError:
+            try:
+                sys.stdout.flush()
+            except Exception:
+                pass
+            return
+
     try:
         print(*args, **kwargs)
     except UnicodeEncodeError:
         try:
             text = " ".join(str(a) for a in args)
-            clean_text = text.encode('ascii', errors='replace').decode('ascii')
+            clean_text = transliterate_emojis(text)
+            clean_text = clean_text.encode('ascii', errors='replace').decode('ascii')
             print(clean_text, **kwargs)
         except Exception as _e:
             log_telemetry(_e, "safe_print:fallback")
@@ -105,17 +377,35 @@ def connect_sqlite(
     wal: bool = True,
     timeout_sec: float = 5.0,
     mmap_size: int = 67108864,
-    cache_size: int = -16000
+    cache_size: int = -16000,
+    read_only: bool = False
 ) -> sqlite3.Connection:
     """Open or create an SQLite database with production PRAGMAs.
     - WAL journal mode for concurrent reading/writing
     - busy_timeout for lock evasion
     - temp_store in memory
     - mmap_size for fast zero-copy OS paging
+    - read_only URI mode (mode=ro) for lock-free concurrent reads on Windows
     """
     path_obj = Path(db_path)
-    path_obj.parent.mkdir(parents=True, exist_ok=True)
 
+    if read_only:
+        if not path_obj.exists():
+            # If database does not exist yet, cannot open in read-only mode
+            raise FileNotFoundError(f"Cannot open non-existent SQLite database in read-only mode: {db_path}")
+        abs_posix = path_obj.resolve().as_posix()
+        conn = sqlite3.connect(f"file:{abs_posix}?mode=ro", uri=True, timeout=timeout_sec)
+        try:
+            conn.execute(f"PRAGMA busy_timeout={int(timeout_sec * 1000)};")
+            conn.execute("PRAGMA query_only=ON;")
+            conn.execute("PRAGMA foreign_keys=ON;")
+            conn.execute(f"PRAGMA mmap_size={int(mmap_size)};")
+            conn.execute(f"PRAGMA cache_size={int(cache_size)};")
+        except Exception as _e:
+            log_telemetry(_e, f"connect_sqlite:ro_pragmas:{db_path}")
+        return conn
+
+    path_obj.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path_obj), timeout=timeout_sec)
     try:
         conn.execute(f"PRAGMA busy_timeout={int(timeout_sec * 1000)};")

@@ -291,6 +291,13 @@ def _save_checkpoint(state):
     finally:
         graph.conn.close()
 
+    # Flush observations on FSM checkpoint boundary
+    try:
+        from commands.reflexion import ObservationLedger
+        ObservationLedger().get_digest()
+    except Exception as _e_obs:
+        pass
+
 def persist_state(state):
     save_state(state)
     _save_checkpoint(state)
@@ -572,7 +579,10 @@ def main():
     if len(sys.argv) < 2 or any(arg in sys.argv for arg in ['--help', '-h']):
         print("Usage: state_machine.py <command> [args...]")
         print("  FSM Lifecycle:")
-        print("    init [session_id]             — Initialize new state machine")
+        print("    init [session_id|plan.md]     — Initialize state machine or slice plan into Bento queue")
+        print("    slice <plan.md>               — Slice plan/audit into Bento queues and ACTIVE_TASK.md")
+        print("    next [--verify]               — Verify and advance to next Bento task")
+        print("    done [--verify]               — Alias for next: mark current task done and dispense next")
         print("    transition <PHASE>            — Transition to a new execution phase")
         print("    task_start <task_id>          — Mark task in progress")
         print("    task_end <task_id> <status>   — Mark task complete or failed")
@@ -587,8 +597,14 @@ def main():
     action = sys.argv[1].lower()
     
     if action == "init":
-        session_id = sys.argv[2] if len(sys.argv) > 2 else "default"
-        cmd_init(session_id)
+        arg2 = sys.argv[2] if len(sys.argv) > 2 else "default"
+        if arg2.endswith(".md") and os.path.isfile(arg2):
+            from commands.bento_slicer import cmd_init as bento_init
+            sys.exit(bento_init(arg2))
+        cmd_init(arg2)
+    elif action in ("slice", "next", "done"):
+        from commands.bento_slicer import main as bento_main
+        sys.exit(bento_main(sys.argv[1:]))
     elif action == "transition":
         if len(sys.argv) < 3:
             print("Usage: state_machine.py transition <PHASE>")

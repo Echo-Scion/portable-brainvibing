@@ -7,7 +7,8 @@
     ".agents/AGENTS_INDEX.md",
     ".agents/DEPLOY_ME.md",
     ".agents/hooks.json",
-    ".agents/version"
+    ".agents/version",
+    ".agents/templates/ANDROID_STUDIO_EXECUTOR.prompt.md"
   ],
   "exclude_dirs_lean": [
     "templates",
@@ -22,5 +23,5 @@
     "mocks"
   ],
   "project_type": "foundation_engine",
-  "audit_name": "_foundation"
+  "audit_name": "{{PROJECT_NAME}}"
 }

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Platform Manifest Registry and Dispatcher for 18 Multi-IDE & CLI Agents.
+Platform Manifest Registry and Dispatcher for 19 Multi-IDE & CLI Agents.
 Enables one-command deployment to all supported agent platforms.
 """
 
@@ -15,7 +15,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -25,7 +25,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -35,7 +35,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -45,7 +45,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -55,7 +55,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -65,7 +65,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -75,9 +75,19 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
-            "contextFileName": "AGENTS.md"
+            "contextFileName": "GEMINI.md"
+        }
+    },
+    "android_studio": {
+        "target_rel": ".idea/gemini.json",
+        "format": "json",
+        "data": {
+            "name": "portable-brainvibing",
+            "version": "0.0.2",
+            "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
+            "contextFileName": "GEMINI.md"
         }
     },
     "copilot": {
@@ -85,7 +95,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "instructions": ".github/copilot-instructions.md"
         }
@@ -95,7 +105,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -105,7 +115,7 @@ PLATFORM_SPECS = {
         "format": "raw",
         "content": (
             "name: portable-brainvibing\n"
-            "version: 0.0.1\n"
+            "version: 0.0.2\n"
             "description: Turnkey Auto-Vibe Coding Brain Ecosystem\n"
             "skills_dir: .agents/skills\n"
         )
@@ -115,7 +125,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -125,7 +135,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -135,7 +145,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -153,7 +163,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -163,7 +173,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -173,7 +183,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -183,7 +193,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.1",
+            "version": "0.0.2",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -192,8 +202,18 @@ PLATFORM_SPECS = {
 
 
 def is_flutterin_installed(target_root: str = "") -> bool:
-    """Legacy compatibility stub. Third-party MCP configurations are decoupled to user settings."""
-    return False
+    """5-Tier discovery check for flutterin suite across target workspace, sibling dir, plugin dir, or PATH."""
+    if target_root:
+        root_path = Path(target_root).resolve()
+        if (root_path / "src" / "mcp" / "index.ts").is_file() or (root_path / ".flutterin").exists():
+            return True
+        sibling = root_path.parent / "flutterin" / "dist" / "mcp" / "index.js"
+        if sibling.is_file():
+            return True
+    home_plugin = Path.home() / ".gemini" / "config" / "plugins" / "flutterin"
+    if home_plugin.exists():
+        return True
+    return shutil.which("flutterin") is not None
 
 
 def deploy_platform_manifest(
@@ -215,6 +235,13 @@ def deploy_platform_manifest(
 
     if spec["format"] == "json":
         data = dict(spec["data"])
+        if include_flutterin is True:
+            data["mcpServers"] = {
+                "flutterin": {
+                    "command": "flutterin",
+                    "args": ["mcp"],
+                }
+            }
         with open(target_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
             f.write("\n")

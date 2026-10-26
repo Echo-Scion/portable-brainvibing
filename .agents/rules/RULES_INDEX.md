@@ -5,7 +5,7 @@ activation: model_decision
 
 # 📚 Rules Index
 
-This directory contains the core behavioral and operational constraints for the `_foundation` ecosystem. These files enforce how the AI plans, writes code, manages state, and performs tests.
+This directory contains the core behavioral and operational constraints for the `{{PROJECT_NAME}}` ecosystem. These files enforce how the AI plans, writes code, manages state, and performs tests.
 
 ## Core Rules
 

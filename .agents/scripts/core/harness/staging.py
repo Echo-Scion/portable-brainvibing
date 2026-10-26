@@ -48,6 +48,7 @@ class StagedIntent:
     path: Optional[str] = None
     files: Optional[Dict[str, str]] = None
     absorbed_into: Optional[str] = None
+    siblings_checked: str = "true"
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -206,7 +207,8 @@ class StagingServer:
             new_string=params.get("new_string"),
             path=params.get("path"),
             files=params.get("files"),
-            absorbed_into=params.get("absorbed_into")
+            absorbed_into=params.get("absorbed_into"),
+            siblings_checked=str(params.get("siblings_checked", "true"))
         )
 
         self.queue.enqueue(intent)
@@ -229,9 +231,12 @@ class StagingServer:
             if not req:
                 continue
 
+            if "id" not in req:
+                continue
+
             req_id = req.get("id")
             method = req.get("method")
-            params = req.get("params", {})
+            params = req.get("params") if isinstance(req.get("params"), dict) else {}
 
             if method == "initialize":
                 resp_str = format_jsonrpc_response(req_id, result={
@@ -267,7 +272,8 @@ class StagingServer:
                 })
             elif method == "tools/call":
                 tool_name = params.get("name")
-                args = params.get("arguments", {})
+                raw_args = params.get("arguments")
+                args = raw_args if isinstance(raw_args, dict) else {}
                 if tool_name == "stage_skill":
                     result = self.stage_skill(args)
                     resp_str = format_jsonrpc_response(req_id, result={

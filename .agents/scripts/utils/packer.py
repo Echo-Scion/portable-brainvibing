@@ -1,17 +1,58 @@
+#!/usr/bin/env python
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
+"""
+Universal Dynamic Context Packer & Multi-Model Audit Bundle Exporter (packer.py)
+--------------------------------------------------------------------------------
+Zero-Hardcode Architecture:
+1. Strict Host Isolation: Never leaks .agents/, .orion/, or AI config files into host app bundles
+   unless explicitly auditing the _foundation repo itself or passing --include-agents.
+2. Module-Bucket Compression: Compresses thousands of files into ~15-40 directory/module buckets
+   enriched with polyglot AST symbols (Python, Dart, TS/JS, Rust, Go, Kotlin, Java, C++, etc.).
+3. Multi-Tier LLM Semantic Architect:
+   - Tier A: Custom / Active IDE Agent Taxonomy (.orion/working/taxonomy_cache.json or --taxonomy)
+   - Tier B: Cloud API (GEMINI_API_KEY / OPENAI_API_KEY via pure stdlib urllib)
+   - Tier C: Local AI Coprocessor (Ollama / llama-server / LM Studio / vLLM)
+   Allocates module prefixes (never raw file arrays, eliminating JSON truncation) and synthesizes
+   project-specific bundle slugs, titles, and audit focus vectors.
+4. Zero-If-Else Graph & TF-IDF Naming Fallback:
+   When 100% offline without any LLM, groups files by Directory Subtree + Import Graph Cohesion
+   and names bundles dynamically from dominant path segments and high-centrality AST symbols.
+5. Dynamic Multi-Turn Audit Prompt:
+   Generates 00_GEMINI_WEB_AUDIT_PROMPT.txt dynamically tailored to the actual project bundles.
+"""
+
 import os
 import sys
 import re
 import json
-import fnmatch
 import math
 import hashlib
 import argparse
 import subprocess
 import ast as _ast
+import urllib.request
+import urllib.error
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
 from typing import List, Dict, Set, Tuple, Optional, Any, Union
+
+try:
+    from core.dna import sequence_project_dna, ProjectDNA, CANONICAL_5_TIERS, classify_file_to_tier
+except ImportError:
+    try:
+        from .dna import sequence_project_dna, ProjectDNA, CANONICAL_5_TIERS, classify_file_to_tier
+    except (ImportError, ValueError):
+        try:
+            from dna import sequence_project_dna, ProjectDNA, CANONICAL_5_TIERS, classify_file_to_tier
+        except ImportError:
+            scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from core.dna import sequence_project_dna, ProjectDNA, CANONICAL_5_TIERS, classify_file_to_tier
 
 _PACKER_DIR = os.path.dirname(os.path.abspath(__file__))
 _SCRIPTS_DIR = os.path.dirname(_PACKER_DIR)
@@ -21,210 +62,154 @@ if _SCRIPTS_DIR not in sys.path:
 try:
     from core import log_telemetry as _log_telemetry
 except ImportError:
-    def _log_telemetry(err: Exception = None, context: str = "") -> None:
+    def _log_telemetry(err: Optional[Exception] = None, context: str = "") -> None:
         if os.environ.get("ORION_DEBUG"):
             msg = f": {err}" if err else ""
             sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
 
-
-if hasattr(sys.stdout, 'reconfigure'):
+if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except Exception as _e:
-        _log_telemetry(_e, 'packer.py:reconfigure')
+        _log_telemetry(_e, "packer.py:reconfigure")
 
 try:
     from core.security import sanitize_text, SECRET_PATTERNS
 except (ImportError, OSError):
     try:
         from .security import sanitize_text, SECRET_PATTERNS
-    except (ImportError, OSError):
+    except (ImportError, ValueError):
         try:
             from security import sanitize_text, SECRET_PATTERNS
         except (ImportError, OSError):
             SECRET_PATTERNS = [
-        ("AWS_KEY", re.compile(r'\b(AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}\b')),
-        ("STRIPE_LIVE_KEY", re.compile(r'\bsk_live_[0-9a-zA-Z]{24}\b')),
-        ("STRIPE_TEST_KEY", re.compile(r'\bsk_test_[0-9a-zA-Z]{24}\b')),
-        ("GOOGLE_API_KEY", re.compile(r'\bAIza[0-9A-Za-z\-_]{35}\b')),
-        ("OPENAI_API_KEY", re.compile(r'\bsk-[a-zA-Z0-9]{48}\b')),
-        ("GITHUB_TOKEN", re.compile(r'\bgh[pousr]_[A-Za-z0-9_]{36,}\b')),
-        ("BEARER_TOKEN", re.compile(r'\bBearer\s+[a-zA-Z0-9\-\._~+/]+=*')),
-        ("TELEGRAM_BOT_TOKEN", re.compile(r'\b[0-9]{9,10}:[a-zA-Z0-9_-]{35}\b')),
-        ("JWT_SUPABASE_KEY", re.compile(r'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+')),
-        ("PRIVATE_KEY", re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----')),
-        ("GENERIC_SECRET", re.compile(r'(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*[\'"][^\s\'"]{16,}[\'"]')),
-    ]
+                ("AWS_KEY", re.compile(r"\b(AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}\b")),
+                ("STRIPE_LIVE_KEY", re.compile(r"\bsk_live_[0-9a-zA-Z]{24}\b")),
+                ("STRIPE_TEST_KEY", re.compile(r"\bsk_test_[0-9a-zA-Z]{24}\b")),
+                ("GOOGLE_API_KEY", re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b")),
+                ("OPENAI_API_KEY", re.compile(r"\bsk-[a-zA-Z0-9_\-]{32,}\b")),
+                ("GITHUB_TOKEN", re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{36,}\b")),
+                ("BEARER_TOKEN", re.compile(r"\bBearer\s+[a-zA-Z0-9\-\._~+/]{20,}=*")),
+                ("TELEGRAM_BOT_TOKEN", re.compile(r"\b[0-9]{9,10}:[a-zA-Z0-9_-]{35}\b")),
+                ("JWT_SUPABASE_KEY", re.compile(r"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+")),
+                ("PRIVATE_KEY", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----")),
+                ("GENERIC_SECRET", re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^\s'\"]{16,}['\"]")),
+            ]
 
-    def sanitize_text(content: str) -> Tuple[str, List[str]]:
-        warnings = []
-        sanitized = content
-        for name, pattern in SECRET_PATTERNS:
-            matches = pattern.findall(sanitized)
-            if matches:
-                warnings.append(f"Detected {len(matches)} potential {name} secrets.")
-                sanitized = pattern.sub(f"[REDACTED_{name}]", sanitized)
-        return sanitized, warnings
+            def sanitize_text(content: str) -> Tuple[str, List[str]]:
+                warnings: List[str] = []
+                sanitized = content
+                for name, pattern in SECRET_PATTERNS:
+                    sanitized, count = pattern.subn(f"[REDACTED_{name}]", sanitized)
+                    if count > 0:
+                        warnings.append(f"Detected {count} potential {name} secrets.")
+                return sanitized, warnings
 
 DEFAULT_IGNORE_DIRS = {
-    '.git', 'node_modules', '__pycache__', '.venv', 'venv', 'target', 'build',
-    'dist', '.dart_tool', '.gradle', '.idea', '.vscode', '.gemini', '.cursor',
-    '.clinerules', 'coverage', '.orion', 'scratch', '.scratch', '.worktrees',
-    'temp', 'tmp', '.turbo', '.next', '.cache', '.pytest_cache', '.mypy_cache', 'vendor'
+    ".git", "node_modules", "__pycache__", ".venv", "venv", "target", "build",
+    "dist", ".dart_tool", ".gradle", ".idea", ".vscode", ".gemini", ".cursor",
+    ".claude", ".clinerules", "coverage", ".orion", "scratch", ".scratch",
+    ".worktrees", "temp", "tmp", ".turbo", ".next", ".cache", ".pytest_cache",
+    ".mypy_cache", "vendor", ".svelte-kit", ".nuxt", "out", "Pods", "DerivedData",
+    "CMakeFiles", "obj", ".bundle", "bower_components"
+}
+
+AGENT_TOOLING_DIRS = {
+    ".agents", ".orion", ".gemini", ".claude", ".cursor", ".opencode",
+    ".antigravity-plugin", ".claude-plugin", ".cursor-plugin", ".codex-plugin",
+    ".devin-plugin", ".copilot-plugin", ".kimi-plugin", ".hermes-plugin",
+    ".muse-plugin", ".droid-plugin", ".grok-plugin", ".pi-plugin",
+    ".qwen-plugin", ".minimax-plugin", ".mimo-plugin"
+}
+
+AGENT_ROOT_FILES = {
+    "agents.md", "gemini.md", "claude.md", "minimax.md", "mimo.md",
+    "learnings.md", "gemini-extension.json", "deploy_me.md", "agent_identity.md"
 }
 
 DEFAULT_IGNORE_FILENAMES = {
-    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'pubspec.lock',
-    'Cargo.lock', 'poetry.lock', 'composer.lock', 'Gemfile.lock', 'Pipfile.lock',
-    '.DS_Store', 'thumbs.db', 'desktop.ini'
+    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "pubspec.lock",
+    "cargo.lock", "poetry.lock", "composer.lock", "gemfile.lock", "pipfile.lock",
+    "bun.lockb", "bun.lock", "uv.lock", "gradle.lockfile", "podfile.lock",
+    ".ds_store", "thumbs.db", "desktop.ini"
 }
 
 DEFAULT_TEXT_EXTENSIONS = {
-    '.py', '.dart', '.kt', '.java', '.rs', '.ts', '.tsx', '.js', '.jsx',
-    '.mjs', '.cjs', '.json', '.jsonl', '.yaml', '.yml', '.md', '.mdc', '.txt',
-    '.toml', '.sql', '.html', '.css', '.xml', '.sh', '.bat', '.cmd', '.ps1', '.c',
-    '.h', '.cpp', '.hpp', '.go', '.swift', '.cs', '.vue', '.svelte', '.scss',
-    '.sass', '.less', '.proto', '.graphql', '.gql', '.rb', '.php', '.ex', '.exs',
-    '.gitkeep'
+    ".py", ".dart", ".kt", ".kts", ".java", ".rs", ".ts", ".tsx", ".js", ".jsx",
+    ".mjs", ".cjs", ".json", ".jsonl", ".yaml", ".yml", ".md", ".mdc", ".txt",
+    ".toml", ".sql", ".html", ".css", ".xml", ".sh", ".bat", ".cmd", ".ps1", ".c",
+    ".h", ".cpp", ".hpp", ".cc", ".go", ".swift", ".cs", ".vue", ".svelte", ".scss",
+    ".sass", ".less", ".proto", ".graphql", ".gql", ".rb", ".php", ".ex", ".exs",
+    ".erl", ".hrl", ".lua", ".r", ".jl", ".zig", ".nim", ".prisma", ".sol", ".tf",
+    ".hcl", ".gradle", ".plist", ".cmake",
+    ".arb", ".properties", ".pro", ".xcconfig", ".podspec", ".pyi", ".ini", ".cfg"
 }
 
 DEFAULT_TEXT_FILENAMES = {
-    '.gitignore', '.env.example', 'LICENSE', 'VERSION', 'Dockerfile', 'Makefile'
+    ".gitignore", ".env.example", ".env.template", "LICENSE", "VERSION", "Dockerfile", "Makefile",
+    "CMakeLists.txt", "Podfile", "Gemfile", "Procfile", "Justfile"
 }
 
 LANG_MAP = {
-    '.py': 'python',
-    '.dart': 'dart',
-    '.kt': 'kotlin',
-    '.java': 'java',
-    '.rs': 'rust',
-    '.ts': 'typescript',
-    '.tsx': 'typescript',
-    '.js': 'javascript',
-    '.jsx': 'javascript',
-    '.mjs': 'javascript',
-    '.cjs': 'javascript',
-    '.json': 'json',
-    '.jsonl': 'json',
-    '.yaml': 'yaml',
-    '.yml': 'yaml',
-    '.md': 'markdown',
-    '.toml': 'toml',
-    '.sql': 'sql',
-    '.html': 'html',
-    '.css': 'css',
-    '.xml': 'xml',
-    '.sh': 'bash',
-    '.cmd': 'batch',
-    '.bat': 'batch',
-    '.ps1': 'powershell',
-    '.c': 'c',
-    '.h': 'c',
-    '.cpp': 'cpp',
-    '.hpp': 'cpp',
-    '.go': 'go',
-    '.swift': 'swift',
-    '.cs': 'csharp',
-    '.vue': 'vue',
-    '.svelte': 'svelte',
-    '.scss': 'scss',
-    '.sass': 'sass',
-    '.less': 'less',
-    '.proto': 'protobuf',
-    '.graphql': 'graphql',
-    '.gql': 'graphql',
-    '.rb': 'ruby',
-    '.php': 'php',
-    '.ex': 'elixir',
-    '.exs': 'elixir'
+    ".py": "python", ".dart": "dart", ".kt": "kotlin", ".kts": "kotlin",
+    ".java": "java", ".rs": "rust", ".ts": "typescript", ".tsx": "typescript",
+    ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+    ".json": "json", ".jsonl": "json", ".yaml": "yaml", ".yml": "yaml",
+    ".md": "markdown", ".mdc": "markdown", ".toml": "toml", ".sql": "sql",
+    ".html": "html", ".css": "css", ".xml": "xml", ".sh": "bash",
+    ".cmd": "batch", ".bat": "batch", ".ps1": "powershell", ".c": "c",
+    ".h": "c", ".cpp": "cpp", ".hpp": "cpp", ".cc": "cpp", ".go": "go",
+    ".swift": "swift", ".cs": "csharp", ".vue": "vue", ".svelte": "svelte",
+    ".scss": "scss", ".sass": "sass", ".less": "less", ".proto": "protobuf",
+    ".graphql": "graphql", ".gql": "graphql", ".rb": "ruby", ".php": "php",
+    ".ex": "elixir", ".exs": "elixir", ".zig": "zig", ".prisma": "prisma",
+    ".arb": "json", ".properties": "properties", ".pro": "prolog", ".xcconfig": "bash",
+    ".podspec": "ruby", ".pyi": "python", ".ini": "ini", ".cfg": "ini",
+    ".sol": "solidity", ".tf": "hcl", ".gradle": "groovy"
 }
 
+GENERATED_FILE_SUFFIXES = (
+    ".g.dart", ".freezed.dart", ".gr.dart", ".config.dart", ".mocks.dart",
+    ".pb.go", ".pb.ts", ".pb.js", ".pb.py", "_pb2.py", "_pb2_grpc.py",
+    ".generated.ts", ".generated.js", ".generated.cs", ".designer.cs",
+    ".g.cs", ".min.js", ".min.css", ".bundle.js", ".chunk.js", ".map",
+    "app_localizations.dart", "app_localizations_en.dart"
+)
 
-def is_minified_or_asset(path: str) -> bool:
-    """Filters minified code and source maps that distort token budgets."""
-    norm = path.replace('\\', '/').lower()
-    return norm.endswith('.min.js') or norm.endswith('.min.css') or norm.endswith('.map') or norm.endswith('.bundle.js')
-
-
-
-def is_binary_file(path: str) -> bool:
-    """Detects whether a file is binary by inspecting initial 1,024 bytes."""
-    try:
-        with open(path, "rb") as f:
-            chunk = f.read(1024)
-            return b"\x00" in chunk
-    except OSError:
-        return True
-
+GENERATED_HEADER_MARKERS = (
+    "GENERATED CODE - DO NOT MODIFY BY HAND",
+    "DO NOT EDIT. THIS IS CODE GENERATED",
+    "// @generated",
+    "/* @generated */",
+    "Autogenerated by ",
+    "This file was automatically generated",
+)
 
 try:
-    from core.db import estimate_tokens
+    from core.db import estimate_tokens, atomic_write_text
 except (ImportError, OSError):
     def estimate_tokens(content: str) -> int:
-        """Estimates token count with character division heuristic (len / 3.8)."""
         if not content:
             return 0
-        return math.ceil(len(content) / 3.8)
+        return max(1, math.ceil(len(content) / 3.8))
 
+    def atomic_write_text(filepath: str, content: str) -> None:
+        import uuid
+        abs_p = os.path.abspath(filepath)
+        os.makedirs(os.path.dirname(abs_p), exist_ok=True)
+        tmp_p = f"{abs_p}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}"
+        try:
+            with open(tmp_p, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp_p, abs_p)
+        finally:
+            if os.path.exists(tmp_p):
+                try:
+                    os.remove(tmp_p)
+                except OSError:
+                    pass
 
-def generate_ascii_tree(
-    dir_path: str,
-    prefix: str = "",
-    max_depth: int = 4,
-    ignore_filter: Optional[Any] = None
-) -> List[str]:
-    """Generates ASCII directory tree structure with connectors."""
-    if max_depth <= 0:
-        return []
-    lines = []
-    try:
-        entries = sorted(
-            [e for e in os.scandir(dir_path) if not e.name.startswith(".") or e.name == ".agents"],
-            key=lambda x: (not x.is_dir(), x.name.lower())
-        )
-    except (PermissionError, OSError):
-        return []
-
-    filtered = []
-    for entry in entries:
-        if entry.name in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(entry.name):
-            continue
-        rel = os.path.relpath(entry.path, dir_path)
-        if ignore_filter and ignore_filter.is_ignored(rel, is_dir=entry.is_dir()):
-            continue
-        if any(p in DEFAULT_IGNORE_DIRS for p in entry.name.split("/")):
-            continue
-        filtered.append(entry)
-
-    count = len(filtered)
-    for i, entry in enumerate(filtered):
-        connector = "└── " if i == count - 1 else "├── "
-        lines.append(f"{prefix}{connector}{entry.name}")
-        if entry.is_dir():
-            extension = "    " if i == count - 1 else "│   "
-            lines.extend(generate_ascii_tree(entry.path, prefix + extension, max_depth - 1, ignore_filter))
-    return lines
-
-
-def add_line_numbers(content: str) -> str:
-    """Prepend right-aligned 1-indexed line numbers to each line (from files-to-prompt)."""
-    lines = content.splitlines()
-    if not lines:
-        return ""
-    padding = max(3, len(str(len(lines))))
-    return "\n".join(f"{i:>{padding}} | {line}" for i, line in enumerate(lines, 1))
-
-
-def get_dynamic_fence(content: str) -> str:
-    """Generates markdown backtick fences safely larger than any backtick sequence in content (from files-to-prompt)."""
-    fence = "```"
-    while fence in content:
-        fence += "`"
-    return fence
-
-
-# Re-exported from core.scanner to eliminate Frankenstein subsystem duplication
 try:
     from core.scanner import (
         skeletonize_python,
@@ -232,6 +217,8 @@ try:
         skeletonize_markdown,
         SUPPORTED_SKELETON_EXTENSIONS,
         build_repo_map,
+        extract_file_symbols,
+        RESERVED_KEYWORDS,
         cmd_tokens,
     )
 except ImportError:
@@ -242,50 +229,142 @@ except ImportError:
             skeletonize_markdown,
             SUPPORTED_SKELETON_EXTENSIONS,
             build_repo_map,
+            extract_file_symbols,
+            RESERVED_KEYWORDS,
             cmd_tokens,
         )
-    except ImportError:
+    except (ImportError, ValueError):
         from scanner import (
             skeletonize_python,
             skeletonize_code,
             skeletonize_markdown,
             SUPPORTED_SKELETON_EXTENSIONS,
             build_repo_map,
+            extract_file_symbols,
+            RESERVED_KEYWORDS,
             cmd_tokens,
         )
 
 
-def collect_git_diff_files(
-    root_dir: str,
-    diff_ref: Optional[str] = None,
-    staged_only: bool = False
-) -> List[str]:
-    """Collects modified files via git diff (Pillar 1 standard library subprocess)."""
-    import subprocess
-    cmd = ["git", "diff", "--name-only"]
-    if staged_only:
-        cmd.append("--cached")
-    elif diff_ref:
-        cmd.append(diff_ref)
+def is_minified_or_asset(path: str) -> bool:
+    """Detects generated code, sourcemaps, minified bundles, or low-signal vector/drawable assets."""
+    norm = path.replace("\\", "/").lower()
+    if norm.endswith(GENERATED_FILE_SUFFIXES):
+        return True
+    if "/res/drawable" in norm or "/res/mipmap" in norm or "/assets/icons/" in norm:
+        if norm.endswith((".xml", ".svg", ".png", ".webp", ".jpg", ".ico")):
+            return True
+    if "/res/values-" in norm and os.path.basename(norm) in ("strings.xml", "dimens.xml"):
+        return True
+    if "generatedpluginregistrant" in os.path.basename(norm):
+        return True
+    return False
 
+
+def is_generated_content(content_head: str) -> bool:
+    """Checks the first 512 chars of a file for standard code-generator markers."""
+    head = content_head[:512]
+    return any(marker in head for marker in GENERATED_HEADER_MARKERS)
+
+
+def read_text_safe(path: str, max_bytes: Optional[int] = None) -> str:
+    """Reads text safely across UTF-8-SIG (stripping BOM) and UTF-16 LE/BE."""
+    with open(path, "rb") as f:
+        raw = f.read(max_bytes) if max_bytes is not None else f.read()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw.decode("utf-16", errors="replace")
+    return raw.decode("utf-8-sig", errors="replace")
+
+
+def is_binary_file(path: str) -> bool:
+    """Detects whether a file is binary by inspecting initial 1,024 bytes (permitting UTF-16 BOM)."""
     try:
-        res = subprocess.run(cmd, cwd=root_dir, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
-        if res.returncode == 0:
-            lines = [l.strip().replace('\\', '/') for l in res.stdout.splitlines() if l.strip()]
-            return [l for l in lines if os.path.isfile(os.path.join(root_dir, l))]
-    except Exception as _e:
-        _log_telemetry(_e, "collect_git_diff_files")
-    return []
+        with open(path, "rb") as f:
+            chunk = f.read(1024)
+        if not chunk or chunk.startswith((b"\xff\xfe", b"\xfe\xff")):
+            return False
+        return b"\x00" in chunk
+    except OSError:
+        return True
 
 
+def is_foundation_root(root_dir: str) -> bool:
+    """
+    Strictly detects whether target_dir is the upstream _foundation framework repository itself.
+    Returns False if ANY host application indicator (pubspec, package.json, Cargo.toml, lib/, src/, etc.) is present.
+    """
+    abs_root = os.path.abspath(root_dir)
+    if os.path.basename(abs_root) == ".agents":
+        return True
+
+    app_indicators = [
+        "package.json", "pubspec.yaml", "Cargo.toml", "go.mod", "tsconfig.json",
+        "pom.xml", "build.gradle", "build.gradle.kts", "CMakeLists.txt",
+        "src", "lib", "app", "apps", "services", "packages", "crates", "ios", "android"
+    ]
+    for ind in app_indicators:
+        if os.path.exists(os.path.join(abs_root, ind)):
+            return False
+
+    has_orion = os.path.isfile(os.path.join(abs_root, ".agents", "scripts", "orion.py"))
+    has_rules = os.path.isdir(os.path.join(abs_root, ".agents", "rules"))
+    has_core = os.path.isdir(os.path.join(abs_root, ".agents", "scripts", "core"))
+    return bool(has_orion and has_rules and has_core)
+
+
+def is_foundation_agents(root_dir: str) -> bool:
+    """Detects whether target directory is the .agents folder itself."""
+    abs_root = os.path.abspath(root_dir)
+    return os.path.isdir(os.path.join(abs_root, "rules")) and os.path.isdir(os.path.join(abs_root, "scripts", "core"))
+
+
+def should_exclude_agent_tooling(root_dir: str, target_dir: Optional[str] = None, include_agents: bool = False) -> bool:
+    """
+    Strict Host Isolation:
+    Excludes all .agents/, .orion/, .claude/, .cursor/, and root AI instruction files
+    whenever packing an application repository, unless --include-agents is explicitly passed.
+    """
+    if include_agents:
+        return False
+    abs_root = os.path.abspath(target_dir or root_dir)
+    if is_foundation_root(abs_root) or is_foundation_agents(abs_root):
+        return False
+    return True
+
+
+def is_agent_tooling_path(rel_path: str, root_dir: Optional[str] = None) -> bool:
+    """Checks if a relative path belongs to AI agent tooling rather than the host application."""
+    norm = rel_path.replace("\\", "/").strip("/")
+    if not norm:
+        return False
+    parts = norm.split("/")
+    first_seg = parts[0]
+    if first_seg in AGENT_TOOLING_DIRS or first_seg.endswith("-plugin"):
+        return True
+    if len(parts) == 1:
+        f_low = first_seg.lower()
+        if f_low == "agents.md":
+            return False
+        if f_low == "gemini.md":
+            if root_dir and os.path.isfile(os.path.join(root_dir, "AGENTS.md")):
+                return True
+            return False
+        if f_low in AGENT_ROOT_FILES:
+            return True
+    if parts[-1].lower() in AGENT_ROOT_FILES:
+        return True
+    if norm.startswith(".github/copilot"):
+        return True
+    return False
 
 
 class GitIgnoreFilter:
-    """Hierarchical gitignore matcher supporting nested monorepo .gitignore files, negations, and segment wildcards."""
-    def __init__(self, root_dir: str):
+    """Hierarchical gitignore matcher supporting nested monorepo .gitignore files, negations, and wildcards."""
+
+    def __init__(self, root_dir: str, exclude_agent_tooling: bool = True):
         self.root_dir = os.path.abspath(root_dir)
-        # List of (base_rel_dir, pattern, is_negation, is_dir_only, is_anchored)
-        self.rules: List[Tuple[str, str, bool, bool, bool]] = []
+        self.exclude_agent_tooling = exclude_agent_tooling
+        self.rules: List[Tuple[str, re.Pattern, bool, bool]] = []
         self._loaded_dirs: Set[str] = set()
         self._load_gitignore_for_dir("")
 
@@ -297,9 +376,9 @@ class GitIgnoreFilter:
         if not os.path.isfile(gi_path):
             return
         try:
-            with open(gi_path, "r", encoding="utf-8", errors="ignore") as f:
-                for line in f:
-                    self.add_rule(line, base_rel_dir=rel_dir)
+            content = read_text_safe(gi_path)
+            for line in content.splitlines():
+                self.add_rule(line, base_rel_dir=rel_dir)
         except Exception as _e:
             _log_telemetry(_e, f"packer.py:load_gitignore:{rel_dir}")
 
@@ -316,18 +395,21 @@ class GitIgnoreFilter:
         is_anchored = raw.startswith("/") or ("/" in raw)
         clean_pat = raw.lstrip("/")
         if clean_pat:
-            self.rules.append((base_rel_dir.replace("\\", "/").strip("/"), clean_pat, is_neg, is_dir_only, is_anchored))
+            compiled = self._git_glob_to_regex(clean_pat, is_anchored)
+            self.rules.append((base_rel_dir.replace("\\", "/").strip("/"), compiled, is_neg, is_dir_only))
 
     @staticmethod
     def _git_glob_to_regex(pat: str, is_anchored: bool) -> re.Pattern:
-        # Translate gitignore glob where '*' does not cross '/' and '**' crosses '/'
         out = ["^" if is_anchored else "(?:^|/)"]
         i, n = 0, len(pat)
         while i < n:
-            if pat[i:i+3] == "**/":
+            if pat[i] == "\\" and i + 1 < n:
+                out.append(re.escape(pat[i + 1]))
+                i += 2
+            elif pat[i:i + 3] == "**/":
                 out.append("(?:.+/)?")
                 i += 3
-            elif pat[i:i+2] == "**":
+            elif pat[i:i + 2] == "**":
                 out.append(".*")
                 i += 2
             elif pat[i] == "*":
@@ -336,6 +418,17 @@ class GitIgnoreFilter:
             elif pat[i] == "?":
                 out.append("[^/]")
                 i += 1
+            elif pat[i] == "[":
+                j = pat.find("]", i + 1)
+                if j != -1:
+                    inner = pat[i + 1:j]
+                    if inner.startswith("!"):
+                        inner = "^" + inner[1:]
+                    out.append(f"[{inner}]")
+                    i = j + 1
+                else:
+                    out.append(r"\[")
+                    i += 1
             else:
                 out.append(re.escape(pat[i]))
                 i += 1
@@ -344,22 +437,25 @@ class GitIgnoreFilter:
 
     def is_ignored(self, rel_path: str, is_dir: bool = False) -> bool:
         norm = rel_path.replace("\\", "/").strip("/")
-        if not norm:
+        if not norm or norm == ".":
             return False
-        parts = norm.split("/")
-        if any(p in DEFAULT_IGNORE_DIRS for p in parts[:-1 if not is_dir else None]):
-            return True
-        if not is_dir and (parts[-1] in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(norm)):
+        if self.exclude_agent_tooling and is_agent_tooling_path(norm, self.root_dir):
             return True
 
-        # Lazily load nested .gitignore files along the path hierarchy
+        parts = norm.split("/")
+        check_parts = parts if is_dir else parts[:-1]
+        if any(p in DEFAULT_IGNORE_DIRS for p in check_parts):
+            return True
+        if not is_dir and (parts[-1].lower() in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(norm)):
+            return True
+
         accum = ""
         for part in parts[:-1]:
             accum = f"{accum}/{part}" if accum else part
             self._load_gitignore_for_dir(accum)
 
         ignored = False
-        for base_dir, pat, is_neg, dir_only, is_anchored in self.rules:
+        for base_dir, regex, is_neg, dir_only in self.rules:
             if base_dir:
                 if not (norm == base_dir or norm.startswith(base_dir + "/")):
                     continue
@@ -368,12 +464,147 @@ class GitIgnoreFilter:
                 sub_path = norm
             if not sub_path:
                 continue
-            if dir_only and not is_dir and "/" not in sub_path:
-                continue
-            regex = self._git_glob_to_regex(pat, is_anchored)
-            if regex.search(sub_path):
+            m = regex.search(sub_path)
+            if m:
+                if dir_only and not is_dir:
+                    if m.end() == len(sub_path) and "/" not in sub_path[m.start():]:
+                        continue
                 ignored = not is_neg
         return ignored
+
+
+def generate_ascii_tree(
+    dir_path: str,
+    prefix: str = "",
+    max_depth: int = 4,
+    ignore_filter: Optional[GitIgnoreFilter] = None,
+    root_base: Optional[str] = None,
+) -> List[str]:
+    """Generates clean ASCII directory tree structure with strict host isolation."""
+    if max_depth <= 0:
+        return []
+    base_root = root_base or dir_path
+    exclude_agents = ignore_filter.exclude_agent_tooling if ignore_filter else should_exclude_agent_tooling(base_root)
+    lines: List[str] = []
+    try:
+        entries = sorted(
+            [
+                e for e in os.scandir(dir_path)
+                if not e.name.startswith(".") or (not exclude_agents and e.name == ".agents")
+            ],
+            key=lambda x: (not x.is_dir(follow_symlinks=False), x.name.lower()),
+        )
+    except (PermissionError, OSError):
+        return []
+
+    filtered = []
+    for entry in entries:
+        if entry.name.lower() in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(entry.name):
+            continue
+        rel = os.path.relpath(entry.path, base_root).replace("\\", "/")
+        if exclude_agents and is_agent_tooling_path(rel, base_root):
+            continue
+        is_entry_dir = entry.is_dir(follow_symlinks=False)
+        if ignore_filter and ignore_filter.is_ignored(rel, is_dir=is_entry_dir):
+            continue
+        if entry.name in DEFAULT_IGNORE_DIRS:
+            continue
+        filtered.append(entry)
+
+    count = len(filtered)
+    for i, entry in enumerate(filtered):
+        connector = "└── " if i == count - 1 else "├── "
+        lines.append(f"{prefix}{connector}{entry.name}")
+        if entry.is_dir(follow_symlinks=False):
+            extension = "    " if i == count - 1 else "│   "
+            lines.extend(
+                generate_ascii_tree(
+                    entry.path,
+                    prefix + extension,
+                    max_depth - 1,
+                    ignore_filter=ignore_filter,
+                    root_base=base_root,
+                )
+            )
+    return lines
+
+
+def add_line_numbers(content: str) -> str:
+    """Prepend right-aligned 1-indexed line numbers to each line."""
+    lines = content.splitlines()
+    if not lines:
+        return ""
+    padding = max(3, len(str(len(lines))))
+    return "\n".join(f"{i:>{padding}} | {line}" for i, line in enumerate(lines, 1))
+
+
+def get_dynamic_fence(content: str) -> str:
+    """Generates markdown backtick fences safely larger than any backtick sequence in content."""
+    fence = "```"
+    while fence in content:
+        fence += "`"
+    return fence
+
+
+def collect_git_diff_files(
+    root_dir: str,
+    diff_ref: Optional[str] = None,
+    staged_only: bool = False,
+) -> List[str]:
+    """Collects modified files via git diff."""
+    cmd = ["git", "diff", "--name-only"]
+    if staged_only:
+        cmd.append("--cached")
+    elif diff_ref:
+        cmd.append(diff_ref)
+
+    try:
+        res = subprocess.run(
+            cmd,
+            cwd=root_dir,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if res.returncode == 0:
+            lines = [l.strip().replace("\\", "/") for l in res.stdout.splitlines() if l.strip()]
+            return [l for l in lines if os.path.isfile(os.path.join(root_dir, l))]
+    except Exception as _e:
+        _log_telemetry(_e, "collect_git_diff_files")
+    return []
+
+
+def clone_remote_repo(url: str, dest_dir: str, depth: int = 1) -> bool:
+    """Clones a remote repository for ephemeral auditing."""
+    try:
+        subprocess.run(
+            ["git", "clone", f"--depth={depth}", url, dest_dir],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        return True
+    except Exception as _e:
+        _log_telemetry(_e, "clone_remote_repo")
+        return False
+
+
+def render_prompt_template(template_path: str, context: Dict[str, Any]) -> str:
+    """Renders a prompt template with given context dictionary."""
+    if not os.path.isfile(template_path):
+        return ""
+    try:
+        with open(template_path, "r", encoding="utf-8", errors="ignore") as fh:
+            content = fh.read()
+        for k, v in context.items():
+            content = content.replace(f"{{{{{k}}}}}", str(v))
+        return content
+    except Exception as _e:
+        _log_telemetry(_e, "render_prompt_template")
+        return ""
 
 
 BUNDLE_SOFT_TOKEN_CAP = 45000
@@ -400,100 +631,72 @@ _IMPERATIVE_DIRECTIVES_RE = re.compile(
     re.IGNORECASE,
 )
 
+
 def escape_artifact_boundaries(text: str) -> str:
     """Unconditionally neutralizes <artifact> XML tags across ALL file types to prevent XML breakout."""
     return _ARTIFACT_BOUNDARY_RE.sub(r"&lt;\1artifact\2&gt;", text)
 
+
 def neutralize_prompt_tags(text: str, is_markdown: bool = True) -> str:
     """
-    Escapes XML artifact boundaries in all files, and neutralizes prompt override tags /
-    imperative directives in Markdown prose (strictly skipping fenced code blocks).
-    For non-markdown code files, artifact boundaries are escaped, but source tags (e.g. JSX <Route>) are preserved.
+    Escapes XML artifact boundaries and prompt override tags across all files and code blocks
+    to prevent Prompt-in-Data Bleed.
     """
-    safe_text = escape_artifact_boundaries(text)
-    if not is_markdown:
-        return safe_text
-
     def _repl_directive(m: re.Match) -> str:
         lead_bold = m.group(1) or ""
         core = m.group(2)
         trail_bold = m.group(3) or ""
         return f"{lead_bold}[TARGET-DATA: {core}]{trail_bold}:"
 
-    out_lines: List[str] = []
-    in_fence = False
-    fence_char = ""
-    fence_len = 0
-
-    for line in safe_text.splitlines():
-        stripped = line.lstrip()
-        m_fence = re.match(r"^(`{3,}|~{3,})", stripped)
-        if m_fence:
-            marker = m_fence.group(1)
-            char = marker[0]
-            length = len(marker)
-            if not in_fence:
-                in_fence = True
-                fence_char = char
-                fence_len = length
-            elif char == fence_char and length >= fence_len:
-                in_fence = False
-                fence_char = ""
-                fence_len = 0
-            out_lines.append(line)
-            continue
-
-        if in_fence:
-            # Inside code fences, preserve code syntax and internal tags intact
-            out_lines.append(line)
-            continue
-
-        line = _PROMPT_TAG_NEUTRALIZE_RE.sub(r"&lt;\1&gt;", line)
-        line = _IMPERATIVE_DIRECTIVES_RE.sub(_repl_directive, line)
-        out_lines.append(line)
-
-    return "\n".join(out_lines)
+    safe_text = escape_artifact_boundaries(text)
+    safe_text = _PROMPT_TAG_NEUTRALIZE_RE.sub(r"&lt;\1&gt;", safe_text)
+    if is_markdown:
+        safe_text = _IMPERATIVE_DIRECTIVES_RE.sub(_repl_directive, safe_text)
+    return safe_text
 
 
 _AMBIGUOUS_MODULE_STEMS = {
     "__init__", "index", "main", "mod", "lib", "utils", "helpers", "types",
-    "constants", "config", "common", "models", "errors", "route", "page", "layout"
+    "constants", "config", "common", "models", "errors", "route", "page", "layout",
+    "widget", "view", "controller", "service", "repository", "state", "bloc"
 }
 
 _STEM_MAP_CACHE: Dict[str, Dict[str, Tuple[str, str]]] = {}
+
 
 def extract_cross_bundle_imports(
     rel_path: str,
     raw_content: str,
     file_to_bundle: Dict[str, str],
 ) -> List[str]:
-    """Resolves internal repository imports for a file to their corresponding target bundle IDs."""
+    """Resolves internal repository imports for any language to their target bundle IDs in O(1) amortized time."""
     ext = os.path.splitext(rel_path)[1].lower().lstrip(".")
     cur_bundle = file_to_bundle.get(rel_path, "")
-    cache_key = hashlib.sha256(json.dumps(sorted(file_to_bundle.items())).encode("utf-8")).hexdigest()[:16]
+    cache_key = f"{id(file_to_bundle)}:{len(file_to_bundle)}"
     stem_map = _STEM_MAP_CACHE.get(cache_key)
     if stem_map is None:
         stem_map = {}
-        generic_stems = _AMBIGUOUS_MODULE_STEMS
         for fp, b_code in file_to_bundle.items():
+            fp_ext = os.path.splitext(fp)[1].lower().lstrip(".")
+            if fp_ext not in SUPPORTED_SKELETON_EXTENSIONS:
+                continue
             b_id = b_code.split("_")[0]
             norm_fp = fp.replace("\\", "/")
             stem = os.path.splitext(os.path.basename(norm_fp))[0]
-            if stem not in generic_stems:
+            if stem not in _AMBIGUOUS_MODULE_STEMS and stem not in stem_map:
                 stem_map[stem] = (norm_fp, b_id)
 
-            # Universal suffix tail & dotted path indexing across arbitrary project layouts
             no_ext = os.path.splitext(norm_fp)[0]
             segments = no_ext.split("/")
             for i in range(len(segments)):
                 sub_rel = "/".join(segments[i:])
                 dotted = sub_rel.replace("/", ".")
-                if i == len(segments) - 1 and segments[i] in generic_stems:
+                if i == len(segments) - 1 and len(segments) == 1 and segments[i] in _AMBIGUOUS_MODULE_STEMS:
                     continue
                 stem_map[sub_rel] = (norm_fp, b_id)
                 stem_map[dotted] = (norm_fp, b_id)
-                if sub_rel.endswith("/__init__"):
-                    pkg_name = sub_rel[:-9]
+                if sub_rel.endswith("/__init__") or sub_rel.endswith("/index"):
+                    pkg_name = sub_rel.rsplit("/", 1)[0]
                     stem_map[pkg_name] = (norm_fp, b_id)
                     stem_map[pkg_name.replace("/", ".")] = (norm_fp, b_id)
         _STEM_MAP_CACHE[cache_key] = stem_map
@@ -501,99 +704,71 @@ def extract_cross_bundle_imports(
     found: List[str] = []
     seen_targets: Set[Tuple[str, str]] = set()
     cur_bid = cur_bundle.split("_")[0] if cur_bundle else ""
+
+    def _record_match(cand_str: str, label: Optional[str] = None) -> None:
+        target = stem_map.get(cand_str)
+        if not target:
+            tail = cand_str.split("/")[-1].split(".")[-1]
+            if tail not in _AMBIGUOUS_MODULE_STEMS:
+                target = stem_map.get(tail)
+        if target:
+            t_fp, t_bid = target
+            if t_bid and t_bid != cur_bid and t_fp != rel_path:
+                t_key = (t_fp, t_bid)
+                if t_key not in seen_targets:
+                    seen_targets.add(t_key)
+                    found.append(f"{label or cand_str} (Bundle {t_bid})")
+
     if ext == "py":
         try:
-            import ast as _ast
             tree = _ast.parse(raw_content)
             for node in _ast.walk(tree):
-                module_candidates: List[str] = []
-                exact_candidates: List[str] = []
                 if isinstance(node, _ast.Import):
                     for alias in node.names:
-                        module_candidates.append(alias.name)
+                        _record_match(alias.name)
                 elif isinstance(node, _ast.ImportFrom) and node.module:
-                    module_candidates.append(node.module)
                     for alias in node.names:
-                        exact_candidates.append(f"{node.module}.{alias.name}")
-                for cand in exact_candidates:
-                    target = stem_map.get(cand)
-                    if target:
-                        t_fp, t_bid = target
-                        if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                            target_key = (t_fp, t_bid)
-                            if target_key not in seen_targets:
-                                seen_targets.add(target_key)
-                                found.append(f"{cand} (Bundle {t_bid})")
-                for cand in module_candidates:
-                    cand_tail = cand.split(".")[-1]
-                    target = stem_map.get(cand)
-                    if not target and cand_tail not in _AMBIGUOUS_MODULE_STEMS:
-                        target = stem_map.get(cand_tail)
-                    if target:
-                        t_fp, t_bid = target
-                        if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                            target_key = (t_fp, t_bid)
-                            if target_key not in seen_targets:
-                                seen_targets.add(target_key)
-                                found.append(f"{cand} (Bundle {t_bid})")
-        except (SyntaxError, ValueError) as _e:
-            _log_telemetry(_e, "extract_cross_bundle_imports")
-    elif ext in ("ts", "tsx", "js", "jsx", "dart"):
-        for m in re.finditer(r"""(?:from|import)\s+['"]([^'"]+)['"]""", raw_content):
+                        _record_match(f"{node.module}.{alias.name}")
+                    _record_match(node.module)
+        except (SyntaxError, ValueError):
+            pass
+    elif ext in ("ts", "tsx", "js", "jsx", "mjs", "cjs", "vue", "svelte"):
+        for m in re.finditer(r"""(?:from|import|require\s*\()\s*['"]([^'"]+)['"]""", raw_content):
             imp = m.group(1)
-            base_stem = os.path.splitext(os.path.basename(imp))[0]
-            clean_imp = imp.lstrip("./").lstrip("@/").lstrip("src/")
-            target = stem_map.get(clean_imp) or (stem_map.get(base_stem) if base_stem not in _AMBIGUOUS_MODULE_STEMS else None)
-            if target:
-                t_fp, t_bid = target
-                if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                    target_key = (t_fp, t_bid)
-                    if target_key not in seen_targets:
-                        seen_targets.add(target_key)
-                        found.append(f"{base_stem} (Bundle {t_bid})")
+            clean_imp = re.sub(r"^(?:\./|\.\./|@/|~/|src/|lib/)+", "", imp)
+            clean_imp = os.path.splitext(clean_imp)[0]
+            base_stem = os.path.basename(clean_imp)
+            _record_match(clean_imp, label=base_stem if base_stem not in _AMBIGUOUS_MODULE_STEMS else clean_imp)
+    elif ext == "dart":
+        for m in re.finditer(r"""(?:import|export|part)\s+['"](?:package:[^/]+/|(?:\./|\.\./)*)([^'"]+)['"]""", raw_content):
+            imp = os.path.splitext(m.group(1))[0]
+            base_stem = os.path.basename(imp)
+            _record_match(imp, label=base_stem if base_stem not in _AMBIGUOUS_MODULE_STEMS else imp)
     elif ext == "go":
-        import_blocks = re.findall(r'import\s*\(([^)]+)\)|import\s+([^\n;]+)', raw_content)
+        import_blocks = re.findall(r"import\s*\(([^)]+)\)|import\s+([^\n;]+)", raw_content)
         for block_tuple in import_blocks:
             block_text = block_tuple[0] or block_tuple[1]
             for m in re.finditer(r"""["']([^"']+)["']""", block_text):
                 imp = m.group(1)
-                base_stem = os.path.basename(imp)
-                target = stem_map.get(imp) or (stem_map.get(base_stem) if base_stem not in _AMBIGUOUS_MODULE_STEMS else None)
-                if target:
-                    t_fp, t_bid = target
-                    if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                        target_key = (t_fp, t_bid)
-                        if target_key not in seen_targets:
-                            seen_targets.add(target_key)
-                            found.append(f"{base_stem} (Bundle {t_bid})")
+                _record_match(imp, label=os.path.basename(imp))
     elif ext == "rs":
-        for m in re.finditer(r"""use\s+(?:crate|super)?::?([a-zA-Z0-9_:]+)""", raw_content):
-            imp = m.group(1)
-            leaf = imp.split("::")[-1]
-            target = stem_map.get(imp.replace("::", "/")) or (stem_map.get(leaf) if leaf not in _AMBIGUOUS_MODULE_STEMS else None)
-            if target:
-                t_fp, t_bid = target
-                if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                    target_key = (t_fp, t_bid)
-                    if target_key not in seen_targets:
-                        seen_targets.add(target_key)
-                        found.append(f"{leaf} (Bundle {t_bid})")
-    elif ext in ("kt", "java"):
-        for m in re.finditer(r"""import\s+([a-zA-Z0-9_.]+)""", raw_content):
+        for m in re.finditer(r"""use\s+(?:crate|super|self)?(?:::)?([a-zA-Z0-9_:]+)""", raw_content):
+            imp = m.group(1).replace("::", "/")
+            leaf = imp.split("/")[-1]
+            _record_match(imp, label=leaf)
+    elif ext in ("kt", "kts", "java", "cs", "swift"):
+        for m in re.finditer(r"""(?:import|using)\s+([a-zA-Z0-9_.]+)""", raw_content):
             imp = m.group(1)
             leaf = imp.split(".")[-1]
-            target = stem_map.get(imp.replace(".", "/")) or (stem_map.get(leaf) if leaf not in _AMBIGUOUS_MODULE_STEMS else None)
-            if target:
-                t_fp, t_bid = target
-                if t_bid and t_bid != cur_bid and t_fp != rel_path:
-                    target_key = (t_fp, t_bid)
-                    if target_key not in seen_targets:
-                        seen_targets.add(target_key)
-                        found.append(f"{leaf} (Bundle {t_bid})")
+            _record_match(imp.replace(".", "/"), label=leaf)
+    elif ext in ("c", "h", "cpp", "hpp", "cc"):
+        for m in re.finditer(r"""#include\s+["<]([^">]+)[">]""", raw_content):
+            imp = os.path.splitext(m.group(1))[0]
+            _record_match(imp, label=os.path.basename(imp))
+
     return found[:8]
 
 
-# Only flag nested quantifiers if inner group does NOT start with fixed literal delimiter (-, ., /, _, \)
 _REDOS_NESTED_QUANTIFIER_RE = re.compile(
     r"\((?![-\./_\\][^\+\*\)]*[\+\*]\))[^()]*[\+\*][^()]*\)[\+\*]"
 )
@@ -615,50 +790,143 @@ def _calc_ast_max_nesting(node: _ast.AST, current_depth: int = 0) -> int:
     return max_d
 
 
-def generate_bundle_pre_audit_radar(root_dir: str, files: List[str]) -> str:
-    """
-    Runs fast static AST & complexity radar (<0.1s) on the files in a bundle:
-    1. Long functions (>100 lines) with exact [Lstart-Lend] ranges.
-    2. Deep control flow nesting (>=4 levels).
-    3. Broad or silent except handlers (bare except, or except Exception: without logging/reraise).
-    4. High-risk execution/FS sinks (subprocess, eval, exec, os.remove, shutil.rmtree).
-    5. Regex ReDoS hotspots (nested quantifiers).
-    6. Implicit text I/O encoding sinks (open() without encoding).
-    """
-    import ast as _ast
-    long_funcs: List[Tuple[str, int, str]] = []
+STUB_SMELL_PATTERNS = [
+    (re.compile(r'(?i)\b(?:nop_slide|mock_data|not_implemented|todo|fixme|stub)\b'), "SUSPECT_STUB_LITERAL"),
+    (re.compile(r'columns\s*:\s*\[\s*["\']id["\']\s*,\s*["\']data["\']'), "HARDCODED_SCHEMA_STUB"),
+    (re.compile(r'//\s*(?:ignore|fallback to empty|degrade gracefully|non-fatal)', re.IGNORECASE), "SILENT_DEGRADATION_COMMENT"),
+]
+
+
+def scan_scaffold_and_spec_drift(root_dir: str, bundle_files: List[str]) -> List[str]:
+    """Detects Spec-to-Code drift, Regex-as-AST cosplay, and hardcoded stub payloads."""
+    warnings: List[str] = []
+
+    # 1. Gather declared dependencies from package.json, pubspec.yaml, pyproject.toml
+    declared_deps: Set[str] = set()
+    pkg_json_path = os.path.join(root_dir, "package.json")
+    if os.path.isfile(pkg_json_path):
+        try:
+            with open(pkg_json_path, "r", encoding="utf-8", errors="ignore") as f:
+                pkg_data = json.load(f)
+                declared_deps.update(pkg_data.get("dependencies", {}).keys())
+                declared_deps.update(pkg_data.get("devDependencies", {}).keys())
+        except Exception:
+            pass
+
+    pubspec_path = os.path.join(root_dir, "pubspec.yaml")
+    if os.path.isfile(pubspec_path):
+        try:
+            with open(pubspec_path, "r", encoding="utf-8", errors="ignore") as f:
+                p_text = f.read()
+                in_deps = False
+                for line in p_text.splitlines():
+                    if line.strip().startswith(("dependencies:", "dev_dependencies:")):
+                        in_deps = True
+                        continue
+                    if in_deps and line and not line.startswith(" "):
+                        in_deps = False
+                    if in_deps and line.strip() and not line.strip().startswith("#"):
+                        dep_name = line.strip().split(":")[0].strip()
+                        if dep_name:
+                            declared_deps.add(dep_name)
+        except Exception:
+            pass
+
+    claimed_libraries = [
+        "@babel/parser", "@babel/traverse", "tree-sitter", "vitest", "zod", "prisma",
+        "riverpod", "freezed", "fast-xml-parser", "sqlite3"
+    ]
+
+    for rel_path in bundle_files:
+        full_p = os.path.join(root_dir, rel_path)
+        norm_p = rel_path.replace("\\", "/")
+        short_p = norm_p if norm_p.count("/") <= 2 else "/".join(norm_p.split("/")[-2:])
+
+        if not os.path.isfile(full_p):
+            continue
+
+        # Skip testing fixtures or tests from stub smell checks
+        is_test_file = any(t in norm_p.lower() for t in ("/tests/", "/test/", "_test.", ".test.", "test_", "spec."))
+
+        try:
+            with open(full_p, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+        except Exception:
+            continue
+
+        # Check unbacked library claims in docs
+        if rel_path.endswith(".md") and declared_deps and "context" in norm_p:
+            for lib in claimed_libraries:
+                if lib in content and lib not in declared_deps:
+                    warnings.append(f"`{short_p}` (Unbacked Spec Claim: `{lib}` missing from dependencies)")
+
+        # Check stub smells & Regex-as-AST cosplay in code files
+        if rel_path.endswith((".ts", ".js", ".py", ".dart")) and not is_test_file:
+            lines = content.splitlines()
+            for idx, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if "STUB_SMELL" in stripped or "SUSPECT_STUB" in stripped:
+                    continue
+                for pat, label in STUB_SMELL_PATTERNS:
+                    if pat.search(line):
+                        warnings.append(f"`{short_p}:L{idx}` ({label}: `{stripped[:40]}`)")
+
+            # Detect Converter/Parser modules relying purely on regex without AST imports
+            lower_p = rel_path.lower()
+            if any(k in lower_p for k in ("converter", "parser", "reconstructor", "decompiler")):
+                has_regex = bool(re.search(r'\.(?:match|matchAll|replace)\s*\(\s*/', content))
+                has_ast_lib = any(ast_kw in content.lower() for ast_kw in ("import ast", "@babel", "tree-sitter", "fast-xml-parser", "typescript", "arscparser", "arsc_parser"))
+                if has_regex and not has_ast_lib:
+                    warnings.append(f"`{short_p}` (REGEX_AS_AST_COSPLAY: Parser/Converter uses raw regex without AST library)")
+
+    return warnings
+
+
+def generate_bundle_pre_audit_radar(root_dir: str, files: List[str], dna: Optional[ProjectDNA] = None) -> str:
+    """Runs fast static AST & polyglot complexity radar (<0.1s) on the files in a bundle."""
+    long_funcs: List[Tuple[str, int, str, int]] = []
     large_modules: List[Tuple[str, int, str]] = []
-    deep_nesting: List[Tuple[str, int, str]] = []
+    deep_nesting: List[Tuple[str, int, str, int]] = []
     broad_excepts: List[Tuple[str, int, str]] = []
     exec_sinks: List[Tuple[str, int, str]] = []
     redos_risks: List[Tuple[str, int, str]] = []
     raw_io_risks: List[Tuple[str, int, str]] = []
 
     polyglot_sink_re = re.compile(
-        r"\b(eval|exec|execSync|spawn|Process\.run|Runtime\.getRuntime\(\)\.exec|rawQuery|dangerouslySetInnerHTML|innerHTML)\s*\("
+        r"(?<!\.)\b(eval|exec|execAsync|execSync|execFile|execFileSync|spawn|spawnSync)\s*\("
+        r"|\b(Process\.run|Process\.start|Runtime\.getRuntime\(\)\.exec|"
+        r"rawQuery|rawInsert|rawUpdate|rawDelete|dangerouslySetInnerHTML|innerHTML|MethodChannel)\s*\("
     )
-    polyglot_catch_re = re.compile(r"\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}")
+    polyglot_catch_re = re.compile(
+        r"\bcatch\s*(?:\([^)]*\))?\s*\{\s*(?://[^\r\n]*(?:\r?\n\s*)?|/\*(?:(?!\*/).)*\*/\s*)*\}",
+        re.DOTALL,
+    )
 
     for rel_p in files:
         full_p = os.path.join(root_dir, rel_p)
-        short_p = os.path.basename(rel_p)
+        norm_rel_p = rel_p.replace("\\", "/")
+        short_p = norm_rel_p if norm_rel_p.count("/") <= 2 else "/".join(norm_rel_p.split("/")[-2:])
         if not rel_p.endswith(".py"):
-            ext = os.path.splitext(rel_p)[1].lower()
+            ext = os.path.splitext(rel_p)[1].lower().lstrip(".")
             if ext in SUPPORTED_SKELETON_EXTENSIONS:
                 try:
                     with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
-                        p_lines = fh.readlines()
-                    if len(p_lines) > 250:
+                        p_raw = fh.read()
+                        p_lines = p_raw.splitlines()
+                    if len(p_lines) > 300:
                         large_modules.append((rel_p, 1, f"`{short_p}` [L1-L{len(p_lines)}] ({len(p_lines)} lines)"))
                     for idx_l, ln in enumerate(p_lines, 1):
                         m_sink = polyglot_sink_re.search(ln)
                         if m_sink:
-                            exec_sinks.append((rel_p, idx_l, f"`{short_p}:L{idx_l}` (`{m_sink.group(1)}()`)"))
-                        if polyglot_catch_re.search(ln):
-                            broad_excepts.append((rel_p, idx_l, f"`{short_p}:L{idx_l}` (`catch {{}}` [SILENT])"))
+                            s_name = m_sink.group(1) or m_sink.group(2) or "sink"
+                            exec_sinks.append((rel_p, idx_l, f"`{short_p}:L{idx_l}` (`{s_name}()`)"))
+                    for m_catch in polyglot_catch_re.finditer(p_raw):
+                        c_line = p_raw.count("\n", 0, m_catch.start()) + 1
+                        broad_excepts.append((rel_p, c_line, f"`{short_p}:L{c_line}` (`catch {{}}` [SILENT])"))
                 except OSError:
                     pass
             continue
+
         try:
             with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
                 src = fh.read()
@@ -666,7 +934,6 @@ def generate_bundle_pre_audit_radar(root_dir: str, files: List[str]) -> str:
         except (OSError, SyntaxError, ValueError):
             continue
 
-        short_p = os.path.basename(rel_p)
         for node in _ast.walk(tree):
             if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
                 s_l = node.lineno
@@ -682,7 +949,6 @@ def generate_bundle_pre_audit_radar(root_dir: str, files: List[str]) -> str:
                 if node.type is None:
                     broad_excepts.append((rel_p, s_l, f"`{short_p}:L{s_l}` (`except:` bare)"))
                 elif isinstance(node.type, _ast.Name) and node.type.id in ("Exception", "BaseException"):
-                    # Only flag if truly silent or unlogged swallow without telemetry/logging/reraise
                     has_log_or_raise = False
                     for b_node in _ast.walk(node):
                         if isinstance(b_node, _ast.Raise):
@@ -747,25 +1013,37 @@ def generate_bundle_pre_audit_radar(root_dir: str, files: List[str]) -> str:
     exec_sinks_sorted = _sort_items(exec_sinks)
     redos_risks_sorted = _sort_items(redos_risks)
     raw_io_risks_sorted = _sort_items(raw_io_risks)
+    scaffold_warnings = scan_scaffold_and_spec_drift(root_dir, files)
 
-    if not (long_funcs_sorted or large_modules_sorted or deep_nesting_sorted or broad_excepts_sorted or exec_sinks_sorted or redos_risks_sorted or raw_io_risks_sorted):
+    relevant_viols = []
+    if dna and getattr(dna, "layer_violations", None):
+        rel_set = set(files)
+        relevant_viols = [v for v in dna.layer_violations if v.get("file") in rel_set]
+
+    has_general_hotspots = any([long_funcs_sorted, large_modules_sorted, deep_nesting_sorted, broad_excepts_sorted, exec_sinks_sorted, redos_risks_sorted, raw_io_risks_sorted, scaffold_warnings])
+    if not has_general_hotspots and not relevant_viols:
         return ""
 
     radar_lines = ["## 📡 Pre-Computed Static Audit Radar (Deterministic Hotspots)"]
+    if scaffold_warnings:
+        radar_lines.append(f"- **🚨 Suspect Stubs, Scaffolds & Spec-Drift ({len(scaffold_warnings)})**: " + _format_slice(scaffold_warnings, 12))
     if long_funcs_sorted:
         radar_lines.append(f"- **High-Complexity Functions (>100 lines)** ({len(long_funcs_sorted)}): " + _format_slice(long_funcs_sorted, 12))
     if large_modules_sorted:
-        radar_lines.append(f"- **Large Polyglot Modules (>250 lines)** ({len(large_modules_sorted)}): " + _format_slice(large_modules_sorted, 8))
+        radar_lines.append(f"- **Large Polyglot Modules (>300 lines)** ({len(large_modules_sorted)}): " + _format_slice(large_modules_sorted, 10))
     if deep_nesting_sorted:
         radar_lines.append(f"- **Deep Control Flow Nesting (>=4 levels)** ({len(deep_nesting_sorted)}): " + _format_slice(deep_nesting_sorted, 12))
     if broad_excepts_sorted:
         radar_lines.append(f"- **Broad / Silent Exception Handlers** ({len(broad_excepts_sorted)}): " + _format_slice(broad_excepts_sorted, 14))
     if exec_sinks_sorted:
-        radar_lines.append(f"- **Execution & Filesystem Mutation Sinks** ({len(exec_sinks_sorted)}): " + _format_slice(exec_sinks_sorted, 14))
+        radar_lines.append(f"- **Execution, Native Bridge & Mutation Sinks** ({len(exec_sinks_sorted)}): " + _format_slice(exec_sinks_sorted, 14))
     if redos_risks_sorted:
         radar_lines.append(f"- **Regex ReDoS Risk Vectors** ({len(redos_risks_sorted)}): " + _format_slice(redos_risks_sorted, 8))
     if raw_io_risks_sorted:
         radar_lines.append(f"- **Implicit Text Encoding I/O Sinks** ({len(raw_io_risks_sorted)}): " + _format_slice(raw_io_risks_sorted, 8))
+    if relevant_viols:
+        v_desc = ", ".join(f"`{v['file']}:L{v['line']}` ({v['source_tier']} -> {v['target_tier']})" for v in relevant_viols[:8])
+        radar_lines.append(f"- **⚠️ DNA Architecture Layer Violations ({len(relevant_viols)})**: {v_desc}")
     radar_lines.append("\n---\n\n")
     return "\n".join(radar_lines)
 
@@ -773,7 +1051,7 @@ def generate_bundle_pre_audit_radar(root_dir: str, files: List[str]) -> str:
 def render_bundle_file_entry(
     rel_path: str,
     raw_content: str,
-    current_bundle_tokens: int,
+    current_bundle_tokens: int = 0,
     force_skeleton: bool = False,
     adaptive: bool = True,
     line_numbers: bool = False,
@@ -781,122 +1059,100 @@ def render_bundle_file_entry(
     bundle_id: str = "",
     cross_imports: Optional[List[str]] = None,
 ) -> Tuple[str, int]:
-    """
-    Renders a code file block for an audit bundle with token budgeting & <artifact> quarantine:
-    1. Automatic skeletonization for files > 350 lines or when bundle approaches 45k tokens.
-    2. Dynamic backtick fence scaling + collision-free XML <artifact> wrapper.
-    3. Source-true line number preservation for both skeleton and full modes.
-    4. Cross-file redundancy compression & prompt-in-data neutralization.
-    """
-    try:
-        from core.scanner import skeletonize_code, skeletonize_markdown, SUPPORTED_SKELETON_EXTENSIONS
-    except ImportError:
-        try:
-            from .scanner import skeletonize_code, skeletonize_markdown, SUPPORTED_SKELETON_EXTENSIONS
-        except ImportError:
-            from scanner import skeletonize_code, skeletonize_markdown, SUPPORTED_SKELETON_EXTENSIONS
-
-    norm_rel = rel_path.replace('\\', '/')
+    """Renders a single file inside an <artifact> boundary with adaptive skeletonization and line numbers."""
+    norm_rel = rel_path.replace("\\", "/")
     ext = os.path.splitext(rel_path)[1].lower().lstrip(".")
     is_md = ext in ("md", "mdc")
 
-    # Dedup GEMINI.md against AGENTS.md (~4,500 token savings)
+    lines = raw_content.splitlines()
+    orig_line_count = len(lines)
+    start_line_num = 1
     if norm_rel.endswith("GEMINI.md"):
         gemini_marker = "## PROJECT-SPECIFIC MANDATES"
         if gemini_marker in raw_content:
             idx_mandates = raw_content.index(gemini_marker)
-            delta_mandates = raw_content[idx_mandates:]
+            start_line_num = raw_content[:idx_mandates].count("\n") + 1
             raw_content = (
                 "> [!NOTE]\n"
                 "> `GEMINI.md` shares identical Foundation Master BIOS Mandates (§1-§8) with `AGENTS.md`.\n"
                 "> Below are the project-specific delta mandates:\n\n"
-                + delta_mandates
+                + raw_content[idx_mandates:]
             )
+            lines = raw_content.splitlines()
 
-    # Line count and token calculations on original source content
-    lines = raw_content.splitlines()
-    orig_line_count = len(lines)
     raw_tokens = estimate_tokens(raw_content)
-
     is_code = ext in SUPPORTED_SKELETON_EXTENSIONS
 
-    should_skeletonize = (
-        is_code
-        and (
-            force_skeleton
-            or (
-                adaptive
-                and (
-                    len(lines) > AUTO_SKELETON_LINE_THRESHOLD
-                    or (current_bundle_tokens + raw_tokens) > BUNDLE_SOFT_TOKEN_CAP
-                )
+    if not is_md:
+        raw_content = escape_artifact_boundaries(raw_content)
+
+    # Trigger skeletonization if forced (e.g. --mode arch) OR if adaptive mode hits a massive code file
+    should_skeletonize = is_code and (
+        force_skeleton
+        or (
+            adaptive
+            and (
+                orig_line_count > AUTO_SKELETON_LINE_THRESHOLD
+                or (current_bundle_tokens + raw_tokens) > BUNDLE_SOFT_TOKEN_CAP
             )
         )
     )
 
-    mode_attr = "FULL"
     if should_skeletonize:
         body_content = skeletonize_code(raw_content, ext, include_line_numbers=line_numbers)
         body_content = neutralize_prompt_tags(body_content, is_markdown=is_md)
-        mode_attr = "AST-SKELETON"
-    elif force_skeleton and is_md:
+        mode_attr = "SKELETON"
+    elif force_skeleton and is_md and orig_line_count > 120:
         body_content = skeletonize_markdown(raw_content, include_line_numbers=line_numbers)
         body_content = neutralize_prompt_tags(body_content, is_markdown=is_md)
         mode_attr = "MD-SKELETON"
+    elif (force_skeleton or adaptive) and ext == "json" and orig_line_count > AUTO_SKELETON_LINE_THRESHOLD:
+        try:
+            from commands.compact import shrink_json
+            body_content = shrink_json(raw_content, max_items=2)
+            mode_attr = "JSON-SCHEMA-SAMPLE"
+        except Exception:
+            body_content = "\n".join(lines[:80] + [f"  // ... [{orig_line_count - 100} lines of static JSON catalog omitted] ..."] + lines[-20:])
+            mode_attr = "JSON-SKELETON"
+        if line_numbers:
+            body_content = "\n".join(f"{i:4d} | {line}" for i, line in enumerate(body_content.splitlines(), 1))
     else:
         body_content = neutralize_prompt_tags(raw_content, is_markdown=is_md)
         if line_numbers:
-            body_content = "\n".join(f"{i:4d} | {line}" for i, line in enumerate(body_content.splitlines(), 1))
+            body_content = "\n".join(f"{i:4d} | {line}" for i, line in enumerate(body_content.splitlines(), start_line_num))
+        mode_attr = "FULL"
 
-    numbered_body = body_content
-    est_tokens = estimate_tokens(numbered_body)
-
-    # Proteksi tabrakan fence markdown
+    est_tokens = estimate_tokens(body_content)
     max_ticks = 2
-    for match in re.finditer(r"`+", numbered_body):
+    for match in re.finditer(r"`+", body_content):
         max_ticks = max(max_ticks, len(match.group(0)))
     fence = "`" * max(3, max_ticks + 1)
     lang_tag = "markdown" if is_md else LANG_MAP.get(f".{ext}", ext)
 
     bundle_attr = f' bundle="{bundle_id}"' if bundle_id else ""
-    imports_line = ""
-    if cross_imports:
-        imports_line = f"<!-- Cross-Bundle Imports: {', '.join(cross_imports)} -->\n"
+    imports_line = f"<!-- Cross-Bundle Imports: {', '.join(cross_imports)} -->\n" if cross_imports else ""
 
     header = (
         f'<artifact index="{artifact_index}" path="{norm_rel}"{bundle_attr} '
-        f'lines="1-{max(1, orig_line_count)}" tokens="{est_tokens}" mode="{mode_attr}">\n'
+        f'lines="{start_line_num}-{max(start_line_num, orig_line_count)}" tokens="{est_tokens}" mode="{mode_attr}">\n'
         f"{imports_line}"
     )
-    block = f"{header}{fence}{lang_tag}\n{numbered_body}\n{fence}\n</artifact>\n\n"
+    block = f"{header}{fence}{lang_tag}\n{body_content}\n{fence}\n</artifact>\n\n"
     return block, est_tokens
 
 
-def should_exclude_agent_tooling(root_dir: str, target_dir: Optional[str] = None) -> bool:
-    """
-    Excludes .agents/ and .orion/ when packaging a host project so the host app's bundles
-    are never polluted by the agent runtime's internal tooling files.
-    Only includes .agents/ when explicitly auditing the .agents repo or the standalone _foundation repository.
-    """
-    abs_root = os.path.abspath(target_dir or root_dir)
-    if os.path.basename(abs_root) == ".agents":
-        return False
-    if is_foundation_root(abs_root):
-        return False
-    return True
-
-
 class ContextPacker:
-    """Security-aware sovereign context packager."""
-    def __init__(self, root_dir: str = "."):
+    """Universal security-aware context packager with strict host isolation."""
+
+    def __init__(self, root_dir: str = ".", include_agents: bool = False):
         self.root_dir = os.path.abspath(root_dir)
-        self.gi = GitIgnoreFilter(self.root_dir)
+        self.include_agents = include_agents
+        self.exclude_agent_tools = should_exclude_agent_tooling(self.root_dir, include_agents=include_agents)
+        self.gi = GitIgnoreFilter(self.root_dir, exclude_agent_tooling=self.exclude_agent_tools)
 
     def scan_secrets(self, content: str) -> List[Tuple[int, str, str]]:
-        """Returns list of (line_num, secret_type, redacted_preview)."""
         findings = []
-        lines = content.splitlines()
-        for idx, line in enumerate(lines, 1):
+        for idx, line in enumerate(content.splitlines(), 1):
             for sec_type, pat in SECRET_PATTERNS:
                 if pat.search(line):
                     redacted = line[:10] + "..." + line[-6:] if len(line) > 16 else "[REDACTED]"
@@ -907,40 +1163,53 @@ class ContextPacker:
     def collect_files(
         self,
         target_dir: Optional[str] = None,
-        max_files: int = 2000,
+        max_files: int = 3000,
         allowed_extensions: Optional[Set[str]] = None,
         max_size_bytes: int = 2097152,
-        prioritize_salience: bool = False
+        prioritize_salience: bool = False,
     ) -> List[str]:
         base = os.path.abspath(target_dir or self.root_dir)
         exts = allowed_extensions or DEFAULT_TEXT_EXTENSIONS
-        exclude_agent_tools = should_exclude_agent_tooling(self.root_dir, target_dir)
-        collected = []
+        exclude_agent_tools = should_exclude_agent_tooling(self.root_dir, target_dir, include_agents=self.include_agents)
+        collected: List[str] = []
 
         for root, dirs, files in os.walk(base):
-            rel_root = os.path.relpath(root, self.root_dir)
-            if exclude_agent_tools and (rel_root == ".agents" or rel_root.startswith(".agents" + os.sep) or rel_root == ".orion" or rel_root.startswith(".orion" + os.sep)):
+            rel_root = os.path.relpath(root, self.root_dir).replace("\\", "/")
+            if rel_root == ".":
+                rel_root = ""
+
+            if exclude_agent_tools and rel_root and is_agent_tooling_path(rel_root, self.root_dir):
                 dirs[:] = []
                 continue
-            # Prune ignored directories in-place
+
             dirs[:] = [
-                d for d in dirs
-                if not (exclude_agent_tools and d in (".agents", ".orion"))
-                and not self.gi.is_ignored(os.path.join(rel_root, d), is_dir=True)
+                d for d in sorted(dirs)
+                if not (exclude_agent_tools and is_agent_tooling_path(f"{rel_root}/{d}".lstrip("/"), self.root_dir))
+                and not self.gi.is_ignored(f"{rel_root}/{d}".lstrip("/"), is_dir=True)
             ]
+
             for file in sorted(files):
-                if file in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(file):
+                if file.lower() in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(file):
                     continue
-                rel_file = os.path.relpath(os.path.join(root, file), self.root_dir).replace('\\', '/')
+                rel_file = f"{rel_root}/{file}".lstrip("/") if rel_root else file
+                if exclude_agent_tools and is_agent_tooling_path(rel_file, self.root_dir):
+                    continue
                 if self.gi.is_ignored(rel_file, is_dir=False):
                     continue
                 ext = os.path.splitext(file)[1].lower()
                 if ext in exts or file in DEFAULT_TEXT_FILENAMES:
                     full_p = os.path.join(root, file)
                     try:
+                        real_root = os.path.normcase(os.path.realpath(self.root_dir))
+                        real_full = os.path.normcase(os.path.realpath(full_p))
+                        if not (real_full == real_root or real_full.startswith(real_root + os.sep)):
+                            continue
                         if os.path.getsize(full_p) > max_size_bytes:
                             continue
                         if is_binary_file(full_p):
+                            continue
+                        head = read_text_safe(full_p, max_bytes=1024)[:512]
+                        if is_generated_content(head):
                             continue
                     except OSError:
                         continue
@@ -949,16 +1218,9 @@ class ContextPacker:
                     if len(collected) >= max_files:
                         break
 
-        if prioritize_salience:
+        if prioritize_salience and collected:
             try:
-                try:
-                    from core.scanner import build_repo_map as _brm
-                except ImportError:
-                    try:
-                        from .scanner import build_repo_map as _brm
-                    except ImportError:
-                        from scanner import build_repo_map as _brm
-                rm_res = _brm(self.root_dir, budget_tokens=5000)
+                rm_res = build_repo_map(self.root_dir, budget_tokens=5000, files=collected)
                 rank_lookup = {rf["file"]: rf["rank"] for rf in rm_res.get("ranked_files", [])}
                 collected.sort(key=lambda f: rank_lookup.get(f, 0.0), reverse=True)
             except Exception as _e:
@@ -973,27 +1235,23 @@ class ContextPacker:
         scrub_secrets: bool = True,
         repomap: Optional[str] = None,
         line_numbers: bool = False,
-        skeleton: bool = False
+        skeleton: bool = False,
     ) -> Dict[str, Any]:
-        """Packs collected files into an XML envelope according to structured context schema."""
         tree_lines = generate_ascii_tree(self.root_dir, max_depth=3, ignore_filter=self.gi)
         tree_block = "\n".join(tree_lines)
-        
         iso_now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         packed_files = []
         omitted_files = []
         secret_alerts = []
         file_blocks = []
-        
-        # Base metadata overhead estimate
+
         repomap_tok = estimate_tokens(repomap) + 20 if repomap else 0
         running_tokens = estimate_tokens(tree_block) + 50 + repomap_tok
 
         for rel_p in files:
             full_p = os.path.join(self.root_dir, rel_p)
             try:
-                with open(full_p, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                content = read_text_safe(full_p)
             except Exception as _e:
                 _log_telemetry(_e, f"pack_file:{rel_p}")
                 continue
@@ -1011,13 +1269,16 @@ class ContextPacker:
             if line_numbers:
                 content = add_line_numbers(content)
 
-            # Prevent XML boundary tag collision within packed file content
-            safe_content = content.replace("</file>", "&lt;/file&gt;").replace("</repository_context>", "&lt;/repository_context&gt;")
-
+            safe_content = re.sub(
+                r"<\s*/\s*(file|repository_context|directory_structure|repository_map)\s*>",
+                r"&lt;/\1&gt;",
+                neutralize_prompt_tags(content, is_markdown=rel_p.endswith((".md", ".mdc"))),
+                flags=re.IGNORECASE,
+            )
+            safe_rel_p = rel_p.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
             line_count = len(content.splitlines())
             file_tok = estimate_tokens(content)
-
-            block = f'  <file path="{rel_p}" lines="{line_count}" tokens="{file_tok}">\n{safe_content}\n  </file>'
+            block = f'  <file path="{safe_rel_p}" lines="{line_count}" tokens="{file_tok}">\n{safe_content}\n  </file>'
             block_tok = file_tok + 15
 
             if running_tokens + block_tok > max_tokens:
@@ -1037,12 +1298,10 @@ class ContextPacker:
             "  </metadata>",
             "  <directory_structure>",
             tree_block,
-            "  </directory_structure>"
+            "  </directory_structure>",
         ]
         if repomap:
-            envelope_chunks.append("  <repository_map>")
-            envelope_chunks.append(repomap)
-            envelope_chunks.append("  </repository_map>")
+            envelope_chunks.extend(["  <repository_map>", repomap, "  </repository_map>"])
         envelope_chunks.extend(file_blocks)
         envelope_chunks.append("</repository_context>")
         full_text = "\n".join(envelope_chunks)
@@ -1053,9 +1312,8 @@ class ContextPacker:
             "omitted_files_count": len(omitted_files),
             "estimated_tokens": estimate_tokens(full_text),
             "secret_alerts": secret_alerts,
-            "envelope": full_text
+            "envelope": full_text,
         }
-
 
     def pack_digest(
         self,
@@ -1068,8 +1326,8 @@ class ContextPacker:
         bundle_name: Optional[str] = None,
         file_to_bundle: Optional[Dict[str, str]] = None,
         include_radar: bool = True,
+        dna: Optional[ProjectDNA] = None,
     ) -> str:
-        """Packs files into a high-density Markdown digest with <artifact> envelopes, pre-audit radar, and cross-bundle routing."""
         repo_name = os.path.basename(os.path.abspath(self.root_dir))
         tree_block = ""
         if not bundle_name:
@@ -1080,15 +1338,15 @@ class ContextPacker:
             running_tokens = 40
 
         bundle_id = bundle_name.split()[0].split("_")[0] if bundle_name else ""
-        content_sections = []
-        packed_files = []
-        inventory = []
+        content_sections: List[str] = []
+        packed_files: List[str] = []
+        inventory: List[Tuple[str, str, int, int]] = []
         total_chars = 0
 
         for idx_f, rel_p in enumerate(files, 1):
             full_p = os.path.join(self.root_dir, rel_p)
             try:
-                with open(full_p, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(full_p, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
             except (OSError, UnicodeDecodeError):
                 continue
@@ -1096,23 +1354,15 @@ class ContextPacker:
             if scrub_secrets:
                 content, _ = sanitize_text(content)
 
-            orig_lines = content.splitlines()
-            orig_line_count = len(orig_lines)
+            orig_line_count = len(content.splitlines())
             ext = os.path.splitext(rel_p)[1].lower().lstrip(".")
-
-            cross_imports = (
-                extract_cross_bundle_imports(rel_p, content, file_to_bundle)
-                if file_to_bundle
-                else None
-            )
-
+            cross_imports = extract_cross_bundle_imports(rel_p, content, file_to_bundle) if file_to_bundle else None
             file_skel = skeleton.get(rel_p, False) if isinstance(skeleton, dict) else bool(skeleton)
+
             if file_skel or adaptive_skeleton:
                 view_mode = "SKELETON" if file_skel else "SKELETON (ADAPTIVE)"
                 block, file_tok = render_bundle_file_entry(
-                    rel_p,
-                    content,
-                    running_tokens,
+                    rel_p, content, running_tokens,
                     force_skeleton=file_skel,
                     adaptive=adaptive_skeleton and not file_skel,
                     line_numbers=line_numbers,
@@ -1120,13 +1370,10 @@ class ContextPacker:
                     bundle_id=bundle_id,
                     cross_imports=cross_imports,
                 )
-                section_tokens = file_tok + 25
             else:
                 view_mode = "FULL"
                 block, file_tok = render_bundle_file_entry(
-                    rel_p,
-                    content,
-                    running_tokens,
+                    rel_p, content, running_tokens,
                     force_skeleton=False,
                     adaptive=False,
                     line_numbers=line_numbers,
@@ -1134,23 +1381,12 @@ class ContextPacker:
                     bundle_id=bundle_id,
                     cross_imports=cross_imports,
                 )
-                section_tokens = file_tok + 25
+            section_tokens = file_tok + 25
 
-            # Token quota protection & adaptive fallback / spill
             if running_tokens + section_tokens > max_tokens:
-                try:
-                    from core.scanner import SUPPORTED_SKELETON_EXTENSIONS
-                except ImportError:
-                    try:
-                        from .scanner import SUPPORTED_SKELETON_EXTENSIONS
-                    except ImportError:
-                        from scanner import SUPPORTED_SKELETON_EXTENSIONS
-
-                if view_mode == "FULL" and ext in SUPPORTED_SKELETON_EXTENSIONS:
+                if ext in SUPPORTED_SKELETON_EXTENSIONS:
                     fb_block, fb_tok = render_bundle_file_entry(
-                        rel_p,
-                        content,
-                        running_tokens,
+                        rel_p, content, running_tokens,
                         force_skeleton=True,
                         adaptive=False,
                         line_numbers=line_numbers,
@@ -1162,29 +1398,21 @@ class ContextPacker:
                         block = fb_block
                         file_tok = fb_tok
                         section_tokens = fb_tok + 25
-                        view_mode = "SKELETON (ADAPTIVE FALLBACK)"
 
                 if running_tokens + section_tokens > max_tokens:
-                    spill_dir = os.path.join(self.root_dir, ".orion", "working", "spill")
-                    try:
-                        os.makedirs(spill_dir, exist_ok=True)
-                        safe_name = rel_p.replace('/', '__').replace('\\', '__')
-                        spill_file = os.path.join(spill_dir, safe_name)
-                        with open(spill_file, 'w', encoding='utf-8', errors='ignore') as sf:
-                            sf.write(content)
-                        spill_ref = f".orion/working/spill/{safe_name}"
-                    except OSError:
-                        spill_ref = rel_p
-
                     spill_block = (
-                        f'<artifact index="{idx_f}" path="{rel_p}" lines="1-{orig_line_count}" tokens="0" mode="SPILLED">\n'
-                        f"Spilled to `{spill_ref}`: token budget reached.\n"
+                        f'<artifact index="{idx_f}" path="{rel_p}" lines="1-{orig_line_count}" tokens="0" mode="OMITTED_BY_BUDGET">\n'
+                        f"Omitted: bundle token ceiling ({max_tokens:,} tokens) reached.\n"
                         f"</artifact>\n\n"
                     )
                     content_sections.append(spill_block)
-                    inventory.append((rel_p, "SPILLED", orig_line_count, 0))
+                    inventory.append((rel_p, "OMITTED", orig_line_count, 0))
                     packed_files.append(rel_p)
                     continue
+
+            m_mode = re.search(r'mode="([^"]+)"', block)
+            if m_mode:
+                view_mode = m_mode.group(1)
 
             content_sections.append(block)
             running_tokens += section_tokens
@@ -1193,10 +1421,10 @@ class ContextPacker:
             inventory.append((rel_p, view_mode, orig_line_count, file_tok))
 
         size_kb = round(total_chars / 1024, 1)
-
-        inv_rows = []
-        for i, (p, mode, l_cnt, t_cnt) in enumerate(inventory, 1):
-            inv_rows.append(f"| {i} | `{p}` | {mode} | {l_cnt:,} | ~{t_cnt:,} |")
+        inv_rows = [
+            f"| {i} | `{p}` | {mode} | {l_cnt:,} | ~{t_cnt:,} |"
+            for i, (p, mode, l_cnt, t_cnt) in enumerate(inventory, 1)
+        ]
         inv_table = (
             "## Bundle File Inventory\n"
             "| No | File Path | View Mode | Original Lines | Tokens |\n"
@@ -1205,7 +1433,7 @@ class ContextPacker:
             + "\n\n---\n\n"
         )
 
-        radar_section = generate_bundle_pre_audit_radar(self.root_dir, packed_files) if include_radar else ""
+        radar_section = generate_bundle_pre_audit_radar(self.root_dir, packed_files, dna=dna) if include_radar else ""
         domain_line = f"- Domain Bundle: {bundle_name}\n" if bundle_name else ""
         tree_section = f"## Directory Structure\n```\n{tree_block}\n```\n\n" if tree_block else ""
 
@@ -1228,62 +1456,747 @@ class ContextPacker:
             f"{tree_section}"
             "## File Contents\n\n"
         )
-
         return digest_header + "".join(content_sections)
 
 
-def is_foundation_root(root_dir: str) -> bool:
-    """Detects whether target directory is the _foundation framework repository root."""
-    abs_root = os.path.abspath(root_dir)
-    app_indicators = [
-        "package.json", "pubspec.yaml", "Cargo.toml", "go.mod", "tsconfig.json",
-        "src", "lib", "app", "apps", "services", "packages"
-    ]
-    for ind in app_indicators:
-        if os.path.exists(os.path.join(abs_root, ind)):
-            return False
-
-    has_orion = os.path.exists(os.path.join(abs_root, ".agents", "scripts", "orion.py"))
-    has_rules = os.path.isdir(os.path.join(abs_root, ".agents", "rules"))
-    has_core = os.path.isdir(os.path.join(abs_root, ".agents", "scripts", "core"))
-    return has_orion and has_rules and has_core
-
-
-def is_foundation_agents(root_dir: str) -> bool:
-    """Detects whether target directory is .agents itself."""
-    abs_root = os.path.abspath(root_dir)
-    return os.path.isdir(os.path.join(abs_root, "rules")) and os.path.isdir(os.path.join(abs_root, "scripts", "core"))
+@dataclass
+class ModuleBucket:
+    prefix: str
+    files: List[str] = field(default_factory=list)
+    total_tokens: int = 0
+    total_lines: int = 0
+    extensions: Counter = field(default_factory=Counter)
+    top_symbols: List[str] = field(default_factory=list)
+    imported_prefixes: Counter = field(default_factory=Counter)
 
 
 @dataclass
 class ProjectTaxonomy:
     tree_hash: str
-    provider: str  # "cache", "cloud_llm", "ollama", "graph_topology", "custom_taxonomy"
+    provider: str  # "cache", "cloud_api", "local_ai", "graph_topology", "custom_taxonomy"
+    project_summary: str
     clusters: Dict[str, Dict[str, Any]]
     file_to_cluster: Dict[str, Tuple[int, str, str]] = field(default_factory=dict)
     skeleton_candidates: Set[str] = field(default_factory=set)
 
 
-def compute_tree_hash(root_dir: str, audit_files: List[str]) -> str:
-    """Computes a structural hash of the repository file list (immune to body-only edits)."""
-    h = hashlib.sha256(b"taxonomy_v3:")
+def compute_file_gravity_and_cluster(rel_path: str, dna: Optional[ProjectDNA] = None) -> Tuple[int, str, str]:
+    """Compatibility classification helper for static gravity slot determination, guided by ProjectDNA."""
+    norm = rel_path.replace("\\", "/")
+    if dna and hasattr(dna, "file_tier_map") and norm in dna.file_tier_map:
+        tier_k = dna.file_tier_map[norm]
+        if tier_k in CANONICAL_5_TIERS:
+            t = CANONICAL_5_TIERS[tier_k]
+            return (t["gravity"], t["slug"].lower(), t["title"])
+
+    norm_lower = norm.lower()
+    base = os.path.basename(norm_lower)
+
+    # 0: Root / Manifests / Core docs
+    if (
+        norm_lower.startswith(("context/00_", "context/01_", "context/02_", "context/03_", "context/strategy", "context/tech", "context/product", "context/blueprint"))
+        or base in {"package.json", "pubspec.yaml", "cargo.toml", "go.mod", "pom.xml", "build.gradle", "requirements.txt", "pyproject.toml", "agents.md", "gemini.md", "blueprint.md", "deploy_me.md"}
+        or norm_lower.startswith((".agents/rules/", ".agents/docs/"))
+        or norm_lower in {".agents/agents_index.md", ".agents/deploy_me.md", ".agents/hooks.json"}
+    ):
+        return (0, "workspace_manifests", "System Architecture & Foundations")
+
+    # 9: Tests
+    if any(seg in {"test", "tests", "__tests__", "spec", "specs"} for seg in norm_lower.split("/")) or base.startswith(("test_", "spec_")) or base.endswith(("_test.py", ".test.ts", ".spec.ts", ".test.tsx", ".spec.tsx", "_test.dart", "_test.go")):
+        return (9, "test_suite", "Verification & Test Suites")
+
+    # 1: Types / Models / Entities / Contracts
+    if any(seg in {"models", "types", "entities", "schemas", "contracts", "ir", "dto", "dtos"} for seg in norm_lower.split("/")):
+        return (1, "domain_models", "Data Models & Type Definitions")
+
+    # 2: Database / Storage / Persistence
+    if base.startswith("db.") or any(seg in {"db", "database", "storage", "repos", "repositories", "sqlite", "orm"} for seg in norm_lower.split("/")):
+        return (2, "data_access", "Persistence & Database Layer")
+
+    # 7: UI / Views / Components / Screens
+    if any(seg in {"ui", "views", "screens", "components", "widgets", "pages"} for seg in norm_lower.split("/")) or norm_lower.endswith((".tsx", ".jsx")):
+        return (7, "user_interface", "UI Components & Views")
+
+    # 6: Controllers / ViewModels / Services / API
+    if any(seg in {"controllers", "viewmodels", "services", "api", "bloc", "cubit", "routes", "handlers"} for seg in norm_lower.split("/")):
+        return (6, "services_and_controllers", "Services & API Controllers")
+
+    # 5: Generators / Pipelines / Transformers / Utils
+    if any(seg in {"generators", "transformers", "pipelines", "formatters", "utils", "helpers"} for seg in norm_lower.split("/")):
+        return (5, "utilities_and_generators", "Generators & Utilities")
+
+    # 4: Core Engine / Scripts / State Machine
+    if (
+        norm_lower.endswith(("reflexion.py", "state_machine.py", "memory.py", "orion_graph.py"))
+        or any(seg in {"engine", "reflexion", "state_machine"} for seg in norm_lower.split("/"))
+    ):
+        return (4, "core_engine", "Core Engine & Coordination")
+
+    # 8: CLI / Executables / Commands / Bins
+    if any(seg in {"bin", "commands", "cli", "entrypoints"} for seg in norm_lower.split("/")) or base.endswith((".mjs", ".sh", ".bash")):
+        return (8, "cli_and_tools", "Command Line & Runtime Tools")
+
+    if any(seg in {"core", "scripts"} for seg in norm_lower.split("/")):
+        return (4, "core_engine", "Core Engine & Coordination")
+
+    return (5, "domain_logic", "Domain Business Logic")
+
+
+def compute_tree_hash(root_dir: str, audit_files: List[str], dna: Optional[ProjectDNA] = None) -> str:
+    """Computes a structural hash of the repository file list."""
+    h = hashlib.sha256(b"universal_dynamic_taxonomy_dna:")
+    if dna:
+        h.update(f"dna:{getattr(dna, 'dna_state', '')}:{getattr(dna, 'dna_compliance_score', '')}".encode("utf-8"))
     for rel_p in sorted(audit_files):
         h.update(rel_p.encode("utf-8", errors="replace") + b"\0")
     return h.hexdigest()[:24]
 
 
 def get_taxonomy_cache_path(root_dir: str) -> str:
-    """Stores taxonomy cache in .orion/ only if already present; otherwise uses OS temp cache to keep target repo clean."""
+    """Stores taxonomy cache in .orion/ only if already present; otherwise uses OS temp cache."""
     abs_root = os.path.abspath(root_dir)
     orion_dir = os.path.join(abs_root, ".orion")
     if os.path.isdir(orion_dir):
         return os.path.join(orion_dir, "working", "taxonomy_cache.json")
-    parent = os.path.dirname(abs_root)
-    if os.path.isdir(os.path.join(parent, ".orion")):
-        return os.path.join(parent, ".orion", "working", "taxonomy_cache.json")
     import tempfile
     repo_slug = hashlib.sha256(abs_root.encode("utf-8")).hexdigest()[:12]
     return os.path.join(tempfile.gettempdir(), f"orion_taxonomy_{repo_slug}.json")
+
+
+def _compute_natural_bucket_prefix(rel_path: str, dna: Optional[ProjectDNA] = None) -> str:
+    """
+    Computes a language-agnostic directory bucket prefix for a file.
+    Automatically respects ProjectDNA pillars, epigenetic aliases, and feature organs.
+    """
+    norm = rel_path.replace("\\", "/").strip("/")
+    parts = norm.split("/")
+    if len(parts) == 1:
+        base_l = parts[0].lower()
+        if base_l in {"pubspec.yaml", "package.json", "tsconfig.json", "cargo.toml", "go.mod", "pom.xml", "pyproject.toml", "requirements.txt", "design.md", "readme.md", "agents.md"}:
+            return "[DNA_PILLARS_AND_ROOT]"
+        return "[ROOT]"
+
+    if parts[0].lower() == "context":
+        return "[DNA_PILLARS_AND_ROOT]"
+
+    if dna:
+        if getattr(dna, "epigenetic_aliases", None):
+            norm_l = norm.lower()
+            for alias in sorted(dna.epigenetic_aliases.keys(), key=lambda x: -len(x)):
+                if norm_l.startswith(alias.lower() + "/") or norm_l == alias.lower():
+                    return alias
+        if getattr(dna, "feature_organs", None):
+            for organ in dna.feature_organs:
+                pfx = organ.get("root_prefix", "")
+                if pfx and (norm.startswith(pfx + "/") or norm == pfx):
+                    return pfx
+
+    dir_parts = parts[:-1]
+    container_roots = {"apps", "packages", "services", "modules", "crates", "libs", "clients", "servers", "projects"}
+    transparent_middle = {"src", "lib", "app", "internal", "pkg", "main", "java", "kotlin", "scala", "python"}
+    feature_containers = {"features", "modules", "pages", "screens", "domains", "components", "views", "controllers", "services", "skills", "commands", "core", "targets", "decoders", "bridges", "generators", "tools"}
+
+    # Handle .agents internal sub-tree cleanly when packing _foundation
+    if dir_parts[0] == ".agents":
+        if len(dir_parts) == 1:
+            return ".agents"
+        if dir_parts[1] in ("skills", "scripts", "canons") and len(dir_parts) >= 3:
+            return "/".join(dir_parts[:3])
+        return "/".join(dir_parts[:2])
+
+    # Sub-cluster native Android/iOS source trees when they contain substantial custom domain packages
+    if dir_parts[0] in ("android", "ios", "macos", "windows", "linux", "web"):
+        if dir_parts[0] == "android":
+            for lang_dir in ("kotlin", "java"):
+                if lang_dir in dir_parts:
+                    k_idx = dir_parts.index(lang_dir)
+                    if len(dir_parts) > k_idx + 1:
+                        pkg_depth = min(len(dir_parts), k_idx + 5)
+                        return "/".join(dir_parts[:pkg_depth])
+            if "res" in dir_parts:
+                return "android/res"
+        return dir_parts[0]
+    if len(dir_parts) >= 2 and dir_parts[0] in container_roots and dir_parts[2:3] in (["android"], ["ios"], ["macos"], ["windows"], ["linux"], ["web"]):
+        return "/".join(dir_parts[:3])
+
+    depth = 1
+    idx = 0
+    if dir_parts[0] in container_roots and len(dir_parts) >= 2:
+        depth = 2
+        idx = 2
+    elif dir_parts[0] in transparent_middle:
+        depth = 1
+        idx = 1
+
+    while idx < len(dir_parts) and depth < 4:
+        seg = dir_parts[idx].lower()
+        if seg in transparent_middle:
+            depth += 1
+            idx += 1
+        elif seg in feature_containers and idx + 1 < len(dir_parts):
+            depth = idx + 2
+            break
+        else:
+            depth = idx + 1
+            break
+
+    return "/".join(dir_parts[:min(len(dir_parts), max(1, depth))])
+
+
+def summarize_module_buckets(root_dir: str, audit_files: List[str], max_buckets: int = 38, dna: Optional[ProjectDNA] = None) -> Dict[str, ModuleBucket]:
+    """
+    Stage 1: Compresses arbitrary 1,000+ file repositories into ~15-38 high-signal Module Buckets.
+    Extracts polyglot AST symbols (classes, functions, interfaces, structs, blocs, controllers)
+    and inter-bucket import edges so both LLMs and graph algorithms have rich architectural context.
+    """
+    buckets: Dict[str, ModuleBucket] = {}
+    file_to_prefix: Dict[str, str] = {}
+
+    for rel_p in audit_files:
+        norm = rel_p.replace("\\", "/")
+        prefix = _compute_natural_bucket_prefix(norm, dna=dna)
+        file_to_prefix[norm] = prefix
+        if prefix not in buckets:
+            buckets[prefix] = ModuleBucket(prefix=prefix)
+        b = buckets[prefix]
+        b.files.append(norm)
+        ext = os.path.splitext(norm)[1].lower() or "[file]"
+        b.extensions[ext] += 1
+
+        full_p = os.path.join(root_dir, norm)
+        try:
+            sz = os.path.getsize(full_p)
+            b.total_tokens += max(1, math.ceil(sz / 3.8))
+            with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
+                b.total_lines += sum(1 for _ in fh)
+        except OSError:
+            b.total_tokens += 100
+
+    # If too many fine-grained buckets exist, roll up smallest sibling buckets into their parent prefix
+    while len(buckets) > max_buckets:
+        smallest_key = min(
+            (k for k in buckets if k != "[ROOT]"),
+            key=lambda k: buckets[k].total_tokens,
+            default=None,
+        )
+        if not smallest_key:
+            break
+        parent_prefix = "/".join(smallest_key.split("/")[:-1]) or "[ROOT]"
+        if parent_prefix == smallest_key:
+            parent_prefix = "[ROOT]"
+        src_b = buckets.pop(smallest_key)
+        if parent_prefix not in buckets:
+            buckets[parent_prefix] = ModuleBucket(prefix=parent_prefix)
+        dst_b = buckets[parent_prefix]
+        dst_b.files.extend(src_b.files)
+        dst_b.total_tokens += src_b.total_tokens
+        dst_b.total_lines += src_b.total_lines
+        dst_b.extensions.update(src_b.extensions)
+        for f in src_b.files:
+            file_to_prefix[f] = parent_prefix
+
+    # Extract top polyglot AST symbols & cross-bucket import graph
+    dummy_bundle_map = {f: f"B{idx:03d}_{p}" for idx, (f, p) in enumerate(file_to_prefix.items())}
+    for prefix, b in buckets.items():
+        sym_counter: Counter = Counter()
+        # Sample up to 25 largest files in the bucket for symbol extraction speed
+        for rel_f in b.files[:25]:
+            full_p = os.path.join(root_dir, rel_f)
+            ext = os.path.splitext(rel_f)[1].lower()
+            if ext in (".md", ".mdc"):
+                # Extract markdown H1/H2 headings or skill names
+                stem = os.path.splitext(os.path.basename(rel_f))[0]
+                if stem.upper() not in ("README", "INDEX", "SKILL"):
+                    sym_counter[stem] += 2
+                else:
+                    parent_dir = os.path.basename(os.path.dirname(rel_f))
+                    if parent_dir:
+                        sym_counter[parent_dir] += 2
+                continue
+            try:
+                defs, _ = extract_file_symbols(full_p)
+                for s_name, occs in defs.items():
+                    if s_name.startswith("_") or s_name in RESERVED_KEYWORDS or len(s_name) < 3:
+                        continue
+                    is_type = any(
+                        any(kw in sig for kw in ("class ", "struct ", "interface ", "enum ", "trait ", "type "))
+                        for _, sig in occs
+                    )
+                    sym_counter[s_name] += 3 if is_type else 1
+            except Exception:
+                pass
+
+            # Trace cross-bucket imports
+            try:
+                with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
+                    raw_c = fh.read(16384)
+                imps = extract_cross_bundle_imports(rel_f, raw_c, dummy_bundle_map)
+                for imp_str in imps:
+                    imp_stem = imp_str.split(" (")[0].replace(".", "/")
+                    for cand_f, cand_pref in file_to_prefix.items():
+                        if cand_pref != prefix and (cand_f.endswith(f"/{imp_stem}.py") or cand_f.endswith(f"/{imp_stem}.dart") or cand_f.endswith(f"/{imp_stem}.ts") or cand_f.endswith(f"/{imp_stem}.tsx") or os.path.splitext(os.path.basename(cand_f))[0] == imp_stem):
+                            b.imported_prefixes[cand_pref] += 1
+                            break
+            except OSError:
+                pass
+
+        b.top_symbols = [s for s, _ in sym_counter.most_common(8)]
+
+    return buckets
+
+
+def _build_llm_architect_prompt(root_dir: str, buckets: Dict[str, ModuleBucket], max_bundles: int = 10, dna: Optional[ProjectDNA] = None) -> str:
+    """Builds a compact (~800 token) prompt asking the LLM to group module prefixes into <= K domain bundles."""
+    repo_name = os.path.basename(os.path.abspath(root_dir)) or "Repository"
+    bucket_lines: List[str] = []
+    for prefix, b in sorted(buckets.items(), key=lambda x: x[0]):
+        ext_summary = ", ".join(f"{k}({v})" for k, v in b.extensions.most_common(3))
+        sym_summary = ", ".join(b.top_symbols[:6]) if b.top_symbols else "configs/assets"
+        sample_names = ", ".join(os.path.basename(f) for f in b.files[:4])
+        bucket_lines.append(
+            f'- Prefix: "{prefix}" | Files: {len(b.files)} (~{b.total_tokens:,} tokens) | '
+            f'Exts: [{ext_summary}] | Key Symbols: [{sym_summary}] | Samples: [{sample_names}]'
+        )
+
+    dna_governance = ""
+    if dna:
+        dna_governance = (
+            f"\nPROJECT ARCHITECTURAL GENOME CONSTRAINTS ({dna.archetype} | DNA State: {dna.dna_state}):\n"
+            f"- Always place `[DNA_PILLARS_AND_ROOT]` and `context/` in Gravity 0 (Workspace & Architecture Pillars).\n"
+            f"- Respect 5-Tier gravity allocation: 1 for Contracts/Models, 2 for Domain logic, 4 for Services/Data, 6 for State/Controllers, 7 for Presentation UI, 8 for Native/CLI, 9 for Tests.\n"
+        )
+
+    return (
+        f"You are a Principal Software Architect partitioning repository '{repo_name}' into at most {max_bundles} "
+        f"self-contained architectural audit bundles.\n{dna_governance}\n"
+        "Below are the repository's directory/module buckets, token volumes, file extensions, and top AST symbols:\n"
+        + "\n".join(bucket_lines)
+        + "\n\n"
+        "RULES:\n"
+        f"1. Partition ALL listed Prefix strings into 3 to {max_bundles} logical domain bundles.\n"
+        "2. Every Prefix listed above MUST be assigned to exactly one bundle's `assigned_prefixes` array.\n"
+        "3. Do NOT use generic names like 'BUNDLE_1' or 'CORE_LOGIC'. Synthesize specific, descriptive UPPER_SNAKE_CASE "
+        "`bundle_slug` and human-readable `bundle_title` values that reflect the actual application domain, features, "
+        "or sub-apps (e.g. 'WORKSPACE_AND_CORE_CONFIG', 'AUTH_AND_SESSION_FLOW', 'CHECKOUT_BLOC_AND_UI', 'NATIVE_ANDROID_BRIDGE').\n"
+        "4. Assign `gravity` (integer 0 to 9): 0 for workspace/root configs, 1-3 for core domain/contracts/security, "
+        "4-6 for features/services/state, 7 for UI/presentation, 8-9 for platform bridges/CLI/tests.\n"
+        "5. Provide a 1-sentence `audit_focus` per bundle specifying what security, concurrency, or state invariants to inspect.\n\n"
+        "Return STRICTLY a valid JSON object matching this exact schema (no markdown fences, no commentary):\n"
+        "{\n"
+        '  "project_summary": "Concise 1-sentence description of the project stack and architecture",\n'
+        '  "bundles": [\n'
+        "    {\n"
+        '      "bundle_slug": "SPECIFIC_DOMAIN_SLUG",\n'
+        '      "bundle_title": "Specific Human-Readable Domain Title",\n'
+        '      "gravity": 1,\n'
+        '      "default_mode": "FULL",\n'
+        '      "assigned_prefixes": ["[ROOT]", "path/prefix"],\n'
+        '      "audit_focus": "Specific architectural and security risks to audit in this bundle."\n'
+        "    }\n"
+        "  ]\n"
+        "}"
+    )
+
+
+def _call_cloud_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional[Tuple[Dict[str, Any], str]]:
+    """
+    Optional Zero-Pip Cloud LLM call if GEMINI_API_KEY or OPENAI_API_KEY is available in environment.
+    Uses pure Python urllib.request.
+    """
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if gemini_key:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "responseMimeType": "application/json",
+            },
+        }
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(text.strip()), "gemini_cloud_api"
+        except Exception as _e:
+            _log_telemetry(_e, "packer.py:_call_cloud_llm_for_taxonomy:gemini")
+
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if openai_key:
+        url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/chat/completions"
+        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a principal software architect. Output strictly valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.1,
+            "response_format": {"type": "json_object"},
+        }
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai_key}",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                text = data["choices"][0]["message"]["content"]
+                return json.loads(text.strip()), "openai_cloud_api"
+        except Exception as _e:
+            _log_telemetry(_e, "packer.py:_call_cloud_llm_for_taxonomy:openai")
+
+    return None
+
+
+def _call_local_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional[Tuple[Dict[str, Any], str]]:
+    """
+    Calls local AI (Ollama, llama-server, LM Studio, vLLM) with the compact module-prefix prompt.
+    Because the output is ~250 tokens of prefix assignments (not 500 file paths), even 1.5B-7B models succeed without truncation!
+    """
+    try:
+        from core.capabilities import resolve_local_ai_endpoint, select_optimal_ollama_model, generate_completion
+        local_ai = resolve_local_ai_endpoint()
+        if not local_ai or not local_ai.get("base_url"):
+            return None
+        base_url = local_ai["base_url"]
+        api_format = local_ai.get("api_format", "ollama")
+        model_name = (
+            os.environ.get("ORION_LOCAL_MODEL")
+            or os.environ.get("OLLAMA_MODEL")
+            or select_optimal_ollama_model(base_url, min_params_b=1.5)
+        )
+        if not model_name:
+            return None
+
+        if api_format == "ollama":
+            req_data = json.dumps({
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0.1, "num_predict": 2048},
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                f"{base_url.rstrip('/')}/api/generate",
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as res:
+                res_body = json.loads(res.read().decode("utf-8"))
+                raw_resp = res_body.get("response", "").strip()
+                if raw_resp:
+                    return json.loads(raw_resp), f"local_ai ({model_name})"
+
+        raw_completion = generate_completion(
+            prompt=prompt,
+            model=model_name,
+            system_prompt="Return strictly valid JSON matching the requested schema.",
+            host=base_url,
+            timeout_sec=timeout,
+            temperature=0.1,
+        )
+        if raw_completion:
+            m_json = re.search(r"\{.*\}", raw_completion, re.DOTALL)
+            if m_json:
+                return json.loads(m_json.group(0)), f"local_ai ({model_name})"
+    except Exception as _e:
+        _log_telemetry(_e, "packer.py:_call_local_llm_for_taxonomy")
+    return None
+
+
+def _compile_prefix_taxonomy_response(
+    parsed: Dict[str, Any],
+    provider: str,
+    tree_hash: str,
+    buckets: Dict[str, ModuleBucket],
+    audit_files: List[str],
+) -> Optional[ProjectTaxonomy]:
+    """Validates and maps the LLM's prefix-based bundle allocation back to individual files."""
+    bundles_list = parsed.get("bundles") or parsed.get("domains")
+    if not isinstance(bundles_list, list) or not bundles_list:
+        return None
+
+    project_summary = str(parsed.get("project_summary") or "Software Repository").strip()
+    clusters: Dict[str, Dict[str, Any]] = {}
+    file_to_cluster: Dict[str, Tuple[int, str, str]] = {}
+    skeleton_candidates: Set[str] = set()
+    assigned_files: Set[str] = set()
+
+    # Sort prefixes longest-first for prefix matching fallback
+    all_prefixes = sorted(buckets.keys(), key=len, reverse=True)
+
+    for idx, b_obj in enumerate(bundles_list, 1):
+        if not isinstance(b_obj, dict):
+            continue
+        raw_slug = str(b_obj.get("bundle_slug") or b_obj.get("slug") or f"DOMAIN_{idx:02d}").upper()
+        slug = re.sub(r"[^A-Z0-9_]+", "_", raw_slug).strip("_") or f"DOMAIN_{idx:02d}"
+        title = str(b_obj.get("bundle_title") or b_obj.get("title") or slug.replace("_", " ").title()).strip()
+        try:
+            gravity = int(b_obj.get("gravity", b_obj.get("priority", idx)))
+        except (ValueError, TypeError):
+            gravity = idx
+        default_mode = str(b_obj.get("default_mode", "FULL")).upper()
+        audit_focus = str(b_obj.get("audit_focus", "")).strip()
+        prefixes = b_obj.get("assigned_prefixes") or b_obj.get("prefixes") or []
+
+        matched_files: List[str] = []
+        for pref in prefixes:
+            pref_clean = str(pref).strip().strip("/")
+            if pref in buckets:
+                for f in buckets[pref].files:
+                    if f not in assigned_files:
+                        matched_files.append(f)
+                        assigned_files.add(f)
+            else:
+                # Sub-prefix match
+                for b_pref in all_prefixes:
+                    if b_pref == pref_clean or b_pref.startswith(pref_clean + "/") or pref_clean.startswith(b_pref + "/"):
+                        for f in buckets[b_pref].files:
+                            if f not in assigned_files:
+                                matched_files.append(f)
+                                assigned_files.add(f)
+
+        if not matched_files:
+            continue
+
+        skel_files = [f for f in matched_files if default_mode == "SKELETON"]
+        for sf in skel_files:
+            skeleton_candidates.add(sf)
+
+        clusters[slug] = {
+            "gravity": gravity,
+            "title": title,
+            "audit_focus": audit_focus,
+            "files": matched_files,
+            "skeleton_candidates": skel_files,
+        }
+        for f in matched_files:
+            file_to_cluster[f] = (gravity, slug, title)
+
+    if not clusters:
+        return None
+
+    # Assign any remaining unassigned buckets using dynamic path-and-symbol naming (never hardcoded .agents fallback!)
+    unassigned = [f for f in audit_files if f.replace("\\", "/") not in assigned_files]
+    if unassigned:
+        fallback_tax = generate_taxonomy_via_graph_topology_from_buckets(
+            buckets={k: v for k, v in buckets.items() if any(f in unassigned for f in v.files)},
+            audit_files=unassigned,
+            tree_hash=tree_hash,
+        )
+        for slug, c_info in fallback_tax.clusters.items():
+            target_slug = slug if slug not in clusters else f"{slug}_EXT"
+            clusters[target_slug] = c_info
+            for f in c_info["files"]:
+                file_to_cluster[f] = (c_info["gravity"], target_slug, c_info["title"])
+
+    return ProjectTaxonomy(
+        tree_hash=tree_hash,
+        provider=provider,
+        project_summary=project_summary,
+        clusters=clusters,
+        file_to_cluster=file_to_cluster,
+        skeleton_candidates=skeleton_candidates,
+    )
+
+
+_STOPWORD_SEGMENTS = {
+    "src", "lib", "app", "apps", "packages", "services", "modules", "internal",
+    "pkg", "main", "java", "kotlin", "com", "org", "net", "io", "index", "mod",
+    "common", "shared", "core", "base", "root", "files", "file", "code"
+}
+
+
+def _camel_to_words(name: str) -> List[str]:
+    """Splits CamelCase or snake_case symbol names into clean uppercase tokens."""
+    s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+    s2 = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1)
+    return [w.upper() for w in re.split(r"[^a-zA-Z0-9]+", s2) if len(w) >= 2]
+
+
+def _synthesize_dynamic_bucket_identity(bucket: ModuleBucket, dna: Optional[ProjectDNA] = None) -> Tuple[int, str, str, str]:
+    """
+    Data-driven bundle slug, title, gravity, and audit_focus synthesizer for a ModuleBucket,
+    anchored by ProjectDNA 5-Tier strata and feature organs when available.
+    """
+    prefix = bucket.prefix
+    if prefix in ("[ROOT]", "[DNA_PILLARS_AND_ROOT]"):
+        return (
+            0,
+            "PROJECT_PILLARS_AND_WORKSPACE_MANIFESTS" if prefix == "[DNA_PILLARS_AND_ROOT]" else "WORKSPACE_ROOT_AND_MANIFESTS",
+            "Workspace Manifests & 4 Lean Context Pillars" if prefix == "[DNA_PILLARS_AND_ROOT]" else "Workspace Root Configs & Manifests",
+            "Audit build manifests, dependency constraints, environment configs, and 4-Pillar blueprints.",
+        )
+
+    raw_segments = [s for s in re.split(r"[/\\._\-]+", prefix) if s and s.lower() not in _STOPWORD_SEGMENTS]
+    if not raw_segments:
+        raw_segments = [s for s in re.split(r"[/\\._\-]+", prefix) if s]
+
+    path_tokens: List[str] = []
+    for seg in raw_segments[-3:]:
+        for w in _camel_to_words(seg):
+            if w not in path_tokens and w.lower() not in _STOPWORD_SEGMENTS:
+                path_tokens.append(w)
+
+    # Extract top 2 distinctive symbol tokens not already in path_tokens
+    sym_tokens: List[str] = []
+    for sym in bucket.top_symbols[:3]:
+        for w in _camel_to_words(sym):
+            if (
+                w not in path_tokens
+                and w not in sym_tokens
+                and w not in {"GET", "SET", "RUN", "MAIN", "INIT", "BUILD", "CREATE", "TEST", "IMPL", "DATA", "ITEM"}
+                and len(w) >= 3
+            ):
+                sym_tokens.append(w)
+                break
+        if len(sym_tokens) >= 2:
+            break
+
+    combined_slug_tokens = (path_tokens[:3] + sym_tokens[:1])[:4]
+    if not combined_slug_tokens:
+        combined_slug_tokens = ["MODULE", str(abs(hash(prefix)) % 100)]
+
+    slug = "_".join(combined_slug_tokens)
+
+    # Synthesize human-readable title
+    pretty_path = " / ".join(s.replace("_", " ").replace("-", " ").title() for s in raw_segments[-3:]) or prefix
+    if bucket.top_symbols:
+        top_sym_preview = ", ".join(bucket.top_symbols[:3])
+        title = f"{pretty_path} ({top_sym_preview})"
+    else:
+        title = f"{pretty_path} Module"
+
+    # Check ProjectDNA 5-Tier classification first
+    dominant_tier_key = None
+    if dna and hasattr(dna, "file_tier_map") and bucket.files:
+        tier_counts = Counter(dna.file_tier_map.get(f) for f in bucket.files if dna.file_tier_map.get(f))
+        if tier_counts:
+            dominant_tier_key, _ = tier_counts.most_common(1)[0]
+
+    if dominant_tier_key and dominant_tier_key in CANONICAL_5_TIERS:
+        t_meta = CANONICAL_5_TIERS[dominant_tier_key]
+        gravity = t_meta["gravity"]
+        if t_meta["slug"] not in slug:
+            slug = f"{slug}_{t_meta['slug']}"
+        sym_focus = f" focusing on {', '.join(bucket.top_symbols[:4])}" if bucket.top_symbols else ""
+        audit_focus = f"[{t_meta['slug']}] {t_meta['audit_focus']} Scope: `{prefix}`{sym_focus}"
+    else:
+        # Fallback to topology inference
+        low_pref = prefix.lower()
+        if any(t in low_pref for t in ("test", "spec", "eval", "mock", "fixture", "hook")):
+            gravity = 9
+        elif low_pref.startswith(("android", "ios", "macos", "windows", "linux", "web")) or any(t in low_pref for t in ("bin", "tool", "cli")):
+            gravity = 8
+        elif any(t in low_pref for t in ("rule", "canon", "doc", "context", "config", "schema", "model", "entity", "dto", "contract", "type", "proto")):
+            gravity = 1
+        elif any(t in low_pref for t in ("ui", "view", "screen", "page", "widget", "component", "theme", "style", "layout", "presentation")):
+            gravity = 7
+        else:
+            gravity = 4
+
+        sym_focus = f" focusing on {', '.join(bucket.top_symbols[:4])}" if bucket.top_symbols else ""
+        audit_focus = f"Audit domain logic, state transitions, error handling, and boundary contracts in `{prefix}`{sym_focus}."
+
+    return gravity, slug, title, audit_focus
+
+
+def generate_taxonomy_via_graph_topology_from_buckets(
+    buckets: Dict[str, ModuleBucket],
+    audit_files: List[str],
+    tree_hash: str,
+    dna: Optional[ProjectDNA] = None,
+) -> ProjectTaxonomy:
+    """
+    Stage 3 Offline Graph & Path-Prefix Taxonomy Generator:
+    Merges small tightly-coupled module buckets via import-graph affinity,
+    then names every cluster dynamically from its path segments, AST symbols, and ProjectDNA.
+    """
+    working_buckets = dict(buckets)
+
+    # Merge tiny buckets (< 1,500 tokens) into their strongest import neighbor or parent directory bucket
+    for pref in sorted(list(working_buckets.keys()), key=lambda k: working_buckets[k].total_tokens):
+        if pref in ("[ROOT]", "[DNA_PILLARS_AND_ROOT]") or pref not in working_buckets:
+            continue
+        b = working_buckets[pref]
+        if b.total_tokens >= 1500 or len(working_buckets) <= 6:
+            continue
+
+        target_pref = None
+        if b.imported_prefixes:
+            best_imp, _ = b.imported_prefixes.most_common(1)[0]
+            if best_imp in working_buckets and best_imp != pref:
+                target_pref = best_imp
+
+        if not target_pref:
+            parent_pref = "/".join(pref.split("/")[:-1])
+            if parent_pref and parent_pref in working_buckets and parent_pref != pref:
+                target_pref = parent_pref
+
+        if target_pref and target_pref in working_buckets:
+            dst = working_buckets[target_pref]
+            dst.files.extend(b.files)
+            dst.total_tokens += b.total_tokens
+            dst.total_lines += b.total_lines
+            dst.extensions.update(b.extensions)
+            for s in b.top_symbols:
+                if s not in dst.top_symbols:
+                    dst.top_symbols.append(s)
+            working_buckets.pop(pref, None)
+
+    clusters: Dict[str, Dict[str, Any]] = {}
+    file_to_cluster: Dict[str, Tuple[int, str, str]] = {}
+    skeleton_candidates: Set[str] = set()
+
+    for pref, b in sorted(working_buckets.items(), key=lambda x: x[0]):
+        grav, slug, title, audit_focus = _synthesize_dynamic_bucket_identity(b, dna=dna)
+        # Disambiguate slug collisions
+        base_slug = slug
+        counter = 2
+        while slug in clusters:
+            slug = f"{base_slug}_{counter}"
+            counter += 1
+
+        skel_files: List[str] = []
+        for f in b.files:
+            if grav in (8, 9) and b.total_tokens > 35000:
+                skel_files.append(f)
+                skeleton_candidates.add(f)
+            file_to_cluster[f] = (grav, slug, title)
+
+        clusters[slug] = {
+            "gravity": grav,
+            "title": title,
+            "audit_focus": audit_focus,
+            "files": list(b.files),
+            "skeleton_candidates": skel_files,
+        }
+
+    ext_summary = Counter(os.path.splitext(f)[1].lower() for f in audit_files if os.path.splitext(f)[1])
+    top_exts = ", ".join(k.lstrip(".") for k, _ in ext_summary.most_common(4)) or "polyglot"
+    summary = f"Multi-module repository ({len(audit_files)} files across {len(clusters)} architectural domains; primary languages: {top_exts})"
+
+    return ProjectTaxonomy(
+        tree_hash=tree_hash,
+        provider="graph_topology",
+        project_summary=summary,
+        clusters=clusters,
+        file_to_cluster=file_to_cluster,
+        skeleton_candidates=skeleton_candidates,
+    )
 
 
 def load_cached_taxonomy(root_dir: str, tree_hash: str) -> Optional[ProjectTaxonomy]:
@@ -1298,15 +2211,16 @@ def load_cached_taxonomy(root_dir: str, tree_hash: str) -> Optional[ProjectTaxon
             f2c: Dict[str, Tuple[int, str, str]] = {}
             skel_cand: Set[str] = set()
             for slug, info in clusters.items():
-                grav = info.get("gravity", 5)
+                grav = int(info.get("gravity", 5))
                 desc = info.get("title", slug)
                 for f in info.get("files", []):
-                    f2c[f] = (grav, slug.lower(), desc)
+                    f2c[f] = (grav, slug, desc)
                 for sf in info.get("skeleton_candidates", []):
                     skel_cand.add(sf)
             return ProjectTaxonomy(
                 tree_hash=tree_hash,
                 provider=data.get("provider", "cache"),
+                project_summary=data.get("project_summary", "Software Repository"),
                 clusters=clusters,
                 file_to_cluster=f2c,
                 skeleton_candidates=skel_cand,
@@ -1323,567 +2237,676 @@ def save_taxonomy_cache(root_dir: str, taxonomy: ProjectTaxonomy) -> None:
         payload = {
             "tree_hash": taxonomy.tree_hash,
             "provider": taxonomy.provider,
+            "project_summary": taxonomy.project_summary,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "clusters": taxonomy.clusters,
         }
-        with open(cache_p, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, indent=2)
+        atomic_write_text(cache_p, json.dumps(payload, indent=2))
     except Exception as _e:
         _log_telemetry(_e, "save_taxonomy_cache")
-
-
-def generate_taxonomy_via_ollama(root_dir: str, audit_files: List[str], tree_hash: str) -> Optional[ProjectTaxonomy]:
-    try:
-        from core.capabilities import resolve_ollama_base_url
-        base_url = resolve_ollama_base_url()
-        if not base_url:
-            return None
-    except Exception as _e:
-        _log_telemetry(_e, "packer.py:resolve_ollama_base_url")
-        return None
-
-    sample_files = audit_files[:250]
-    file_items = []
-    for f in sample_files:
-        full_p = os.path.join(root_dir, f)
-        exports = []
-        if f.endswith(".py"):
-            try:
-                with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
-                    tree = _ast.parse(fh.read(4096))
-                for node in tree.body[:5]:
-                    if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)):
-                        exports.append(node.name)
-            except Exception as _e:
-                _log_telemetry(_e, f"packer.py:parse_exports:{f}")
-        exp_str = f" ({', '.join(exports)})" if exports else ""
-        file_items.append(f"- {f}{exp_str}")
-
-    prompt = (
-        "Group these software files into 3-10 architectural domain bundles.\n"
-        "Return ONLY a JSON object with key 'domains' containing an array of objects:\n"
-        "[{\n"
-        "  'slug': 'UPPER_SNAKE_CASE_DOMAIN',\n"
-        "  'title': 'Human-readable title',\n"
-        "  'files': ['file1', 'file2'],\n"
-        "  'skeleton_candidates': ['secondary_file']\n"
-        "}]\n\n"
-        "Files:\n" + "\n".join(file_items)
-    )
-
-    model_name = os.environ.get("ORION_LOCAL_MODEL") or os.environ.get("OLLAMA_MODEL")
-    if not model_name:
-        try:
-            from core.capabilities import select_optimal_ollama_model
-            model_name = select_optimal_ollama_model(base_url, min_params_b=6.5)
-        except Exception:
-            model_name = None
-    if not model_name:
-        return None
-
-    parsed = None
-    try:
-        from core.capabilities import generate_completion
-        raw_completion = generate_completion(
-            prompt=prompt,
-            model=model_name,
-            host=base_url,
-            timeout_sec=20.0,
-            temperature=0.1,
-        )
-        if raw_completion:
-            parsed = json.loads(raw_completion.strip())
-    except Exception as _ce:
-        _log_telemetry(_ce, "packer.py:taxonomy_via_capabilities")
-
-    if not parsed:
-        req_data = json.dumps({
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-            "options": {"temperature": 0.1, "num_predict": 1024}
-        }).encode("utf-8")
-
-        import urllib.request
-        req = urllib.request.Request(
-            f"{base_url.rstrip('/')}/api/generate",
-            data=req_data,
-            headers={"Content-Type": "application/json", "User-Agent": "Orion/1.0"}
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=15.0) as res:
-                res_body = json.loads(res.read().decode("utf-8"))
-                parsed = json.loads(res_body.get("response", "{}"))
-        except Exception as _e:
-            _log_telemetry(_e, "packer.py:generate_taxonomy_via_ollama")
-            return None
-
-    try:
-        domains = parsed.get("domains", []) if isinstance(parsed, dict) else []
-        if not domains or not isinstance(domains, list):
-            return None
-        clusters = {}
-        f2c = {}
-        skel_cand = set()
-        for idx, dom in enumerate(domains):
-            slug = dom.get("slug", f"DOMAIN_{idx+1:02d}").upper()
-            title = dom.get("title", slug)
-            d_files = dom.get("files", [])
-            d_skels = dom.get("skeleton_candidates", [])
-            clusters[slug] = {
-                "gravity": 5,
-                "title": title,
-                "files": d_files,
-                "skeleton_candidates": d_skels,
-            }
-            for f in d_files:
-                f2c[f] = (5, slug.lower(), title)
-            for sf in d_skels:
-                skel_cand.add(sf)
-
-        # Backfill any files not explicitly clustered by the LLM
-        for f in audit_files:
-            norm_f = f.replace("\\", "/")
-            if norm_f not in f2c:
-                grav, c_key, c_desc = compute_file_gravity_and_cluster(norm_f)
-                c_slug = c_key.replace("/", "_").upper()
-                if c_slug not in clusters:
-                    clusters[c_slug] = {"gravity": grav, "title": c_desc, "files": [], "skeleton_candidates": []}
-                clusters[c_slug]["files"].append(norm_f)
-                f2c[norm_f] = (grav, c_slug.lower(), c_desc)
-
-        tax = ProjectTaxonomy(
-            tree_hash=tree_hash,
-            provider="local_ai",
-            clusters=clusters,
-            file_to_cluster=f2c,
-            skeleton_candidates=skel_cand,
-        )
-        save_taxonomy_cache(root_dir, tax)
-        return tax
-    except Exception as _e:
-        _log_telemetry(_e, "generate_taxonomy_via_ollama")
-        return None
-
-
-def generate_taxonomy_via_graph_topology(root_dir: str, audit_files: List[str], tree_hash: str) -> ProjectTaxonomy:
-    """
-    Tier 0 Deterministic Offline Fallback:
-    Combines architectural gravity tiers with actual cross-file import/symbol edges
-    so tightly coupled utility and service modules align to the same bundle cluster.
-    """
-    clusters: Dict[str, Dict[str, Any]] = {}
-    file_to_cluster: Dict[str, Tuple[int, str, str]] = {}
-    skeleton_candidates: Set[str] = set()
-
-    # 1. Base architectural gravity and initial cluster
-    base_info: Dict[str, Tuple[int, str, str]] = {}
-    for rel_p in audit_files:
-        norm_p = rel_p.replace("\\", "/")
-        grav, c_key, c_desc = compute_file_gravity_and_cluster(norm_p)
-        base_info[norm_p] = (grav, c_key, c_desc)
-
-        full_p = os.path.join(root_dir, norm_p)
-        line_cnt = 0
-        try:
-            with open(full_p, 'r', encoding='utf-8', errors='ignore') as fl:
-                line_cnt = sum(1 for _ in fl)
-        except OSError:
-            line_cnt = 0
-
-        is_secondary = (grav in (8, 9)) or (c_key == "skills/secondary") or ("tools" in norm_p)
-        if is_secondary and line_cnt > 150:
-            skeleton_candidates.add(norm_p)
-
-    # 2. Refine clusters via AST import coupling
-    dummy_bundle_map = {f.replace("\\", "/"): f"F{idx:04d}_{f.replace('/', '__')}" for idx, f in enumerate(audit_files)}
-    adj: Dict[str, Counter] = defaultdict(Counter)
-    for rel_p in audit_files:
-        norm_p = rel_p.replace("\\", "/")
-        full_p = os.path.join(root_dir, norm_p)
-        try:
-            with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
-                raw_c = fh.read()
-            targets = extract_cross_bundle_imports(norm_p, raw_c, dummy_bundle_map)
-            for tgt in targets:
-                # tgt format is 'stem (Bundle bid)' or 'stem'
-                clean_stem = tgt.split(" (")[0]
-                slash_stem = clean_stem.replace(".", "/")
-                for cand_file in audit_files:
-                    cand_norm = cand_file.replace("\\", "/")
-                    cand_no_ext = os.path.splitext(cand_norm)[0]
-                    if cand_no_ext == slash_stem or cand_no_ext.endswith(f"/{slash_stem}") or cand_no_ext.endswith(f"/{clean_stem}"):
-                        if cand_norm != norm_p:
-                            adj[norm_p][cand_norm] += 1
-                            adj[cand_norm][norm_p] += 1
-        except OSError:
-            continue
-
-    # Re-anchor utility files (gravity 8, 9) if strongly coupled (>=1 edges) to a core module
-    for norm_p, (grav, c_key, c_desc) in list(base_info.items()):
-        if grav in (8, 9) and adj.get(norm_p):
-            top_neighbor, weight = adj[norm_p].most_common(1)[0]
-            if weight >= 1 and top_neighbor in base_info:
-                n_grav, n_key, n_desc = base_info[top_neighbor]
-                if n_grav in (2, 3, 4, 5, 6, 7):
-                    base_info[norm_p] = (n_grav, n_key, n_desc)
-
-    for norm_p, (grav, c_key, c_desc) in base_info.items():
-        file_to_cluster[norm_p] = (grav, c_key, c_desc)
-        slug = c_key.replace("/", "_").upper()
-        if slug not in clusters:
-            clusters[slug] = {
-                "gravity": grav,
-                "title": c_desc,
-                "files": [],
-                "skeleton_candidates": []
-            }
-        clusters[slug]["files"].append(norm_p)
-        if norm_p in skeleton_candidates:
-            clusters[slug]["skeleton_candidates"].append(norm_p)
-
-    tax = ProjectTaxonomy(
-        tree_hash=tree_hash,
-        provider="graph_topology",
-        clusters=clusters,
-        file_to_cluster=file_to_cluster,
-        skeleton_candidates=skeleton_candidates,
-    )
-    save_taxonomy_cache(root_dir, tax)
-    return tax
 
 
 def resolve_project_taxonomy(
     root_dir: str,
     audit_files: List[str],
-    taxonomy_path: Optional[str] = None
+    taxonomy_path: Optional[str] = None,
+    max_bundles: int = 10,
+    dna: Optional[ProjectDNA] = None,
 ) -> ProjectTaxonomy:
-    tree_hash = compute_tree_hash(root_dir, audit_files)
+    """
+    Universal 4-Tier Taxonomy Resolution Cascade:
+      1. Explicit user/IDE-agent taxonomy JSON (--taxonomy)
+      2. Cached LLM taxonomy (if tree_hash matches)
+      3. Cloud LLM API (Gemini / OpenAI) or Local AI (Ollama / llama-server / LM Studio) using Module-Prefix Compression
+      4. Zero-If-Else Graph & Dynamic Path/Symbol Naming Fallback
+    """
+    tree_hash = compute_tree_hash(root_dir, audit_files, dna=dna)
+    buckets = summarize_module_buckets(root_dir, audit_files, max_buckets=38, dna=dna)
 
-    # 1. User-supplied taxonomy file
+    # 1. Explicit custom taxonomy file (supports both prefix-based and file-based schemas)
     if taxonomy_path and os.path.isfile(taxonomy_path):
         try:
             with open(taxonomy_path, "r", encoding="utf-8", errors="ignore") as fh:
                 data = json.load(fh)
-            clusters = data.get("clusters", {})
-            f2c = {}
-            skel_cand = set()
-            for slug, info in clusters.items():
-                grav = info.get("gravity", 5)
-                title = info.get("title", slug)
-                for f in info.get("files", []):
-                    f2c[f] = (grav, slug.lower(), title)
-                for sf in info.get("skeleton_candidates", []):
-                    skel_cand.add(sf)
-            return ProjectTaxonomy(
-                tree_hash=tree_hash,
-                provider="custom_taxonomy",
-                clusters=clusters,
-                file_to_cluster=f2c,
-                skeleton_candidates=skel_cand
-            )
+            if "bundles" in data or "domains" in data:
+                compiled = _compile_prefix_taxonomy_response(data, "custom_taxonomy", tree_hash, buckets, audit_files)
+                if compiled:
+                    save_taxonomy_cache(root_dir, compiled)
+                    return compiled
+            elif "clusters" in data:
+                clusters = data["clusters"]
+                f2c = {}
+                skel_cand = set()
+                for slug, info in clusters.items():
+                    grav = int(info.get("gravity", 5))
+                    title = info.get("title", slug)
+                    for f in info.get("files", []):
+                        f2c[f] = (grav, slug, title)
+                    for sf in info.get("skeleton_candidates", []):
+                        skel_cand.add(sf)
+                return ProjectTaxonomy(
+                    tree_hash=tree_hash,
+                    provider="custom_taxonomy",
+                    project_summary=data.get("project_summary", "Custom Taxonomy Project"),
+                    clusters=clusters,
+                    file_to_cluster=f2c,
+                    skeleton_candidates=skel_cand,
+                )
         except Exception as _e:
             _log_telemetry(_e, "resolve_project_taxonomy:custom")
 
-    # 2. Cached taxonomy (Short-circuit only for high-tier neural/custom taxonomies)
+    # 2. Check cached LLM taxonomy
     cached = load_cached_taxonomy(root_dir, tree_hash)
-    if cached and cached.provider in ("ollama", "cloud_agent", "cloud_llm", "custom_taxonomy"):
+    if cached and cached.provider not in ("graph_topology",):
         return cached
 
-    # 3. Local Ollama (NanoBrain) with 15s timeout
-    ollama_tax = generate_taxonomy_via_ollama(root_dir, audit_files, tree_hash)
-    if ollama_tax:
-        return ollama_tax
+    if os.environ.get("ORION_OFFLINE_PACK") == "1":
+        tax = generate_taxonomy_via_graph_topology_from_buckets(buckets, audit_files, tree_hash, dna=dna)
+        save_taxonomy_cache(root_dir, tax)
+        return tax
 
-    # Fallback to cached graph_topology if Ollama is offline
-    if cached:
-        return cached
+    # 3. Try Cloud API or Local AI with Module-Bucket Prompt
+    architect_prompt = _build_llm_architect_prompt(root_dir, buckets, max_bundles=max_bundles, dna=dna)
 
-    # If Ollama failed/offline, queue for Cloud Agent handoff so next session can upgrade
+    llm_res = _call_cloud_llm_for_taxonomy(architect_prompt) or _call_local_llm_for_taxonomy(architect_prompt)
+    if llm_res:
+        parsed_json, provider_name = llm_res
+        compiled_tax = _compile_prefix_taxonomy_response(parsed_json, provider_name, tree_hash, buckets, audit_files)
+        if compiled_tax:
+            save_taxonomy_cache(root_dir, compiled_tax)
+            return compiled_tax
+
+    # If Cloud & Local AI failed/offline, enqueue structured Cloud Handoff before deterministic fallback
     try:
         from core.capabilities import enqueue_cloud_handoff
-        sample_dirs = sorted(list({os.path.dirname(f.replace("\\", "/")) or "." for f in audit_files}))
+        sample_prefixes = list(buckets.keys())[:35]
         enqueue_cloud_handoff(
             "PACK_TAXONOMY",
             {
                 "root_dir": root_dir,
                 "tree_hash": tree_hash,
                 "file_count": len(audit_files),
-                "directories": sample_dirs[:35],
+                "module_prefixes": sample_prefixes,
                 "sample_files": [f.replace("\\", "/") for f in audit_files[:50]],
             },
-            reason="ollama_offline_or_timeout",
+            reason="cloud_and_local_ai_offline_or_failed",
         )
     except Exception as _ce:
         _log_telemetry(_ce, "packer.py:enqueue_pack_taxonomy_handoff")
 
-    # 4. Deterministic Graph Topology Fallback (Immediate Shadow)
-    return generate_taxonomy_via_graph_topology(root_dir, audit_files, tree_hash)
+    # 4. Deterministic Graph & Dynamic Symbol Naming Fallback
+    if cached:
+        return cached
+    tax = generate_taxonomy_via_graph_topology_from_buckets(buckets, audit_files, tree_hash, dna=dna)
+    save_taxonomy_cache(root_dir, tax)
+    return tax
 
 
-@dataclass
-class ProjectDNA:
-    is_dna_app: bool
-    archetype: str
-    version: str
-    blueprint_path: Optional[str]
-    stacks: List[str]
-    active_native_roots: List[str]
-    dormant_roots: List[str]
-    verified_gates: str
-
-
-def detect_project_dna(root_dir: str, force_universal: bool = False) -> Optional[ProjectDNA]:
+def detect_project_dna(
+    root_dir: str,
+    force_universal: bool = False,
+    audit_files: Optional[List[str]] = None,
+) -> Optional[ProjectDNA]:
     """
-    Detects whether target directory is an application built with .agents DNA.
-    Returns None if target is the Foundation itself or if force_universal is requested.
+    Detects stack, multi-app containers, and active vs dormant native roots using Universal Living DNA.
+    Delegates to core.dna.sequence_project_dna for deep 5-tier classification, execution spine identification,
+    and architectural layer violation auditing.
     """
-    if force_universal:
+    if force_universal or is_foundation_root(root_dir) or is_foundation_agents(root_dir):
         return None
-
-    if is_foundation_root(root_dir) or is_foundation_agents(root_dir):
-        return None
-
     abs_root = os.path.abspath(root_dir)
-    agents_dir = os.path.join(abs_root, ".agents")
-    has_agents_dir = os.path.isdir(agents_dir)
-    has_dna_json = os.path.isfile(os.path.join(agents_dir, ".dna.json"))
-    has_project_manifest = os.path.isfile(os.path.join(agents_dir, ".project_manifest.json"))
-    has_genome_json = os.path.isfile(os.path.join(agents_dir, ".genome.json"))
-    has_context_arch = os.path.isfile(os.path.join(abs_root, "context", "03_Tech", "ARCHITECTURE.md"))
-    has_context_bp = os.path.isfile(os.path.join(abs_root, "context", "00_Strategy", "BLUEPRINT.md"))
-
-    is_dna = (
-        has_dna_json
-        or has_project_manifest
-        or has_genome_json
-        or has_context_arch
-        or has_context_bp
-        or (has_agents_dir and (os.path.isdir(os.path.join(agents_dir, "skills")) or os.path.isfile(os.path.join(agents_dir, "hooks.json"))))
+    has_foundation_dna = (
+        os.path.isdir(os.path.join(abs_root, "context"))
+        or os.path.isfile(os.path.join(abs_root, ".agents", ".dna.json"))
+        or os.path.isfile(os.path.join(abs_root, ".agents", ".project_manifest.json"))
     )
-    if not is_dna:
+    if not has_foundation_dna and not audit_files:
+        return None
+    return sequence_project_dna(root_dir, audit_files=audit_files, force_universal=force_universal)
+
+
+def balance_into_k_bundles(
+    root_dir: str,
+    audit_files: List[str],
+    skeleton: bool = False,
+    hybrid: bool = False,
+    norm_mode: str = "lean",
+    k: int = 10,
+    max_tokens_per_bundle: int = 75000,
+    focus_files: Optional[List[str]] = None,
+    reclaim: bool = True,
+    taxonomy: Optional[ProjectTaxonomy] = None,
+    dna: Optional[ProjectDNA] = None,
+) -> List[Tuple[str, str, List[str], Dict[str, bool], str]]:
+    """
+    Dynamic Subtree & Taxonomy Bin-Packing:
+      1. Respects cluster slugs, titles, and audit_focus from ProjectTaxonomy (LLM or Graph).
+      2. Splits oversized clusters (>42k tokens) into Part 1 / Part 2 while preserving their domain slug.
+      3. Merges tiny adjacent clusters only when total clusters > k, combining their slugs/titles cleanly.
+      4. Pass 2 Water-Filling: Reclaims FULL code mode for highest-PageRank files up to the soft token cap.
+      5. Execution Spine & Pillar Preservation: Never skeletonizes critical architectural spine files in hybrid mode.
+    Returns list of: (bundle_code, bundle_title, file_list, skel_map, audit_focus)
+    """
+    if taxonomy is None:
+        taxonomy = resolve_project_taxonomy(root_dir, audit_files, max_bundles=k, dna=dna)
+
+    full_tokens_map: Dict[str, int] = {}
+    skel_tokens_map: Dict[str, int] = {}
+    file_line_counts: Dict[str, int] = {}
+    tax_skel_cands = taxonomy.skeleton_candidates
+
+    # Group files by their assigned taxonomy cluster
+    cluster_bins: List[Dict[str, Any]] = []
+    seen_files: Set[str] = set()
+
+    for slug, c_info in sorted(taxonomy.clusters.items(), key=lambda x: (int(x[1].get("gravity", 5)), x[0])):
+        c_files = [f for f in c_info.get("files", []) if f in audit_files and f not in seen_files]
+        if not c_files:
+            continue
+        for f in c_files:
+            seen_files.add(f)
+
+        grav = int(c_info.get("gravity", 5))
+        title = str(c_info.get("title") or slug.replace("_", " ").title())
+        audit_focus = str(c_info.get("audit_focus") or f"Audit domain invariants, error handling, and boundary safety in {title}.")
+
+        weighted_files: List[Tuple[str, int, bool]] = []
+        for f in c_files:
+            full_p = os.path.join(root_dir, f)
+            line_count = 0
+            try:
+                sz = os.path.getsize(full_p)
+                with open(full_p, "r", encoding="utf-8", errors="ignore") as fl:
+                    line_count = sum(1 for _ in fl)
+            except OSError:
+                sz = 1000
+            file_line_counts[f] = line_count
+            ext_f = os.path.splitext(f)[1].lower().lstrip(".")
+
+            if hybrid:
+                pillar_paths = set(dna.pillars.values()) if (dna and isinstance(dna.pillars, dict)) else set(getattr(dna, "pillars", []) or [])
+                is_spine = bool(dna and (f in dna.execution_spine or f in pillar_paths))
+                is_core_doc = is_spine or (grav == 0) or os.path.basename(f).lower() in {"readme.md", "pubspec.yaml", "package.json", "cargo.toml", "go.mod"}
+                if is_core_doc:
+                    apply_skel = False
+                elif f in tax_skel_cands:
+                    apply_skel = True
+                else:
+                    apply_skel = (
+                        ((grav >= 3) and line_count > 150 and (ext_f in SUPPORTED_SKELETON_EXTENSIONS))
+                        or (ext_f == "json" and line_count > AUTO_SKELETON_LINE_THRESHOLD)
+                    )
+            else:
+                apply_skel = skeleton or (ext_f == "json" and line_count > AUTO_SKELETON_LINE_THRESHOLD)
+
+            sz_tok = max(1, int(math.ceil(sz / 3.8)))
+            if ext_f == "json" and line_count > AUTO_SKELETON_LINE_THRESHOLD:
+                tok_skel = 300
+            else:
+                red = 0.55 if f.endswith((".md", ".mdc")) else 0.18
+                tok_skel = max(1, int(sz_tok * red)) + int(line_count * red) + 60
+            tok_full = sz_tok + line_count + 60
+            full_tokens_map[f] = tok_full
+            skel_tokens_map[f] = tok_skel
+
+            weight = tok_full if (hybrid and not apply_skel) else (tok_skel if apply_skel else tok_full)
+            weighted_files.append((f, weight, apply_skel))
+
+        # Split oversized clusters so no single bundle overflows context limits
+        c_total_tok = sum(w for _, w, _ in weighted_files)
+        if c_total_tok > 45000 and len(weighted_files) > 1:
+            sub_files: List[Tuple[str, int, bool]] = []
+            sub_tok = 0
+            part_idx = 1
+            for wf in weighted_files:
+                if sub_files and (sub_tok + wf[1] > 36000):
+                    cluster_bins.append({
+                        "gravity": grav,
+                        "slug": slug,
+                        "title": title,
+                        "audit_focus": audit_focus,
+                        "files": sub_files,
+                        "tokens": sub_tok,
+                    })
+                    sub_files = []
+                    sub_tok = 0
+                    part_idx += 1
+                sub_files.append(wf)
+                sub_tok += wf[1]
+            if sub_files:
+                cluster_bins.append({
+                    "gravity": grav,
+                    "slug": slug,
+                    "title": title,
+                    "audit_focus": audit_focus,
+                    "files": sub_files,
+                    "tokens": sub_tok,
+                })
+        else:
+            cluster_bins.append({
+                "gravity": grav,
+                "slug": slug,
+                "title": title,
+                "audit_focus": audit_focus,
+                "files": weighted_files,
+                "tokens": c_total_tok,
+            })
+
+    # Merge smallest adjacent bins if len(cluster_bins) > k
+    while len(cluster_bins) > k:
+        best_idx = 0
+        best_score = float("inf")
+        for i in range(len(cluster_bins) - 1):
+            combined_tok = cluster_bins[i]["tokens"] + cluster_bins[i + 1]["tokens"]
+            grav_diff = abs(cluster_bins[i]["gravity"] - cluster_bins[i + 1]["gravity"])
+            root_penalty = 80000 if (cluster_bins[i]["gravity"] <= 1 or cluster_bins[i + 1]["gravity"] <= 1) and grav_diff > 0 else 0
+            overflow_penalty = max(0, combined_tok - max_tokens_per_bundle) * 4
+            score = combined_tok + (grav_diff * 5000) + root_penalty + overflow_penalty
+            if score < best_score:
+                best_score = score
+                best_idx = i
+
+        b1 = cluster_bins[best_idx]
+        b2 = cluster_bins.pop(best_idx + 1)
+        # Keep the slug of the larger token contributor, or combine concise slugs
+        if b1["slug"] != b2["slug"]:
+            if b2["tokens"] > b1["tokens"] * 1.5:
+                merged_slug = b2["slug"]
+            else:
+                s1_parts = b1["slug"].split("_")[:2]
+                s2_parts = [p for p in b2["slug"].split("_")[:2] if p not in s1_parts]
+                merged_slug = "_".join((s1_parts + s2_parts)[:4])
+            if b2["title"] in b1["title"]:
+                merged_title = b1["title"]
+            elif b1["title"].count(" & ") >= 2:
+                base_parts = b1["title"].split(" & ")[:3]
+                merged_title = " & ".join(base_parts) + " (+more)"
+            else:
+                merged_title = f"{b1['title']} & {b2['title']}"
+            if b2["audit_focus"] in b1["audit_focus"]:
+                merged_focus = b1["audit_focus"]
+            elif len(b1["audit_focus"]) > 220:
+                merged_focus = b1["audit_focus"]
+            else:
+                merged_focus = f"{b1['audit_focus']} {b2['audit_focus']}".strip()
+        else:
+            merged_slug = b1["slug"]
+            merged_title = b1["title"]
+            merged_focus = b1["audit_focus"]
+
+        b1["slug"] = merged_slug
+        b1["title"] = merged_title
+        b1["audit_focus"] = merged_focus
+        b1["files"].extend(b2["files"])
+        b1["tokens"] += b2["tokens"]
+
+    # Format final bundle codes with automatic PART numbering if a slug spans multiple bins
+    slug_counts = Counter(b["slug"] for b in cluster_bins)
+    slug_seen: Counter = Counter()
+
+    result_bundles: List[Tuple[str, str, List[str], Dict[str, bool], str]] = []
+    for b_idx, b in enumerate(cluster_bins, 1):
+        slug = b["slug"]
+        title = b["title"]
+        focus_text = b["audit_focus"]
+        b_files = [t[0] for t in b["files"]]
+        b_skel_map = {t[0]: t[2] for t in b["files"]}
+
+        if slug_counts[slug] > 1:
+            slug_seen[slug] += 1
+            p_num = slug_seen[slug]
+            p_tot = slug_counts[slug]
+            code = f"{b_idx:02d}_{slug}_PART{p_num}"
+            clean_title = re.sub(r"\s*\(Part\s*\d+(?:/\d+)?\)", "", title)
+            title = f"{clean_title} (Part {p_num}/{p_tot})"
+        else:
+            code = f"{b_idx:02d}_{slug}"
+
+        result_bundles.append((code, title, b_files, b_skel_map, focus_text))
+
+    # Pass 2: Greedy Token Reclamation (Water-Filling) in Hybrid Mode
+    if reclaim and hybrid and not skeleton:
+        salience_map: Dict[str, float] = {}
+        try:
+            rm_data = build_repo_map(root_dir, budget_tokens=2000, files=audit_files)
+            salience_map = {item["file"]: float(item.get("rank", 0.0)) for item in rm_data.get("ranked_files", [])}
+        except Exception:
+            pass
+
+        for _, _, b_files, b_skel_map, _ in result_bundles:
+            current_b_tokens = sum(
+                skel_tokens_map.get(f, 0) if b_skel_map.get(f, False) else full_tokens_map.get(f, 0)
+                for f in b_files
+            )
+            for rel_f in b_files:
+                if file_line_counts.get(rel_f, 0) <= AUTO_SKELETON_LINE_THRESHOLD and b_skel_map.get(rel_f, False):
+                    b_skel_map[rel_f] = False
+                    current_b_tokens += (full_tokens_map.get(rel_f, 0) - skel_tokens_map.get(rel_f, 0))
+
+            skel_candidates = sorted(
+                [
+                    f for f in b_files
+                    if b_skel_map.get(f, False)
+                    and not (os.path.splitext(f)[1].lower().lstrip(".") == "json" and file_line_counts.get(f, 0) > AUTO_SKELETON_LINE_THRESHOLD)
+                ],
+                key=lambda f: (-salience_map.get(f, 0.0), full_tokens_map.get(f, 0) - skel_tokens_map.get(f, 0)),
+            )
+            for cand_file in skel_candidates:
+                delta_tok = full_tokens_map.get(cand_file, 0) - skel_tokens_map.get(cand_file, 0)
+                if current_b_tokens + delta_tok <= BUNDLE_SOFT_TOKEN_CAP:
+                    b_skel_map[cand_file] = False
+                    current_b_tokens += delta_tok
+
+    if focus_files:
+        focus_set = {os.path.normpath(f).replace("\\", "/") for f in focus_files}
+        for _, _, b_files, b_skel_map, _ in result_bundles:
+            for f in b_files:
+                norm_f = os.path.normpath(f).replace("\\", "/")
+                if norm_f in focus_set or any(norm_f.endswith(f"/{fc}") or norm_f == fc for fc in focus_set):
+                    b_skel_map[f] = False
+
+    return result_bundles
+
+
+_LOCAL_CLI_DIRECTIVE_RE = re.compile(
+    r"(?m)^[ \t]*[-*]\s*(?:\[[ xX]\]\s*)?\*\*\[?(?:TARGET-DATA:\s*)?CRITICAL ACTION[^\n]*\b(?:run_command|orion\.py\s+scan\s+targets|00-ledger\.md)[^\n]*\n?",
+    re.IGNORECASE,
+)
+
+_WEB_PROMPT_CLEAN_RE = re.compile(
+    r"(?m)^[ \t]*[-*]?\s*(?:Verify mechanically:\s*`python\s+\.agents[^\n`]+`|Execute\s+`python\s+\.agents[^\n`]+`|\bpython\s+\.agents/scripts/orion\.py\s+verify[^\n]*)[ \t]*\n?",
+    re.IGNORECASE,
+)
+
+
+def _adapt_skill_prose_for_web_bundle(md_text: str) -> str:
+    """
+    Adapts SKILL.md prose (written for local IDE agents) into static audit instructions
+    for Web LLM consumption (Gemini Web / Claude Projects):
+    - Strips local terminal execution commands and slash commands.
+    - Replaces local `view_file` / `run_command` directives with static bundle inspection rules.
+    """
+    if not md_text:
+        return ""
+    cleaned = _LOCAL_CLI_DIRECTIVE_RE.sub("", md_text)
+    cleaned = _WEB_PROMPT_CLEAN_RE.sub("", cleaned)
+    cleaned = re.sub(
+        r"\bExecute `run_command`[^\n.]*\.",
+        "Inspect the Pre-Computed Static Audit Radar and `<artifact>` blocks directly.",
+        cleaned,
+    )
+    cleaned = re.sub(r"`python \.agents/scripts/orion\.py [^`]+`", "static bundle inspection", cleaned)
+    return cleaned.strip()
+
+
+def _extract_markdown_sections(file_path: str, headers: List[str]) -> str:
+    """
+    Extracts matching markdown sections (under ## or ### headers) while respecting fenced code blocks.
+    """
+    if not os.path.isfile(file_path):
+        return ""
+    try:
+        content = read_text_safe(file_path)
+    except Exception:
+        return ""
+
+    lines = content.splitlines()
+    extracted = []
+    capturing = False
+    capture_level = 0
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+    header_lower_set = [h.lower() for h in headers]
+
+    for line in lines:
+        stripped = line.strip()
+        m_fence = re.match(r"^(`{3,}|~{3,})", stripped)
+        if m_fence:
+            marker = m_fence.group(1)
+            if not in_fence:
+                in_fence = True
+                fence_char = marker[0]
+                fence_len = len(marker)
+            elif marker[0] == fence_char and len(marker) >= fence_len and stripped == marker:
+                in_fence = False
+                fence_char = ""
+                fence_len = 0
+
+        if not in_fence and stripped.startswith("#"):
+            level = len(stripped) - len(stripped.lstrip("#"))
+            h_text = stripped.lstrip("#").strip().lower()
+            if any(req_h in h_text for req_h in header_lower_set):
+                capturing = True
+                capture_level = level
+                extracted.append(line)
+                continue
+            elif capturing and level <= capture_level:
+                capturing = False
+
+        if capturing:
+            extracted.append(line)
+
+    return "\n".join(extracted).strip()
+
+
+def _extract_project_domain_brief(root_dir: str, dna: Optional[ProjectDNA] = None) -> str:
+    """
+    Extracts real domain architecture, foundational VISION.md invariants, capabilities, and system identity from project files
+    (context/VISION.md, README.md, skills/*/SKILL.md, and context/03_Tech/ARCHITECTURE.md) while skipping unpopulated template placeholders.
+    """
+    abs_root = os.path.abspath(root_dir)
+    brief_parts: List[str] = []
+
+    # 0. Inspect context/VISION.md (Immutable North Star)
+    vision_path = os.path.join(abs_root, "context", "VISION.md")
+    if not os.path.isfile(vision_path) and dna and dna.context_aliases:
+        for src_rel, target in dna.context_aliases.items():
+            if target == "VISION.md":
+                candidate = os.path.join(abs_root, src_rel)
+                if os.path.isfile(candidate):
+                    vision_path = candidate
+                    break
+    if os.path.isfile(vision_path):
+        try:
+            content = read_text_safe(vision_path)
+            if "PROJECT_SCAFFOLD" not in content and "Auto-filled by AI" not in content:
+                for block in content.split("## "):
+                    block_stripped = block.strip()
+                    if block_stripped and not block_stripped.startswith("FOUNDATIONAL VISION"):
+                        lines = [line.strip() for line in block_stripped.splitlines() if line.strip() and not line.strip().startswith("#")]
+                        if lines:
+                            header = block_stripped.split("\n")[0].strip()
+                            brief_parts.append(f"**Vision ({header})**: {' '.join(lines[:3])}")
+                        if len(brief_parts) >= 1:
+                            break
+        except Exception:
+            pass
+
+    # 1. Inspect README.md
+    readme_path = os.path.join(abs_root, "README.md")
+    if os.path.isfile(readme_path):
+        try:
+            content = read_text_safe(readme_path)
+            # Take top substantive paragraphs (skip badge lines, blank lines, and scaffold template notices)
+            paragraphs = re.split(r"\r?\n\r?\n", content)
+            found_paragraphs = []
+            for p in paragraphs[:8]:
+                p_str = p.strip()
+                if (
+                    p_str
+                    and not p_str.startswith("#")
+                    and not p_str.startswith("![")
+                    and not p_str.startswith("<!--")
+                    and not p_str.startswith("---")
+                    and "Auto-filled by AI" not in p_str
+                    and len(p_str) >= 40
+                ):
+                    clean_p = " ".join(line.strip() for line in p_str.splitlines() if line.strip())
+                    found_paragraphs.append(clean_p)
+                    if len(found_paragraphs) >= 2:
+                        break
+            if found_paragraphs:
+                brief_parts.append("\n\n".join(found_paragraphs))
+        except Exception:
+            pass
+
+    # 2. Inspect context/03_Tech/ARCHITECTURE.md or context/00_Strategy/BLUEPRINT.md
+    arch_path = os.path.join(abs_root, "context", "03_Tech", "ARCHITECTURE.md")
+    if not os.path.isfile(arch_path):
+        arch_path = os.path.join(abs_root, "context", "00_Strategy", "BLUEPRINT.md")
+    if os.path.isfile(arch_path):
+        try:
+            content = read_text_safe(arch_path)
+            if "PROJECT_SCAFFOLD" not in content and "Auto-filled by AI" not in content:
+                # Extract first meaningful section
+                for block in content.split("## "):
+                    if len(block.strip()) > 80 and not block.startswith("Foundation Architecture"):
+                        header = block.split("\n")[0].strip()
+                        body = "\n".join(block.split("\n")[1:4]).strip()
+                        if body:
+                            brief_parts.append(f"**Architecture ({header})**: {body}")
+                        break
+        except Exception:
+            pass
+
+    # 3. Inspect domain-specific skills (e.g. skills/*/SKILL.md)
+    skills_dir = os.path.join(abs_root, "skills")
+    if os.path.isdir(skills_dir):
+        discovered_skills = []
+        for s_name in sorted(os.listdir(skills_dir)):
+            s_skill_p = os.path.join(skills_dir, s_name, "SKILL.md")
+            if os.path.isfile(s_skill_p):
+                discovered_skills.append(s_name)
+        if discovered_skills:
+            brief_parts.append(f"**Domain Agent Skills & Capabilities**: {', '.join(discovered_skills[:8])}")
+
+    return "\n\n".join(brief_parts).strip()
+
+
+def _compile_stitched_audit_methodology(
+    root_dir: str = ".",
+    is_foundation: bool = False,
+    dna: Optional[ProjectDNA] = None,
+    has_ui: bool = True,
+) -> Optional[str]:
+    """
+    Compiles audit methodology by stitching SSOT Skills + Project DNA + Phased Playbooks.
+    Respects has_ui: completely eliminates UI/DOM/Shimmer/Riverpod rubrics on backend/quant/CLI repositories.
+    """
+    candidates = [
+        os.path.join(root_dir, ".agents", "skills"),
+        os.path.abspath(os.path.join(_PACKER_DIR, "..", "..", "skills")),
+        os.path.abspath(os.path.join(root_dir, "skills")),
+    ]
+    skills_dir = next((c for c in candidates if os.path.isdir(c)), None)
+    if not skills_dir:
         return None
 
-    version = "0.0.1"
-    manifest_data: Dict[str, Any] = {}
-    manifest_path = os.path.join(agents_dir, ".project_manifest.json")
-    if os.path.isfile(manifest_path):
-        try:
-            with open(manifest_path, "r", encoding="utf-8", errors="ignore") as fh:
-                manifest_data = json.load(fh)
-        except Exception as _e:
-            _log_telemetry(_e, "detect_project_dna:manifest")
+    if is_foundation:
+        admin_skill = os.path.join(skills_dir, "meta-agent-admin", "SKILL.md")
+        admin_audit = os.path.join(skills_dir, "meta-agent-admin", "references", "meta-agent-audit.md")
 
-    dna_path = os.path.join(agents_dir, ".dna.json")
-    if os.path.isfile(dna_path):
-        try:
-            with open(dna_path, "r", encoding="utf-8", errors="ignore") as fh:
-                dna_file_data = json.load(fh)
-                version = dna_file_data.get("version", version)
-        except Exception as _e:
-            _log_telemetry(_e, "detect_project_dna:dna_file")
+        posture = _extract_markdown_sections(
+            admin_skill,
+            ["Operational Stance", "The Architecture Topography"],
+        )
+        audit_core = _extract_markdown_sections(
+            admin_audit,
+            [
+                "Epistemology, Calibration",
+                "Deterministic 100-Point Locked Ledger",
+                "Hard Score Ceilings",
+                "7-Seam Synergy",
+                "The 14 Core Infrastructure Audit Vectors",
+                "Mandatory Reporting Format",
+            ],
+        )
+        stitched = _adapt_skill_prose_for_web_bundle(f"{posture}\n\n{audit_core}")
+        if stitched:
+            return (
+                "## 🏛️ SSOT META-AGENT-ADMIN AUDIT METHODOLOGY (STITCHED FROM `.agents/skills/meta-agent-admin/`)\n\n"
+                f"{stitched}"
+            )
+        return None
 
-    blueprint_path = None
-    if has_context_arch:
-        blueprint_path = "context/03_Tech/ARCHITECTURE.md"
-    elif has_context_bp:
-        blueprint_path = "context/00_Strategy/BLUEPRINT.md"
-    elif os.path.isfile(os.path.join(abs_root, "ARCHITECTURE.md")):
-        blueprint_path = "ARCHITECTURE.md"
+    # Universal App Mode: Stitch integrity-sentinel + code-review + strict-tdd into Playbooks A, B, C
+    sentinel_skill = os.path.join(skills_dir, "integrity-sentinel", "SKILL.md")
+    audit_vectors = os.path.join(skills_dir, "integrity-sentinel", "references", "audit_vectors.md")
+    consequence_ref = os.path.join(skills_dir, "integrity-sentinel", "references", "consequence_verification.md")
+    code_review_skill = os.path.join(skills_dir, "code-review", "SKILL.md")
+    strict_tdd_skill = os.path.join(skills_dir, "strict-tdd", "SKILL.md")
 
-    stacks: List[str] = []
-    framework = manifest_data.get("framework") or manifest_data.get("FRAMEWORK")
-    language = manifest_data.get("language") or manifest_data.get("LANGUAGE")
-    if framework:
-        stacks.append(framework)
-    if language and language != framework:
-        stacks.append(language)
+    pb_a_review = _adapt_skill_prose_for_web_bundle(
+        _extract_markdown_sections(code_review_skill, ["Context Retrieval", "Standard Code Review"])
+    )
+    pb_a_vectors = _extract_markdown_sections(audit_vectors, ["Vector 1:", "Vector 4:", "Vector 5:"])
 
-    # Multi-project / Multi-workspace & Polyglot discovery (checks root + sub-workspaces)
-    scan_roots = [abs_root]
-    for sub_container in ("apps", "packages", "services", "modules", "crates", "libs", "clients", "servers"):
-        container_p = os.path.join(abs_root, sub_container)
-        if os.path.isdir(container_p):
-            try:
-                for entry in os.scandir(container_p):
-                    if entry.is_dir() and not entry.name.startswith("."):
-                        scan_roots.append(entry.path)
-            except OSError:
-                pass
-    try:
-        for entry in os.scandir(abs_root):
-            if entry.is_dir() and entry.name not in DEFAULT_IGNORE_DIRS and not entry.name.startswith("."):
-                if entry.path not in scan_roots:
-                    scan_roots.append(entry.path)
-    except OSError:
-        pass
+    pb_b_sentinel = _adapt_skill_prose_for_web_bundle(
+        _extract_markdown_sections(sentinel_skill, ["Doubt-Driven Development", "Common Attack Vectors"])
+    )
+    pb_b_vectors = _extract_markdown_sections(audit_vectors, ["Vector 2:", "Vector 3:", "Vector 6:", "Vector 7:"])
 
-    manifest_markers = [
-        ("pubspec.yaml", "Flutter/Dart"),
-        ("package.json", "Node.js/Web"),
-        ("Cargo.toml", "Rust"),
-        ("go.mod", "Go"),
-        ("pyproject.toml", "Python"),
-        ("requirements.txt", "Python"),
-        ("pom.xml", "Java/Maven"),
-        ("build.gradle.kts", "Kotlin/Gradle"),
-    ]
-    for s_root in scan_roots:
-        for marker_file, stack_label in manifest_markers:
-            if os.path.exists(os.path.join(s_root, marker_file)) and stack_label not in stacks:
-                stacks.append(stack_label)
-
-    active_native_roots: List[str] = []
-    dormant_roots: List[str] = []
-
-    android_dir = os.path.join(abs_root, "android")
-    if os.path.isdir(android_dir):
-        custom_android_files = 0
-        for r, _, files in os.walk(android_dir):
-            for f in files:
-                if f.endswith((".kt", ".java", ".c", ".cpp")) and not f.startswith("GeneratedPluginRegistrant"):
-                    custom_android_files += 1
-        if custom_android_files >= 2:
-            active_native_roots.append(f"android ({custom_android_files} source files)")
-        else:
-            dormant_roots.append("android")
-
-    ios_dir = os.path.join(abs_root, "ios")
-    if os.path.isdir(ios_dir):
-        custom_ios_files = 0
-        stock_ios_names = {
-            "appdelegate.swift", "scenedelegate.swift", "generatedpluginregistrant.h",
-            "generatedpluginregistrant.m", "runner-bridging-header.h", "runnertests.swift"
-        }
-        for r, _, files in os.walk(ios_dir):
-            for f in files:
-                if f.endswith((".swift", ".m", ".h")) and f.lower() not in stock_ios_names:
-                    custom_ios_files += 1
-        if custom_ios_files > 0:
-            active_native_roots.append(f"ios ({custom_ios_files} source files)")
-        else:
-            dormant_roots.append("ios")
-
-    web_dir = os.path.join(abs_root, "web")
-    if os.path.isdir(web_dir) and any("flutter" in s.lower() for s in stacks):
-        custom_web_files = 0
-        for r, _, files in os.walk(web_dir):
-            for f in files:
-                if f.endswith((".js", ".ts", ".dart")) and f != "flutter_bootstrap.js":
-                    custom_web_files += 1
-        if custom_web_files > 0:
-            active_native_roots.append(f"web ({custom_web_files} source files)")
-        else:
-            dormant_roots.append("web")
-
-    archetype = "Application"
-    stacks_joined = " ".join(stacks).lower()
-    if "flutter" in stacks_joined:
-        if any("android" in r for r in active_native_roots):
-            archetype = "Flutter Hybrid Application (Active Native Android Service)"
-        else:
-            archetype = "Flutter Multi-Platform Application"
-    elif "node" in stacks_joined or "web" in stacks_joined or "react" in stacks_joined:
-        archetype = "Web / Fullstack Application"
-    elif "rust" in stacks_joined:
-        archetype = "Rust Systems / Desktop Application"
-    elif "go" in stacks_joined:
-        archetype = "Go Backend / Microservice Application"
-    elif "python" in stacks_joined:
-        archetype = "Python Application / AI Service"
-
-    return ProjectDNA(
-        is_dna_app=True,
-        archetype=archetype,
-        version=version,
-        blueprint_path=blueprint_path,
-        stacks=stacks,
-        active_native_roots=active_native_roots,
-        dormant_roots=dormant_roots,
-        verified_gates="Strict TDD Gates Enforced | Security Baseline (Risk Score <= 20)",
+    pb_c_tdd = _extract_markdown_sections(strict_tdd_skill, ["The Strict TDD Cycle", "Anti-Tautology"])
+    pb_c_conseq = _extract_markdown_sections(consequence_ref, ["The Five Shapes of False Green Tests", "The Three Consequence Tiers"])
+    pb_c_delivery = _adapt_skill_prose_for_web_bundle(
+        _extract_markdown_sections(sentinel_skill, ["Audit Findings Delivery Contract"])
     )
 
-def is_dna_app_audit_worthy(
-    rel_p: str,
-    dna: ProjectDNA,
-    mode: str = "lean",
-    include_boilerplate: bool = False,
-) -> bool:
-    norm = rel_p.replace('\\', '/')
-    parts = norm.split('/')
-    base = os.path.basename(norm)
-    base_lower = base.lower()
+    # If backend/headless without UI, strip UI-specific rubric lines from stitched playbooks
+    if not has_ui:
+        for ui_term in (
+            "- 5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
+            "5-State Visual Coverage",
+            "- *Keyboard Focus Traps*: Verify modal dialogs contain Tab focus within the active overlay and restore focus to trigger element upon dismissal.",
+            "Keyboard Focus Traps",
+            "Zero-Data Empty States",
+            "i18n Text Expansion",
+            "Error Boundary Containment",
+            "Design Tokens",
+            "UI & Rendering Bottlenecks",
+            "UI Debounce/Disable",
+            "### Tier 3: DOM & Render Consequence",
+            "Tier 3: DOM Existence & Render Consequence",
+            "Tier 3 DOM",
+            "Riverpod,",
+            "Riverpod",
+        ):
+            pb_a_vectors = pb_a_vectors.replace(ui_term, "")
+            pb_b_vectors = pb_b_vectors.replace(ui_term, "")
+            pb_b_sentinel = pb_b_sentinel.replace(ui_term, "")
+            pb_c_conseq = pb_c_conseq.replace(ui_term, "")
 
-    # 1. Isolate .agents/** internal assistant runtime and prior bundle artifacts
-    if base_lower.endswith('_bundle.md') or '_part_' in base_lower or '00_gemini_web' in base_lower or 'playbook' in base_lower:
-        return False
-    if not include_boilerplate and (norm.startswith('.agents/') or norm.startswith('.github/')):
-        return False
+    # Clean up any leftover UI terms from final assembled playbook blocks
+    if not has_ui:
+        cleaned_sentinel = []
+        for line in pb_b_sentinel.splitlines():
+            if any(term in line for term in ("Keyboard Focus Traps", "i18n Text Expansion", "Zero-Data Empty States", "Error Boundary Containment", "UI Hardening")):
+                continue
+            cleaned_sentinel.append(line)
+        pb_b_sentinel = "\n".join(cleaned_sentinel)
 
-    # 2. Backup and hidden files (preserve .gitignore and .env)
-    if base.endswith('.bak') or '~' in base:
-        return False
-    if base.startswith('.') and base not in ('.gitignore', '.env.example', '.env'):
-        return False
+        cleaned_conseq = []
+        for line in pb_c_conseq.splitlines():
+            if "Riverpod" in line:
+                line = line.replace("Riverpod,", "").replace("Riverpod", "")
+            if any(term in line for term in ("DOM Existence", "UI Moved, State Stagnant", "Tier 3: DOM")):
+                continue
+            cleaned_conseq.append(line)
+        pb_c_conseq = "\n".join(cleaned_conseq)
 
-    # 3. Dormant platform roots
-    for dormant in dna.dormant_roots:
-        if norm.startswith(f"{dormant}/") or f"/{dormant}/" in norm:
-            return False
+    parts = [p for p in [pb_a_vectors, pb_b_vectors, pb_c_tdd] if p]
+    if not parts:
+        return None
 
-    # 4. Android / Native boilerplate noise filtering
-    if '/res/drawable' in norm:
-        if base_lower.startswith(('ic_', 'btn_')) or base_lower.endswith('_icon.xml'):
-            return False
-    if '/res/mipmap' in norm:
-        return False
-    if '/res/values-' in norm and base_lower in ('strings.xml', 'colors.xml', 'dimens.xml'):
-        return False
-
-    # 5. Generated code
-    if base_lower.startswith('generatedpluginregistrant'):
-        return False
-    if norm.startswith('lib/l10n/') and base_lower.startswith('app_localizations_') and base_lower != 'app_localizations.dart':
-        return False
-
-    # 6. Documentation / sample / test exclusions in lean mode
-    if mode == "lean":
-        doc_dirs = {'docs', 'doc', 'documentation', 'examples', 'example', 'sample', 'samples', 'fixtures', 'tutorials'}
-        for idx, p in enumerate(parts[:-1]):
-            if p.lower() in doc_dirs:
-                # Protect package namespaces under src/ or lib/ (e.g. com/example/...)
-                is_src_pkg = ('src' in parts and parts.index('src') < idx) or ('lib' in parts and parts.index('lib') < idx)
-                if not is_src_pkg:
-                    return False
-
-        # Tests
-        if 'src/main' not in norm and 'app/src/main' not in norm:
-            test_dirs = {'test', 'tests', '__tests__', 'specs', 'spec', 'integration_test', 'androidtest', 'e2e'}
-            if any(p.lower() in test_dirs for p in parts[:-1]):
-                return False
-            name_no_ext, _ = os.path.splitext(base_lower)
-            if name_no_ext.startswith('test_') or name_no_ext.endswith(('_test', '.test', '.spec')):
-                return False
-
-    return True
-
-
-def generate_dna_governance_stamp(dna: ProjectDNA) -> str:
-    active_roots = ", ".join(dna.active_native_roots) if dna.active_native_roots else "None"
-    dormant_roots = ", ".join(dna.dormant_roots) if dna.dormant_roots else "None"
-    stacks_str = ", ".join(dna.stacks) if dna.stacks else "Multi-Stack"
-    bp_line = f"> **Architecture Blueprint**: `{dna.blueprint_path}`\n" if dna.blueprint_path else ""
     return (
-        "## 🧬 .agents DNA & Governance Stamp\n\n"
-        f"> **Project Archetype**: {dna.archetype}\n"
-        f"> **Framework Governance**: .agents v{dna.version}\n"
-        f"{bp_line}"
-        f"> **Active Stacks**: {stacks_str}\n"
-        f"> **Quality & Security Gates**: {dna.verified_gates}\n"
-        f"> **Native Platform Roots**: Active: {active_roots} | Dormant: {dormant_roots}\n"
-        "> **Isolated Toolchain**: Downstream application repository. All `.agents/**` internal agent/skill runtimes are excluded from bundles to preserve full token budget for application logic.\n\n"
-        "---\n\n"
+        "## 🛡️ PHASED AUDIT PLAYBOOKS (STITCHED FROM `integrity-sentinel` + `code-review` + `strict-tdd`)\n\n"
+        "### Playbook A: Vertical-Slice Architecture, Security & 5-Tier DNA Audit\n"
+        f"{pb_a_review}\n\n{pb_a_vectors}\n\n"
+        "### Playbook B: Adversarial Triad Stress-Test (Boundary, Concurrency & Silent Failure)\n"
+        f"{pb_b_sentinel}\n\n{pb_b_vectors}\n\n"
+        "### Playbook C: Consequence Verification, Anti-False-Green & Surgical Remediation\n"
+        f"{pb_c_tdd}\n\n{pb_c_conseq}\n\n{pb_c_delivery}"
     )
 
 
@@ -1891,429 +2914,185 @@ def generate_gemini_web_audit_prompt(
     out_dir: str,
     project_name: str,
     tier_label: str,
-    bundle_files: List[Tuple[str, str, int, float]],
+    bundle_files: List[Tuple[str, str, int, float, str]],
     total_tokens: int,
     dna: Optional[ProjectDNA] = None,
-    is_foundation: Optional[bool] = None,
+    taxonomy: Optional[ProjectTaxonomy] = None,
+    is_foundation: bool = False,
+    root_dir: str = ".",
 ) -> str:
+    """
+    Generates 00_GEMINI_WEB_AUDIT_PROMPT.txt 100% dynamically from the actual generated bundles
+    and their domain-specific audit_focus vectors. Never hardcodes .agents filenames on host apps!
+    """
     prompt_file = os.path.join(out_dir, "00_GEMINI_WEB_AUDIT_PROMPT.txt")
-    breakdown_lines = []
     total_files = sum(f[2] for f in bundle_files)
-    for code, desc, f_cnt, sz_kb in bundle_files:
-        breakdown_lines.append(f"- **{code}_BUNDLE.md** ({f_cnt} files, {sz_kb:.1f} KB): {desc}")
+    proj_summary = (taxonomy.project_summary if taxonomy and taxonomy.project_summary else (dna.archetype if dna else "Software Repository"))
+    tax_provider = taxonomy.provider if taxonomy else "dynamic"
+
+    breakdown_lines = []
+    for code, desc, f_cnt, sz_kb, focus_txt in bundle_files:
+        focus_Tail = f" — *Audit Focus*: {focus_txt}" if focus_txt else ""
+        breakdown_lines.append(f"- **`{code}_BUNDLE.md`** ({f_cnt} files, {sz_kb:.1f} KB): **{desc}**{focus_Tail}")
     breakdown = "\n".join(breakdown_lines)
 
-    if is_foundation is None:
-        is_foundation = ("_foundation" in project_name.lower())
+    # Partition actual bundles into 3 balanced inspection turns + Turn 4 synthesis
+    n_b = len(bundle_files)
+    t1_end = max(1, math.ceil(n_b / 3))
+    t2_end = max(t1_end + 1, math.ceil(2 * n_b / 3)) if n_b >= 2 else n_b
 
-    if is_foundation:
-        system_type = "Foundation Engine Core"
-        header_directive = f"""# 🔬 ROLE & ADVERSARIAL SYSTEM AUDIT DIRECTIVE
+    turn1_bundles = bundle_files[:t1_end]
+    turn2_bundles = bundle_files[t1_end:t2_end]
+    turn3_bundles = bundle_files[t2_end:]
 
-You are a Senior Principal Security Engineer & Open-Source Architect conducting an adversarial forensic audit on the complete `_foundation` repository and its autonomous agent ecosystem before public release.
+    def _render_turn_block(turn_idx: int, turn_title: str, items: List[Tuple[str, str, int, float, str]]) -> str:
+        if not items:
+            return f"#### 📋 Turn {turn_idx}: {turn_title}\n- Consolidate findings from preceding bundles.\n"
+        b_names = ", ".join(f"`{c}_BUNDLE.md`" for c, _, _, _, _ in items)
+        focus_bullets = "\n".join(
+            f"  - **`{c}_BUNDLE.md` ({d})**: {foc or 'Audit core logic, state transitions, and boundary safety.'}"
+            for c, d, _, _, foc in items
+        )
+        turn1_anti_scaffold = ""
+        if turn_idx == 1:
+            turn1_anti_scaffold = (
+                "**PHASE 1 MANDATE: ANTI-SCAFFOLD & SPEC-TO-CODE PARITY AUDIT**:\n"
+                "- *Spec-vs-Reality Drift*: Cross-check every library, parser, and capability claimed in `README.md` and `context/**/*.md` against project dependency manifests and actual source imports. Flag any doc whose claims are unbacked in source.\n"
+                "- *Regex-as-AST Cosplay*: Flag any parser, analyzer, or symbol extractor claiming AST/structural analysis that actually relies on fragile naive regexes without fence/scope awareness.\n"
+                "- *Dead-End Pipelines & Ghost Subsystems*: Trace every CLI command, hook, and data producer from entrypoint to consumer. Flag any unwired command or pipeline that writes state never read by downstream consumers.\n"
+                "- *Hardcoded Stubs & Truncated Generators*: Flag any handler or generator that returns hardcoded dummy schemas, empty no-op stubs, or placeholder strings.\n"
+            )
+        return (
+            f"#### 📋 Turn {turn_idx} / Phase {turn_idx}: {turn_title}\n"
+            f"**Target Bundles**: {b_names}\n"
+            f"**Domain-Specific Audit Checklist**:\n{focus_bullets}\n"
+            f"{turn1_anti_scaffold}"
+            "**Triad Threat Probe Enforcement**:\n"
+            "- *Boundary & Malformed Input*: Nullability, type coercion, injection sinks, and schema validation.\n"
+            "- *Resource & Concurrency*: Race conditions, unclosed streams/subscriptions, memory leaks, and async deadlocks.\n"
+            "- *Silent Failure & Masked Fallback*: Swallowed exceptions (`catch {}`), stuck loading states, or corrupted state fallbacks.\n"
+            "**Deliverable**: Report only confirmed material defects with exact `path/to/file.ext#Lxx-Lyy` citations and minimal surgical diffs.\n"
+        )
 
-### 🎯 COMPREHENSIVE AUDIT TARGETS (ALL {len(bundle_files)} UPLOADED BUNDLES)
-Your audit covers the **complete panoramic architecture** across all {len(bundle_files)} uploaded bundles:
-- **Bundle 01 (Workspace & Governance)**: Root manifests, AGENTS.md master router, core guardrails, lessword protocol.
-- **Bundles 02 & 03 (Agent Skill Ecosystem)**: 21 domain skills, lifecycle state machines, JIT routing parity.
-- **Bundle 04 (Core Kernel & Scanner Engine)**: `core/scanner.py`, `core/paths.py`, `core/db.py`, atomic I/O.
-- **Bundle 05 (Security & Boundary Protection)**: `core/security.py`, baseline enforcement, prompt-injection quarantine.
-- **Bundles 06 & 07 (GraphRAG, Harness & Memory Engine)**: `commands/brain.py`, `core/orion_graph.py`, SQLite FTS5 graph, 4-tier memory, autonomous reflexion harness.
-- **Bundle 08 (CLI Engine & Quality Sentinel)**: `commands/verify_agents.py`, 9-gate mechanical linter, CLI dispatcher.
-- **Bundle 09 (Universal Context Packer)**: `utils/packer.py`, 3-tier cascade, bin-packing, token economics.
-- **Bundle 10 (Runtime IDE Hooks & Tests)**: `hooks/pre-agent-wake.py`, omni-buffer sync, verification test suites.
-
----
-
-### ⚡ SPECIAL HIGH-PRIORITY DEEP-DIVE: THE PACKAGING & SECURITY ENGINE TRIUMVIRATE
-While evaluating the full architecture, dedicate an intensive adversarial inspection to the core triumvirate and its physical outputs:
-1. `packer.py` (Bundle 09): Subtree bin-packing, Pass 2 greedy token reclamation under the 45k-65k soft cap, universal taxonomy discovery, and 3-Tier Neuro-Symbolic Cascade.
-2. `security.py` (Bundle 05): AST taint tracking, secret scrubbing, prompt quarantine sandbox, regex ReDoS safety, and two-stage semantic triage.
-3. `scanner.py` (Bundle 04): AST skeletonizer, PageRank repomap, multi-language grammar parsing, and dynamic dispatch resolution.
-
-**Empirical Output Quality Verification**:
-The {len(bundle_files)} uploaded `.md` bundles represent the physical output of `orion pack hybrid` generated by this engine. Audit these bundles both to inspect the code implementations and to verify the real-world output quality:
-- Verify exact additive token math (`File Tokens + Overhead == Total Bundle Tokens`).
-- Verify that `<artifact>` boundaries and `<system>` control tags in prose are safely quarantined without corrupting code fences.
-- Verify that core execution code is preserved in `FULL` mode while non-salient boilerplate is cleanly skeletonized without syntax errors.
-
----
-
-### 🔍 AUDIT VECTORS & CORE CRITERIA
-
-1. **Universal Project Portability (Zero-Hardcoding Guarantee)**:
-   - This tool must work on ANY software repository (Flutter, React/Next.js, Rust, Go, Python, monorepos, flat layouts).
-   - Audit whether there are any lingering hardcoded path assumptions (`.agents/`, `src/core/`, `is_foundation`, or rigid directory naming conventions).
-   - Verify whether the 3-Tier Adaptive Architecture Discovery (Cloud LLM / Ollama NanoBrain / AST Graph Topology) is truly project-agnostic.
-
-2. **Security & Boundary Integrity**:
-   - **Prompt Injection & Quarantine**: Does `<artifact>` sandboxing and prompt directive neutralization reliably prevent Prompt-in-Data Bleed?
-   - **Regex & ReDoS**: Are all regex patterns (secret scrubbing, syntax anchors, path matchers) linear and free from catastrophic backtracking?
-   - **Taint Analysis**: Are SQL/command injection taint tracking and parameter sanitization robust?
-
-3. **Subtree Bin-Packing & Token Economics**:
-   - Does the PageRank salience and hybrid skeletonization threshold accurately preserve core architecture while collapsing leaf helpers?
-   - Does Pass 2 Greedy Token Reclamation (water-filling under the 45k-65k soft cap) prevent wasted context without overflowing LLM attention limits?
-
-4. **Production & Open-Source Hygiene**:
-   - Evaluate code authenticity, algorithmic efficiency, exception handling, and typing across the entire repository.
-   - Point out any sloppy anti-patterns, redundant logic, or brittle assumptions that would be embarrassing in a top-tier public GitHub repository.
-
----
-
-### 📋 DELIVERABLE FORMAT
-For every finding, provide:
-- **Severity**: `[BLOCKER]`, `[HIGH]`, `[MEDIUM]`, or `[POLISH]`
-- **Location**: Exact file and line/function (`path/to/file.ext#Lxx-Lyy`)
-- **Root Cause & Vulnerability / Limitation**
-- **Surgical Remediation Diff**: Drop-in replacement code snippet
-"""
-        audit_body = """## 2. SUBSYSTEM CATALOG & ZENITH BENCHMARKS ("BEST VERSION" OF EVERY FEATURE)
-To prevent abstract or superficial feedback, compare the physical code against the theoretical Zenith Benchmark (Gold Standard) for each subsystem:
-
-1. **Orion Brain Engine, GraphRAG & Multi-Tier Memory** (`commands/brain.py`, `commands/rag.py`, `core/orion_graph.py`, `core/db.py`, `core/memory.py`):
-   - *Zenith Benchmark*: Tri-hybrid retrieval combining SQLite FTS5 (BM25 lexical search) + 1-hop Graph neighbor traversal + JSON vector cosine similarity. 4-tier memory hierarchy: L1 Working buffer (`context.json`) synced via IDE hooks; L2 Episodic (`episodes` table); L3 Semantic Triplets (`triplets` table); L4 Procedural Rules (`rules/`). Strict thread-safe WAL concurrency, automated 50-file storage SLA, zero synthetic AST mock guessing.
-2. **Native Zero-Latency Token Optimizer & CLI Proxy** (`commands/compact.py`, `antigravity-rtk-rules.md`, `skills/lessword/`, `core/capabilities.py`):
-   - *Zenith Benchmark*: Cargo binary `rtk` transparent CLI proxying with zero token overhead and 60-90% savings. Dual-layer compaction: Mechanical AST/schema compactor (`compact.py` lite/full/ultra) reducing 15-85% on disk + Conversational ASD-STE100 Lessword mode. Unconditional Anti-Lossy Invariant Law: Ratios (60:30:10), verification gates (`Exit Code 0`), exact regex/paths, and source lines (`#Lxx`) are strictly uncuttable.
-3. **Deterministic Quality Sentinel, TDD & Consequence Verification** (`commands/verify_agents.py`, `core/security.py`, `skills/integrity-sentinel/`, `strict-tdd/`, `systematic-debugging/`, `consequence_verification.md`):
-   - *Zenith Benchmark*: 9-Gate Mechanical Linter (`verify_agents.py`) verifying path hygiene, deployment dry-run, tool neutrality, AST security, semantic fact-checking, pipeline cohesion, version sync, instruction modality, and storage SLA. Strict TDD state machine (RED -> GREEN -> REFACTOR) with automated mechanical rollback on failure. Consequence-driven runtime state mutation verification preventing False Green shallow mocks.
-4. **Autonomous Harness, Reflexion & Self-Evolution** (`core/harness/`, `commands/reflexion.py`, `skills/self-evolve/`, `skills/meta-agent-admin/`):
-   - *Zenith Benchmark*: Autonomous closed loop: Execution failure -> Reflexion error tree -> Pattern recognition -> Triad Threat Probe validation -> Rule/Skill evolution -> Mechanical validation (`verify_agents.py`) -> BIOS registration (`AGENTS.md`). Zero unverified additions; strict 3-tier progressive disclosure (Metadata -> Body -> Bundled references).
-5. **Multi-Project Context Packer & AST Topology Engine** (`utils/packer.py`, `core/scanner.py`, `core/paths.py`):
-   - *Zenith Benchmark*: Security-aware context packager (`packer.py`) with automatic secret redaction, GraphRAG PageRank repomap, AST signature extraction, and balanced bin-packing across domain bundles. True 1-indexed line numbering for hallucination-free line citations.
-6. **Runtime IDE Hooks & Omni-Buffer Synchronization** (`hooks/pre-agent-wake.py`, `core/memory.py`, `context/` 4 Lean Pillars):
-   - *Zenith Benchmark*: Sub-50ms non-blocking IDE pre-agent wake interceptor (`pre-agent-wake.py`), git working tree drift detection, automatic working buffer update (`context.json`), cross-platform shell compatibility (Windows PowerShell/CMD, Linux/macOS bash).
-
----
-
-## 3. INTER-FEATURE SYNERGY CONTRACT & BLINDSPOT SEAM MATRIX (AUDIT TARGETS)
-You must NOT evaluate features in isolation. The primary defects in complex agent systems live in the **interfaces and seams between features**. Audit these 7 critical synergy contracts:
-
-- **Seam A [Brain Graph <-> Context Buffer <-> JIT Router]**:
-  - *Synergy Invariant*: When `AGENTS.md` JIT-routes a domain skill, the agent must not start turn with an empty context window.
-  - *Blindspot Probe*: Does `pre-agent-wake.py` or `brain sync` proactively inject the exact relevant graph triplets and drift warnings into `.orion/working/context.json`, or does the agent start blind and risk hallucinatory decisions?
-- **Seam B [RTK CLI Proxy <-> Evidence Mandate]**:
-  - *Synergy Invariant*: CLI token reduction must never mask failure or alter exit codes.
-  - *Blindspot Probe*: Does RTK CLI filtering suppress decisive stderr lines, test failure counts, or non-zero exit codes required by the Core Guardrails Evidence Mandate, causing an agent to claim a false success?
-- **Seam C [Compactor (`compact.py`) <-> Rule Guardrails]**:
-  - *Synergy Invariant*: Aggressive token compaction must never strip structural contracts.
-  - *Blindspot Probe*: In `ultra` or `full` compaction, does the AST shaper or compactor drop essential parameter schemas, docstrings defining API invariants, or line citation anchors (`#Lxx`), violating the Anti-Lossy Summarization Law?
-- **Seam D [Reflexion / Self-Evolve <-> Master BIOS Integrity]**:
-  - *Synergy Invariant*: Self-evolution must be mechanically bounded to prevent policy degradation.
-  - *Blindspot Probe*: When `reflexion.py` or `/learn` extracts a pattern into `LEARNINGS.md` or a new skill, does it automatically execute `verify_agents.py` to ensure valid YAML frontmatter, schema compliance, and zero broken links, or can a self-evolved rule corrupt the BIOS?
-- **Seam E [Local Ollama SLM <-> Cloud LLM Agent Handoff]**:
-  - *Synergy Invariant*: Parameter mismatch or offline daemon must fail gracefully to Cloud LLM.
-  - *Blindspot Probe*: When `127.0.0.1:11434` is unreachable or running a micro SLM (<=3.5B), does the system cleanly queue a structured Cloud Handoff request, or does it silently degrade to naive regex/character slicing and pass corrupted state downstream?
-- **Seam F [Packer Bundle Exporter <-> GraphRAG PageRank Salience]**:
-  - *Synergy Invariant*: Context packing priority must reflect structural codebase importance.
-  - *Blindspot Probe*: In `packer.py`, does `--salience` and domain bundle clustering genuinely query `orion_graph.py`'s PageRank algorithm, or does it fall back to alphabetical or shallow directory order?
-- **Seam G [Strict TDD <-> Consequence Verification]**:
-  - *Synergy Invariant*: Tests must assert true runtime state change, not mocked tautologies.
-  - *Blindspot Probe*: Does the test suite assert physical state changes (database row insertions, exit code 0, schema transformations), or are tests passing via shallow mock stubs that create False Green illusions?
-
----
-
-## 4. DIAGNOSTIC VECTORS & EXECUTION-TRACE RUBRIC (100/100)
-- **Vector 1: Mechanical vs Cognitive Engine & Guardrails (Weight: 25 Pts)**
-  Audit semantic illusions and over-mechanization. Verify whether functions claiming semantic analysis use true reasoning or shallow regex/string slicing. Audit harness action verification and race conditions.
-- **Vector 2: Parameter-Aware Cognitive Cascade & Cloud Handoff (Weight: 20 Pts)**
-  Trace local SLM workload delegation against model size (<=3.5B micro vs 7B-14B mid vs 30B+ heavy). Verify that offline/under-parameterized states trigger structured Cloud Handoff queues rather than silent data corruption.
-- **Vector 3: Instruction Density & Context Efficiency (Weight: 15 Pts)**
-  Audit prompt hygiene across AGENTS.md, GEMINI.md, rules, and skills. Verify zero cognitive bloat, no duplicate instructions across files, and strict <=24 KB per-file budgets.
-- **Vector 4: Storage Cohesion, AST Sandbox & State Machine Integrity (Weight: 20 Pts)**
-  Verify SQLite WAL mode, FTS5 sync, vector pruning, sandbox filesystem jail escapes, and FSM transition integrity.
-- **Vector 5: Polyglot AST Scanner & Monorepo Context Packing (Weight: 20 Pts)**
-  Audit multi-language skeletonization, monorepo workspace discovery, cross-bundle import resolution, and balanced bin-packing."""
+    has_ui = False
+    if dna:
+        has_ui = dna.primary_framework.lower() in ("flutter", "react", "vue", "svelte", "nextjs", "angular") or sum(
+            1 for t in dna.file_tier_map.values() if t == "5_presentation"
+        ) >= 3
     else:
-        app_archetype = dna.archetype if dna and dna.archetype else "Universal Application"
-        stacks_str = ", ".join(dna.stacks) if dna and dna.stacks else "Multi-Stack"
-        system_type = f"{app_archetype} ({stacks_str})"
-        header_directive = f"""# 🎯 MASTER ARCHITECTURAL & COGNITIVE-DETERMINISTIC AUDIT SPECIFICATION (v5.0)
-**Target System**: `{project_name}` ({system_type} | {tier_label})
-**Audit Posture**: Zero-Trust, Adversarial Systems Engineering, Execution-Trace Bound (Total Score: 100/100 with Kill-Switch Caps)"""
-        audit_body = f"""## 2. SUBSYSTEM CATALOG & ZENITH BENCHMARKS ("BEST VERSION" FOR {app_archetype.upper()})
-To prevent abstract or superficial feedback, compare the physical code against the theoretical Zenith Benchmark (Gold Standard) for each application architectural layer:
+        has_ui = any("presentation" in c.lower() or "ui" in c.lower() or "screen" in c.lower() for c, _, _, _, _ in bundle_files)
 
-1. **Domain Immutability & Schema Integrity Layer** (Entities, Value Objects, DTOs, Schemas):
-   - *Zenith Benchmark*: Strictly immutable models (`freezed`, Python dataclasses, TypeScript `readonly`/Zod, Rust structs). Unidirectional data flow, pure transformation functions, zero untyped `Map<String, dynamic>` or `any` leaking into business logic. Fail-fast constructors and parsing validation.
-2. **State Management & Business Controllers** (BLoC, Riverpod, Zustand, Redux, ViewModel, UseCases):
-   - *Zenith Benchmark*: Predictable finite state machines with explicit, exhaustive states: **4-State Lifecycle Contract** (Idle, Loading, Success/Content, Error/Empty). Zero race conditions, unhandled streams or async listeners disposed deterministically, zero state mutation outside designated reducers/events.
-3. **API Contracts, Network Resilience & Normalization** (REST, GraphQL, gRPC, WebSocket):
-   - *Zenith Benchmark*: Strict type-safe schema contracts (OpenAPI/Zod/Protobuf). Resilient networking: idempotent retries, exponential backoff, circuit-breaker on repeated 5xx, structured timeout boundaries, and centralized error normalization (translating raw HTTP codes to domain failure types).
-4. **Offline Persistence & Local Storage** (SQLite, Room, Hive, IndexedDB, Redis, SharedPrefs):
-   - *Zenith Benchmark*: Single Source of Truth (SSOT) pattern. Optimistic updates with deterministic rollback on network failure. Safe migration schemas, query indexing on foreign keys, memory-efficient pagination (cursor/limit-offset), and WAL/transaction safety.
-5. **Presentation Layer, Accessibility & Design Tokens** (UI Widgets, Components, DOM, CSS):
-   - *Zenith Benchmark*: Semantic tokens (colors, spacing, typography) adhering to the 60:30:10 rule. Zero layout thrashing or unbounded height/overflow errors (`RenderFlex`, CSS layout jumps). Full accessibility compliance (WCAG 2.1 AA): semantic roles, touch targets >= 48x48dp, keyboard focus order, dynamic font scaling support.
-6. **Platform Integration & Native Interop** (MethodChannels, FFI, Native Android/iOS Services, Web Workers):
-   - *Zenith Benchmark*: Robust threading boundaries (background workers / platform isolates). Memory-safe interop lifecycle, lifecycle binding (pause/resume/destroy), graceful fallback when native hardware permissions (camera, location, background service) are denied.
+    t3_title = "Presentation Screens, UI Tokens & Web/Native Bridges" if has_ui else "Persistence Adapters, Data Pipelines & Integration Bridges"
+    turn1_md = _render_turn_block(1, "Workspace Architecture, Core Contracts & Primary Domains", turn1_bundles)
+    turn2_md = _render_turn_block(2, "Core Services, Business Logic & State Execution", turn2_bundles)
+    turn3_md = _render_turn_block(3, t3_title, turn3_bundles)
 
+    stitched_methodology = _compile_stitched_audit_methodology(root_dir=root_dir, is_foundation=is_foundation, dna=dna, has_ui=has_ui)
+    methodology_section = f"\n---\n\n{stitched_methodology}\n" if stitched_methodology else ""
+
+    domain_brief = _extract_project_domain_brief(root_dir, dna=dna)
+    domain_brief_section = f"\n### System Identity & Domain Capabilities:\n{domain_brief}\n" if domain_brief else ""
+
+    dna_section = ""
+    if dna and getattr(dna, "is_dna_app", False):
+        inv_bullets = "\n".join(f"- {inv}" for inv in (getattr(dna, "invariants", []) or []))
+        viols_bullets = ""
+        layer_viols = getattr(dna, "layer_violations", []) or []
+        if layer_viols:
+            viols_bullets = "\n- **Detected Layer Violations (Static Radar Pre-Check)**:\n" + "\n".join(
+                f"  - ⚠️ `{v.get('file', '')}:L{v.get('line', '')}`: {v.get('source_tier', '')} -> {v.get('target_tier', '')} (`{v.get('import') or v.get('import_target', '')}`)"
+                for v in layer_viols[:10]
+            )
+        raw_pillars = getattr(dna, "pillars", {}) or {}
+        pillar_display = [f"`{k}` (`{v}`)" for k, v in raw_pillars.items()] if isinstance(raw_pillars, dict) else [f"`{p}`" for p in raw_pillars]
+        dna_section = f"""
 ---
 
-## 3. INTER-LAYER SYNERGY CONTRACT & BLINDSPOT SEAM MATRIX (APPLICATION AUDIT TARGETS)
-You must NOT evaluate layers in isolation. The primary bugs and UX degradations in modern applications live in the **interfaces and seams between architectural layers**. Audit these 7 critical application seams:
+## 2.5. PROJECT DNA GOVERNANCE & ARCHITECTURAL INVARIANTS
+- **DNA State**: `{getattr(dna, 'dna_state', 'BORN')}` | **Compliance Score**: `{getattr(dna, 'dna_compliance_score', 100)}%`
+- **Archetype**: `{getattr(dna, 'archetype', 'Universal')}`
+- **Execution Spine ({len(getattr(dna, 'execution_spine', []))} core files)**: {', '.join(f'`{s}`' for s in getattr(dna, 'execution_spine', [])[:8]) or 'None identified'}
+- **Pillars**: {', '.join(pillar_display) or 'None'}
+- **Architectural Invariants**:
+{inv_bullets}
+{viols_bullets}
+"""
 
-- **Seam A [UI View <-> State Controller]**:
-  - *Synergy Invariant*: UI must passively observe controller state and emit dumb events without business logic leakage.
-  - *Blindspot Probe*: Does the UI contain leaked business logic, imperative setState calls, or un-debounced user tap triggers causing double-submissions or duplicate network requests?
-- **Seam B [State Controller <-> Network Repository / Client]**:
-  - *Synergy Invariant*: Network errors must be normalized into explicit domain error states.
-  - *Blindspot Probe*: When a network call fails, times out, or returns 4xx/5xx, does the controller cleanly map the error to an observable `ErrorState`, or does it swallow the exception, leave the UI hanging indefinitely in `LoadingState`, or leak raw HTTP stack traces to the user?
-- **Seam C [Local Cache <-> Remote Sync (Single Source of Truth)]**:
-  - *Synergy Invariant*: Local and remote data must maintain consistent transactional integrity.
-  - *Blindspot Probe*: Does the repository enforce cache-first or network-first consistency? If an offline write occurs, does the local cache update optimistically with a sync queue, or does a subsequent network refresh wipe out unsynced local user data?
-- **Seam D [DTO / API Schema <-> Domain Parser]**:
-  - *Synergy Invariant*: Backend contract violations must not crash frontend presentation.
-  - *Blindspot Probe*: What happens when the backend sends malformed JSON, missing fields, or unexpected nulls? Does the parsing layer crash the whole screen with an unhandled TypeError, or does it cleanly catch, log, and fail gracefully to a fallback state?
-- **Seam E [Platform Lifecycle <-> Stream & Resource Subscriptions]**:
-  - *Synergy Invariant*: Background transitions and screen unmounts must release all active hardware handles.
-  - *Blindspot Probe*: When the app transitions to the background or a screen is popped from the navigation stack, are location listeners, WebSocket connections, camera controllers, and stream subscriptions disposed, or do they leak memory and drain battery in the background?
-- **Seam F [Authentication Session <-> Route Guard Navigation]**:
-  - *Synergy Invariant*: Auth revocation must execute a single atomic redirect without racing concurrent requests.
-  - *Blindspot Probe*: When an auth token expires (401 Unauthorized), does the HTTP client trigger a single global token refresh / redirect to login, or does every concurrent in-flight request spawn duplicate refresh calls and create navigation race conditions?
-- **Seam G [Test Verification <-> Runtime Consequence Verification]**:
-  - *Synergy Invariant*: Automated tests must verify actual state transitions and side effects.
-  - *Blindspot Probe*: Are the tests genuinely asserting end-to-end state transitions and database mutations, or are they shallow tests asserting trivial mocked return values that produce False Green coverage?
-
+    content = f"""# 🔬 ADVERSARIAL ARCHITECTURAL & SECURITY AUDIT SPECIFICATION
+**Target Repository**: `{project_name}` ({proj_summary})
+**Package Tier**: `{tier_label}` | **Taxonomy Engine**: `{tax_provider}`
+**Total Bundles**: {len(bundle_files)} (~{total_tokens:,} estimated tokens across {total_files} files)
+{domain_brief_section}
 ---
 
-## 4. DIAGNOSTIC VECTORS & EXECUTION-TRACE RUBRIC (100/100)
-- **Vector 1: Domain Boundaries, Immutability & Schema Integrity (Weight: 25 Pts)**
-  Audit business models, DTO contracts, immutable data structures, and type safety. Detect untyped maps, shared mutable state, and missing domain validation.
-- **Vector 2: Core Kernel Logic, State Controllers & Concurrency (Weight: 25 Pts)**
-  Audit state management (BLoC/Riverpod/Zustand), race conditions, thread starvation, unhandled stream controllers, and memory leaks.
-- **Vector 3: API Contracts, Network Resilience & Boundary Validation (Weight: 20 Pts)**
-  Audit network client layers, error recovery, retry safety, timeout handling, and backend contract schemas (Zod/OpenAPI/Protobuf).
-- **Vector 4: UI Presentation, Edge States & Error Containment (Weight: 15 Pts)**
-  Audit 4-state lifecycle (idle, loading, error, empty), responsive constraints, accessibility labels, and component-level error boundary containment.
-- **Vector 5: Test Verification, Security Sinks & Build Portability (Weight: 15 Pts)**
-  Audit unit/integration test coverage, secret leakage, injection sinks, and build configuration portability."""
-
-    content = f"""{header_directive}
-
----
-
-### 📦 Uploaded Bundle Context & Physical Metrics:
-- **Target System**: `{project_name}` ({system_type} | {tier_label})
-- **Total Bundles**: {len(bundle_files)} (~{total_tokens:,} estimated tokens across {total_files} files)
-
-Attached are the audit bundles for: {project_name} ({tier_label})
-
-### Architectural Domain Breakdown:
+## 1. UPLOADED DOMAIN BUNDLES & ARCHITECTURAL MAP
 {breakdown}
 
 ---
 
-## 0. META-COGNITIVE ANTI-BLINDSPOT ENGINE (MANDATORY PRE-AUDIT POSTURE)
-Before inspecting a single line of code, you MUST disable standard agreeable LLM defaults and actively enforce these 5 First-Principles Lenses:
-
-1. **Anti-Claim Lens (Code-Over-Documentation Rule)**:
-   - Treat all READMEs, docstrings, code comments, and ambitious function names as **unproven marketing claims**.
-   - Read physical implementations line-by-line down to return values and side-effects. If a function claims semantic intelligence but executes string splitting or shallow regex, score as 0 points.
-2. **Physical Hardware & Parameter Reality Lens**:
-   - Stress-test AI integrations and operations against real-world worst cases: constrained RAM, micro SLMs (<=3.5B), offline daemons, and monorepos with tens of thousands of files.
-3. **Silent Degradation & Fallback Trap**:
-   - For every `try / except` or fallback, probe: Does this fallback genuinely preserve data integrity, or does it silently hide errors while passing corrupted/truncated state that poisons downstream agent steps?
-4. **Zero Self-Reference Bias**:
-   - Evaluate the codebase under arbitrary enterprise environments (mixed Flutter, React, Go, Python, Node monorepos). Any logic relying on rigid assumptions is an architectural defect.
-5. **End-to-End Cross-Module Traceability**:
-   - Never audit files in isolation. Trace every Producer to its downstream Consumers across bundles. Verify database schemas, DTOs, and event payloads match exactly.
-6. **Runtime Environment & CWD Invariant Check**:
-   - Differentiate strictly between a file's location on disk and its runtime execution working directory (`cwd`).
-   - Hooks in `.agents/hooks.json` are invoked by the IDE extension with `cwd = <workspace>/.agents/`. Therefore, paths like `scripts/orion.py` in `hooks.json` resolve to `.agents/scripts/orion.py` at runtime. Do NOT flag them as broken paths.
-
+## 2. MANDATORY AUDITOR POSTURE & EVIDENCE RULES
+1. **Code-Over-Documentation & Anti-Epistemic Laundering Law**: Treat READMEs, comments, and documentation frontmatter (including `epistemic_status: AST_VERIFIED`) as unproven claims. Never assume a capability exists merely because documentation claims `AST_VERIFIED`. Verify actual AST implementations in source code line by line.
+2. **Cross-Bundle Traceability**: Use the **Global Cross-Bundle File & Import Router** and **Global AST Symbol Compass** in Bundle 01 to trace data flow, DTOs, and function calls across bundles.
+3. **Source-True Line Citations**: Every finding MUST cite the exact file path and 1-indexed line range (`path/to/file.ext#L42-L58`).
+4. **Materiality Floor (Anti-Nitpicking Gate)**:
+   - Flag ONLY proven runtime failures, race conditions, data/state corruption, security vulnerabilities, or broken architectural contracts.
+   - Do NOT flag stylistic preferences or intentional fallback blocks.
+5. **Agent Handoff & Remediation Protocol (Preserve Signatures & Contracts)**:
+   - When presenting architectural solutions, remediation scripts, or code diffs, provide **drop-in surgical replacements** with explicit before/after code blocks matching the target language.
+   - **Signature Preservation Mandate**: NEVER silently drop, alter, or reorder existing function, method, or constructor parameters (e.g. default arguments or state trackers). Doing so breaks calling modules.
+   - **Local Agent Execution Loop**: The user will deliver your findings to their local coding agent to **inspect your diff, preserve signatures, integrate the logic, and verify with automated tests**. Ensure your diffs account for second-order cross-module effects so they can be applied and verified with zero ambiguity.
+6. **Convergence Gate**:
+   - Base Score: **100/100** (Deduct `-15` for Critical Blockers, `-7` for High Material Defects, `-2` for Medium Risks).
+   - If **Final Score >= 85/100** and **Critical Blockers == 0**, output `### 🏁 AUDIT CONVERGED: CERTIFIED` after presenting any minor surgical fixes.
+{dna_section}{methodology_section}
 ---
 
-## 1. ARCHITECTURAL INVARIANTS & KILL-SWITCH SCORING CAPS (THE GOLDEN CONTRACT)
-Evaluate the system against these 4 Invariants:
-> **KILL-SWITCH PENALTY CAP**: If a severe violation of any Invariant is discovered, **the Maximum Final Score is capped at 55/100**, regardless of individual vector scores.
+## 3. INTERACTIVE 4-TURN AUDIT PROTOCOL (WEB INTERFACE OPTIMIZED)
+All {len(bundle_files)} bundles are attached in your context window. To prevent output truncation while maintaining deep forensic rigor across every file, execute the audit across 4 sequential turns:
 
-1. **Invariant 1 — Deterministic as Guardrail, Cognitive as Primary Engine**:
-   - Mechanical tools (AST, regex, SQLite, CLI) serve strictly as structural guardrails, state persistence, and deterministic validators.
-   - Core cognitive tasks (summarization, reflection, architecture synthesis, semantic linking) must NEVER be substituted with crude character slicing or naive word counts.
-2. **Invariant 2 — Parameter-Aware Tiered Cognitive Cascade (Scaled Local SLM/LLM <-> Active Cloud LLM)**:
-   - Workload must match verified model parameters:
-     - Micro SLMs (<=3.5B): Fast embeddings, binary classification, narrow filtering only.
-     - Mid-Range LLMs (7B-14B): Structured summarization, log distillation, medium entity extraction.
-     - Heavy LLMs (30B+): Deep semantic synthesis, code refactoring, contradiction resolution.
-   - Cloud Handoff Protocol: When local daemons are offline or under-parameterized, structured handoffs must transfer tasks to the active Cloud LLM agent without silent mechanical degradation.
-3. **Invariant 3 — High-Density Prompting & Zero Cognitive Bloat**:
-   - Instructions, skills, and rules must be dense, to-the-point, free of circular routing, free of redundant fluff across multiple files, and capped under strict token limits.
-4. **Invariant 4 — Holistic Project DNA & Universal Multi-Workspace Context Packing**:
-   - Project DNA captures architectural contracts: explicit input/output boundaries, unidirectional data flow, immutable state/DTOs, and precise AST signatures. Context packers must balance modules without letter-bias or single-cluster bloat.
-
+{turn1_md}
 ---
 
-## 1.5. CONVERGENCE GATE, MATERIALITY FLOOR & ANTI-NITPICKING STOPPING CRITERIA (MANDATORY)
-
-To prevent open-ended pedantic reviews, nitpicking, and endless hallucinated cosmetic defects, the auditor MUST adhere to this deterministic convergence contract:
-
-### 1. The Convergence Gate (When to Halt the Audit):
-- **Minimum Passing / Certification Threshold**: **85 / 100**.
-- **Certification Gate**:
-  - If **Final Score >= 85/100** AND **Critical Blockers == 0**:
-    - Conclude output immediately with:
-      `### 🏁 AUDIT CONVERGED: CERTIFIED (PRODUCTION-GRADE - SCORE: X/100)`
-    - **MANDATORY HALT**: You MUST immediately stop. Do NOT generate hypothetical "nice-to-have" enhancements, theoretical future refactorings, or cosmetic stylistic suggestions. The architecture is certified.
-  - If **Final Score < 85/100** OR **Critical Blockers > 0**:
-    - Output:
-      `### ⚠️ AUDIT CONVERGED: CONDITIONAL (REMEDIATION REQUIRED - SCORE: X/100)`
-    - **BOUNDED DEFECT CAP**: Report strictly the **Top 3 to 5 decisive architectural blockers** with exact line citations (`path#Lxx-Lyy`) and minimal surgical diffs, then conclude. Do NOT produce open-ended laundry lists.
-
-### 2. Strict Materiality Floor (Zero-Deduction Non-Issues):
-Deduct points ONLY for proven runtime crashes, state/data corruption, exploitable security sinks, or direct invariant contract breaches.
-You are **STRICTLY FORBIDDEN** from deducting points or flagging issues for:
-1. **Style & Phrasing Preferences**: Variable names, comment style, or phrasing that does not alter runtime AST execution.
-2. **Defensive Import Fallbacks**: `except ImportError:` or optional fallback paths for non-installed tools (e.g. offline Ollama, optional Bun).
-3. **Intentional Isolation Helpers**: Standalone helper functions in single-file hooks (e.g., `hooks/pre-agent-wake.py` defining its own atomic writer or telemetry logger for zero-dependency execution). These are intentional isolation designs, NOT DRY violations.
-4. **Documented Graceful Degradations**: Fallbacks explicitly designed to degrade from local neural inference to lexical FTS5 BM25 search.
-5. **Speculative Future-Proofing**: Demands for premature abstractions, microservices, or scaling mechanisms not required by current project scope.
-
-### 3. Severity Scoring Taxonomy:
-- **CRITICAL BLOCKER (-15 to -20 pts)**: Fatal crash, memory leak, secret leak, or kill-switch invariant violation.
-- **MATERIAL DEFECT (-5 to -10 pts)**: Data pipeline seam mismatch, swallowed unlogged exception that poisons state, unhandled concurrency race.
-- **MINOR IMPROVEMENT (-1 to -2 pts)**: Observable inefficiency or edge case with minimal operational blast radius.
-- **NITPICK (0 pts - SUPPRESSED)**: Any issue below the Materiality Floor must be discarded without deduction or mention.
-
+{turn2_md}
 ---
 
-{audit_body}
-
+{turn3_md}
 ---
 
-## Triad Threat Matrix & Evidence Mandate
-Audit specifically for:
-- [Boundary & Malformed Input]: Unchecked nullability, type mismatches, out-of-range parameters, path traversal, injection.
-- [Resource & Concurrency]: Race conditions, deadlocks, memory leaks, unclosed streams/handlers, background thread starvation.
-- [Silent Failure & Masked Fallback]: Empty catch blocks, unhandled async errors, swallowed exceptions, broken fallback states.
-
-### Execution Directives:
-1. **Cross-Bundle Navigation**: Use the "Global Cross-Bundle File & Import Router" and the "Global AST Symbol Compass" in Bundle 01 to track symbols across bundles.
-2. **Source-True Citations**: All file entries have source-true 1-indexed line numbers. Cite exact paths and line ranges in format: `path/to/file.ext#L42-L58`.
-3. **Actionable Remediation**: For every vulnerability or defect found, provide a concrete, minimal, surgical code diff.
-
-### 🎯 Phased Audit Playbooks (Choose Based on Audit Scope):
-
-#### Playbook A: Full Panoramic System Architecture (All Bundles)
-> Copy & run this prompt with all bundles attached:
-"Please conduct a comprehensive architectural, coupling, and interface audit across all attached bundles. Map out the unidirectional data flow, detect any cyclic dependencies or domain boundary leaks, and evaluate system adherence to production standards."
-
-#### Playbook B: Targeted Security & Runtime Sinks (Bundles 01, 04, 05, 08, 09)
-> Copy & run this prompt with Bundles 01, 04, 05, 08, 09 attached:
-"Focus exclusively on high-risk AST execution sinks, runtime error-handling, and security posture. Audit subprocess executions, filesystem mutations, regex ReDoS risks, unbuffered I/O, and broad/silent exception handlers as flagged in the Pre-Computed Static Audit Radars."
-
-#### Playbook C: Protocol & Governance Compliance (Bundles 01, 02, 03)
-> Copy & run this prompt with Bundles 01, 02, 03 attached:
-"Audit the repository guardrails, JIT router parity, prompt integrity, and domain specifications. Verify that rule sets are unambiguous, fail-fast constraints are mechanically enforceable, and cognitive bloat is minimized."
-"""
-
-    turn_bundles = {
-        1: [b for b in bundle_files if b[0].startswith(("01", "02", "03"))],
-        2: [b for b in bundle_files if b[0].startswith(("04", "05", "08", "09"))],
-        3: [b for b in bundle_files if b[0].startswith(("06", "07", "10"))],
-    }
-
-    def _format_turn_target_header(turn_num: int) -> str:
-        items = turn_bundles.get(turn_num, [])
-        if not items:
-            return f"**Target Bundles**: Group {turn_num}"
-        names = [f"`{c}_BUNDLE.md` ({desc})" for c, desc, _, _ in items]
-        tokens = sum(int(sz * 250) for _, _, _, sz in items)
-        return f"**Target Bundles**: {', '.join(names)} (~{tokens:,} tokens)"
-
-    turn1_target = _format_turn_target_header(1)
-    turn2_target = _format_turn_target_header(2)
-    turn3_target = _format_turn_target_header(3)
-
-    interactive_protocol = f"""### 🔬 INTERACTIVE 4-TURN AUDIT PROTOCOL (WEB INTERFACE ADAPTED | ZERO CLI ASSUMPTION)
-All {len(bundle_files)} bundles are uploaded together in this session, ensuring the complete unified codebase and all cross-bundle symbols remain in your active memory window at all times.
-
-Since you are running inside a web chat interface without active terminal/CLI execution tools, you must execute your inspection through deep static code analysis, semantic taint tracing, and explicit input proof scenarios.
-To prevent output token exhaustion (~4k-8k tokens max per response) while maintaining forensic rigor across every subsystem, execute this audit sequentially across 4 interactive turns:
-- **Turn 1**: Governance, LifeCycle & Architectural Guardrails (Bundles 01, 02, 03)
-- **Turn 2**: Packaging Engine Triumvirate & Physical Output Quality (Bundles 04, 05, 08, 09)
-- **Turn 3**: GraphRAG, Multi-Tier Storage & Runtime Hooks (Bundles 06, 07, 10)
-- **Turn 4**: Cross-Subsystem Seam Synthesis, Forensic Scoring (Base 100) & Top 5 Surgical Diffs
-
----
-
-#### 📋 Turn 1 / Phase 1: Governance, LifeCycle & Architectural Guardrails
-{turn1_target}
-**Audit Focus**:
-- Master BIOS and Core Guardrails (`AGENTS.md`, root manifests) for rule precedence, conflict arbitration, fail-fast invariants, and anti-hardcoding mandates.
-- JIT Knowledge Routing Parity across the 21 agent skills: ensure zero circular dependencies, zero orphaned skills, and deterministic tool triggers.
-- Prompt Quarantine & Anti-Bloat: inspect instruction templates for prompt injection / prompt-in-data bleed vulnerabilities, and ensure density stays strictly under the <=24 KB per-file budget.
-**Triad Threat Probe Enforcement**:
-- *Boundary & Malformed Input*: Test schema boundaries, unescaped prompt interpolation, and path separators.
-- *Resource & Concurrency*: Check memory bloat in instructions and recursive skill references.
-- *Silent Failure & Masked Fallback*: Audit empty error catches and unlogged directive overrides.
-**Deliverable Format**: Report only true blockers or material defects with exact file citations (`path#Lxx-Lyy`), a minimal adversarial scenario / malformed input string that proves the fault, and a drop-in surgical diff.
-
----
-
-#### 📋 Turn 2 / Phase 2: The Core Engine Triumvirate & Physical Output Quality
-{turn2_target}
-**Audit Focus**:
-- `packer.py` (Bundle 09): Subtree bin-packing, Pass 2 greedy token reclamation under the 45k-65k soft cap, universal project taxonomy discovery (Cloud LLM / Ollama NanoBrain / AST Graph Topology), and zero hardcoded path assumptions.
-- `security.py` (Bundle 05): AST taint tracking, secret scrubbing, prompt quarantine sandbox, regex ReDoS safety, and two-stage neuro-symbolic triage fallback.
-- `scanner.py` (Bundle 04): AST skeletonizer, PageRank repomap, multi-language grammar parsing, dynamic dispatch, and error boundary resilience.
-- Physical Output Quality: Inspect the physical bundled text within these bundles to verify exact token math, dynamic fence isolation (````), authentic 1-indexed line numbers, and pre-computed static audit radar accuracy.
-**Triad Threat Probe Enforcement**:
-- *Boundary & Malformed Input*: Check regex backtracking (ReDoS) on single-quoted string/lifetime edge cases, and multi-line secrets.
-- *Resource & Concurrency*: Trace $O(N^2)$ dictionary reconstructions, cache thrashing, and unmetered token expansions.
-- *Silent Failure & Masked Fallback*: Audit whether offline local SLMs silently corrupt taxonomy state or properly trigger structured cloud handoffs.
-**Deliverable Format**: Report only true blockers or material defects with exact file citations (`path#Lxx-Lyy`), a minimal adversarial code snippet proving the vulnerability, and a drop-in surgical diff.
-
----
-
-#### 📋 Turn 3 / Phase 3: GraphRAG, Vector/Lexical Storage & Runtime Ecosystem
-{turn3_target}
-**Audit Focus**:
-- Orion Brain Engine & GraphRAG (`commands/brain.py`, `core/orion_graph.py`, `core/db.py`): Tri-hybrid retrieval (SQLite FTS5 BM25 + 1-hop graph neighbor traversal + JSON vector similarity), SQLite WAL concurrency, safe migrations, and parameter-aware local SLM vs Cloud LLM handoffs.
-- Memory & Autonomous Harness (`core/memory.py`, `core/harness/`, `commands/reflexion.py`): 4-tier memory hierarchy, Class 0 Foundation Immunity, L1 working buffer sync via IDE hooks, and closed-loop reflexion without BIOS corruption.
-- Runtime IDE Hooks & Infrastructure (`hooks/pre-agent-wake.py`, test suites): Sub-50ms non-blocking pre-agent wake interceptor, atomic file writes, standalone helper isolation, and consequence-driven test verification.
-**Triad Threat Probe Enforcement**:
-- *Boundary & Malformed Input*: Ingest malformed JSON triplet arrays, unredacted credentials, and unexpected stdin payloads.
-- *Resource & Concurrency*: Trace SQLite connection leaks, WAL lock contention, and unclosed context managers.
-- *Silent Failure & Masked Fallback*: Check for silent write drops on uninitialized databases or false-green test claims.
-**Deliverable Format**: Report only true runtime bugs or architectural defects with exact file citations (`path#Lxx-Lyy`), a minimal proof scenario, and a drop-in surgical diff.
-
----
-
-#### 📋 Turn 4 / Phase 4: Final Synthesis, Forensic Scoring & Actionable Remediation
-**Target**: All prior turns in conversation context.
-**Prompt Directive**:
-1. Calculate the Final Forensic Score: Base 100 minus Materiality Floor deductions (-15 to -20 Blocker, -5 to -10 Material Defect, -1 to -2 Minor Improvement). Apply the Kill-Switch Penalty Cap (Max 55/100 if any core architectural invariant is breached).
-2. Convergence Gate Evaluation:
-   - If Final Score >= 85 and Blockers == 0: Output `### 🏁 AUDIT CONVERGED: CERTIFIED (PRODUCTION-GRADE - SCORE: X/100)` and stop immediately.
-   - If Final Score < 85 or Blockers > 0: Output `### ⚠️ AUDIT CONVERGED: CONDITIONAL (REMEDIATION REQUIRED - SCORE: X/100)` and present strictly the Top 3 to 5 decisive drop-in surgical diffs.
-3. Issue a definitive Go / No-Go verdict for public open-source repository release.
+#### 📋 Turn 4 / Phase 4: Cross-Bundle Seam Synthesis, Final Score & Surgical Remediation Plan
+**Target**: Complete repository synthesis across all {len(bundle_files)} bundles.
+**Directives**:
+1. Verify **Cross-Bundle Seams**: Trace Producers and Consumers across bundles to verify exact key names, data types, and symbol formats. Check whether API contracts, state models, and event payloads match without drift.
+2. Verify **Target Architecture Alignment**: Compare current capabilities against the project's stated architectural goals (identifying production-ready components vs. components needing upgrade).
+3. Compute the **Deterministic Forensic Score (0-100)** with an explicit deduction table.
+4. Present the prioritized **Dual-Regime Remediation Plan & Bento Action Cards**:
+   - **Topological Blast-Radius Phasing (Coupled Chains)**: Group tasks that depend on each other into sequential phases ordered by Blast Radius (Phase 1: Central contracts & root primitives `T0/T1` -> Phase 2: Core domain & services `T2/T3` -> Phase 3: Presentation & entrypoints `T4/T5`). Solving root contracts in Phase 1 eliminates cascading regressions in higher layers.
+   - **Disjoint Parallel Partitioning (Independent Tracks)**: When tasks touch separate domains without import dependencies (J <= 0.20), label them as `[PARALLEL-TRACK-A]`, `[PARALLEL-TRACK-B]` so multi-agent systems (`/worker-delegate`) can execute them concurrently.
+   - **Bottom-Up Same-File Ordering**: Within each file, order Action Cards from highest line number to lowest line number (`start_line` descending) to prevent line shifts.
 
 ---
 
 ### 🏁 TO BEGIN THE AUDIT:
-Please acknowledge receipt of all {len(bundle_files)} attached bundles, confirm your zero-trust posture, and **BEGIN IMMEDIATELY WITH TURN 1 (Governance, LifeCycle & Architectural Guardrails)**.
-*(Alternatively, ask if the user prefers a high-level panoramic summary or wishes to dive straight into Turn 1).*
+Confirm receipt of all {len(bundle_files)} bundles for `{project_name}` and **BEGIN IMMEDIATELY WITH TURN 1**.
 """
 
-    content += f"\n\n---\n\n{interactive_protocol}"
-
     try:
-        with open(prompt_file, "w", encoding="utf-8") as pf:
-            pf.write(content)
+        atomic_write_text(prompt_file, content)
     except Exception as _e:
         _log_telemetry(_e, "generate_gemini_web_audit_prompt")
     return prompt_file
 
-DEFAULT_BOILERPLATE_DIRS = {
-    "templates", "examples", "samples", "fixtures", "benchmarks",
-    "docs", "canons", "migrations", "__snapshots__", "mocks"
-}
-DEFAULT_TEST_DIRS = {"tests", "test", "__tests__", "spec", "specs", "e2e", "integration_test"}
 
+def load_pack_config(root_dir: str, include_agents: bool = False) -> Dict[str, Any]:
+    """
+    Loads optional repository-level packing rules from .orion/pack.json or .pack.json.
+    Never loads .agents/.pack.json when packing a host application!
+    """
+    candidates = [".orion/pack.json", ".pack.json"]
+    if include_agents or is_foundation_root(root_dir) or is_foundation_agents(root_dir):
+        candidates.append(".agents/.pack.json")
 
-def load_pack_config(root_dir: str) -> Dict[str, Any]:
-    """Loads optional repository-level packing rules from .orion/pack.json, .pack.json, or .agents/.pack.json."""
-    for rel_candidate in (".orion/pack.json", ".pack.json", ".agents/.pack.json"):
+    for rel_candidate in candidates:
         cand_path = os.path.join(root_dir, rel_candidate)
         if os.path.isfile(cand_path):
             try:
@@ -2329,61 +3108,93 @@ def load_pack_config(root_dir: str) -> Dict[str, Any]:
 def build_universal_audit_manifesto(
     project_name: str,
     mode: str,
-    excluded_categories: Optional[List[str]] = None,
+    taxonomy: Optional[ProjectTaxonomy] = None,
+    dna: Optional[ProjectDNA] = None,
 ) -> str:
-    """Generates a 100% project-agnostic audit manifesto header for Bundle 01."""
     mode_label = mode.upper()
-    exclusions = excluded_categories or [
-        "Build outputs, lockfiles, & third-party vendor directories (`node_modules/`, `target/`, `build/`, `.venv/`)",
-        "Static binary assets, media files, & minified bundles (`*.min.js`, `*.map`, images/fonts)",
-        "Ephemeral caches & local runtime state (`.git/`, `__pycache__/`, `.orion/`, `.scratch/`)",
-    ]
-    if mode == "lean":
-        exclusions.append("Test suites, fixtures, & static documentation boilerplates (included in `full` tier)")
-
-    excl_lines = "\n".join(f"> {idx}. {item}" for idx, item in enumerate(exclusions, 1))
+    summary_line = f"> **Detected Architecture**: {taxonomy.project_summary} *(Clustered via `{taxonomy.provider}`)*\n>\n" if taxonomy else ""
+    dna_line = ""
+    if dna and getattr(dna, "is_dna_app", False):
+        dna_line = f"> **Application DNA & Governance Stamp**: {dna.archetype} | Stacks: {', '.join(dna.stacks)} | State: `{getattr(dna, 'dna_state', 'GREENFIELD')}` | Compliance: `{getattr(dna, 'dna_compliance_score', 100)}%`\n>\n"
     return (
         f"# 📋 REPOSITORY ARCHITECTURE & AUDIT MANIFESTO: `{project_name}`\n\n"
         f"> **GUIDANCE FOR AI AUDITOR (MULTI-BUNDLE CONTEXT PACKAGE — {mode_label} TIER)**:\n"
+        f"{summary_line}"
+        f"{dna_line}"
         f"> Repository `{project_name}` is partitioned into self-contained domain bundles with `<artifact>` XML boundaries, "
         f"Pre-Computed Static Audit Radars, PageRank Centrality Maps, and Cross-Bundle Import Routers.\n"
         f">\n"
         f"> **Excluded Noise & Non-Runtime Assets ({mode_label} Filter):**\n"
-        f"{excl_lines}\n\n"
+        f"> 1. Build outputs, lockfiles, & third-party vendor directories (`node_modules/`, `target/`, `build/`, `.dart_tool/`)\n"
+        f"> 2. Generated code (`*.g.dart`, `*.freezed.dart`, `*.pb.go`), minified bundles (`*.min.js`), & binary media assets\n"
+        f"> 3. Internal AI agent tooling (`.agents/`, `.orion/`, IDE plugin manifests) — 100% isolated from host app code\n\n"
         f"---\n\n"
     )
 
 
+DEFAULT_BOILERPLATE_DIRS = {
+    "templates", "examples", "samples", "fixtures", "benchmarks",
+    "docs", "canons", "migrations", "__snapshots__", "mocks"
+}
+DEFAULT_TEST_DIRS = {"tests", "test", "__tests__", "spec", "specs", "e2e", "integration_test", "androidtest"}
+
+
 def is_audit_worthy(
     path: str,
-    is_foundation: bool = False,
+    dna: Optional[ProjectDNA] = None,
     mode: str = "lean",
+    hybrid: bool = False,
     include_boilerplate: bool = False,
     pack_config: Optional[Dict[str, Any]] = None,
 ) -> bool:
-    """Universal project-agnostic filter for lean vs full audit packaging."""
-    if mode == "full" or mode == "all" or include_boilerplate:
-        return True
-
+    """Universal filter for lean vs full audit packaging."""
     norm_p = path.replace("\\", "/").lstrip("/")
     parts = [p.lower() for p in norm_p.split("/")]
     basename = os.path.basename(norm_p)
+    basename_lower = basename.lower()
+
+    if basename_lower.endswith("_bundle.md") or "_part_" in basename_lower or "00_gemini_web" in basename_lower:
+        return False
+
+    if dna and dna.dormant_roots:
+        for dormant in dna.dormant_roots:
+            if norm_p.startswith(f"{dormant}/") or f"/{dormant}/" in norm_p:
+                return False
+
+    if mode in ("full", "all") or include_boilerplate:
+        return True
 
     cfg = pack_config or {}
     pinned = set(cfg.get("pinned_files", []))
     if norm_p in pinned or basename in pinned:
         return True
 
+    # 1. Prune marketing, sales, and acquisition templates in lean/hybrid modes
+    # Keep 4 Lean Masters (BLUEPRINT.md, ARCHITECTURE.md, ROADMAP.md, STYLE_GUIDE.md, MEMORY.md, AGENT_IDENTITY.md)
+    # and all technical specs in context/03_Tech/* and design specs in context/02_Creative/*
+    if parts and parts[0] == "context":
+        if len(parts) >= 3 and parts[1] in ("00_strategy", "01_product"):
+            marketing_prefixes = (
+                "idea_", "scale_", "valid_", "acq_", "conv_", "data_",
+                "dist_", "growth_", "launch_", "plan_", "ret_", "rev_"
+            )
+            if basename_lower.startswith(marketing_prefixes) and basename_lower != "roadmap.md":
+                return False
+
+    # 2. Test inclusion logic:
+    # In Tier 2 hybrid, include test harnesses to audit AST invariants and test coverage!
+    # In Tier 1 arch, exclude tests to keep the architectural skeleton minimal.
+    is_test_file = (
+        any(p in DEFAULT_TEST_DIRS for p in parts[:-1])
+        or basename_lower.startswith(("test_", "spec_"))
+        or basename_lower.endswith(
+            ("_test.py", ".spec.ts", ".test.ts", ".spec.tsx", ".test.tsx", ".spec.js", ".test.js", "_test.go", "_test.dart")
+        )
+    )
+    if is_test_file and not hybrid:
+        return False
+
     excluded_dirs = DEFAULT_BOILERPLATE_DIRS | set(cfg.get("exclude_dirs_lean", []))
-    if any(p in DEFAULT_TEST_DIRS for p in parts[:-1]):
-        return False
-    basename_lower = basename.lower()
-    if basename_lower.endswith("_bundle.md") or "_part_" in basename_lower or "00_gemini_web" in basename_lower or "playbook" in basename_lower:
-        return False
-    if basename.startswith(("test_", "spec_")) or basename.endswith(
-        ("_test.py", ".spec.ts", ".test.ts", ".spec.js", ".test.js", "_test.go", "_test.dart")
-    ):
-        return False
     if any(p in excluded_dirs for p in parts[:-1]):
         return False
 
@@ -2396,14 +3207,12 @@ def _build_global_cross_bundle_router(
     line_numbers: bool = True,
     skeleton_map: Optional[Dict[str, bool]] = None,
 ) -> str:
-    """Builds the Global Cross-Bundle File & Import Router table for Bundle 01."""
     rows = [
         "## 🌐 Global Cross-Bundle File & Import Router",
         "| Bundle | File Path | Lines | Estimated Tokens | Cross-Bundle Imports |",
         "|---|---|---|---|---|",
     ]
-    sorted_items = sorted(file_to_bundle.items(), key=lambda x: (x[1], x[0]))
-    for rel_p, b_code in sorted_items:
+    for rel_p, b_code in sorted(file_to_bundle.items(), key=lambda x: (x[1], x[0])):
         b_id = b_code.split("_")[0]
         full_p = os.path.join(root_dir, rel_p)
         try:
@@ -2413,36 +3222,34 @@ def _build_global_cross_bundle_router(
             raw = ""
 
         orig_l_cnt = len(raw.splitlines())
-        is_skel = bool(skeleton_map and skeleton_map.get(rel_p))
+        ext = os.path.splitext(rel_p)[1].lower().lstrip(".")
+        is_skel_capable = ext in SUPPORTED_SKELETON_EXTENSIONS
+        is_skel = bool(skeleton_map and skeleton_map.get(rel_p)) and is_skel_capable
         if is_skel:
-            ext = os.path.splitext(rel_p)[1].lower().lstrip(".")
-            try:
-                from core.scanner import skeletonize_python, skeletonize_markdown, skeletonize_code, SUPPORTED_SKELETON_EXTENSIONS
-                if ext == "py":
-                    rendered = skeletonize_python(raw, include_line_numbers=line_numbers)
-                elif ext in ("md", "mdc"):
-                    rendered = skeletonize_markdown(raw, include_line_numbers=line_numbers)
-                elif ext in SUPPORTED_SKELETON_EXTENSIONS:
-                    rendered = skeletonize_code(raw, ext, include_line_numbers=line_numbers)
-                else:
-                    rendered = raw
-            except Exception as _e:
-                _log_telemetry(_e, f"packer.py:render_skel_for_router:{rel_p}")
-                rendered = raw
+            rendered = skeletonize_code(raw, ext, include_line_numbers=line_numbers)
             skel_l_cnt = len(rendered.splitlines())
             t_cnt = estimate_tokens(rendered)
             mode_tag = " (SKELETON)"
             l_str = f"{orig_l_cnt:,} (skel: {skel_l_cnt:,})"
+        elif bool(skeleton_map and skeleton_map.get(rel_p)) and ext == "json" and orig_l_cnt > AUTO_SKELETON_LINE_THRESHOLD:
+            try:
+                from commands.compact import shrink_json
+                rendered = shrink_json(raw, max_items=2)
+                mode_tag = " (JSON-SCHEMA-SAMPLE)"
+            except Exception:
+                rendered = raw
+                mode_tag = " (FULL)"
+            skel_l_cnt = len(rendered.splitlines())
+            t_cnt = estimate_tokens(rendered)
+            l_str = f"{orig_l_cnt:,} (sample: {skel_l_cnt:,})"
         else:
-            l_cnt = orig_l_cnt
             t_cnt = estimate_tokens(raw)
             if line_numbers:
-                t_cnt += max(1, int(math.ceil((l_cnt * 7) / 3.8)))
+                t_cnt += max(1, int(math.ceil((orig_l_cnt * 7) / 3.8)))
             mode_tag = " (FULL)"
-            l_str = f"{l_cnt:,}"
+            l_str = f"{orig_l_cnt:,}"
 
         importers = extract_cross_bundle_imports(rel_p, raw, file_to_bundle)
-        # Keep only cross-bundle references (containing "(Bundle ") to minimize table noise
         cross_only = [imp for imp in importers if "(Bundle " in imp]
         imp_str = ", ".join(cross_only[:8]) if cross_only else "—"
         rows.append(f"| `{b_id}` | `{rel_p}` | {l_str} | ~{t_cnt:,}{mode_tag} | {imp_str} |")
@@ -2454,517 +3261,52 @@ def _build_global_ast_symbol_compass(
     root_dir: str,
     file_to_bundle: Dict[str, str],
 ) -> str:
-    """
-    Extracts top-level public classes, functions, and key entrypoints from audited files
-    and maps them to their target bundle for instant cognitive lookup by external LLMs.
-    """
-    import ast as _ast
     symbols: List[Tuple[str, str, str, str, int]] = []
-
     for rel_p, b_code in sorted(file_to_bundle.items()):
         b_id = b_code.split("_")[0]
         ext = os.path.splitext(rel_p)[1].lower()
         full_p = os.path.join(root_dir, rel_p)
-
-        if ext == ".py":
-            try:
-                with open(full_p, "r", encoding="utf-8", errors="ignore") as fh:
-                    src = fh.read()
-                tree = _ast.parse(src)
-                for node in tree.body:
-                    if isinstance(node, _ast.ClassDef):
-                        symbols.append((node.name, "class", rel_p, b_id, node.lineno))
-                    elif isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
-                        if not node.name.startswith("_") and node.name != "main":
-                            symbols.append((node.name, "func", rel_p, b_id, node.lineno))
-            except Exception as _e:
-                _log_telemetry(_e, "_build_global_ast_symbol_compass:py")
-        elif ext in (".dart", ".ts", ".tsx", ".js", ".jsx", ".kt", ".rs", ".go", ".java", ".swift", ".cs"):
-            try:
-                try:
-                    from core.scanner import extract_file_symbols, RESERVED_KEYWORDS
-                except ImportError:
-                    try:
-                        from .scanner import extract_file_symbols, RESERVED_KEYWORDS
-                    except ImportError:
-                        from scanner import extract_file_symbols, RESERVED_KEYWORDS
-                defs, _ = extract_file_symbols(full_p)
-                for sym_name, occurrences in defs.items():
-                    if sym_name.startswith("_") or sym_name in RESERVED_KEYWORDS or sym_name == "main":
-                        continue
-                    for line_no, sig in occurrences:
-                        s_kind = "class" if re.search(r'^\s*(?:export\s+|pub(?:\([^)]*\))?\s+|abstract\s+|sealed\s+|open\s+|public\s+|private\s+)*(?:class|struct|interface|enum|trait|type)\b', sig) else "func"
-                        symbols.append((sym_name, s_kind, rel_p, b_id, line_no))
-            except Exception as _e:
-                _log_telemetry(_e, "_build_global_ast_symbol_compass:src")
+        if ext in (".md", ".mdc", ".json", ".yaml", ".yml", ".toml", ".txt"):
+            continue
+        try:
+            defs, _ = extract_file_symbols(full_p)
+            for sym_name, occurrences in defs.items():
+                if sym_name.startswith("_") or sym_name in RESERVED_KEYWORDS or sym_name == "main":
+                    continue
+                for line_no, sig in occurrences:
+                    if re.search(r"\b(?:class|struct|interface|enum|trait|type|mixin|extension)\b", sig):
+                        s_kind = "class"
+                    elif sig.endswith("= ..."):
+                        s_kind = "const"
+                    else:
+                        s_kind = "func"
+                    symbols.append((sym_name, s_kind, rel_p, b_id, line_no))
+        except Exception as _e:
+            _log_telemetry(_e, "_build_global_ast_symbol_compass")
 
     if not symbols:
         return ""
 
-    def _is_entrypoint(name: str) -> bool:
-        low = name.lower()
-        return any(low.startswith(p) for p in (
-            "cmd_", "export_", "build_", "generate_", "scan_", "run_", "verify_",
-            "calculate_", "parse_", "validate_", "unpack_", "pack_", "detect_", "init_"
-        ))
-
-    from collections import defaultdict
     by_bundle: Dict[str, List[Tuple[str, str, str, str, int]]] = defaultdict(list)
     for s in symbols:
         by_bundle[s[3]].append(s)
 
     selected_symbols: List[Tuple[str, str, str, str, int]] = []
-    num_bundles = len(by_bundle)
-    per_bundle_limit = max(25, 350 // max(num_bundles, 1))
-
+    per_bundle_limit = max(25, 350 // max(len(by_bundle), 1))
     for b_id, b_syms in sorted(by_bundle.items()):
-        # Prioritize classes/interfaces, then entrypoints, then by file and line
-        b_syms.sort(key=lambda x: (
-            0 if x[1] == "class" else (1 if _is_entrypoint(x[0]) else 2),
-            x[2],
-            x[4]
-        ))
+        b_syms.sort(key=lambda x: (0 if x[1] == "class" else 1, x[2], x[4]))
         selected_symbols.extend(b_syms[:per_bundle_limit])
 
     selected_symbols.sort(key=lambda x: (x[0].lower(), x[2]))
     rows = [
-        "## 🧭 Global AST Symbol Compass (Classes & Primary Entrypoints)",
+        "## 🧭 Global AST Symbol Compass (Classes, Types & Entrypoints)",
         "| Symbol | Kind | Defining File | Target Bundle | Line |",
         "|---|---|---|---|---|",
     ]
     for s_name, s_kind, s_path, s_bid, s_line in selected_symbols:
         rows.append(f"| `{s_name}` | `{s_kind}` | `{s_path}` | `Bundle {s_bid}` | `L{s_line}` |")
-
     rows.append("\n---\n\n")
     return "\n".join(rows)
-
-
-def compute_file_gravity_and_cluster(rel_p: str) -> Tuple[int, str, str]:
-    """
-    Computes architectural gravity (0-9) and semantic cluster key/desc for universal multi-project packing:
-      0: Workspace Root Config, Manifests, Architecture Blueprint & Governance
-      1: Skills, Schemas, Types, Models & Contracts
-      2: Core Kernel Primitives & Base Logic
-      3: AST Security, Scanner & Sandbox
-      4: GraphRAG, State Machines & Memory
-      5: Autonomous Harness, Codegen & Generators
-      6: Services, State Controllers, BLoC & Providers
-      7: UI & Presentation Layer
-      8: CLI Engine, Packer, Tools & Commands
-      9: Tests, Evals & Runtime IDE Hooks
-    """
-    norm = rel_p.replace('\\', '/')
-    parts = norm.split('/')
-    ws_prefix = ""
-    if parts[0] in ('apps', 'services', 'packages', 'modules', 'crates', 'libs') and len(parts) > 2:
-        ws_prefix = f"{parts[0]}/{parts[1]}"
-
-    def _resolve() -> Tuple[int, str, str]:
-        base = os.path.basename(norm).lower()
-        name_no_ext, ext = os.path.splitext(base)
-
-        # 9: Tests, Evals & Runtime IDE Hooks
-        if (
-            any(p in {'test', 'tests', '__tests__', 'specs', 'spec', 'integration_test', 'e2e', 'evals', 'eval'} for p in parts[:-1])
-            or name_no_ext.startswith('test_')
-            or name_no_ext.endswith(('_test', '.test', '.spec'))
-        ):
-            return (9, "tests_and_evals", "Tests & Assertion Evals")
-        if norm.startswith('.agents/hooks/') or norm.startswith('hooks/'):
-            return (9, "runtime_hooks", "Runtime IDE Hooks")
-
-        # 0: Workspace Manifests, Blueprint, Governance
-        config_files = {
-            'package.json', 'pubspec.yaml', 'tsconfig.json', 'cargo.toml', 'go.mod',
-            'pyproject.toml', 'requirements.txt', 'readme.md', 'license', 'cmakelists.txt',
-            'makefile', 'dockerfile', 'docker-compose.yml', 'settings.gradle', 'build.gradle',
-            'agents.md', 'gemini.md', 'claude.md', 'version', 'changelog.md', '.env.example',
-            'agents_index.md', 'deploy_me.md', 'hooks.json', '.gitignore', 'prerequisites.md',
-            'scripts.md'
-        }
-        if (len(parts) == 1 or (len(parts) == 2 and parts[0] == '.agents')) and base in config_files:
-            return (0, "workspace_manifests", "Workspace Root Config & Manifests")
-        if 'context' in parts[:-1] or base in ('agent_identity.md', 'context.json'):
-            return (0, "architecture_blueprint", "Architecture Blueprint & Context")
-        if (
-            norm.startswith('.agents/rules/')
-            or norm.startswith('rules/')
-            or base.endswith(('guardrails.md', 'rules.md'))
-            or norm.startswith('.agents/canons/')
-            or norm.startswith('canons/')
-        ):
-            return (0, "governance_and_rules", "Governance & Core Guardrails")
-
-        # 1: Agent Skills & Domain Schemas
-        if norm.startswith('.agents/skills/') or norm.startswith('skills/'):
-            skill_idx = 2 if norm.startswith('.agents/skills/') else 1
-            skill_name = parts[skill_idx] if len(parts) > skill_idx else "skills"
-            primary = {
-                'integrity-sentinel', 'project-architect', 'app-lifecycle', 'meta-agent-admin',
-                'code-review', 'ai-engineer', 'strict-tdd', 'brain-graph'
-            }
-            if skill_name in primary:
-                return (1, "skills/primary", "Primary Agent Skills")
-            return (1, "skills/secondary", "Secondary Agent Skills")
-        if any(p in {'schemas', 'schema', 'types', 'type', 'models', 'model', 'entities', 'entity', 'dto', 'contracts', 'ir'} for p in parts[:-1]):
-            return (1, "domain_and_schemas", "Domain Types & Schemas")
-
-        # 4: Graph, State Machines & Memory
-        if any(p in {'graph', 'memory', 'state_machine', 'reflexion'} for p in parts[:-1]) or base in ('orion_graph.py', 'memory.py', 'state_machine.py', 'reflexion.py'):
-            if norm.startswith('.agents/') or base in ('orion_graph.py', 'reflexion.py'):
-                return (4, "graphrag_and_memory", "GraphRAG & Community Memory")
-            return (4, "state_and_memory", "State Machines & Memory")
-
-        # 3: Auth, Security & Validation
-        if any(p in {'security', 'scanner', 'sandbox', 'auth'} for p in parts[:-1]) or base in ('scanner.py', 'security.py', 'sandbox.py', 'rtk_proxy.py'):
-            if norm.startswith('.agents/') or base in ('scanner.py', 'sandbox.py', 'rtk_proxy.py'):
-                return (3, "security_and_scanner", "AST Security & Scanner Sandbox")
-            return (3, "auth_and_security", "Authentication & Security")
-
-        # 5: Autonomous Harness & Code Generators
-        if any(p in {'harness', 'generators', 'generator', 'targets', 'compiler', 'codegen', 'staging'} for p in parts[:-1]):
-            return (5, "harness_and_generators", "Autonomous Harness & Code Generators")
-
-        # 8: CLI Commands, Utilities & Tooling
-        if base in ('brain.py', 'compact.py', 'rag.py', 'vault.py') or any(k in norm for k in ('commands/brain', 'commands/compact', 'commands/rag', 'commands/vault')):
-            return (8, "commands/brain_engine", "Brain Knowledge & Storage Engine")
-        if base == 'verify_agents.py' or 'commands/verify' in norm:
-            return (8, "commands/verify_agents", "Verification & Integrity Sentinel Ops")
-        if base == 'packer.py' or 'utils/packer' in norm:
-            return (8, "utils/packer_engine", "Orion Universal Packer & Bundle Engine")
-        if base in ('orion.py', 'foundation.py', 'scripts.md') or (norm.startswith('.agents/') and any(p in {'commands', 'utils'} for p in parts[:-1])):
-            return (8, "commands/foundation_packer_ops", "CLI Engine & Foundation Operations")
-        if any(p in {'commands', 'cli', 'bin', 'tools', 'utils', 'helpers', 'shared'} for p in parts[:-1]):
-            return (8, "cli_and_utilities", "CLI, Tools & Shared Utilities")
-
-        # 7: UI & Presentation Layer
-        if any(p in {'ui', 'components', 'component', 'widgets', 'widget', 'screens', 'screen', 'views', 'view', 'pages', 'layouts', 'styles', 'theme', 'themes'} for p in parts[:-1]):
-            return (7, "ui_and_presentation", "UI & Presentation Layer")
-
-        # 6: Services & State Controllers
-        if any(p in {'services', 'service', 'controllers', 'controller', 'repositories', 'repository', 'bloc', 'providers', 'store', 'signals', 'reducers'} for p in parts[:-1]):
-            return (6, "services_and_controllers", "Services & State Controllers")
-
-        # 2: Core Kernel Primitives
-        if any(p in {'core', 'kernel', 'db', 'database', 'storage', 'paths'} for p in parts[:-1]) or base in ('db.py', 'capabilities.py', 'paths.py', '__init__.py'):
-            return (2, "core_kernel_primitives", "Core Kernel Primitives")
-
-        # Granular sub-workspace / module path clustering (prevents dumping all of src/ into 1 cluster)
-        meaningful_parts = [p for p in parts[:-1] if p.lower() not in {"src", "lib", "app", "packages", "apps", "services"}]
-        sub_scope = "_".join(meaningful_parts[:2]) if meaningful_parts else (parts[0] if len(parts) > 1 else "misc")
-        return (2, f"core_{sub_scope}", f"Core Logic ({sub_scope})")
-
-    grav, ckey, cdesc = _resolve()
-    if ws_prefix and not ckey.startswith(ws_prefix):
-        ckey = f"{ws_prefix}/{ckey}"
-        cdesc = f"[{ws_prefix}] {cdesc}"
-    return (grav, ckey, cdesc)
-
-
-def synthesize_bundle_slug(descs: List[str], bundle_files: List[str], b_idx: int) -> str:
-    """Synthesizes a clean, readable bundle code slug from cluster descriptions."""
-    if b_idx == 1 and any(os.path.basename(f) in {'AGENTS.md', 'README.md', 'GEMINI.md', 'package.json', 'pubspec.yaml'} for f in bundle_files):
-        return "WORKSPACE_AND_META"
-
-    desc_str = " ".join(descs).lower()
-    has_sec = any(f.endswith(('security.py', 'scanner.py', 'sandbox.py')) for f in bundle_files)
-    has_graph = any(f.endswith(('orion_graph.py', 'memory.py', 'rag.py')) for f in bundle_files)
-    if has_sec and has_graph:
-        return "SECURITY_AND_GRAPHRAG"
-    if has_sec:
-        return "SECURITY_AND_SCANNER"
-    if has_graph:
-        return "GRAPHRAG_AND_MEMORY"
-    if "guardrails" in desc_str or "governance" in desc_str:
-        return "RULES_AND_GOVERNANCE"
-    if "kernel primitives" in desc_str:
-        return "CORE_KERNEL_PRIMITIVES"
-    if "primary agent" in desc_str and "secondary agent" in desc_str:
-        return "PRIMARY_AGENT_SKILLS" if b_idx <= 2 else "SECONDARY_AGENT_SKILLS"
-    if "primary agent" in desc_str:
-        return "PRIMARY_AGENT_SKILLS"
-    if "secondary agent" in desc_str:
-        return "SECONDARY_AGENT_SKILLS"
-    if "harness" in desc_str:
-        return "AUTONOMOUS_HARNESS"
-    if "brain" in desc_str:
-        return "BRAIN_KNOWLEDGE_ENGINE"
-    if "packer" in desc_str or "cli engine" in desc_str:
-        return "CLI_ENGINE_PACKER"
-    if "verification" in desc_str and "tests" not in desc_str:
-        return "VERIFICATION_AND_OPS"
-    if "runtime" in desc_str and "hooks" in desc_str:
-        return "RUNTIME_IDE_HOOKS"
-    if "tests" in desc_str or "evals" in desc_str:
-        return "TESTS_AND_EVALS"
-    if "ui" in desc_str or "presentation" in desc_str:
-        return "UI_AND_PRESENTATION"
-    if "services" in desc_str or "controllers" in desc_str:
-        return "SERVICES_AND_CONTROLLERS"
-    if "domain" in desc_str or "schemas" in desc_str:
-        return "DOMAIN_AND_SCHEMAS"
-
-    # Universal heuristic fallback
-    words = re.findall(r"[A-Za-z0-9]+", " ".join(descs))
-    filtered = [w.upper() for w in words if w.upper() not in {"AND", "THE", "OF", "FOR", "IN", "A", "AN", "COMMANDS", "OPS", "OPERATIONS"}][:3]
-    return "_".join(filtered) or f"BUNDLE_{b_idx:02d}"
-
-
-def balance_into_k_bundles(
-    root_dir: str,
-    audit_files: List[str],
-    skeleton: bool = False,
-    hybrid: bool = False,
-    norm_mode: str = "lean",
-    k: int = 10,
-    max_tokens_per_bundle: int = 75000,
-    focus_files: Optional[List[str]] = None,
-    reclaim: bool = True,
-    taxonomy: Optional[ProjectTaxonomy] = None,
-) -> List[Tuple[str, str, List[str], Dict[str, bool]]]:
-    """
-    Subtree bin-packing algorithm:
-      1. Groups files by gravity score (0-9) and domain cluster.
-      2. Weights files based on estimated token cost (applying skeleton reduction if applicable).
-      3. Packs into at most k balanced partitions (hard ceiling <= 10 files).
-      4. Merges smallest adjacent clusters if count > k.
-      5. Synthesizes human-readable slug codes and descriptions.
-      6. Pass 2: Greedy Token Reclamation (Water-Filling) promotes skeleton files to full if under cap.
-    """
-    clusters: Dict[Tuple[int, str, str], List[Tuple[str, int, bool]]] = {}
-    full_tokens_map: Dict[str, int] = {}
-    skel_tokens_map: Dict[str, int] = {}
-    file_line_counts: Dict[str, int] = {}
-    f2c = taxonomy.file_to_cluster if taxonomy else {}
-    tax_skel_cands = taxonomy.skeleton_candidates if taxonomy else set()
-
-    for f in audit_files:
-        if f in f2c:
-            grav, ckey, cdesc = f2c[f]
-        else:
-            grav, ckey, cdesc = compute_file_gravity_and_cluster(f)
-        full_p = os.path.join(root_dir, f)
-        line_count = 0
-        try:
-            sz = os.path.getsize(full_p)
-            with open(full_p, 'r', encoding='utf-8', errors='ignore') as fl:
-                line_count = sum(1 for _ in fl)
-        except OSError:
-            sz = 1000
-            line_count = 0
-        file_line_counts[f] = line_count
-        tok = max(1, int(math.ceil(sz / 3.8)))
-
-        if hybrid:
-            # Never skeletonize core workspace documents/rules (AGENTS.md, README.md, DEPLOY_ME.md, manifests)
-            is_core_doc = (grav == 0) or f in {"AGENTS.md", "README.md", "DEPLOY_ME.md"} or (f.startswith(".agents/") and f.count("/") == 1)
-            if is_core_doc:
-                apply_skel = False
-            elif taxonomy and f in tax_skel_cands:
-                apply_skel = True
-            else:
-                is_secondary = (grav in (8, 9)) or (ckey == "skills/secondary") or ("tools" in f)
-                apply_skel = is_secondary and line_count > 150
-        else:
-            apply_skel = skeleton
-
-        sz_tok = max(1, int(math.ceil(sz / 3.8)))
-        red = 0.55 if f.endswith(('.md', '.mdc')) else 0.15
-        tok_skel = max(1, int(sz_tok * red)) + (int(line_count * red) * 1) + 60
-        tok_full = sz_tok + (line_count * 1) + 60
-        full_tokens_map[f] = tok_full
-        skel_tokens_map[f] = tok_skel
-
-        # In hybrid mode, weight code clusters by their realistic full weight (80%) so bins don't overfill
-        if hybrid:
-            tok = tok_full if not apply_skel else max(tok_skel, int(tok_full * 0.75))
-        else:
-            tok = tok_skel if apply_skel else tok_full
-
-        k_tuple = (grav, ckey, cdesc)
-        if k_tuple not in clusters:
-            clusters[k_tuple] = []
-        clusters[k_tuple].append((f, tok, apply_skel))
-
-    chunked_clusters: List[Tuple[Tuple[int, str, str], List[Tuple[str, int, bool]]]] = []
-    for k_tuple, cfiles in sorted(clusters.items(), key=lambda x: (x[0][0], x[0][1])):
-        # Check both active token sum and full token sum so monolithic code clusters are split early
-        c_tok = sum(t[1] for t in cfiles)
-        c_full_tok = sum(full_tokens_map.get(t[0], t[1]) for t in cfiles)
-        split_threshold = 40000 if (hybrid and k_tuple[0] in (2, 3, 4, 5, 8)) else 45000
-        if (c_tok > split_threshold or (hybrid and c_full_tok > 50000)) and len(cfiles) > 1:
-            current_sub: List[Tuple[str, int, bool]] = []
-            curr_sub_tok = 0
-            part_num = 1
-            for cf in cfiles:
-                cf_weight = cf[1] if not hybrid else max(cf[1], int(full_tokens_map.get(cf[0], cf[1]) * 0.75))
-                if current_sub and (curr_sub_tok + cf_weight > 32000):
-                    sub_tuple = (k_tuple[0], f"{k_tuple[1]}_p{part_num}", k_tuple[2])
-                    chunked_clusters.append((sub_tuple, current_sub))
-                    current_sub = []
-                    curr_sub_tok = 0
-                    part_num += 1
-                current_sub.append(cf)
-                curr_sub_tok += cf_weight
-            if current_sub:
-                sub_tuple = (k_tuple[0], f"{k_tuple[1]}_p{part_num}", k_tuple[2])
-                chunked_clusters.append((sub_tuple, current_sub))
-        else:
-            chunked_clusters.append((k_tuple, cfiles))
-
-    sorted_clusters = chunked_clusters
-    total_tokens = sum(sum(t[1] for t in cfiles) for _, cfiles in sorted_clusters)
-    target_per_bin = max(1000, total_tokens // max(1, k))
-    soft_cap = min(max_tokens_per_bundle, max(int(target_per_bin * 1.35), 4000))
-
-    bins: List[List[Tuple[Tuple[int, str, str], List[Tuple[str, int, bool]]]]] = []
-    cur_bin: List[Tuple[Tuple[int, str, str], List[Tuple[str, int, bool]]]] = []
-    cur_tokens = 0
-
-    for idx, (ckey_tuple, cfiles) in enumerate(sorted_clusters):
-        c_tok = sum(t[1] for t in cfiles)
-        rem_clusters = len(sorted_clusters) - idx
-        rem_slots = k - len(bins)
-
-        grav_shift = bool(cur_bin and cur_bin[-1][0][0] != ckey_tuple[0] and cur_tokens >= int(target_per_bin * 0.7))
-        cap_exceeded = bool(cur_bin and (cur_tokens + c_tok > soft_cap))
-        slots_depleting = bool(cur_bin and (len(bins) + rem_clusters <= k))
-
-        if grav_shift or cap_exceeded or slots_depleting:
-            bins.append(cur_bin)
-            cur_bin = []
-            cur_tokens = 0
-
-        cur_bin.append((ckey_tuple, cfiles))
-        cur_tokens += c_tok
-
-    if cur_bin:
-        bins.append(cur_bin)
-
-    while len(bins) > k:
-        min_pair_idx = 0
-        min_pair_sum = float('inf')
-        for i in range(len(bins) - 1):
-            sum_i = sum(sum(t[1] for t in cf) for _, cf in bins[i]) + sum(sum(t[1] for t in cf) for _, cf in bins[i+1])
-            if sum_i < min_pair_sum:
-                min_pair_sum = sum_i
-                min_pair_idx = i
-        bins[min_pair_idx] = bins[min_pair_idx] + bins[min_pair_idx + 1]
-        bins.pop(min_pair_idx + 1)
-
-    raw_slugs: List[str] = []
-    desc_list: List[str] = []
-    for b_idx, b in enumerate(bins, 1):
-        b_files = [t[0] for _, cf in b for t in cf]
-        # Calculate dominant description by token weight
-        desc_tokens: Dict[str, int] = defaultdict(int)
-        for ckey, cf in b:
-            desc_tokens[ckey[2]] += sum(t[1] for t in cf)
-        dominant_desc = max(desc_tokens.items(), key=lambda x: x[1])[0] if desc_tokens else ""
-        descs = list(dict.fromkeys([dominant_desc] + [ckey[2] for ckey, _ in b]))
-        clean_slug = synthesize_bundle_slug(descs, b_files, b_idx)
-        raw_slugs.append(clean_slug)
-        desc_list.append(" & ".join(descs[:2]))
-
-    from collections import Counter
-    slug_occurrences = Counter(raw_slugs)
-    slug_part_tracker: Dict[str, int] = defaultdict(int)
-
-    result_bundles: List[Tuple[str, str, List[str], Dict[str, bool]]] = []
-    for b_idx, b in enumerate(bins, 1):
-        b_files = [t[0] for _, cf in b for t in cf]
-        b_skel_map = {t[0]: t[2] for _, cf in b for t in cf}
-        slug = raw_slugs[b_idx - 1]
-        desc = desc_list[b_idx - 1]
-        if slug_occurrences[slug] > 1:
-            slug_part_tracker[slug] += 1
-            part_num = slug_part_tracker[slug]
-            total_parts = slug_occurrences[slug]
-            code = f"{b_idx:02d}_{slug}_PART{part_num}"
-            clean_base_desc = re.sub(r"\s*\(Part\s*\d+(?:/\d+)?\)", "", desc)
-            desc = f"{clean_base_desc} (Part {part_num}/{total_parts})"
-        else:
-            code = f"{b_idx:02d}_{slug}"
-            desc = re.sub(r"\s*\(Part\s*\d+(?:/\d+)?\)", "", desc)
-        result_bundles.append((code, desc, b_files, b_skel_map))
-
-    # Pass 1.5 & Pass 2: Hard Floor Guard & Universal Two-Stage Greedy Token Reclamation for Hybrid Mode
-    if reclaim and hybrid and not skeleton:
-        salience_map: Dict[str, float] = {}
-        try:
-            rm_data = build_repo_map(root_dir, budget_tokens=2000, files=audit_files)
-            salience_map = {item["file"]: float(item.get("rank", 0.0)) for item in rm_data.get("ranked_files", [])}
-        except Exception as _e:
-            _log_telemetry(_e, "balance_into_k_bundles:salience")
-
-        for b_code, b_desc, b_files, b_skel_map in result_bundles:
-            current_b_tokens = sum(
-                skel_tokens_map.get(f, 0) if b_skel_map.get(f, False) else full_tokens_map.get(f, 0)
-                for f in b_files
-            )
-            # Pass 1.5: Hard Floor Guard untuk file <= 350 baris pada mode hybrid
-            for rel_f in b_files:
-                if file_line_counts.get(rel_f, 0) <= AUTO_SKELETON_LINE_THRESHOLD:
-                    if b_skel_map.get(rel_f, False):
-                        b_skel_map[rel_f] = False
-                        current_b_tokens += (full_tokens_map.get(rel_f, 0) - skel_tokens_map.get(rel_f, 0))
-
-            # Pass 2: Universal Two-Stage Greedy Token Reclamation (Water-Filling)
-            skel_candidates = [f for f in b_files if b_skel_map.get(f, False)]
-            if skel_candidates:
-                # Stage A: Water-fill highest-salience / lowest-delta files up to BUNDLE_SOFT_TOKEN_CAP (45,000 tokens)
-                RECLAIM_SINGLE_LARGE_CAP = 65000
-
-                def _can_reclaim_file(curr_tok: int, delta_tok: int, cand_f: str = "") -> bool:
-                    if curr_tok + delta_tok <= BUNDLE_SOFT_TOKEN_CAP:
-                        return True
-                    is_core_or_compact_bin = len(b_files) <= 4 or salience_map.get(cand_f, 0.0) >= 0.02
-                    if is_core_or_compact_bin and (curr_tok + delta_tok) <= RECLAIM_SINGLE_LARGE_CAP:
-                        return True
-                    return False
-
-                sorted_reclaim_candidates = sorted(
-                    skel_candidates,
-                    key=lambda f: (
-                        -salience_map.get(f, 0.0),
-                        full_tokens_map.get(f, 0) - skel_tokens_map.get(f, 0),
-                    ),
-                )
-                for cand_file in sorted_reclaim_candidates:
-                    delta_tok = full_tokens_map.get(cand_file, 0) - skel_tokens_map.get(cand_file, 0)
-                    if _can_reclaim_file(current_b_tokens, delta_tok, cand_file):
-                        b_skel_map[cand_file] = False
-                        current_b_tokens += delta_tok
-
-                # Stage B (Anti-Starvation Guard): If a bundle has zero substantial full code files (> 350 lines)
-                # (e.g. dominated by an oversized monolith), promote the top-ranked candidate up to max_tokens_per_bundle (75,000)
-                has_substantial_full = any(
-                    not b_skel_map.get(f, False) and file_line_counts.get(f, 0) > AUTO_SKELETON_LINE_THRESHOLD
-                    for f in b_files
-                )
-                if not has_substantial_full:
-                    remaining_skel = sorted(
-                        [f for f in b_files if b_skel_map.get(f, False)],
-                        key=lambda f: (-salience_map.get(f, 0.0), -(full_tokens_map.get(f, 0) - skel_tokens_map.get(f, 0))),
-                    )
-                    for cand_file in remaining_skel:
-                        delta_tok = full_tokens_map.get(cand_file, 0) - skel_tokens_map.get(cand_file, 0)
-                        if current_b_tokens + delta_tok <= max_tokens_per_bundle:
-                            b_skel_map[cand_file] = False
-                            current_b_tokens += delta_tok
-                            break
-
-    if focus_files:
-        focus_set = {os.path.normpath(f).replace('\\', '/') for f in focus_files}
-        for b_code, b_desc, b_files, b_skel_map in result_bundles:
-            for f in b_files:
-                norm_f = os.path.normpath(f).replace('\\', '/')
-                if norm_f in focus_set or any(norm_f.endswith(f"/{fc}") or norm_f == fc for fc in focus_set):
-                    b_skel_map[f] = False
-
-    return result_bundles
-
-
 
 
 def export_audit_bundles(
@@ -2981,19 +3323,10 @@ def export_audit_bundles(
     focus: Optional[str] = None,
     reclaim: bool = True,
     taxonomy_path: Optional[str] = None,
+    include_agents: bool = False,
 ) -> List[str]:
-    """
-    Packs the repository into logical Markdown digest bundles optimized for Gemini's attention mechanism:
-      - Tier 1 (`skeleton=True` / `arch`): Source-True AST Skeletons (preserving __init__ self.*, SQL schemas,
-        and semantic contracts) + Markdown Structural Skeletons (~45k-60k tokens total).
-      - Tier 2 (`hybrid=True`): 100% Full Code with line numbers for all core execution bundles (05-10 in Foundation,
-        01-07 in Apps) + Condensed/Deduplicated Markdown for documentation bundles (01-04 in Foundation, 08-10 in Apps).
-      - Tier 3 (`mode='all'` / `full`): 100% Zero-Truncation Full Code & Docs with original line numbers,
-        Global Cross-Bundle Router, and smart topological bin-packing guaranteeing <=10 files per tier.
-    """
     norm_mode = "all" if mode == "all" else "lean"
     is_foundation = is_foundation_root(root_dir) or is_foundation_agents(root_dir)
-    dna = None if (is_foundation or force_universal) else detect_project_dna(root_dir, force_universal=force_universal)
 
     if skeleton and not hybrid:
         tier_name = "arch"
@@ -3006,36 +3339,26 @@ def export_audit_bundles(
 
     if out_dir is None:
         abs_root = os.path.abspath(root_dir)
-        if os.path.basename(abs_root) == ".agents":
-            base_orion = os.path.join(os.path.dirname(abs_root), ".orion", "bundles")
-        else:
-            base_orion = os.path.join(abs_root, ".orion", "bundles")
+        base_orion = os.path.join(os.path.dirname(abs_root) if os.path.basename(abs_root) == ".agents" else abs_root, ".orion", "bundles")
         out_dir = os.path.join(base_orion, tier_name)
     if out_dir.endswith(".md"):
         out_dir = os.path.dirname(out_dir) or "."
     os.makedirs(out_dir, exist_ok=True)
 
-    packer = ContextPacker(root_dir)
+    packer = ContextPacker(root_dir, include_agents=include_agents)
     all_files = packer.collect_files(max_size_bytes=2 * 1024 * 1024)
 
-    # Exclude target out_dir and prior bundle artifacts from being ingested recursively
     abs_out_dir = os.path.abspath(out_dir)
-    filtered_files = []
-    for f in all_files:
-        abs_f = os.path.abspath(os.path.join(root_dir, f))
-        if abs_f == abs_out_dir or abs_f.startswith(abs_out_dir + os.sep):
-            continue
-        b_name_lower = os.path.basename(f).lower()
-        if b_name_lower.endswith("_bundle.md") or "_part_" in b_name_lower or "00_gemini_web" in b_name_lower or "playbook" in b_name_lower:
-            continue
-        filtered_files.append(f)
-    all_files = filtered_files
+    all_files = [
+        f for f in all_files
+        if not os.path.abspath(os.path.join(root_dir, f)).startswith(abs_out_dir)
+    ]
 
-    # Clean existing bundle artifacts in out_dir
+    dna = None if (is_foundation or force_universal) else detect_project_dna(root_dir, force_universal=force_universal, audit_files=all_files)
+
     for existing in os.listdir(out_dir):
-        existing_lower = existing.lower()
-        if existing_lower.endswith((".md", ".txt")) and (
-            "_bundle.md" in existing_lower or "_part_" in existing_lower or "00_gemini_web" in existing_lower or "playbook" in existing_lower
+        if existing.lower().endswith((".md", ".txt")) and (
+            "_bundle.md" in existing.lower() or "00_gemini_web" in existing.lower()
         ):
             try:
                 os.remove(os.path.join(out_dir, existing))
@@ -3043,243 +3366,174 @@ def export_audit_bundles(
                 pass
 
     focus_files = [f.strip() for f in focus.split(",") if f.strip()] if focus else None
-    pack_config = load_pack_config(root_dir)
+    pack_config = load_pack_config(root_dir, include_agents=include_agents)
 
-    if num_bundles >= 3:
-        if dna and dna.is_dna_app:
-            audit_files = [f for f in all_files if is_dna_app_audit_worthy(f, dna, mode=norm_mode, include_boilerplate=include_boilerplate)]
-        else:
-            audit_files = [f for f in all_files if is_audit_worthy(f, is_foundation=is_foundation, mode=norm_mode, include_boilerplate=include_boilerplate, pack_config=pack_config)]
-            # In Tier 1 (arch), keep SKILL.md and rules/*.md as canonical contract definitions,
-            # while excluding secondary skill `/references/*.md` prose playbooks (which remain 100% included in Tier 2 `hybrid` and Tier 3 `full`).
-            if skeleton and not hybrid and norm_mode == "lean":
-                audit_files = [f for f in audit_files if "/references/" not in f.replace("\\", "/")]
+    audit_files = [
+        f for f in all_files
+        if is_audit_worthy(f, dna=dna, mode=norm_mode, hybrid=hybrid, include_boilerplate=include_boilerplate, pack_config=pack_config)
+    ]
+    # In Tier 1 (arch), keep SKILL.md and rules/*.md as canonical contract definitions,
+    # while excluding secondary skill /references/*.md prose playbooks (which remain 100% included in Tier 2 hybrid and Tier 3 full).
+    if skeleton and not hybrid and norm_mode == "lean":
+        audit_files = [f for f in audit_files if "/references/" not in f.replace("\\", "/")]
+    if not audit_files and all_files:
+        audit_files = list(all_files)
 
-        tax = resolve_project_taxonomy(root_dir, audit_files, taxonomy_path=taxonomy_path)
+    tax = resolve_project_taxonomy(root_dir, audit_files, taxonomy_path=taxonomy_path, max_bundles=num_bundles, dna=dna)
 
-        partition_plan = balance_into_k_bundles(
-            root_dir=root_dir,
-            audit_files=audit_files,
-            skeleton=skeleton,
-            hybrid=hybrid,
-            norm_mode=norm_mode,
-            k=num_bundles,
-            focus_files=focus_files,
-            reclaim=reclaim,
-            taxonomy=tax,
-        )
+    partition_plan = balance_into_k_bundles(
+        root_dir=root_dir,
+        audit_files=audit_files,
+        skeleton=skeleton,
+        hybrid=hybrid,
+        norm_mode=norm_mode,
+        k=num_bundles,
+        focus_files=focus_files,
+        reclaim=reclaim,
+        taxonomy=tax,
+        dna=dna,
+    )
 
-        file_to_bundle: Dict[str, str] = {}
-        for code, _, b_files, _ in partition_plan:
-            for sf in b_files:
-                file_to_bundle[sf] = code
+    file_to_bundle: Dict[str, str] = {}
+    combined_skeleton_map: Dict[str, bool] = {}
+    for code, _, b_files, b_skel, _ in partition_plan:
+        for sf in b_files:
+            file_to_bundle[sf] = code
+            combined_skeleton_map[sf] = b_skel.get(sf, False)
 
-        output_paths = []
-        if skeleton and not hybrid:
-            mode_label = "TIER 1: ARCH SKELETON"
-        elif hybrid:
-            mode_label = "TIER 2: HYBRID PRODUCTION AUDIT"
-        else:
-            mode_label = "TIER 3: FULL ZERO-TRUNCATION" if norm_mode == "all" else "LEAN FULL CODE"
+    mode_label = (
+        "TIER 1: ARCH SKELETON" if (skeleton and not hybrid)
+        else ("TIER 2: HYBRID PRODUCTION AUDIT" if hybrid else ("TIER 3: FULL ZERO-TRUNCATION" if norm_mode == "all" else "LEAN FULL CODE"))
+    )
 
-        project_type_label = "FOUNDATION ENGINE" if is_foundation else ("DNA APPLICATION" if (dna and dna.is_dna_app) else "APPLICATION REPOSITORY")
-        print(f"\n[AUDIT BUNDLE EXPORT] Packaging {len(audit_files)}/{len(all_files)} files ({project_type_label} | {mode_label}) into {out_dir}/:")
-        total_size_kb = 0.0
-        written_bundles = 0
-        bundle_summary_for_prompt: List[Tuple[str, str, int, float]] = []
+    print(f"\n[UNIVERSAL DYNAMIC PACKER] Packaging {len(audit_files)} files (Taxonomy: {tax.provider} | {mode_label}) into {out_dir}/:")
+    global_router_md = _build_global_cross_bundle_router(root_dir, file_to_bundle, line_numbers=line_numbers, skeleton_map=combined_skeleton_map)
+    global_compass_md = _build_global_ast_symbol_compass(root_dir, file_to_bundle)
 
-        combined_skeleton_map: Dict[str, bool] = {}
-        for _, _, files_in_bucket, b_skel in partition_plan:
-            for f in files_in_bucket:
-                combined_skeleton_map[f] = b_skel.get(f, False)
+    output_paths: List[str] = []
+    bundle_summary_for_prompt: List[Tuple[str, str, int, float, str]] = []
+    total_size_kb = 0.0
 
-        global_router_md = _build_global_cross_bundle_router(
-            root_dir,
-            file_to_bundle,
+    for written_idx, (code, desc, files_in_bucket, apply_skel, audit_focus) in enumerate(partition_plan, 1):
+        out_file = os.path.join(out_dir, f"{code}_BUNDLE.md")
+        digest = packer.pack_digest(
+            files_in_bucket,
+            max_tokens=max(budget, 250000),
+            scrub_secrets=True,
             line_numbers=line_numbers,
-            skeleton_map=combined_skeleton_map,
+            skeleton=apply_skel,
+            adaptive_skeleton=False,
+            bundle_name=f"{code} ({desc})",
+            file_to_bundle=file_to_bundle,
+            include_radar=True,
+            dna=dna,
         )
-        global_compass_md = _build_global_ast_symbol_compass(root_dir, file_to_bundle)
 
-        for code, desc, files_in_bucket, apply_skel in partition_plan:
-            written_bundles += 1
-            out_file = os.path.join(out_dir, f"{code}_BUNDLE.md")
+        if written_idx == 1:
+            proj_name = os.path.basename(os.path.abspath(root_dir)) or "repository"
+            manifesto = build_universal_audit_manifesto(proj_name, tier_name, taxonomy=tax, dna=dna)
+            try:
+                rm_data = build_repo_map(root_dir, budget_tokens=min(budget // 4, 2500), files=audit_files)
+                if rm_data.get("repo_map"):
+                    manifesto += f"## 🗺️ PageRank Architectural Repo-Map\n\n```plaintext\n{rm_data['repo_map']}\n```\n\n---\n\n"
+            except Exception as _e:
+                _log_telemetry(_e, "export_audit_bundles:build_repo_map")
 
-            digest = packer.pack_digest(
-                files_in_bucket,
-                max_tokens=max(budget, 250000),
-                scrub_secrets=True,
-                line_numbers=line_numbers,
-                skeleton=apply_skel,
-                adaptive_skeleton=False,
-                bundle_name=f"{code} ({desc})",
-                file_to_bundle=file_to_bundle,
-                include_radar=True,
+            global_radar_md = generate_bundle_pre_audit_radar(root_dir, audit_files, dna=dna)
+            if global_radar_md:
+                global_radar_md = global_radar_md.replace(
+                    "## 📡 Pre-Computed Static Audit Radar (Deterministic Hotspots)",
+                    "## 📡 Global Pre-Computed Static Audit Radar (Top Deterministic Hotspots Across All Bundles)",
+                )
+                manifesto += global_radar_md
+            manifesto += global_router_md + global_compass_md
+
+            digest_body = digest[len(AUDITOR_SANDBOX_HEADER):] if digest.startswith(AUDITOR_SANDBOX_HEADER) else digest
+            digest = AUDITOR_SANDBOX_HEADER + manifesto + digest_body
+            manifesto_tokens = estimate_tokens(manifesto)
+            m_hdr = re.search(r'- Files Included: (\d+) \| Estimated Tokens: ~([0-9,]+) \| Size: [0-9\.]+ KB', digest)
+            if m_hdr:
+                file_tokens = int(m_hdr.group(2).replace(',', ''))
+                total_b1_tokens = file_tokens + manifesto_tokens
+            else:
+                total_b1_tokens = estimate_tokens(digest)
+            total_b1_kb = len(digest.encode('utf-8')) / 1024
+            digest = re.sub(
+                r'- Files Included: (\d+) \| Estimated Tokens: ~([0-9,]+) \| Size: [0-9\.]+ KB',
+                rf'- Files Included: \1 | File Tokens: ~\2 | Manifesto & Router Overhead: ~{manifesto_tokens:,} | Total Bundle Tokens: ~{total_b1_tokens:,} | Size: {total_b1_kb:.1f} KB',
+                digest,
+                count=1
             )
 
-            if written_bundles == 1:
-                proj_name = os.path.basename(os.path.abspath(root_dir)) or "repository"
-                manifesto = build_universal_audit_manifesto(proj_name, tier_name)
-                if dna and dna.is_dna_app:
-                    manifesto = generate_dna_governance_stamp(dna) + manifesto
-                try:
-                    try:
-                        from core.scanner import build_repo_map as _brm
-                    except ImportError:
-                        try:
-                            from .scanner import build_repo_map as _brm
-                        except ImportError:
-                            from scanner import build_repo_map as _brm
-                    rm_data = _brm(root_dir, budget_tokens=min(budget // 4, 2500), files=audit_files)
-                    if rm_data.get("repo_map"):
-                        manifesto += f"## 🗺️ PageRank Architectural Repo-Map\n\n```plaintext\n{rm_data['repo_map']}\n```\n\n---\n\n"
-                except Exception as _e:
-                    _log_telemetry(_e, "export_audit_bundles:build_repo_map")
-                global_radar_md = generate_bundle_pre_audit_radar(root_dir, audit_files)
-                if global_radar_md:
-                    global_radar_md = global_radar_md.replace(
-                        "## 📡 Pre-Computed Static Audit Radar (Deterministic Hotspots)",
-                        "## 📡 Global Pre-Computed Static Audit Radar (Top Deterministic Hotspots Across All Bundles)"
-                    )
-                    manifesto += global_radar_md
-                manifesto += global_router_md
-                manifesto += global_compass_md
-                if digest.startswith(AUDITOR_SANDBOX_HEADER):
-                    digest_body = digest[len(AUDITOR_SANDBOX_HEADER):]
-                else:
-                    digest_body = digest
-                digest = AUDITOR_SANDBOX_HEADER + manifesto + digest_body
-                manifesto_tokens = estimate_tokens(manifesto)
-                m_hdr = re.search(r'- Files Included: (\d+) \| Estimated Tokens: ~([0-9,]+) \| Size: [0-9\.]+ KB', digest)
-                if m_hdr:
-                    file_tokens = int(m_hdr.group(2).replace(',', ''))
-                    total_b1_tokens = file_tokens + manifesto_tokens
-                else:
-                    total_b1_tokens = estimate_tokens(digest)
-                total_b1_kb = len(digest.encode('utf-8')) / 1024
-                digest = re.sub(
-                    r'- Files Included: (\d+) \| Estimated Tokens: ~([0-9,]+) \| Size: [0-9\.]+ KB',
-                    rf'- Files Included: \1 | File Tokens: ~\2 | Manifesto & Router Overhead: ~{manifesto_tokens:,} | Total Bundle Tokens: ~{total_b1_tokens:,} | Size: {total_b1_kb:.1f} KB',
-                    digest,
-                    count=1
-                )
+        atomic_write_text(out_file, digest)
+        size_kb = os.path.getsize(out_file) / 1024
+        total_size_kb += size_kb
+        print(f"  [{code}_BUNDLE.md] -> {len(files_in_bucket):>2} files ({size_kb:>5.1f} KB) | {desc}")
+        output_paths.append(out_file)
+        bundle_summary_for_prompt.append((code, desc, len(files_in_bucket), size_kb, audit_focus))
 
-            with open(out_file, "w", encoding="utf-8") as fh:
-                fh.write(digest)
-            size_kb = os.path.getsize(out_file) / 1024
-            total_size_kb += size_kb
-            print(f"  [{code}_BUNDLE.md] -> {len(files_in_bucket):>2} files ({size_kb:>5.1f} KB) | {desc}")
-            output_paths.append(out_file)
-            bundle_summary_for_prompt.append((code, desc, len(files_in_bucket), size_kb))
+    repo_name = os.path.basename(os.path.abspath(root_dir))
+    generate_gemini_web_audit_prompt(
+        out_dir=out_dir,
+        project_name=repo_name,
+        tier_label=mode_label,
+        bundle_files=bundle_summary_for_prompt,
+        total_tokens=int(total_size_kb * 250),
+        dna=dna,
+        taxonomy=tax,
+        is_foundation=is_foundation,
+        root_dir=root_dir,
+    )
 
-        repo_name = os.path.basename(os.path.abspath(root_dir))
-        generate_gemini_web_audit_prompt(
-            out_dir=out_dir,
-            project_name=repo_name,
-            tier_label=mode_label,
-            bundle_files=bundle_summary_for_prompt,
-            total_tokens=int(total_size_kb * 250),
-            dna=dna,
-            is_foundation=is_foundation,
-        )
-
-
-        print(f"\n[SUCCESS] {written_bundles} Domain Bundles created (~{total_size_kb:.1f} KB total, ~{int(total_size_kb * 250):,} tokens). Ready for multi-platform AI audit!\n")
-        return output_paths
-
-    # Fallback to 2-file export (num_bundles == 2)
-    if is_foundation:
-        code_prefixes = (
-            ".agents/scripts/", ".agents/hooks/", ".agents/evals/",
-            "scripts/", "hooks/", "evals/",
-        )
-        brain_files = [f for f in all_files if not any(f.replace('\\', '/').startswith(p) for p in code_prefixes)]
-        engine_files = [f for f in all_files if any(f.replace('\\', '/').startswith(p) for p in code_prefixes)]
-        bundle1_name = "01_AGENTS_BRAIN_BUNDLE.md"
-        bundle2_name = "02_AGENTS_ENGINE_BUNDLE.md"
-        b1_desc = f"{len(brain_files)} files: Rules, Skills, Canons, Docs, Templates"
-        b2_desc = f"{len(engine_files)} files: Scripts, Hooks, Evals, Tests"
-    else:
-        ops_prefixes = (
-            "test/", "tests/", "__tests__/", "specs/", "docs/", "doc/",
-            "scripts/", "tools/", "bin/", ".agents/"
-        )
-        brain_files = [f for f in all_files if not any(f.replace('\\', '/').startswith(p) for p in ops_prefixes)]
-        engine_files = [f for f in all_files if any(f.replace('\\', '/').startswith(p) for p in ops_prefixes)]
-        bundle1_name = "01_APP_CORE_AND_DOMAIN_BUNDLE.md"
-        bundle2_name = "02_APP_OPS_AND_GOVERNANCE_BUNDLE.md"
-        b1_desc = f"{len(brain_files)} files: Core Domain, Models, Services, UI & Blueprint"
-        b2_desc = f"{len(engine_files)} files: CLI, Tools, Tests, Docs & Agent Governance"
-
-    bundle1_path = os.path.join(out_dir, bundle1_name)
-    bundle2_path = os.path.join(out_dir, bundle2_name)
-
-    digest1 = packer.pack_digest(brain_files, max_tokens=budget, scrub_secrets=True, line_numbers=line_numbers, skeleton=skeleton)
-    with open(bundle1_path, "w", encoding="utf-8") as f1:
-        f1.write(digest1)
-
-    digest2 = packer.pack_digest(engine_files, max_tokens=budget, scrub_secrets=True, line_numbers=line_numbers, skeleton=skeleton)
-    with open(bundle2_path, "w", encoding="utf-8") as f2:
-        f2.write(digest2)
-
-    print(f"[AUDIT EXPORT] Successfully created 2 upload bundles in '{out_dir}/':")
-    print(f"  1. {bundle1_path} ({b1_desc})")
-    print(f"  2. {bundle2_path} ({b2_desc})")
-    return [bundle1_path, bundle2_path]
-
-
+    print(f"\n[SUCCESS] {len(output_paths)} Dynamic Domain Bundles created (~{total_size_kb:.1f} KB total, ~{int(total_size_kb * 250):,} tokens).\n")
+    return output_paths
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Security-Aware Context Packager & Multi-Project Bundle Exporter")
+    parser = argparse.ArgumentParser(description="Universal Dynamic Context Packager & Multi-Model Audit Exporter")
     parser.add_argument("--dir", default=".", help="Root directory to pack (default: current directory)")
-    parser.add_argument("--format", choices=["xml", "digest", "markdown"], default="xml", help="Output envelope format for single-file packing")
-    parser.add_argument("--budget", "--max-tokens", dest="budget", type=int, default=1000000, help="Maximum token budget (default: 1M tokens)")
-    parser.add_argument("--max-size-kb", type=int, default=2048, help="Maximum individual file size in KB to inspect (default: 2048 KB)")
-    parser.add_argument("--out", "--output", dest="out", help="Optional output destination file or bundle directory")
-    parser.add_argument("--redact", action="store_true", default=True, help="Scrub secrets in packed content (default: True)")
-    parser.add_argument("--repomap", action="store_true", help="Include PageRank-ranked repository map in envelope")
-    parser.add_argument("--salience", action="store_true", help="Prioritize files by PageRank salience score")
+    parser.add_argument("--format", choices=["xml", "digest", "markdown"], default="xml", help="Output format for single-file packing")
+    parser.add_argument("--budget", "--max-tokens", dest="budget", type=int, default=1000000, help="Maximum token budget")
+    parser.add_argument("--max-size-kb", type=int, default=2048, help="Max individual file size in KB")
+    parser.add_argument("--out", "--output", dest="out", help="Output destination file or bundle directory")
+    parser.add_argument("--redact", action="store_true", default=True, help="Scrub secrets in packed content")
+    parser.add_argument("--repomap", action="store_true", help="Include PageRank repository map")
+    parser.add_argument("--salience", action="store_true", help="Prioritize files by PageRank salience")
 
-    parser.add_argument("--audit", action="store_true", help="Export curated domain audit bundles with 100%% full micro-code bodies (lean mode, default 10 domains)")
-    parser.add_argument("--audit-all", action="store_true", help="Export full codebase domain audit bundles (all mode, default 10 domains)")
-    parser.add_argument("--audit-ast", action="store_true", help="Export high-density AST-skeletonized domain audit bundles (~80%% token savings)")
-    parser.add_argument("--hybrid", action="store_true", help="Smart Hybrid audit: 100%% full micro-code for core domain/models, AST skeletons for secondary utilities")
-    parser.add_argument("--full", "--no-skeleton", dest="full", action="store_true", help="Preserve 100%% full implementation bodies (zero blindspot, disables AST skeletonization)")
-    parser.add_argument("--bundle", "--bundles", dest="bundle", nargs="?", const=10, type=int, help="Export N curated domain bundles for multi-platform AI audit (default: 10)")
+    parser.add_argument("--audit", action="store_true", help="Export domain audit bundles (lean mode)")
+    parser.add_argument("--audit-all", action="store_true", help="Export full codebase domain audit bundles")
+    parser.add_argument("--audit-ast", action="store_true", help="Export AST-skeletonized domain audit bundles")
+    parser.add_argument("--hybrid", action="store_true", help="Hybrid audit: full code for core modules, AST skeletons for secondary")
+    parser.add_argument("--full", "--no-skeleton", dest="full", action="store_true", help="Preserve 100%% full implementation bodies")
+    parser.add_argument("--bundle", "--bundles", dest="bundle", nargs="?", const=10, type=int, help="Export <=N domain bundles (default: 10)")
     parser.add_argument("--megabundle", action="store_true", help="Export clean 2-file architecture/ops megabundles")
-    parser.add_argument("--include-boilerplate", action="store_true", help="Include inert scaffolding templates and canons in audit bundles")
-    parser.add_argument("--universal", action="store_true", help="Bypass .agents DNA recognition and force universal heuristic clustering")
+    parser.add_argument("--include-boilerplate", action="store_true", help="Include tests, docs, and fixtures in bundles")
+    parser.add_argument("--include-agents", action="store_true", help="Include .agents/ tooling files even when packing a host application")
+    parser.add_argument("--universal", action="store_true", help="Force universal dynamic clustering")
 
-    # Superpower enhancements from Repomix, Files-to-Prompt, Aider
-    parser.add_argument("-n", "--line-numbers", action="store_true", help="Prepend right-aligned 1-indexed line numbers to files (from files-to-prompt)")
-    parser.add_argument("--skeleton", action="store_true", help="Extract class/interface/method signatures and collapse function bodies (from Aider/Repomix)")
-    parser.add_argument("--git-diff", nargs="?", const="", help="Scope packing to files modified in git diff [optional REF] (from Repomix)")
-    parser.add_argument("--git-staged", action="store_true", help="Scope packing strictly to staged files in git index (from Repomix)")
-    parser.add_argument("--tier", choices=["arch", "hybrid", "full"], help="Audit tier: 'arch' (Tier 1 AST skeletons), 'hybrid' (Tier 2 full code for core, skeletons for secondary), 'full' (Tier 3 100%% full code)")
-    parser.add_argument("--focus", type=str, default=None, help="Comma-separated file paths to force FULL mode in hybrid/arch bundles")
-    parser.add_argument("--taxonomy", type=str, default=None, help="Path to JSON taxonomy file for architectural domain clustering")
-    parser.add_argument("--no-reclaim", dest="reclaim", action="store_false", default=True, help="Disable Pass 2 greedy token reclamation in hybrid mode")
+    parser.add_argument("-n", "--line-numbers", action="store_true", help="Prepend 1-indexed line numbers")
+    parser.add_argument("--skeleton", action="store_true", help="Collapse function bodies to AST signatures")
+    parser.add_argument("--git-diff", nargs="?", const="", help="Scope packing to files modified in git diff")
+    parser.add_argument("--git-staged", action="store_true", help="Scope packing to staged files in git index")
+    parser.add_argument("--tier", choices=["arch", "hybrid", "full"], help="Audit tier preset")
+    parser.add_argument("--focus", type=str, default=None, help="Comma-separated file paths to force FULL mode")
+    parser.add_argument("--taxonomy", type=str, default=None, help="Path to custom JSON taxonomy file")
+    parser.add_argument("--no-reclaim", dest="reclaim", action="store_false", default=True, help="Disable Pass 2 token reclamation")
 
-    # Vibe Intent (Intent-Driven Context Packaging)
-    parser.add_argument(
-        "intent",
-        nargs="?",
-        default=None,
-        help="Vibe intent: 'audit', 'arch', 'hybrid', 'full', 'pr', 'diff', 'security', 'stats', 'auto', or target path"
-    )
-    parser.add_argument(
-        "target",
-        nargs="?",
-        default=None,
-        help="Optional target directory or extra argument"
-    )
+    parser.add_argument("intent", nargs="?", default=None, help="Intent: 'audit', 'arch', 'hybrid', 'full', 'pr', 'diff', 'stats', or path")
+    parser.add_argument("target", nargs="?", default=None, help="Optional target directory")
 
     args = parser.parse_args()
 
-    # Flexible resolution of tier, target_root, and vibe_intent
     candidate_tokens = [t for t in (args.intent, args.target) if t]
     detected_tier = args.tier
+    if not detected_tier:
+        if getattr(args, "hybrid", False):
+            detected_tier = "hybrid"
+        elif getattr(args, "audit_ast", False):
+            detected_tier = "arch"
+        elif getattr(args, "full", False) or getattr(args, "audit_all", False):
+            detected_tier = "full"
     detected_dir = None
     vibe_intent = ""
     remote_repo_url = None
@@ -3309,7 +3563,6 @@ def main() -> None:
     temp_dir_obj = None
     if remote_repo_url:
         import tempfile
-        import subprocess
         temp_dir_obj = tempfile.TemporaryDirectory()
         target_root = temp_dir_obj.name
         repo_name = os.path.splitext(os.path.basename(remote_repo_url.rstrip('/')))[0]
@@ -3328,7 +3581,7 @@ def main() -> None:
     else:
         target_root = detected_dir or args.dir or "."
 
-    # Determine canonical workspace root for .orion output directory
+    # Canonical workspace resolution
     abs_target = os.path.abspath(target_root)
     if os.path.basename(abs_target) == ".agents":
         parent_candidate = os.path.dirname(abs_target)
@@ -3350,35 +3603,36 @@ def main() -> None:
 
     orion_bundles_dir = os.path.join(workspace_root, ".orion", "bundles")
 
-    # 1. Audit intent -> 10 domain bundles with FULL MICRO-CODE by default (Zero Blindspot)
+    if vibe_intent in ("stats", "tokens", "summary"):
+        cmd_tokens(argparse.Namespace(dir=target_root))
+        if temp_dir_obj:
+            try:
+                temp_dir_obj.cleanup()
+            except OSError:
+                pass
+        return
+
     if vibe_intent in ("audit", "code-audit"):
         args.audit = True
         args.line_numbers = True
-        # Keep full code unless explicit skeleton requested
         if args.skeleton and not args.full:
             args.audit_ast = True
         else:
             args.skeleton = False
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "audit")
-
-    # 2. Architecture / Skeleton intent -> Macro AST Skeletons for high-level structure (Tier 1)
     elif vibe_intent in ("arch", "architecture", "skeleton", "macro"):
         args.audit_ast = True
         args.skeleton = True if not args.full else False
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "arch")
-
-    # 3. Hybrid intent -> Core domain full, secondary ops skeletonized (Tier 2)
     elif vibe_intent in ("hybrid", "smart-audit"):
         args.audit = True
         args.hybrid = True
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "hybrid")
-
-    # 4. PR / Review intent -> Staged git changes
     elif vibe_intent in ("pr", "review"):
         staged = collect_git_diff_files(target_root, staged_only=True)
         if staged:
@@ -3388,51 +3642,29 @@ def main() -> None:
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "pr_review.md")
-
-    # 5. Diff / changes intent -> Uncommitted working tree diff
     elif vibe_intent in ("diff", "changes"):
         args.git_diff = ""
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "git_diff.md")
-
-    # 6. Security intent -> Secret scrubbing + AST skeleton
     elif vibe_intent in ("security", "sec"):
         args.skeleton = True
         args.line_numbers = True
         args.redact = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "security_audit.md")
-
-    # 7. Stats / tokens intent -> Delegate directly to core.scanner.cmd_tokens
-    elif vibe_intent in ("stats", "tokens", "summary"):
-        try:
-            from core.scanner import cmd_tokens as _ct
-        except ImportError:
-            try:
-                from .scanner import cmd_tokens as _ct
-            except ImportError:
-                from scanner import cmd_tokens as _ct
-        _ct(argparse.Namespace(dir=target_root))
-        return
-
-    # 8. Megabundle intent -> 2 clean megabundles
     elif vibe_intent in ("megabundle", "mega"):
         args.megabundle = True
         args.skeleton = True
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "megabundle")
-
-    # 9. Full / all intent -> Full un-skeletonized dump (Tier 3)
     elif vibe_intent in ("all", "full"):
         args.audit_all = True
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "full")
-
-    # 10. Smart Auto-Vibe (when user calls `orion pack` with no flags and no intent)
-    elif (vibe_intent in ("auto", "") 
+    elif (vibe_intent in ("auto", "")
           and not any([
               args.audit, args.audit_all, args.audit_ast, args.bundle is not None,
               args.megabundle, args.git_diff is not None, args.git_staged
@@ -3457,9 +3689,7 @@ def main() -> None:
                 args.line_numbers = True
                 args.out = os.path.join(orion_bundles_dir, "arch")
 
-    # Determine mode: "lean" (high-signal audit) vs "all" (full codebase)
     mode = "all" if (args.audit_all or vibe_intent in ("all", "full")) else "lean"
-
     is_domain_bundle_export = (
         args.audit
         or args.audit_all
@@ -3470,7 +3700,6 @@ def main() -> None:
     if is_domain_bundle_export:
         num_b = args.bundle if (args.bundle is not None) else 10
         use_skel = (args.audit_ast or args.skeleton) and not args.full
-        is_hybrid = getattr(args, 'hybrid', False)
         export_audit_bundles(
             target_root,
             out_dir=args.out,
@@ -3479,16 +3708,22 @@ def main() -> None:
             mode=mode,
             skeleton=use_skel,
             line_numbers=args.line_numbers,
-            hybrid=is_hybrid,
-            include_boilerplate=getattr(args, 'include_boilerplate', False),
-            force_universal=getattr(args, 'universal', False),
-            focus=getattr(args, 'focus', None),
-            reclaim=getattr(args, 'reclaim', True),
-            taxonomy_path=getattr(args, 'taxonomy', None),
+            hybrid=getattr(args, "hybrid", False),
+            include_boilerplate=getattr(args, "include_boilerplate", False),
+            force_universal=getattr(args, "universal", False),
+            focus=getattr(args, "focus", None),
+            reclaim=getattr(args, "reclaim", True),
+            taxonomy_path=getattr(args, "taxonomy", None),
+            include_agents=getattr(args, "include_agents", False),
         )
+        if temp_dir_obj:
+            try:
+                temp_dir_obj.cleanup()
+            except OSError:
+                pass
         return
 
-    if args.megabundle:
+    if getattr(args, "megabundle", False):
         export_audit_bundles(
             target_root,
             out_dir=args.out,
@@ -3497,80 +3732,40 @@ def main() -> None:
             mode=mode,
             skeleton=args.skeleton and not args.full,
             line_numbers=args.line_numbers,
-            hybrid=getattr(args, 'hybrid', False),
-            force_universal=getattr(args, 'universal', False),
-            focus=getattr(args, 'focus', None),
-            reclaim=getattr(args, 'reclaim', True),
-            taxonomy_path=getattr(args, 'taxonomy', None),
+            hybrid=getattr(args, "hybrid", False),
+            force_universal=getattr(args, "universal", False),
+            focus=getattr(args, "focus", None),
+            reclaim=getattr(args, "reclaim", True),
+            taxonomy_path=getattr(args, "taxonomy", None),
+            include_agents=getattr(args, "include_agents", False),
         )
+        if temp_dir_obj:
+            try:
+                temp_dir_obj.cleanup()
+            except OSError:
+                pass
         return
 
-    packer = ContextPacker(target_root)
-
-    # Handle git diff scoping (from Repomix)
+    packer = ContextPacker(target_root, include_agents=getattr(args, "include_agents", False))
     if args.git_staged:
         files = collect_git_diff_files(target_root, staged_only=True)
-        print(f"[GIT DIFF] Scoped packing to {len(files)} staged file(s).")
     elif args.git_diff is not None:
-        ref = args.git_diff if args.git_diff else None
-        files = collect_git_diff_files(target_root, diff_ref=ref)
-        print(f"[GIT DIFF] Scoped packing to {len(files)} modified file(s).")
+        files = collect_git_diff_files(target_root, diff_ref=args.git_diff or None)
     else:
         files = packer.collect_files(max_size_bytes=args.max_size_kb * 1024, prioritize_salience=args.salience)
 
-    repomap_str = None
-    if args.repomap:
-        try:
-            try:
-                from core.scanner import build_repo_map as _brm
-            except ImportError:
-                try:
-                    from .scanner import build_repo_map as _brm
-                except ImportError:
-                    from scanner import build_repo_map as _brm
-            rm_data = _brm(target_root, budget_tokens=min(args.budget // 4, 3000))
-            repomap_str = rm_data.get("repo_map", "")
-        except Exception as _e:
-            _log_telemetry(_e, "main:build_repo_map")
-
-    use_skel = args.skeleton or args.audit_ast
-
     if args.format == "xml":
-        res = packer.pack_xml(
-            files,
-            max_tokens=args.budget,
-            scrub_secrets=args.redact,
-            repomap=repomap_str,
-            line_numbers=args.line_numbers,
-            skeleton=use_skel
-        )
+        res = packer.pack_xml(files, max_tokens=args.budget, scrub_secrets=args.redact, line_numbers=args.line_numbers, skeleton=args.skeleton)
         out_content = res["envelope"]
-        summary = f"[PACKER] Packed {res['packed_files_count']} files (~{res['estimated_tokens']} tokens, {len(res['secret_alerts'])} secret alerts)"
     else:
-        out_content = packer.pack_digest(
-            files,
-            max_tokens=args.budget,
-            scrub_secrets=args.redact,
-            line_numbers=args.line_numbers,
-            skeleton=use_skel
-        )
-        summary = f"[PACKER] Generated markdown digest for {len(files)} files"
+        out_content = packer.pack_digest(files, max_tokens=args.budget, scrub_secrets=args.redact, line_numbers=args.line_numbers, skeleton=args.skeleton)
 
     if args.out:
-        with open(args.out, 'w', encoding='utf-8') as f:
-            f.write(out_content)
-        print(f"{summary} -> {args.out}")
+        atomic_write_text(args.out, out_content)
+        print(f"[PACKER] Saved output to {args.out}")
     else:
         print(out_content)
-
-    if temp_dir_obj:
-        try:
-            temp_dir_obj.cleanup()
-        except OSError:
-            pass
 
 
 if __name__ == "__main__":
     main()
-
-

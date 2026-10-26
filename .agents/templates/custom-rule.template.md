@@ -15,7 +15,7 @@ Use this template to create project-specific behavioral rules. Each rule MUST fo
 
 ## Template
 
-```yaml
+```markdown
 ---
 name: my-custom-rule
 description: "Brief one-line description of what this rule enforces"
@@ -132,7 +132,7 @@ If this rule is valuable for all projects:
 
 ---
 
-Template Version: 1.0.0 | Last Updated: March 31, 2026
+Last Updated: March 31, 2026
 ```
 
 This template ensures consistency while allowing project-specific customization.

@@ -63,6 +63,33 @@ class PersistenceContractTests(unittest.TestCase):
             self.assertEqual(conn.execute("PRAGMA busy_timeout").fetchone()[0], 5000)
             conn.close()
 
+    def test_read_only_concurrent_connections_on_windows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "concurrency.db"
+            writer = connect_sqlite(db_path)
+            writer.execute("CREATE TABLE test_data (id INTEGER PRIMARY KEY, value TEXT)")
+            writer.execute("INSERT INTO test_data (value) VALUES ('sovereign')")
+            writer.commit()
+
+            # Multiple concurrent read-only connections
+            ro1 = connect_sqlite(db_path, read_only=True)
+            ro2 = connect_sqlite(db_path, read_only=True)
+
+            self.assertEqual(ro1.execute("PRAGMA query_only").fetchone()[0], 1)
+            self.assertEqual(ro2.execute("PRAGMA query_only").fetchone()[0], 1)
+
+            val1 = ro1.execute("SELECT value FROM test_data WHERE id = 1").fetchone()[0]
+            val2 = ro2.execute("SELECT value FROM test_data WHERE id = 1").fetchone()[0]
+            self.assertEqual(val1, "sovereign")
+            self.assertEqual(val2, "sovereign")
+
+            with self.assertRaises(sqlite3.OperationalError):
+                ro1.execute("INSERT INTO test_data (value) VALUES ('illegal_write')")
+
+            ro1.close()
+            ro2.close()
+            writer.close()
+
 
 if __name__ == "__main__":
     unittest.main()

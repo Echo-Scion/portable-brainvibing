@@ -19,4 +19,4 @@ This is the foundational canon for all projects. It defines the "Hukum Tata Nega
 - Utilize the Action-Harness Protocol (`rules/development-operations.md`) for tasks with complex constraints.
 
 ---
-*Global Foundation Protocol v1.0.0*
+*Global Foundation Protocol*

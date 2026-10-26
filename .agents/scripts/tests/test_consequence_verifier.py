@@ -154,6 +154,28 @@ class TestConsequenceVerifier(unittest.TestCase):
         findings = FalseGreenScanner.audit_content(code, "clean_test.ts")
         self.assertEqual(len(findings), 0)
 
+    def test_false_green_scanner_shape_4_shallow_substring(self):
+        code = """
+        it("generates dart model correctly", () => {
+            const result = generateFlutterCode(model);
+            assert.ok(result.code.includes("class UserDTO"));
+        });
+        """
+        findings = FalseGreenScanner.audit_content(code, "flutterCodeGenerator.test.ts")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["shape"], "Shape 4: Shallow Substring / Semantic Bypass Assertion")
+
+    def test_false_green_scanner_shape_4_clean_structural_codegen_test(self):
+        code = """
+        it("generates valid dart AST", () => {
+            const result = generateFlutterCode(model);
+            expect(result.code).toContain("class UserDTO");
+            expect(result.exitCode).toEqual(0);
+        });
+        """
+        findings = FalseGreenScanner.audit_content(code, "flutterCodeGenerator.test.ts")
+        self.assertEqual(len(findings), 0)
+
     def test_flow_spec_runner_success(self):
         flow_spec = {
             "name": "checkout_flow",

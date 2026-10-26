@@ -1,7 +1,6 @@
 ---
 name: react-micro
 description: Micro-canon cheat sheet for React 19, Next.js App Router, TanStack Query, Zustand, and Zod.
-version: 1.0.0
 ---
 
 # React Micro-Canon & Syntax Cheat Sheet

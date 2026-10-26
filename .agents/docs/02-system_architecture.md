@@ -2,9 +2,9 @@
 
 ---
 
-## Chapter 2: Active Router — Master BIOS (`GEMINI.md`)
+## Chapter 2: Active Router — Master BIOS (`AGENTS.md`)
 
-The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the repository root serves as the **Master BIOS** and **Active Router** for all cognitive operations within the workspace.
+The `AGENTS.md` file (with host adapter aliases such as `GEMINI.md` and `CLAUDE.md`) at the repository root serves as the **Master BIOS** and **Active Router** for all cognitive operations within the workspace.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -13,8 +13,9 @@ The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the rep
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                GEMINI.md (§3.5 Internal Routing Analysis)              │
-│  Matches prompt against §4 JIT Table → Executes view_file on Target   │
+│           AGENTS.md (§1.5 Bootstrap & §3.5 Routing Analysis)           │
+│  1. Checks `.orion/working/ACTIVE_TASK.md` (Bento Single-Task Gate)    │
+│  2. Matches prompt against §4 JIT Table → Executes view_file on Target │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
             ┌───────────────────────┴───────────────────────┐
@@ -23,7 +24,7 @@ The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the rep
 │     Core Guardrails Check     │               │   Orion Context Sync  │
 │  - Evidence Mandate           │               │  `brain sync <query>` │
 │  - Circuit Breaker (3 fails)  │               │  Injects 1-hop graph  │
-│  - Sequential Tool Ban        │               │  and vector nodes     │
+│  - Zero Contiguous Paging     │               │  and vector nodes     │
 └───────────────┬───────────────┘               └───────────┬───────────┘
                 │                                           │
                 └───────────────────────┬───────────────────┘
@@ -35,7 +36,7 @@ The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the rep
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                      Unified Response Footer (§5)                      │
-│   🚦 CHECKPOINT  •  📋 EVIDENCE  •  🧠 EVALUATION  •  🔮 NEXT TASK     │
+│  🚦 CHECKPOINT • 📋 EVIDENCE • ⚡ RECOMMENDED TIER • 🔮 NEXT TASK       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,7 +44,9 @@ The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the rep
 
 ### 2.1. Core Guardrails & Behavioral Mandates (§1)
 - **Evidence Mandate**: Never claim success without verifiable proof. `Exit Code 0` is required, but agents must verify stdout/stderr assertions, test counts, and state transitions to prevent masked failures.
+- **Vision Invariant Lock (`context/VISION.md`)**: If `context/VISION.md` exists, it is the immutable North Star of the application. Agents MUST NOT modify `context/VISION.md` without explicit human instruction, and MUST NOT propose or implement changes that contradict its Core Essence, Invariants, or Anti-Vision.
 - **Circuit Breaker**: If any specific tool call or test fails 3 times consecutively, STOP calling tools immediately. Output root-cause error analysis and request operator intervention.
+- **Code Skeleton First (Zero Contiguous Paging)**: Files $\le 350$ lines may be read directly. For files $> 350$ lines, agents must run `python .agents/scripts/orion.py scan map <file>` first to obtain exact `[Lstart-Lend]` symbol spans before reading targeted blocks.
 - **No Raw CLI Patching**: Forbidden from editing source code via terminal strings (`python -c`, `sed`, `awk`). All modifications must route through native IDE file editing tools.
 - **Surgical Diff Mandate**: Modify only code strictly required by the prompt. Never delete pre-existing comments, dead code, or alter adjacent formatting.
 - **Code Authenticity**: Forbidden from introducing empty catch blocks (`catch (e) {}`), simulated latency (`setTimeout`/`sleep`), or synthetic mock APIs into production paths.
@@ -52,88 +55,104 @@ The `GEMINI.md` file (and parallel host adapters such as `CLAUDE.md`) at the rep
 
 ### 2.2. Session Bootstrap & JIT Knowledge Routing (§1.5 & §4)
 
-To prevent context bloat, agents do not preload all rules. When a prompt matches a recognized trigger, the agent must load the corresponding target immediately in the first turn:
+During session bootstrap, if `.orion/working/ACTIVE_TASK.md` exists, the agent reads it first and executes only that single atomic Bento task before running `python .agents/scripts/orion.py bento next --verify`.
 
-| Trigger Domain | Immediate JIT Target |
-|:---|:---|
+To prevent context bloat, agents do not preload all rules. When a prompt matches a recognized trigger, the agent loads the corresponding target immediately in the first turn:
+
+| If User Prompt Relates To... | Immediately Load (view_file / Read) |
+| :--- | :--- |
 | **Setup .agents, Onboard Workspace, Doctor Check, Install Pillars, Activate Obsidian Vault / Second Brain** | `.agents/DEPLOY_ME.md` |
-| **New Project, Init, Scaffold, Greenfield** | `.agents/skills/app-lifecycle/references/project-init.md` |
-| **Legacy Migration, Brownfield, Migrate** | `.agents/skills/app-lifecycle/references/project-migrate.md` |
-| **Feature Scaffold, New Model, Screen** | `.agents/skills/app-lifecycle/references/app-builder.md` |
-| **Business Strategy, Growth, Viability** | `.agents/skills/saas-strategist/SKILL.md` |
-| **System Architecture, Database Schema** | `.agents/skills/project-architect/SKILL.md` |
-| **Frontend UI, Layout, Aesthetics** | `.agents/skills/ui-finish/SKILL.md` |
-| **Security Audit, QA, Testing, Validation** | `.agents/skills/integrity-sentinel/SKILL.md` |
-| **Data Immutability, State Management** | `.agents/skills/data-logic/SKILL.md` |
-| **API Contracts, Zod, Schemas** | `.agents/skills/api-contract/SKILL.md` |
-| **Orion, Knowledge Base, Ingest, Graph** | `.agents/skills/brain-graph/SKILL.md` |
-| **Debugging, Errors, Crashes, Runtime** | `.agents/skills/frontend-experience/SKILL.md` & `systematic-debugging/SKILL.md` |
-| **Deployment, Build, Release, CI/CD** | `.agents/skills/project-operator/SKILL.md` |
-| **Performance, Latency, Speed** | `.agents/rules/performance-optimization.md` |
-| **Cost Analysis, Token Budget, LLM Costs** | `.agents/skills/cost-optimizer/SKILL.md` |
-| **Audit Vectors, Diagnostic Matrix** | `.agents/skills/integrity-sentinel/references/audit_vectors.md` |
-| **Code Review, PR Review** | `.agents/skills/code-review/SKILL.md` |
-| **Token Reduction, Lessword Mode** | `.agents/skills/lessword/SKILL.md` |
-| **Session End, Handoff, Eviction** | `.agents/skills/session-offload/SKILL.md` |
-| **Strict TDD, Writing Tests** | `.agents/skills/strict-tdd/SKILL.md` |
-| **Agent Self-Learning, /learn** | `.agents/skills/self-evolve/SKILL.md` |
-| **Documentation, Anti-Slop, Prose** | `.agents/rules/prose-authenticity.md` |
+| **New Project, Init, Scaffold, Start from Scratch** | `.agents/skills/app-lifecycle/references/project-init.md` |
+| **Legacy Migration, Brownfield, Onboard Existing, Migrate Project** | `.agents/skills/app-lifecycle/references/project-migrate.md` |
+| **Feature Scaffold, App Builder, New Model, Repository, Screen, End-to-End Feature Creation** | `.agents/skills/app-lifecycle/references/app-builder.md` |
+| **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
+| **System Architecture, Database Schema, Blueprint, Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
+| **Frontend UI, Layout, Aesthetics, Visual Craft, Animations, Code Comment Hygiene** | `.agents/skills/ui-finish/SKILL.md` |
+| **Security Audit, QA, Testing, Bugs, Validation (App Code)** | `.agents/skills/integrity-sentinel/SKILL.md` |
+| **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
+| **API Contracts, Zod, Schemas, Request Validation** | `.agents/skills/api-contract/SKILL.md` |
+| **Orion, Knowledge Base, Ingest, Lint, Cross-reference** | `.agents/skills/brain-graph/SKILL.md` |
+| **Debugging, Errors, Crashes, Runtime Issues** | `.agents/skills/frontend-experience/SKILL.md` & `.agents/skills/systematic-debugging/SKILL.md` |
+| **Deployment, Build, Release, CI/CD, DevOps** | `.agents/skills/project-operator/SKILL.md` |
+| **Performance, Latency, Speed, Optimization** | `.agents/rules/performance-optimization.md` & `.agents/skills/cost-optimizer/SKILL.md` |
+| **Cost Analysis, Token Budget, LLM Costs** | `python .agents/scripts/orion.py scan tokens` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
+| **meta-agent-admin, /meta-agent-admin, Audit .agents, Ecosystem Audit, Foundation Review, Template Health, System Mod, Rules** | `.agents/AGENTS_INDEX.md` & `.agents/skills/meta-agent-admin/SKILL.md` |
+| **Code Review, PR Review (App Code)** | `.agents/skills/code-review/SKILL.md` |
+| **Token Reduction, Compression, Lessword Mode** | `.agents/skills/lessword/SKILL.md` & `.agents/skills/lessword/references/lessword-compress.md` |
+| **Accessibility, A11y, Micro-interactions, Web UX** | `.agents/skills/palette/SKILL.md` |
+| **Session End, Handoff, Context Eviction** | `.agents/skills/session-offload/SKILL.md` |
+| **Test-Driven Development (TDD), Writing Tests** | `.agents/skills/strict-tdd/SKILL.md` |
+| **Full Lifecycle Pipeline, State Machine** | `.agents/skills/app-lifecycle/SKILL.md` |
+| **Feature Deprecation, Sunset Code, Dead Code Purge** | `.agents/skills/app-lifecycle/references/feature-sunset.md` |
+| **Agent Self-Learning, Reflection, Pattern Synthesis, Harness, Autoharness, /learn** | `.agents/skills/self-evolve/SKILL.md` |
+| **Agent Identity, Onboarding, Personality, Bootstrap** | `context/AGENT_IDENTITY.md` (or `.agents/templates/agent-identity-template.md` if uninitialized) |
+| **Temporal Pulse, Daily Summary, Weekly Synthesis** | `.agents/skills/self-evolve/references/temporal-pulse.md` |
+| **Worker Delegation, Sub-agent, Task Splitting** | `.agents/skills/worker-delegate/SKILL.md` |
+| **AI Engineering, Model Drift, Probabilistic Traits** | `.agents/skills/ai-engineer/SKILL.md` |
+| **Codebase Audit, Audit Ledger, Multi-Session Audit** | `.agents/skills/integrity-sentinel/references/audit-ledger.md` |
+| **Audit Vectors, Deep Diagnostic Matrix, Logic/Fail-Fast/Bloat/DRY** | `.agents/skills/integrity-sentinel/references/audit_vectors.md` |
+| **Business Rule Extraction, Conversational Context** | `.agents/skills/session-offload/references/auto-context.md` |
+| **Knowledge Extraction, Graph Triplet Ingestion** | `.agents/skills/brain-graph/references/knowledge-extraction.md` |
+| **Documentation, Copywriting, Readme, PR Description, Anti-Slop, Prose** | `.agents/rules/prose-authenticity.md` |
 
 ---
 
-### 2.3. Unified Response Footer (§5)
+### 2.3. Unified Response Footer & Manual Model Routing (§5)
 
-Responses terminate with a structured status block tailored to the turn type:
+Every delivered response terminates with a standardized footer that advises the operator which model tier (`BUDGET`, `STANDARD`, or `PREMIUM`) to select for the upcoming `NEXT TASK` (omitting `RECOMMENDED TIER` only when `NEXT TASK` is `"None"`):
 
-**Conversational / Q&A Turn (2 lines):**
+**Conversational / Q&A Turn (3 lines):**
 ```markdown
-🚦 **CHECKPOINT**: [Brief summary of explanation]
+🚦 **CHECKPOINT**: [Brief summary of the answer or explanation]
+⚡ **RECOMMENDED TIER**: [BUDGET (Flash/Haiku) | STANDARD (Pro/Sonnet) | PREMIUM (Thinking/Opus)] — [1-phrase reason for NEXT TASK]
 🔮 **NEXT TASK**: [Immediate next step or "None"]
 ```
 
-**Standard Execution Turn (3 lines):**
+**Standard / Execution / Planning Turn (4 lines):**
 ```markdown
-🚦 **CHECKPOINT**: [Summary of action accomplished]
-📋 **EVIDENCE**: [Exit Code X, test count, or verified mechanical state]
-🔮 **NEXT TASK**: [Immediate next workflow step or "None"]
+🚦 **CHECKPOINT**: [Brief summary of what was accomplished]
+📋 **EVIDENCE**: [Exit Code X, test status, or verified mechanical state]
+⚡ **RECOMMENDED TIER**: [BUDGET (Flash/Haiku) | STANDARD (Pro/Sonnet) | PREMIUM (Thinking/Opus)] — [1-phrase reason for NEXT TASK]
+🔮 **NEXT TASK**: [Immediate next workflow step or /slash-command]
 ```
 
-**Premium / Deep Architectural Turn (4 lines):**
+**Premium / Deep Architectural Turn (5 lines):**
 ```markdown
-🚦 **CHECKPOINT**: [Summary of multi-system changes accomplished]
-📋 **EVIDENCE**: [Exact Exit Code and output verification status]
-🧠 **EVALUATION**: [Execution smooth | Root-cause analysis if errors occurred]
-🔮 **NEXT TASK**: [Next workflow step or "None"]
-```
-
-**Milestone / Phase-End Turn (4 lines):**
-```markdown
-🚦 **CHECKPOINT**: [Summary of milestone accomplished]
-📋 **EVIDENCE**: [Exit Code X or verified mechanical state]
-⚡ **RECOMMENDED TIER**: [BUDGET | STANDARD | PREMIUM]
-🔮 **NEXT TASK**: [Next workflow step with recommended /slash-command]
+🚦 **CHECKPOINT**: [Brief summary of what was accomplished]
+📋 **EVIDENCE**: [State the EXACT Exit Code or output status. If Exit Code > 0, do NOT claim success.]
+🧠 **EVALUATION**: [Execution smooth | Execution rough: brief root-cause / error analysis]
+⚡ **RECOMMENDED TIER**: [BUDGET (Flash/Haiku) | STANDARD (Pro/Sonnet) | PREMIUM (Thinking/Opus)] — [1-phrase reason for NEXT TASK]
+🔮 **NEXT TASK**: [Next workflow step. MUST include a /slash-command recommendation if applicable, e.g. /integrity-sentinel]
 ```
 
 ---
 
-## Chapter 3: Omni-Buffer & Execution State Synchronization
+## Chapter 3: Cache-Aware Omni-Buffer & Execution State Synchronization
 
-### 3.1. The Omni-Buffer (`.orion/working/context.json`)
-The pre-invocation hook (`hooks/pre-agent-wake.py`) evaluates editor state before the agent processes a user turn, emitting an atomic JSON state file:
+### 3.1. The Cache-Aware Omni-Buffer (`.orion/working/context.json`)
+The pre-invocation hook (`hooks/pre-agent-wake.py`) evaluates editor state, active Bento tasks, and observation digests before the agent processes a turn:
 ```json
 {
   "timestamp_ms": 1776180000000,
+  "structural_hash": "9c4b1e8a7f0d2c3b",
   "active_file": "lib/src/auth/auth_service.dart",
   "terminal_error": "",
   "user_intent": "",
   "ide_source": "antigravity",
   "evolution_overdue": false,
-  "unprocessed_learnings": 1
+  "unprocessed_learnings": 1,
+  "active_bento_task": {
+    "task_id": "2.1",
+    "title": "Add Post-Condition Disk Mutation Gate",
+    "target_file": ".agents/scripts/commands/bento_slicer.py"
+  },
+  "temporal_gap_marker": null
 }
 ```
 
-- **Stale Data Guard**: If `timestamp_ms` is older than 5 minutes, the agent disregards the buffer and requests direct user clarification.
-- **Darwinian Evolution Flag**: If `unprocessed_learnings >= 3`, the hook flags `"evolution_overdue": true`, requiring the agent to review `.agents/skills/self-evolve/SKILL.md`.
+- **5-Minute Prompt-Cache Preservation Gate**: Regenerating `context.json` with a fresh timestamp on every turn invalidates prefix KV prompt caches in LLM hosts. `pre-agent-wake.py` computes a SHA-256 `structural_hash` over `active_file`, `terminal_error`, `active_bento_task`, and `evolution_overdue`. If the previous write occurred $< 300$ seconds ago and `structural_hash` is unchanged, the hook skips rewriting `context.json` and exits in $< 5$ms.
+- **Temporal Gap Marker**: When an idle gap $\ge 300$ seconds occurs, the hook emits `"temporal_gap_marker": "[IDLE GAP: Xm elapsed since last turn]"` so the agent re-verifies external state assumptions.
+- **Darwinian Evolution Flag**: If `unprocessed_learnings >= 3` or open observations exceed threshold, the hook flags `"evolution_overdue": true`.
 
 ### 3.2. Crash-Proof Execution State (`.orion/working/execution_state.json`)
 Active task state is tracked through `orion.py fsm` to isolate transient session context from execution workflows. If the host IDE restarts unexpectedly, the hook injects recovery parameters, allowing the agent to resume execution at the exact interrupted step:
@@ -186,6 +205,19 @@ Hardware and toolchain capability detection is centralized in `core/capabilities
 python .agents/scripts/orion.py preflight --pillars
 ```
 
+### 5.1. Elastic Neuro-Symbolic Continuum (`core/capabilities.py`)
+Rather than treating local models as a binary on/off switch, `resolve_elastic_execution_plan(task_type, blast_radius_files, span_lines)` computes a deterministic execution contract based on detected local model parameter count (`max_model_params_b`) and task blast radius:
+
+| Parameter Tier | Capability Class | Max Local Repair Trials | Allowed Autonomous Tasks | Cloud Handoff Strategy |
+|:---|:---|:---|:---|:---|
+| **`0B` (Offline)** | `none` | `0` | Mechanical AST/Regex/SQLite FTS5 only | `cloud_ide_direct` (`BUDGET`/`STANDARD`/`PREMIUM`) |
+| **`1.5B`–`2.9B`** | `nano` | `2` | `triplets`, `summarize`, `json_extract` | `cloud_ide_code` (defers code edits to Cloud IDE) |
+| **`3.0B`–`6.9B`** | `micro_syntax` | `1` (AST-guarded) | `triplets`, `summarize`, `syntax_fix` (1 file, $\le 50$ lines) | `local_micro_then_cloud` |
+| **`7.0B`–`31.9B`** | `single_fn` | `2` | Single-file refactoring & `auto_heal` ($\le 150$ lines) | `local_first_then_cloud` |
+| **`>= 32.0B`** | `multi_fn` | `3` | Multi-function synthesis ($\le 3$ files, $\le 350$ lines) | `local_autonomous_with_cloud_fallback` |
+
+To prevent reasoning models (such as `deepseek-r1` or `qwen3`) from corrupting structured JSON outputs, `_strip_reasoning_and_fences()` strips both closed `<think>...</think>` blocks and truncated unclosed `<think>` tails before `_extract_json_payload()` parses the response.
+
 ---
 
 ## Chapter 6: Centaur Exoskeleton & Fail-Closed Enforcement Architecture
@@ -207,24 +239,55 @@ State bypasses are locked against accidental or adversarial greenwashing:
 - **10-Minute TTL Expiration**: Transient flags such as `.orion/working/adversarial.json` and `TDD_RED` expire after 10 minutes, preventing stale error suppressions.
 - **Verified Test Gating**: Failure counters in `failures.log` can only be reset by a verified test suite pass (`Exit Code 0`), preventing benign commands like `git status` from clearing failure streaks.
 
-### 6.4. Deterministic Prompt-in-Data Sandboxing (`utils/packer.py`)
-When exporting codebase context bundles for multi-model frontier audits:
-- **Tag Breakout Protection**: Literal closing tags (`</artifact>`) within source files are escaped to `&lt;/artifact&gt;`, eliminating XML envelope breakouts.
-- **Directive Verb Neutralization**: Imperative action verbs (`Immediately Load`, `Execute view_file ... IMMEDIATELY`) in Markdown tables and bullet lists are neutralized to prevent data from masquerading as system instructions.
+### 6.4. Zero-Escape Bento Task Slicer (`commands/bento_slicer.py`)
+To prevent Budget and Standard models in IDE chat sessions from skipping multi-file tasks or hallucinating line offsets:
+- **Topological Blast-Radius Sorting ($T_0 \to T_5$) & Bottom-Up File Ordering**: `orion.py bento init <plan.md>` parses implementation plans into atomic tasks, splits multi-pair cards into sub-tasks (`1.1a`, `1.1b`), checks `TTP-*` finding coverage, sorts tasks by architectural tier, and orders same-file edits from highest line number to lowest.
+- **Live AST Anchor Recalibration & Whitespace Alignment**: Before rendering `.orion/working/ACTIVE_TASK.md`, the engine locates the exact `SEARCH` block on disk, populates `## 3. Verbatim SEARCH Block` with the exact disk window (`raw_window`), and shifts `## 4. Exact Drop-In REPLACE Block` by the exact leading whitespace delta.
+- **Post-Condition Disk Mutation Gate**: `orion.py bento next --verify` inspects the target file on disk before running tests. If the `SEARCH` block is still unpatched and `REPLACE` is absent, progression is rejected with `Exit Code 2 ([BENTO NO-OP REJECTED])`. Multi-line verification commands execute sequentially.
 
 ### 6.5. Modular Gateway CLI Architecture (`commands/`)
-The monolithic `commands/brain.py` (5,211 lines) is decomposed into four focused Gateway CLI engines, maintaining strict sub-500-line modularity targets while preserving full backward compatibility:
-- **`commands/compact.py`** (1,582 lines): 5-tier context compaction (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), stream elision, and Lessword protocol execution.
-- **`commands/rag.py`** (558 lines): Local hybrid retrieval combining SQLite FTS5 BM25, packed float32 vector embeddings, 1-hop graph neighbor expansion, and RAG diagnostic scoring.
-- **`commands/vault.py`** (125 lines): Obsidian-compatible graph vault export and 4-note Second Brain briefing generation.
-- **`commands/brain.py`** (2,990 lines): Unified cognitive facade, Ollama hardware discovery (`NanoBrain`), rule matrix compilation, and backward-compatible command routing.
+The CLI execution layer in `.agents/scripts/commands/` is organized into 9 focused Gateway CLI engines routed through `orion.py`:
+- **`commands/brain.py`**: Unified cognitive facade, Ollama hardware discovery (`NanoBrain`), rule matrix compilation, and contradiction management.
+- **`commands/bento_slicer.py`**: Topological Bento task slicer, live AST anchor recalibrator, disk indentation aligner, and post-condition disk mutation gate (`bento init|next|status|reset`).
+- **`commands/compact.py`**: 5-tier context compaction (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), stream elision, and Lessword protocol execution.
+- **`commands/rag.py`**: Local hybrid retrieval combining SQLite FTS5 BM25, packed float32 vector embeddings, 1-hop graph neighbor expansion, and `superseded_by` filtering.
+- **`commands/vault.py`**: Obsidian-compatible graph vault export and 4-note Second Brain briefing generation.
+- **`commands/foundation.py`**: Interactive setup wizard, 4-pillar capability doctor, Hub-and-Spoke deployment (`deploy`, `sync-ai`, `push-upstream`), and project initialization.
+- **`commands/state_machine.py`**: Formal state machine (`fsm`), Git-bound checkpoint rollback, and budget telemetry.
+- **`commands/reflexion.py`**: 5-status Observation Ledger (`OBSERVATIONS.md`), Temporal Pulse consolidation, operator habit mining, and wikilink injection.
+- **`commands/verify_agents.py`**: 8-gate mechanical verifier, structural ceiling gatekeeper (`core_max_lines`), preflight auditor, and delta-scoped AST mutation engine.
 
-### 6.6. Universal Project DNA v2 & Multi-Workspace Packer Engine (`utils/packer.py`)
+### 6.6. Universal Project DNA & Multi-Workspace Packer Engine (`utils/packer.py`)
 To enable multi-model frontier code audits without file upload limit friction or context explosion:
 - **Monorepo & Polyglot Discovery**: Recursively detects polyglot manifests across root and nested sub-containers (`apps/`, `packages/`, `services/`, `modules/`, etc.).
 - **5-Tier Architectural Taxonomy**: Classifies application files into architectural strata: `contracts` (DTOs, schemas), `domain` (models, entities, usecases), `services` (clients, network, database), `state` (blocs, controllers, stores), and `presentation` (views, screens, components).
-- **Cross-Bundle Import Router**: Identifies cross-bundle dependencies across standard source roots (`src/`, `lib/`, `app/`, `packages/`) while filtering generic file stems (`index`, `main`, `mod`, `route`).
-- **Polyglot Static Audit Radar**: Evaluates execution sinks (`eval`, `exec`, `spawn`, `Process.run`, `Runtime.exec`, `dangerouslySetInnerHTML`) and empty catches (`catch {}`) across 10+ languages, surfacing a pre-audit radar in Bundle 01.
-- **Global AST Symbol Compass**: Indexes polyglot declarations (Rust `pub fn`/`struct`, Go `func`/`type`, TypeScript/React `export const ... =>`, Dart/Java classes) for zero-latency lookup.
-- **Balanced Subtree Bin-Packing**: Uses `balance_into_k_bundles()` to partition repository volume into at most 10 balanced Markdown files (`.md`) across isolated tier subfolders (`.orion/bundles/{arch,hybrid,full}/`).
+- **Dynamic Graph Topology Clustering (`graph_topology`)**: Groups codebase volume organically using PageRank architectural centrality and AST import graph cohesion, preventing arbitrary bucket collapses and sub-clustering native packages (e.g. JVM/Android namespaces).
+- **Cross-Bundle Import Router**: Identifies cross-bundle dependencies across standard source roots (`src/`, `lib/`, `app/`, `packages/`) while preserving multi-segment paths (e.g. `lib/main`, `ir/types`) with $O(1)$ object-identity caching.
+- **Polyglot Static Audit Radar**: Evaluates execution sinks (`eval`, `exec`, `spawn`, `execAsync`, `MethodChannel`) and broad/silent catches (`catch {}`) across 10+ languages, surfacing a pre-audit radar in Bundle 01.
+- **Interactive 4-Turn Phased Audit Playbook**: Auto-generates `00_GEMINI_WEB_AUDIT_PROMPT.txt` tailored to the repository, orchestrating a 4-turn audit protocol (Architecture/Contracts → Core Services/Logic → Presentation/Bridges → Verification/Hardening) with signature preservation mandates.
+- **Large Static JSON Schema Sampling (`shrink_json`)**: Compresses massive JSON catalogs (>350 lines) into representative schema samples with sample items, saving 35k–40k tokens on raw data blobs.
+- **Adversarial Forensic Hardening (DEFECT-01 to DEFECT-11 & F-01 to F-08)**:
+  - *Prompt-in-Data Shield*: Unconditionally escapes prompt injection tags across all lines including code fences.
+  - *Safe Polyglot I/O*: Reads files via `read_text_safe()` with `utf-8-sig` and `utf-16` fallback, eliminating BOM corruption.
+  - *Single Root BIOS Deduplication*: Bundles only the canonical `AGENTS.md`, dropping duplicate aliases (`GEMINI.md`) in host app packages.
+  - *DSL & Precondition Filtering*: Excludes Kotlin/Java preconditions (`require`, `check`) and scope functions (`let`, `run`, `apply`) from matching as function declarations.
+  - *CLI Entrypoint Preservation*: Preserves executable entrypoints in `bin/` (e.g. `bin/flutterin.mjs`).
+  - *Symlink Loop Protection*: Enforces realpath containment and disables recursive symlink traversal.
+- **Balanced Subtree Bin-Packing**: Uses `balance_into_k_bundles()` with an overflow penalty to partition repository volume into at most 10 balanced Markdown files (`.md`) across isolated tier subfolders (`.orion/bundles/{arch,hybrid,full}/`).
 
+### 6.7. Sovereign & Mechanical Exception Boundaries (`@sovereign_catch` & `@mechanical_catch` in `core/db.py`)
+To eliminate silent failures and mutable fallback corruption across the Python engine, `core/db.py` provides two deterministic exception decorators:
+- **`@mechanical_catch(fallback_value, context, log_Warning, post_condition)`**:
+  1. Executes the target function and validates the return value against an optional `post_condition` callable. If `post_condition(result)` returns `False`, raises `ValueError("Post-condition failed")` to trap silent semantic corruption before it propagates.
+  2. Returns `copy.deepcopy(fallback_value)` on failure so callers cannot mutate shared default lists or dicts across turns.
+  3. Appends structured failure records (`ts`, `context`, `func`, `error_type`, `error`) to `.orion/working/mechanical_catches.jsonl`.
+- **`@sovereign_catch(fallback_fn, context, severity)`**:
+  Executes a dynamic `fallback_fn(*args, **kwargs)` recovery path while recording structured diagnostics to `.orion/working/mechanical_catches.jsonl` and surfacing `[SOVEREIGN_CATCH]` warnings when `ORION_DEBUG=1`.
+
+### 6.8. Living Architectural DNA Engine (`core/dna.py`)
+Every workspace is continuously sequenced by `core/dna.py` (`orion.py dna scan|verify|discover|trend`) and persisted in `.agents/.dna.json`:
+1. **6-Strata Architectural Classification**: Classifies every source file into one of 6 canonical tiers: `0_pillars_and_manifests`, `1_contracts_and_schemas`, `2_domain_and_models`, `3_services_and_repositories`, `4_state_and_controllers`, `5_presentation_and_ui`, and `6_tests_and_evals` (plus `other_unclassified`).
+2. **Genomic Lifecycle State (`BORN` vs `MUTATING`)**: New workspaces start in `BORN` state (discovery mode) and transition to `MUTATING` once the architectural baseline is locked.
+3. **Brownfield Epigenetic Aliasing (`epigenetic_aliases`)**: Rather than forcing existing brownfield repositories to rename directories to match rigid framework templates, `orion.py dna discover` inspects actual directory trees and binds project-specific folder names (e.g., `adapters/`, `handlers/`, `screens/`) to canonical strata in `.dna.json`.
+4. **Directional Import Layer Enforcement**: Static AST/regex import analysis verifies that lower-level strata (`1_contracts_and_schemas`, `2_domain_and_models`) never import upward from `5_presentation_and_ui`.
+5. **DNA Compliance Score (`0`–`100`) & Trend Telemetry**: Computes a composite health score penalized only by real structural violations (`unclassified_ratio`, upward layer violations, and files exceeding line ceilings) and records historical snapshots in `.orion/dna_history.jsonl`.
