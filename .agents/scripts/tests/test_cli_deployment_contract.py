@@ -214,6 +214,11 @@ class CliDeploymentContractTests(unittest.TestCase):
             self.assertIn("cursor", detected)
             self.assertNotIn("windsurf", detected)
 
+    def test_evolve_command_is_reachable(self):
+        result = run_script(ORION, "evolve", "--help")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Target archetype profile: utility, connected, or saas", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

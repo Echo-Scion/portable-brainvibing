@@ -76,6 +76,7 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **master-audit**: `.agents/skills/integrity-sentinel/references/master-audit.md` (Holistic codebase audit procedures)
 - **meta-agent-audit**: `.agents/skills/meta-agent-admin/references/meta-agent-audit.md` (Ecosystem audit and integrity verification)
 - **motion-performance**: `.agents/skills/ui-finish/references/motion_performance.md` (60 FPS GPU compositor properties, layout thrashing prevention, and FLIP transitions)
+- **observation-signals**: `.agents/skills/self-evolve/references/observation-signals.md` (Observation ledger taxonomy, status lifecycle & 2nd-violation barrier escalation)
 - **offensive-audit**: `.agents/skills/integrity-sentinel/references/offensive-audit.md` (Adversarial QA, race conditions, logic boundaries, and security resilience)
 - **plan-checklist**: `.agents/skills/integrity-sentinel/references/plan-checklist.md` (Pre-implementation planning verification)
 - **project-init**: `.agents/skills/app-lifecycle/references/project-init.md` (Root/sub-project unified initialization)

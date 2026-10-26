@@ -85,6 +85,7 @@ SKILLS_DIR = os.path.join(BASE_DIR, "skills")
 RULES_DIR = os.path.join(BASE_DIR, "rules")
 CANONS_DIR = os.path.join(BASE_DIR, "canons")
 FOUNDATION_PATH_MARKER = os.path.join(BASE_DIR, ".foundation_path")
+IS_SPOKE = os.path.exists(FOUNDATION_PATH_MARKER)
 
 # ==============================================================================
 # CONTEXT NAMING LINT (Absorbed from context_naming_lint.py)
@@ -97,21 +98,46 @@ PILLAR_MASTERS: Dict[str, str] = {
     "03_Tech": "ARCHITECTURE.md",
 }
 
+# 25-File Golden Ratio Registry: 1 Master + 4-5 Cohesive Domain Facets per Pillar (<=6 files/folder)
 STANDARD_MASTERS: Dict[str, Set[str]] = {
-    "00_Strategy": {"MEMORY.md"},
-    "01_Product": set(),
-    "02_Creative": set(),
-    "03_Tech": set(),
+    "00_Strategy": {
+        "MEMORY.md",
+        "PERSONAS_AND_MARKET.md",
+        "ACQUISITION_AND_GROWTH.md",
+        "MONETIZATION_AND_PRICING.md",
+        "RETENTION_AND_LEGAL.md",
+    },
+    "01_Product": {
+        "PRD_CORE_FEATURES.md",
+        "USER_JOURNEYS_AND_FLOWS.md",
+        "ANALYTICS_AND_METRICS.md",
+        "INTEGRATIONS_AND_WEBHOOKS.md",
+        "FEEDBACK_AND_BACKLOG.md",
+    },
+    "02_Creative": {
+        "UI_COMPONENTS_AND_PATTERNS.md",
+        "UX_AND_ACCESSIBILITY.md",
+        "BRAND_VOICE_AND_COPY.md",
+        "VISUAL_ASSETS_AND_MEDIA.md",
+    },
+    "03_Tech": {
+        "DATABASE_AND_STORAGE.md",
+        "API_AND_CONTRACTS.md",
+        "STATE_AND_DOMAIN_LOGIC.md",
+        "SECURITY_AND_AUTH.md",
+        "INFRA_AND_DEVOPS.md",
+    },
 }
 
 TRANSITIONAL_ALLOWED: Dict[str, Set[str]] = {
-    "00_Strategy": set(),
-    "01_Product": {"PRD.md"},
-    "02_Creative": set(),
-    "03_Tech": set(),
+    "00_Strategy": {"MARKET_AND_GROWTH.md"},
+    "01_Product": {"PRD.md", "PRD_SPECS.md", "USER_ANALYTICS.md"},
+    "02_Creative": {"UX_AND_COPY.md"},
+    "03_Tech": {"DATA_AND_API.md", "INFRA_AND_SECURITY.md"},
 }
 
 ROOT_ALLOWED = {
+    "VISION.md",
     "README.md",
     "MIGRATION_MAP.md",
     "AGENT_IDENTITY.md",
@@ -162,14 +188,39 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
     registry_file = os.path.join(BASE_DIR, "templates", "PROJECT_SCAFFOLD.template.md")
 
     if not os.path.isdir(context_dir):
-        output.append("[INFO] Workspace lacks context/ dir. Bypassing 82-file SaaS lint.")
+        output.append("[INFO] Workspace lacks context/ dir. Bypassing context naming lint.")
         return 0, 0, output
 
-    allowed_from_registry = parse_registry(registry_file)
+    # Load optional epigenetic context_aliases from .agents/.dna.json for brownfield flexibility
+    epigenetic_context_files: Set[str] = set()
+    dna_json_path = os.path.join(BASE_DIR, ".dna.json")
+    if os.path.isfile(dna_json_path):
+        try:
+            with open(dna_json_path, "r", encoding="utf-8") as _df:
+                _dna_data = json.load(_df)
+                for _src_rel in (_dna_data.get("context_aliases") or {}).keys():
+                    epigenetic_context_files.add(_src_rel.replace("\\", "/"))
+        except Exception:
+            pass
+
+    # Source Code Collision Shield: check if context/ contains source code files
+    code_extensions = {".ts", ".tsx", ".js", ".jsx", ".py", ".dart", ".go", ".rs", ".kt", ".java", ".cpp", ".c"}
+    has_source_code_in_context = False
+    for root, _, files in os.walk(context_dir):
+        if any(os.path.splitext(f)[1].lower() in code_extensions for f in files):
+            has_source_code_in_context = True
+            break
+
+    if has_source_code_in_context:
+        output.append("[INFO] [CODE_COLLISION_GUARD] Source code detected inside context/ directory. Bypassing context naming lint.")
+        return 0, 0, output
+
+    allowed_from_registry = parse_registry(registry_file) if os.path.isfile(registry_file) else {}
 
     root_files = [f for f in os.listdir(context_dir) if os.path.isfile(os.path.join(context_dir, f))]
     for f in sorted(root_files):
-        if f not in ROOT_ALLOWED and not f.startswith("local-"):
+        rel_p = f"context/{f}"
+        if f not in ROOT_ALLOWED and not f.startswith("local-") and rel_p not in epigenetic_context_files:
             errors += 1
             output.append(
                 f"[ERROR] context/{f} is not allowed at context root. "
@@ -199,7 +250,8 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
         allowed.update(TRANSITIONAL_ALLOWED.get(pillar, set()))
 
         for f in sorted(files):
-            if f in allowed:
+            rel_p = f"context/{pillar}/{f}"
+            if f in allowed or rel_p in epigenetic_context_files:
                 if f in TRANSITIONAL_ALLOWED.get(pillar, set()):
                     warnings += 1
                     output.append(
@@ -211,29 +263,30 @@ def lint_context(strict: bool = True) -> Tuple[int, int, List[str]]:
                 errors += 1
                 output.append(
                     f"[ERROR] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from PROJECT_SCAFFOLD.template.md"
+                    f"Use 25-file Golden Ratio registry names or add epigenetic alias."
                 )
             else:
                 warnings += 1
                 output.append(
                     f"[WARNING] Non-registry file in context/{pillar}: {f}. "
-                    f"Use 82-file registry names from PROJECT_SCAFFOLD.template.md"
+                    f"Use 25-file Golden Ratio registry names or add epigenetic alias."
                 )
 
     return errors, warnings, output
 
 
 def main_context_lint(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog="verify_agents.py context-lint", description="Lint context naming against 82-file registry.")
+    parser = argparse.ArgumentParser(prog="verify_agents.py context-lint", description="Lint context naming against 25-File Golden Ratio + Epigenetic Registry.")
     parser.add_argument("--non-strict", action="store_true", help="Downgrade non-registry files to warnings.")
     args = parser.parse_args(argv if argv is not None else sys.argv[2:])
 
     strict = not args.non_strict
-    print("Running Context Naming Lint (82-file registry + master anchors)...")
+    print("Running Context Naming Lint (25-File Golden Ratio + Epigenetic Registry)...")
 
     try:
         errors, warnings, output = lint_context(strict=strict)
     except Exception as ex:
+        _log_telemetry(ex, "verify_agents:main_context_lint")
         print(f"[ERROR] Lint failed unexpectedly: {ex}")
         return 1
 
@@ -578,8 +631,9 @@ def check_links(res: AuditResult, verbose: bool = True):
                     (skill_dir_target and os.path.exists(skill_dir_target))
                 )
                 if not exists and "skills/internal" not in target.replace('\\', '/'):
-                    line_no = find_line_num(content, match.group(0))
-                    res.add_error("LINK", f"Broken backticked file reference: `{target}`", f"{rel_path}:{line_no}")
+                    if not (IS_SPOKE and target.replace('\\', '/').startswith("canons/ecosystems/")):
+                        line_no = find_line_num(content, match.group(0))
+                        res.add_error("LINK", f"Broken backticked file reference: `{target}`", f"{rel_path}:{line_no}")
 
             # Strip code fences and inline backticks to avoid false positives on doc examples
             non_code_content = re.sub(r'```.*?```', '', content, flags=re.DOTALL)
@@ -599,8 +653,9 @@ def check_links(res: AuditResult, verbose: bool = True):
                 # Resolve relative path
                 target_path = os.path.normpath(os.path.join(os.path.dirname(filepath), l_clean))
                 if not os.path.exists(target_path):
-                    line_no = find_line_num(content, link)
-                    res.add_error("LINK", f"Broken markdown link: {l_clean}", f"{rel_path}:{line_no}")
+                    if not (IS_SPOKE and "canons/ecosystems/" in l_clean.replace('\\', '/')):
+                        line_no = find_line_num(content, link)
+                        res.add_error("LINK", f"Broken markdown link: {l_clean}", f"{rel_path}:{line_no}")
 
             # Wikilinks [[target]]
             wikilink_pat = re.compile(r'\[\[([a-zA-Z0-9_\-\./\\]+)\]\]')
@@ -735,8 +790,9 @@ def check_ghost_references(res: AuditResult, verbose: bool = True):
                     continue
                 target_full = os.path.normpath(os.path.join(BASE_DIR, target_rel))
                 if not os.path.exists(target_full) and "skills/internal" not in target_rel.replace('\\', '/'):
-                    line_no = find_line_num(content, match.group(0))
-                    res.add_error("GHOST", f"Ghost path reference: `{target_rel}`", f"{rel_path}:{line_no}")
+                    if not (IS_SPOKE and target_rel.replace('\\', '/').startswith("canons/ecosystems/")):
+                        line_no = find_line_num(content, match.group(0))
+                        res.add_error("GHOST", f"Ghost path reference: `{target_rel}`", f"{rel_path}:{line_no}")
 
             # Check public routers for leaked skills/internal
             if rel_path in ("AGENTS.md", "GEMINI.md", "AGENTS_INDEX.md", "README.md",
@@ -772,13 +828,25 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
             try:
                 content = read_text(skill_md)
                 lines = content.splitlines()
-                if len(lines) > 500:
-                    res.add_warning("PROTOCOL", f"SKILL.md exceeds 500-line progressive disclosure guideline ({len(lines)} lines); move bulky docs to references/", f"skills/{skill_name}/SKILL.md", severity="LOW")
+                line_count = len(lines)
+                if line_count > 500:
+                    res.add_warning("PROTOCOL", f"SKILL.md exceeds 500-line progressive disclosure guideline ({line_count} lines); move bulky docs to references/", f"skills/{skill_name}/SKILL.md", severity="LOW")
                 frontmatter = parse_frontmatter_keys(content)
                 if not frontmatter:
                     rel = os.path.relpath(skill_md, BASE_DIR)
                     res.add_error("PROTOCOL", "Missing required YAML frontmatter block in SKILL.md", rel)
                     continue
+
+                if "core_max_lines" in frontmatter:
+                    try:
+                        c_max = int(frontmatter["core_max_lines"])
+                        rel_skill_path = os.path.relpath(skill_md, BASE_DIR)
+                        if line_count > c_max:
+                            res.add_error("PROTOCOL", f"Line count ({line_count}) exceeds declared ceiling core_max_lines ({c_max})", rel_skill_path)
+                        elif c_max - line_count > 50:
+                            res.add_warning("PROTOCOL", f"core_max_lines ceiling ({c_max}) sits >50 lines above actual count ({line_count}). Ratchet ceiling down to {line_count + 10}.", rel_skill_path)
+                    except ValueError:
+                        pass
 
                 # Check required metadata keys in frontmatter (name, description per docs/skills.md)
                 if "name" not in frontmatter or "description" not in frontmatter:
@@ -1223,8 +1291,12 @@ def check_security_integrity(res: AuditResult, verbose: bool = True, fast_delta:
                             path_part = path_part.split("->")[-1].strip()
                         target_files.add(path_part.strip('"'))
                 
+                ignored_prefixes = ('.orion/', '.git/', '.scratch/', 'scratch/', 'build/', 'dist/', 'node_modules/', '.dart_tool/')
                 valid_exts = ('.py', '.md', '.json', '.yaml', '.yml', '.txt', '.js', '.ts', '.tsx', '.jsx', '.dart', '.kt', '.java', '.go', '.rs', '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd')
                 for rel_f in target_files:
+                    norm_rel = rel_f.replace('\\', '/').lstrip('/')
+                    if any(norm_rel.startswith(p) or f'/{p}' in norm_rel for p in ignored_prefixes):
+                        continue
                     cand_proj = os.path.join(PROJECT_ROOT, rel_f)
                     fp = rel_f if os.path.isabs(rel_f) else (cand_proj if os.path.isfile(cand_proj) else os.path.join(BASE_DIR, rel_f))
                     if os.path.isfile(fp) and fp.endswith(valid_exts):
@@ -1327,19 +1399,37 @@ def check_portability_and_hygiene(res: AuditResult, verbose: bool = True):
         if verbose: print(f" [FAIL] Hygiene Leak: Bytecode artifact {rel_leak}")
 
     path_leaks = []
-    for filepath in iter_files(BASE_DIR, (".md", ".py", ".json")):
-        norm_path = filepath.replace("\\", "/")
-        if "archive" in norm_path.split("/") or os.path.basename(filepath) == "verify_agents.py":
-            continue
-        try:
-            content = read_text(filepath)
-            rel_path = os.path.relpath(filepath, BASE_DIR)
-            if re.search(r'C:[\\/]Users', content, re.IGNORECASE):
-                path_leaks.append((rel_path, "Hardcoded user machine path"))
-            if "file:///" in content:
-                path_leaks.append((rel_path, "Hardcoded file:/// URI scheme"))
-        except Exception as _e:
-            _log_telemetry(_e, 'verify_agents.py:839')
+    hygiene_extensions = (".md", ".py", ".json", ".ts", ".js", ".dart", ".yaml", ".yml", ".sh", ".toml")
+    excluded_hygiene_dirs = set(EXCLUDED_PATH_MARKERS) | {".orion", ".scratch", "scratch", "dist", "build", ".dart_tool", ".idea"}
+
+    scanned_roots = [BASE_DIR]
+    if os.path.isdir(PROJECT_ROOT) and PROJECT_ROOT != BASE_DIR:
+        scanned_roots.append(PROJECT_ROOT)
+
+    seen_files = set()
+    for s_root in scanned_roots:
+        for root, dirs, files in os.walk(s_root):
+            dirs[:] = [d for d in dirs if d not in excluded_hygiene_dirs and not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
+            for file_name in files:
+                if not file_name.endswith(hygiene_extensions):
+                    continue
+                filepath = os.path.join(root, file_name)
+                norm_path = filepath.replace("\\", "/")
+                if filepath in seen_files:
+                    continue
+                seen_files.add(filepath)
+
+                if "archive" in norm_path.split("/") or os.path.basename(filepath) in ("verify_agents.py", "OBSERVATIONS.md", "OBSERVATIONS.archive.md", "failures.log"):
+                    continue
+                try:
+                    content = read_text(filepath)
+                    rel_path = os.path.relpath(filepath, PROJECT_ROOT).replace("\\", "/")
+                    if re.search(r'[a-zA-Z]:[\\/]Users[\\/]', content, re.IGNORECASE) or re.search(r'/(?:Users|home)/[a-zA-Z0-9_-]+/', content):
+                        path_leaks.append((rel_path, "Hardcoded user machine path"))
+                    if "file:///" in content:
+                        path_leaks.append((rel_path, "Hardcoded file:/// URI scheme"))
+                except Exception as _e:
+                    _log_telemetry(_e, 'verify_agents.py:839')
             
     for rel_path, msg in path_leaks:
         res.add_error("HYGIENE", f"{msg} found in {rel_path}", rel_path, severity="BLOCKER")
@@ -1352,6 +1442,17 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR DEFENSIVE UTF-8 I/O & SUBPROCESS ENCODING ---")
     encoding_violations = []
 
+    # Persistent Verification Cache for AST acceleration
+    cache_path = os.path.join(os.path.dirname(BASE_DIR), ".orion", "verify_ast_cache.json")
+    cache = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as cf:
+                cache = json.load(cf)
+        except Exception:
+            cache = {}
+    new_cache = {}
+
     for root, dirs, files in os.walk(BASE_DIR):
         dirs[:] = [d for d in dirs if d not in (".git", ".gemini", ".system_generated", "node_modules", "__pycache__", "scratch", ".scratch")]
         for file_name in files:
@@ -1359,6 +1460,16 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                 continue
             filepath = os.path.join(root, file_name)
             rel_path = os.path.relpath(filepath, BASE_DIR).replace("\\", "/")
+
+            try:
+                st = os.stat(filepath)
+                sig = f"{st.st_mtime_ns}:{st.st_size}"
+                new_cache[rel_path] = sig
+                if cache.get(rel_path) == sig:
+                    continue  # Verified clean in previous run
+            except Exception:
+                sig = None
+
             try:
                 with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                     source = f.read()
@@ -1404,12 +1515,15 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                             f"subprocess.{subproc_fn}() text mode missing explicit encoding='utf-8'"
                         ))
 
-                # 2. open() calls
+                # 2. open() and Path.read_text() / Path.write_text() calls
                 is_open = False
+                is_path_text_io = False
                 if isinstance(func, ast.Name) and func.id == "open":
                     is_open = True
                 elif isinstance(func, ast.Attribute) and func.attr == "open" and isinstance(func.value, ast.Name) and func.value.id in ("builtins", "io"):
                     is_open = True
+                elif isinstance(func, ast.Attribute) and func.attr in ("read_text", "write_text"):
+                    is_path_text_io = True
 
                 if is_open:
                     kw_dict = {kw.arg: kw.value for kw in node.keywords if kw.arg}
@@ -1431,13 +1545,29 @@ def check_encoding_and_io_hygiene(res: AuditResult, verbose: bool = True):
                             node.lineno,
                             "open() text mode missing explicit encoding='utf-8'"
                         ))
+                elif is_path_text_io:
+                    kw_dict = {kw.arg: kw.value for kw in node.keywords if kw.arg}
+                    if "encoding" not in kw_dict:
+                        encoding_violations.append((
+                            rel_path,
+                            node.lineno,
+                            f"Path.{func.attr}() missing explicit encoding='utf-8'"
+                        ))
 
     for rel_path, lineno, msg in encoding_violations:
         res.add_error("HYGIENE", f"{msg} ({rel_path}:{lineno})", rel_path, severity="BLOCKER")
         if verbose: print(f" [FAIL] Defensive I/O Leak: {msg} ({rel_path}:{lineno})")
 
-    if not encoding_violations and verbose:
-        print(" [PASS] Defensive I/O & Encoding: All text subprocess and open() calls explicitly specify encoding='utf-8'.")
+    if not encoding_violations:
+        if new_cache:
+            try:
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                with open(cache_path, "w", encoding="utf-8") as cf:
+                    json.dump(new_cache, cf)
+            except Exception:
+                pass
+        if verbose:
+            print(" [PASS] Defensive I/O & Encoding: All text subprocess and open() calls explicitly specify encoding='utf-8'.")
 
 def check_command_parity(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- CHECKING SKILL JIT ROUTING PARITY ---")
@@ -1552,6 +1682,27 @@ def check_cli_dispatcher_integrity(res: AuditResult, verbose: bool = True):
             print(" [PASS] CLI Dispatcher Integrity: all routes exist and canonical commands are documented.")
     except Exception as exc:
         res.add_error("DISPATCH", f"CLI dispatcher integrity check failed: {exc}")
+
+
+def check_project_dna_integrity(res: AuditResult, verbose: bool = True):
+    """Ensure Project DNA engine sequences cleanly and .dna.json (if present) satisfies canonical schema."""
+    if verbose:
+        print("\n--- CHECKING PROJECT DNA ENGINE INTEGRITY ---")
+    try:
+        from core.dna import sequence_project_dna, CANONICAL_5_TIERS
+        workspace_root = os.path.dirname(BASE_DIR)
+        dna = sequence_project_dna(workspace_root, allow_foundation=True)
+        if not dna or not dna.file_tier_map:
+            res.add_error("DNA_ENGINE", "sequence_project_dna() returned empty tier map", "core/dna.py")
+            return
+        invalid_tiers = {t for t in dna.file_tier_map.values() if t not in CANONICAL_5_TIERS}
+        if invalid_tiers:
+            res.add_error("DNA_ENGINE", f"Invalid DNA tiers emitted: {invalid_tiers}", "core/dna.py")
+            return
+        if verbose:
+            print(f" [PASS] Project DNA Sequencer: {len(dna.file_tier_map)} files sequenced across 5-Tier strata (Compliance: {dna.dna_compliance_score}/100).")
+    except Exception as exc:
+        res.add_error("DNA_ENGINE", f"Project DNA integrity check failed: {exc}", "core/dna.py")
 
 def check_ecosystem_canon_matrix(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- CHECKING ECOSYSTEM CANON MATRIX ---")
@@ -1797,6 +1948,7 @@ def run_audit(output_json: bool = False, vibe_check_file: Optional[str] = None, 
     if not fast_delta:
         check_capability_pillars(res, verbose=verbose)
     check_cli_dispatcher_integrity(res, verbose=verbose)
+    check_project_dna_integrity(res, verbose=verbose)
     check_ecosystem_canon_matrix(res, verbose=verbose)
     check_doc_metrics_sync(res, verbose=verbose)
     check_operational_ergonomics(res, verbose=verbose)
@@ -1855,6 +2007,24 @@ def run_audit(output_json: bool = False, vibe_check_file: Optional[str] = None, 
             print("\n[PASS] ALL CHECKS PASSED: Workspace is mechanically sound and protocol compliant.")
         else:
             print(f"\n[FAIL] FAILED: Found {total_errors} integrity/compliance issues.")
+            try:
+                from commands.reflexion import ObservationLedger
+                ledger = ObservationLedger()
+                for err in res.errors[:5]:
+                    cat = err.get("category", "AUDIT")
+                    msg = err.get("message", "audit_error")
+                    safe_msg = msg.replace("file:" + "///", "file:[scheme]").replace("\\", "/")
+                    safe_msg = re.sub(r'[a-zA-Z]:/[^\s]+', '[path]', safe_msg)
+                    target = err.get("file", "verify_agents")
+                    ledger.add_observation(
+                        title=f"Verify gate failure: {cat} - {safe_msg[:60]}",
+                        kind="violation",
+                        target=target,
+                        rule_id=f"VERIFY_GATE_{cat}",
+                        evidence=safe_msg[:200]
+                    )
+            except Exception:
+                pass
     
     sys.exit(1 if len(res.errors) > 0 else 0)
 

@@ -31,6 +31,25 @@ class ResponseValidatorTests(unittest.TestCase):
         findings = validate_response("Kenapa ini harus diperbaiki?")
         self.assertEqual(findings, [])
 
+    def test_rejects_active_next_task_without_recommended_tier(self):
+        footer_active = """
+CHECKPOINT: Fixed bug.
+EVIDENCE: Exit Code 0.
+NEXT TASK: Run verification tests.
+"""
+        findings = validate_response(f"Done.\n{footer_active}", require_footer=True)
+        self.assertTrue(any(finding.rule == "tier_recommendation" for finding in findings))
+
+    def test_accepts_active_next_task_with_recommended_tier(self):
+        footer_active_tier = """
+CHECKPOINT: Fixed bug.
+EVIDENCE: Exit Code 0.
+RECOMMENDED TIER: BUDGET (Flash/Haiku) - 1 file updated.
+NEXT TASK: Run verification tests.
+"""
+        findings = validate_response(f"Done.\n{footer_active_tier}", require_footer=True)
+        self.assertEqual(findings, [])
+
 
 if __name__ == "__main__":
     unittest.main()

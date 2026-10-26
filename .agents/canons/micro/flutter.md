@@ -1,7 +1,6 @@
 ---
 name: flutter-micro
 description: Micro-canon cheat sheet for Flutter Riverpod 2.x, Freezed, GoRouter, and common syntax traps.
-version: 1.0.0
 ---
 
 # Flutter Micro-Canon & Syntax Cheat Sheet

@@ -115,7 +115,7 @@ When multiple files mention the same entity, follow this reconciliation loop:
    Write the JSON array to `.orion/scratch/triplets.json` using `write_to_file`.
    Then execute the terminal command:
    ```pwsh
-   python .agents/scripts/orion.py orion_ops inject_triplets .orion/scratch/triplets.json
+   python .agents/scripts/orion.py brain inject_triplets .orion/scratch/triplets.json
    ```
 
 5. **Completion Verification**:

@@ -12,11 +12,16 @@ The local cognitive subsystem resides in `.orion/`. It operates locally without 
 ├── index.md              # Human-readable index of all ecosystem assets
 ├── log.md                # Episodic cross-session journal
 ├── orion.db              # Primary SQLite3 database (WAL mode, busy_timeout=5000ms)
+├── bundles/              # Exported Digestpack bundles ({arch,hybrid,full}/)
 ├── episodic/             # Compressed historical session summaries
+├── export/               # Generated Obsidian Vault (.orion/export/vault/)
 ├── matrix/               # Machine-readable compiled JSON rule matrices
 ├── sources/              # Processed markdown and YAML source mirrors
 └── working/
-    ├── context.json      # Omni-Buffer real-time IDE state
+    ├── ACTIVE_TASK.md    # Current atomic Bento task card
+    ├── bento_state.json  # Topological Bento task queue & verification state
+    ├── capabilities.json # 900s TTL cached 4-pillar hardware capability matrix
+    ├── context.json      # Cache-aware Omni-Buffer real-time IDE state
     ├── execution_state.json # Crash-proof FSM transaction tracker
     └── handoff.md        # Session handoff notes
 ```
@@ -25,7 +30,7 @@ The local cognitive subsystem resides in `.orion/`. It operates locally without 
 
 ### 5.1. SQLite Database Architecture (`orion.db`)
 
-All connections enforce SQLite WAL mode (`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;`) via `core/db.py`. The database manages 18 relational and virtual FTS5 tables across core modules, plus 2 backward-compatible SQL views (`nodes` and `edges`), with all 18 active tables verified by schema cohesion:
+All connections enforce SQLite WAL mode (`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;`) via `core/db.py`. The database manages 18 core relational and virtual FTS5 tables across cognitive modules, extended with generational memory (`memory_generations`), AST symbol caching (`ast_symbol_cache`), cloud handoffs (`handoff_queue`), and 2 backward-compatible SQL views (`nodes` and `edges`), with all 18 active tables verified by schema cohesion:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -43,14 +48,17 @@ All connections enforce SQLite WAL mode (`PRAGMA journal_mode=WAL; PRAGMA busy_t
 │ `community_members`        │ Entity membership mappings for clusters   │
 │ `communities_fts`          │ FTS5 community index                      │
 │ `contradictions`           │ Colliding predicates flagged for review   │
-│ `multi_layer_memory`       │ Virtual memory hierarchy                  │
+│ `multi_layer_memory`       │ Virtual memory hierarchy (`superseded_by`)│
 │ `memory_mutation_history`  │ Memory mutation audit trail               │
-│ `archival_vectors`         │ Archived vector records (Float32 BLOB)    │
-│ `recall_turns`             │ Recall/session interaction turns          │
+│ `memory_generations`       │ Generational Head Reflection rollovers    │
+│ `archival_vectors`         │ Archived vector records (`superseded_by`) │
+│ `recall_turns`             │ Recall turns (`generation_id`, `archived`)│
 │ `fsm_checkpoints`          │ Transactional FSM recovery checkpoints    │
 │ `spans`                    │ Trace/span telemetry                      │
 │ `rag_evaluations`          │ Retrieval relevance diagnostics           │
 │ `telemetry`                │ Execution event telemetry log             │
+│ `ast_symbol_cache`         │ Cached AST skeletons & symbol line spans  │
+│ `handoff_queue`            │ Pending cloud-to-local handoff tasks      │
 │ `nodes` (VIEW)             │ Backward compatibility graph entity view  │
 │ `edges` (VIEW)             │ Backward compatibility graph relation view│
 └────────────────────────────┴───────────────────────────────────────────┘
@@ -114,7 +122,8 @@ CREATE TABLE archival_vectors (
     id TEXT PRIMARY KEY,
     content TEXT,
     embedding BLOB,
-    created_at REAL
+    created_at REAL,
+    superseded_by TEXT DEFAULT NULL
 );
 
 -- Backward-Compatible Views (Zero-Duplication over entities & relations)
@@ -218,21 +227,48 @@ Communities optimize partitioning dynamically, storing community assignments dir
 
 ---
 
-## Chapter 9: Memory Hygiene, Contradiction Engine & Temporal Pulse
+## Chapter 9: Observational Memory, Generational Rollover & Contradiction Engine
 
-### 9.1. Smart Memory Hygiene
+### 9.1. 3-Tier Epistemic Compression Funnel ("Forgetting is a Feature")
+Rather than letting raw interaction history accumulate indefinitely or allowing outdated vector chunks to trigger RAG "flashbacks", `core/memory.py` enforces a 3-tier epistemic funnel:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ Tier 1: Ephemeral Recall Buffer (`recall_turns`, archived = 0)         │
+│   Raw conversational and tool interaction turns within active window   │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Distills into
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Tier 2: Active Observation Ledger & Ephemeral Anchors (`[O1]`..`[On]`) │
+│   Dynamic token budget sharing: `max(3600, total_budget // 2)`         │
+│   Assigns deterministic anchors (`[O1]`) mapped to turn ID spans       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Zero-LLM Shannon Surprisal Rollover
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Tier 3: Head Reflection Generation (`memory_generations`)              │
+│   Single active Head Reflection (`GEN-<count>-<ms_timestamp>`)         │
+│   Marks old vectors & memory blocks with `superseded_by = new_gen_id`  │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Dynamic Token Budget & Ephemeral Anchor IDs**: `VirtualContextManager.compile_context_window()` dynamically allocates up to half of the available token budget (`max(3600, total_budget // 2)`) between active observations and raw recall turns. Each rendered observation receives an ephemeral anchor (`[O1]`, `[O2]`) linked to its underlying `recall_turns` ID range.
+- **Zero-LLM Generational Rollover (`orion.py brain rollover`)**: `create_reflection_generation()` compresses unarchived recall turns into a single active Head Reflection in `memory_generations` using deterministic Shannon Surprisal scoring (zero LLM calls required). Prior generations and superseded records in `multi_layer_memory` and `archival_vectors` are stamped with `superseded_by = new_gen_id`.
+- **Anti-Flashback Retrieval & On-Demand Anchor Recall (`orion.py brain recall <anchor_id>`)**: Default RAG queries (`commands/rag.py`) filter out rows where `superseded_by IS NOT NULL` (`WHERE (superseded_by IS NULL OR superseded_by = '')`), preventing obsolete architectural decisions from re-entering active prompts. If an agent needs the raw historical context behind an observation or generation, running `python .agents/scripts/orion.py brain recall O1` (or `GEN-...`) expands the archived turns on demand.
+
+### 9.2. Smart Memory Hygiene & Compaction
 Context compaction uses mechanical eligibility criteria:
 - Every page in `orion.db` records access frequency in `pages.access_count`.
-- Frequently recalled nodes have their access count incremented.
 - Compaction scripts (`commands/compact.py` via `commands/brain.py: compact & compress`) drive multi-tier context shrinking across 5 levels (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), utilizing `SyntaxAnchorGuard`, `PayloadStreamShaper` (AST/JSON/Trace shaping), and `ChronologicalSectionDecay`, while pruning only low-access nodes older than 14 days and protecting critical architectural decisions from eviction.
 
-### 9.2. Contradiction Engine (`commands/brain.py contradict`)
+### 9.3. Contradiction Engine (`commands/brain.py contradict`)
 Conflicting directives across absorbed files (e.g., File A recommends Riverpod, File B recommends Provider) are identified by predicate collisions:
 - Detected collisions write to the `contradictions` SQL table.
 - Agents resolve conflicts algorithmically by adjusting edge confidence weights (0.0 to 1.0) rather than deleting historical notes.
 
-### 9.3. Activity-Based Temporal Pulse (`commands/reflexion.py`)
+### 9.4. Activity-Based Temporal Pulse (`commands/reflexion.py`)
 Rather than relying on calendar cron jobs, the ecosystem advances memory across activity-based intervals:
-1. **Session Pulse**: Triggered on `/session-offload`. Summarizes the immediate working turn.
+1. **Session Pulse**: Triggered on `/session-offload`. Summarizes the immediate working turn, mines operator habits, and evaluates observation promotions.
 2. **Milestone Synthesis**: Evaluated every 5 completed sessions, distilling micro-steps into milestone records.
-3. **Epoch Consolidation**: Evaluated every 4 milestones, archiving deep history into permanent repository logs.
+3. **Epoch Consolidation**: Evaluated every 4 milestones, triggering generational memory rollover and archiving deep history into permanent repository logs.

@@ -19,12 +19,12 @@ Do not "adopt a persona." You are an algorithmic QA engine and quality enforceme
 1. **IDENTIFY**: What exact command proves this claim?
 2. **RUN**: Execute the FULL command via `run_command` (fresh, complete).
 3. **READ**: Inspect full output, verify exit code (`Exit Code 0`), and count failure markers.
-4. **VERIFY (State-Delta Proof & Consequence Tiers)**: Does output explicitly confirm the expected mechanical state AND concrete consequence across at least two tiers (Tier 1 Signal, Tier 2 State/Network/Route, Tier 3 DOM)? Exit Code 0 alone is a False Green if output has zero mutations, unverified payloads, unconsumed responses, or silent skips.
+4. **VERIFY (State-Delta Proof & Consequence Tiers)**: Does output explicitly confirm the expected mechanical state AND concrete consequence across at least two tiers (Tier 1 Signal, Tier 2 State/Network/Route, Tier 3 DOM)? Exit Code 0 alone is a False Green if output has zero mutations, unverified payloads, unconsumed responses, shallow string-only assertions (Vector 8), or silent skips.
 5. **ONLY THEN**: Make the completion claim to the user.
 
 ## Audit Findings Delivery Contract
 When delivering audit findings, report each defect with high signal and zero cosmetic filler:
-1. **Severity & Vector**: `CRITICAL` | `HIGH` | `MEDIUM` | `LOW` mapped to Triad vector (`Boundary`, `Concurrency`, `Silent Failure`, `Logic`).
+1. **Severity & Vector**: `CRITICAL` | `HIGH` | `MEDIUM` | `LOW` mapped to Triad & Vector 8 vectors (`Boundary`, `Concurrency`, `Silent Failure`, `Logic`, `Spec-to-Code Parity / Anti-Cosplay`).
 2. **Exact Citation**: Source-true file path and 1-indexed line range: `path/to/file.ext#Lxx-Lyy`.
 3. **Reproduction Evidence**: The deterministic test, script, or static analysis command proving the defect (`Exit Code > 0`).
 4. **Surgical Diff**: Drop-in minimal replacement code targeting only the defect.
@@ -40,12 +40,16 @@ Verify mechanically: `python .agents/scripts/orion.py verify --fast`.
 - **Intentional Architecture Exemption**: Fallback functions inside `except ImportError:` blocks and standalone hook scripts (`hooks/`) that include local `_atomic_write_text` or `_log_telemetry` for process isolation are NOT DRY violations. Documented retrieval-only modes are NOT shallow shims.
 - **Convergence Guarantee**: Mechanical verification gates (`verify_agents.py`, `instruction-lint`, `context-lint`, `scan security`, test suites) passing with `Exit Code 0` certifies mechanical baseline compliance. Final architectural sign-off requires passing the Triad Threat Probe with zero unmitigated critical vulnerabilities.
 
-### Runtime Contract Baseline & Model Tier Gating
+### Runtime Contract Baseline, Elastic Model Continuum & SCAL Readiness Advisory
 - Shared graph, memory, state, and telemetry persistence defaults to `.orion/orion.db`.
 - External commands use argv lists with `shell=False`; never evaluate shell operators from input.
-- **Model Tier Guidance**:
-  - `BUDGET` ($\le 8\text{B}$): Focus on deterministic AST violations, syntax nullability, unhandled exceptions, and explicit contract mismatches. Do not attempt speculative fuzzing or multi-step exploit generation.
-  - `STANDARD` / `PREMIUM` ($70\text{B}+$): Conduct deep Triad Threat Probes across concurrency collisions, transaction isolation, distributed boundary drift, and resource exhaustion.
+- **Polyglot SCAL Readiness Advisory (Flexible & Stack-Agnostic)**:
+  - When auditing `2_domain` or `3_services` modules across any stack (Python, TS/React, Dart/Flutter, Rust, Go), check whether critical boundaries are protected by **Stack-Native Invariant Guards** (`@sovereign_catch` / Pydantic in Python, Zod / TypeBox in TS, Freezed / `Result` in Dart, `Result<T,E>` in Rust) and **Consequence-Verified Tests** (`orion.py consequence audit-tests`).
+  - If missing, emit a constructive `[ADVISORY: SCAL_FORTRESS_OPPORTUNITY]` reminder explaining that adding boundary guards + state-delta tests will allow Tier-0 + Local SLMs or Cloud `BUDGET` models to self-heal the module at near-zero cost.
+- **Elastic Model Continuum Guidance (Mechanical + LLM Synergy)**:
+  - **Tier 0 Mechanical First**: Always run `orion.py scan map`, `scan security`, and `consequence audit-tests` first so deterministic scripts shrink the problem space before spending LLM tokens.
+  - **Local SLMs ($1.5\text{B} \rightarrow 3\text{B} \rightarrow 7\text{B} \rightarrow 14\text{B} \rightarrow 30\text{B}+$)**: Scale tasks dynamically via `resolve_elastic_execution_plan()`—use $1.5\text{B}$ for keyword/tag micro-tasks, $3\text{B}$ for 1-shot narrow syntax repairs, $7\text{B}\text{--}14\text{B}$ for single-function `auto_heal()` and triplet extraction, and $30\text{B}+$ for multi-block refactors.
+  - **Cloud `BUDGET` / `STANDARD` / `PREMIUM`**: When local models are offline or below the task's complexity floor, hand off the pre-digested AST packet to `BUDGET` (single-file isolated fix), `STANDARD` (2–5 file feature/test suite), or `PREMIUM` (upfront architectural blueprinting & 3-strike circuit breaker).
 - Optional RTK, ast-grep, Ollama, and Bun integrations report through `probe_capabilities` with explicit fallbacks.
 
 ## 🧐 Doubt-Driven Development Protocol (Calibrated Empirical Probing)

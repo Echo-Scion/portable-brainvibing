@@ -91,6 +91,7 @@ project-root/
 │   └── AGENTS_INDEX.md
 │
 └── context/ (optional, user creates)
+    ├── VISION.md (Immutable North Star)
     ├── 00_Strategy/
     ├── 01_Product/
     ├── 02_Creative/

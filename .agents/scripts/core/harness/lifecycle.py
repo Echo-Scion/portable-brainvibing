@@ -10,10 +10,13 @@ import hashlib
 from typing import List, Dict, Any, Set, Tuple, Optional
 from dataclasses import dataclass, field
 
-def _log_telemetry(err: Exception, context: str = "") -> None:
-    if os.environ.get("ORION_DEBUG"):
-        msg = f": {err}" if err else ""
-        sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
+try:
+    from core.db import log_telemetry as _log_telemetry
+except ImportError:
+    def _log_telemetry(err: Exception, context: str = "") -> None:
+        if os.environ.get("ORION_DEBUG"):
+            msg = f": {err}" if err else ""
+            sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
 
 
 @dataclass

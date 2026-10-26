@@ -1,10 +1,10 @@
 # Startup Domain Knowledge Base (`startup_knowledge_base.md`)
 
-This resource provides high-density, domain-specific instructions for auto-populating the 82 context files in a `--startup` project. It ensures that each file (from Revenue to Legal) is drafted with professional-grade expertise.
+This resource provides high-density, domain-specific instructions for auto-populating the **25-File Golden Ratio Context Registry** in a `--startup` project. It ensures that each file (from `context/VISION.md` to `03_Tech/INFRA_AND_DEVOPS.md`) is drafted with professional-grade expertise.
 
 ---
 
-<knowledge-index>
+<!-- <knowledge-index> -->
 ## 💰 1. Revenue & Monetization (Files: Strategy, Pricing, Invoicing, etc.)
 *Expertise from: saas-strategist*
 - **Strategy**: Define the "Freemium-to-Pro" transition points.
@@ -34,7 +34,7 @@ This resource provides high-density, domain-specific instructions for auto-popul
 - **Roadmap**: Use the "Now-Next-Later" framework.
 - **Hiring**: Define the "Candidate Scorecard" and technical interview rubrics.
 - **Prioritization**: Use the RICE (Reach, Impact, Confidence, Effort) scoring system.
-</knowledge-index>
+<!-- </knowledge-index> -->
 
 ---
-*This Knowledge Base is the engine for the 82-file auto-population sequence.*
+*This Knowledge Base is the engine for the 25-File Golden Ratio auto-population sequence.*

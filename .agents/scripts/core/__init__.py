@@ -26,6 +26,7 @@ _MODULE_MAP = {
     "enqueue_cloud_handoff": ".capabilities",
     "clear_cloud_handoff": ".capabilities",
     "execute_neuro_symbolic": ".capabilities",
+    "resolve_elastic_execution_plan": ".capabilities",
     "select_optimal_ollama_model": ".capabilities",
     "load_neuro_symbolic_cache": ".capabilities",
     "save_neuro_symbolic_cache": ".capabilities",
@@ -33,6 +34,10 @@ _MODULE_MAP = {
     # db
     "connect_sqlite": ".db",
     "log_telemetry": ".db",
+    "sovereign_catch": ".db",
+    "mechanical_catch": ".db",
+    "MechanicalInvariantError": ".db",
+    "drain_mechanical_catches": ".db",
     "atomic_write_text": ".db",
     "table_exists": ".db",
     "sanitize_fts_query": ".db",
@@ -44,6 +49,10 @@ _MODULE_MAP = {
     "truncate_tokens": ".db",
     "ActionObservationStream": ".db",
     "SovereignTracer": ".db",
+    "configure_utf8": ".db",
+    "safe_print": ".db",
+    "transliterate_emojis": ".db",
+    "EMOJI_ASCII_MAP": ".db",
     # paths
     "normalize_path": ".paths",
     "get_workspace_dir": ".paths",
@@ -79,6 +88,17 @@ _MODULE_MAP = {
     "RecallMemoryManager": ".memory",
     "SecondBrainManager": ".memory",
     "louvain_clustering": ".memory",
+    # dna
+    "ProjectDNA": ".dna",
+    "CANONICAL_5_TIERS": ".dna",
+    "CANONICAL_DEPENDENCY_LAWS": ".dna",
+    "sequence_project_dna": ".dna",
+    "mutate_project_dna": ".dna",
+    "classify_file_to_tier": ".dna",
+    "check_layer_violations": ".dna",
+    "build_initial_dna_manifest": ".dna",
+    "normalize_epigenetic_aliases": ".dna",
+    "discover_epigenetic_aliases": ".dna",
 }
 
 _SUBMODULES = {
@@ -90,6 +110,7 @@ _SUBMODULES = {
     "orion_graph",
     "sandbox",
     "memory",
+    "dna",
 }
 
 

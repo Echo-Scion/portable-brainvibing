@@ -271,7 +271,7 @@ def generate_skeleton(file_path: str, content: Optional[str] = None) -> List[str
         re.compile(r'^\s*(?:def|async def|fn|function|fun|func)\b(?:\s+\([^)]+\))?\s+([A-Za-z0-9_]+)\s*(?:<[^>]+>)?\s*\('),
         re.compile(r'^\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*(?:<[^>]+>)?\s*\('),
         re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*:\s*[^=]+)?\s*=\s*(?:async\s*)?(?:<[^>]+>\s*)?\([^;]*?\)\s*(?::\s*[^=]+)?=>\s*\{?'),
-        re.compile(r'^\s*(?!(?:if|for|while|catch|switch|return)\s*\()((?:[a-zA-Z<>\[\],.?|&_]+\s+)?([A-Za-z0-9_]+)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:->\s*[^;{\n]+|:\s*[^;{\n]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*)?\s*[{=>])'),
+        re.compile(r'^\s*(?!(?:if|for|while|catch|switch|when|return|throw|await|with|new|else|super|this|class|interface|enum|struct|trait)\b)((?:(?!(?:return|throw|await|new|const|final|var|val|let|class|when)\b)[a-zA-Z<>\[\],.?|&_]+\s+)?([A-Za-z0-9_]+)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:->\s*[^;{\n]+|:\s*[^;{\n]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*)?\s*[{=>])'),
     ]
 
     raw_hits: List[Tuple[int, str]] = []  # (line_num, sig)
@@ -338,6 +338,8 @@ def skeletonize_python(code: str, include_line_numbers: bool = False) -> str:
         import ast
         tree = ast.parse(code)
     except SyntaxError:
+        if include_line_numbers:
+            return "\n".join(f"{i:4d} | {ln}" for i, ln in enumerate(code.splitlines(), 1))
         return code
 
     lines = code.splitlines()
@@ -387,11 +389,11 @@ def skeletonize_python(code: str, include_line_numbers: bool = False) -> str:
         calls: List[str] = []
 
         for sub in ast.walk(node):
-            # 1. State attributes (self.<attr> = ...)
-            if isinstance(sub, (ast.Assign, ast.AnnAssign)):
-                targets = sub.targets if isinstance(sub, ast.Assign) else [sub.target]
+            # 1. State attributes (self.<attr> = ... or self.<attr> += ...)
+            if isinstance(sub, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                targets = sub.targets if isinstance(sub, ast.Assign) else [getattr(sub, "target", None)]
                 for t in targets:
-                    if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == "self":
+                    if t and isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == "self":
                         entry = f"self.{t.attr}"
                         if entry not in state_attrs:
                             state_attrs.append(entry)
@@ -804,7 +806,7 @@ def skeletonize_markdown(content: str, include_line_numbers: bool = False) -> st
 
     for idx, line in enumerate(lines):
         lineno = idx + 1
-        stripped = line.strip()
+        stripped = line.lstrip("\ufeff").strip()
         if idx == 0 and stripped == "---":
             in_frontmatter = True
             items.append((lineno, line))
@@ -896,10 +898,32 @@ def _count_effective_delimiters_stateful(
     i = 0
     net_braces = 0
     net_parens = 0
-    in_str = in_multiline_str
-    if len(line) > 2000 and in_str is None and not in_block_comment:
-        line = line[:2000]
+
+    str_stack: List[Dict[str, Any]] = []
+    if in_multiline_str:
+        parts = in_multiline_str.split("|")
+        base_q = parts[0]
+        is_raw = base_q.startswith("r")
+        quote = base_q[1:] if is_raw else base_q
+        str_stack.append({
+            "quote": quote,
+            "is_raw": is_raw,
+            "multiline": True,
+            "interp_depth": 0
+        })
+        if len(parts) > 1 and parts[1].startswith("interp:"):
+            try:
+                idepth = int(parts[1].split(":")[1])
+            except ValueError:
+                idepth = 1
+            str_stack[-1]["interp_depth"] = idepth
+            str_stack.append({"type": "interp"})
+
     n = len(line)
+    if n > 2000 and not in_block_comment and not in_multiline_str:
+        line = line[:2000]
+        n = len(line)
+
     while i < n:
         if in_block_comment:
             if line[i:i+2] == '*/':
@@ -908,26 +932,51 @@ def _count_effective_delimiters_stateful(
                 continue
             i += 1
             continue
-        if in_str:
-            if line[i] == '\\':
+
+        top = str_stack[-1] if str_stack else None
+
+        if top and top.get("type") != "interp":
+            # Inside a string literal
+            q = top["quote"]
+            is_raw = top["is_raw"]
+            q_len = len(q)
+
+            if not is_raw and line[i] == '\\':
+                if q_len == 2 and line[i:i+2] == q:
+                    str_stack.pop()
+                    i += 2
+                    continue
                 i += 2
                 continue
-            if len(in_str) == 3 and line[i:i+3] == in_str:
-                in_str = None
-                i += 3
+
+            # Check for interpolation start: ${ in template strings or Dart/Kotlin/JS strings
+            if not is_raw and line[i:i+2] == '${' and (q == '`' or q in ('"', "'", '"""', "'''")):
+                str_stack.append({"type": "interp"})
+                top["interp_depth"] = top.get("interp_depth", 0) + 1
+                net_braces += 1
+                i += 2
                 continue
-            if len(in_str) == 1 and line[i] == in_str:
-                in_str = None
+
+            # Check for string close
+            if line[i:i+q_len] == q:
+                str_stack.pop()
+                i += q_len
+                continue
+
             i += 1
             continue
+
+        # Outside strings or inside an active ${...} interpolation
         if line[i:i+2] == '/*':
             in_block_comment = True
             i += 2
             continue
         if line[i:i+2] == '//' or line[i] == '#':
             break
+
+        # Check for regex literal /.../ (only outside strings)
         prev_char = line[:i].rstrip()[-1:]
-        if line[i] == '/' and line[i:i+2] != '/>' and (i == 0 or (prev_char and prev_char in '(=,:[({;,!&|?+*^~')):
+        if line[i] == '/' and line[i:i+2] != '/>' and (i == 0 or (prev_char and prev_char in '(=,:[({;,!&|?+^~')):
             j = i + 1
             while j < n:
                 if line[j] == '\\':
@@ -936,37 +985,98 @@ def _count_effective_delimiters_stateful(
                     i = j + 1
                     break
                 elif line[j] in '\r\n':
+                    i = j + 1
                     break
                 else:
                     j += 1
             else:
                 i = n
             continue
+
+        # Check raw string prefix: r'...' or r"..." or r'''...''' or r"""..."""
+        is_raw_prefix = False
+        if line[i] in ('r', 'R') and i + 1 < n and line[i+1] in ('"', "'", '`'):
+            is_raw_prefix = True
+            i += 1
+
+        # Check multiline triple quotes
         if line[i:i+3] in ('"""', "'''"):
-            in_str = line[i:i+3]
+            q = line[i:i+3]
+            str_stack.append({
+                "quote": q,
+                "is_raw": is_raw_prefix,
+                "multiline": True,
+                "interp_depth": 0
+            })
             i += 3
             continue
-        if line[i] in ('"', "'", '`'):
-            if line[i] == "'":
+
+        # Check quotes (including escaped quotes inside interpolations, e.g. \" or \')
+        quote_candidate = None
+        q_advance = 1
+        if line[i:i+2] in ('\\"', "\\'"):
+            quote_candidate = line[i:i+2]
+            q_advance = 2
+        elif line[i] in ('"', "'", '`'):
+            quote_candidate = line[i]
+            q_advance = 1
+
+        if quote_candidate:
+            # Check lifetime in Rust / type variable: 'a
+            if quote_candidate == "'" and not is_raw_prefix:
                 if re.match(r"^'[a-zA-Z_]\w*\b(?!')", line[i:]):
                     i += 1
                     continue
-            in_str = line[i]
-            i += 1
+            is_multi = (quote_candidate == '`')
+            str_stack.append({
+                "quote": quote_candidate,
+                "is_raw": is_raw_prefix,
+                "multiline": is_multi,
+                "interp_depth": 0
+            })
+            i += q_advance
             continue
+
         if line[i] == '{':
             net_braces += 1
+            if top and top.get("type") == "interp":
+                for item in reversed(str_stack):
+                    if item.get("type") != "interp":
+                        item["interp_depth"] = item.get("interp_depth", 1) + 1
+                        break
         elif line[i] == '}':
             net_braces -= 1
+            if top and top.get("type") == "interp":
+                for item in reversed(str_stack):
+                    if item.get("type") != "interp":
+                        item["interp_depth"] = max(0, item.get("interp_depth", 1) - 1)
+                        if item["interp_depth"] == 0:
+                            str_stack.pop()
+                        break
         elif line[i] == '(':
             net_parens += 1
         elif line[i] == ')':
             net_parens -= 1
+
         i += 1
-    # Single-line quotes reset at EOL; multiline template backticks and triple quotes persist across lines
-    if in_str in ('"', "'"):
-        in_str = None
-    return net_braces, net_parens, in_block_comment, in_str
+
+    # End of line state cleanup
+    # Single-line quotes that are not multiline do not cross line boundaries
+    while str_stack and not str_stack[-1].get("multiline") and str_stack[-1].get("type") != "interp":
+        str_stack.pop()
+
+    out_multiline_str = None
+    if str_stack:
+        base = str_stack[0]
+        if base.get("multiline"):
+            raw_flag = "r" if base.get("is_raw") else ""
+            b_str = f"{raw_flag}{base['quote']}"
+            if len(str_stack) > 1 and str_stack[-1].get("type") == "interp":
+                out_multiline_str = f"{b_str}|interp:{base.get('interp_depth', 1)}"
+            else:
+                out_multiline_str = b_str
+
+    return net_braces, net_parens, in_block_comment, out_multiline_str
 
 
 def _count_effective_braces_stateful(
@@ -1010,13 +1120,13 @@ def skeletonize_code(code: str, ext: str, include_line_numbers: bool = False) ->
         r'(?:func(?:\s+\([^)]+\))?|fn|fun|function|def)\b|'
         # 2. JS/TS/Dart Arrow functions & React components: [export] const/let foo [: Type] = [async] (...) [: Ret] => [{]
         r'^\s*(?:export\s+)?(?:default\s+)?(?:const|let|var)\s+[A-Za-z_$][A-Za-z0-9_$]*(?:\s*:\s*[^=]+)?\s*=\s*(?:async\s*)?(?:<[^>]+>\s*)?\([^;]*?\)\s*(?::\s*[^=]+)?=>\s*\{?|'
-        # 3. Single-line class method declarations
-        r'^\s*(?:\b(?:public|private|protected|static|final|override|async|default)\s+)*[\w<>\[\],.?]+\s+(?!(?:if|for|while|catch|switch|return|with)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:[:\->]\s*[\w<>\[\],.?|&\s]+)?\s*(?:async\*?|sync\*?)?\s*\{|'
+        # 3. Single-line class method declarations (supports Dart 3 => switch (...) { and => {)
+        r'^\s*(?!(?:(?:public|private|protected|internal|open|abstract|final|sealed|data|value|inner|annotation|enum)\s+)*class\b)(?:\b(?:public|private|protected|static|final|override|async|default)\s+)*(?!(?:class|interface|enum|struct|trait|return|throw|await|new)\b)[\w<>\[\],.?]+\s+(?!(?:if|for|while|catch|switch|when|return|with|class|case|default)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:[:\->]\s*[\w<>\[\],.?|&\s]+)?\s*(?:async\*?|sync\*?)?\s*(?:\{|=>\s*(?:switch\b[^{]*\{|\{))|'
         # 4. Multi-line method signature declaration start (Dart, TS, Java, Kotlin, C#)
-        r'^\s*(?:\b(?:public|private|protected|static|final|override|async|abstract|synchronized|virtual|inline)\s+){0,5}'
-        r'(?:[\w<>\[\],.?|&]+\s+){1,3}(?!(?:if|for|while|catch|switch|return|with|new|else)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^;{]*$|'
-        # 5. Direct identifier method signature
-        r'^\s*(?!(?:if|for|while|catch|switch|return|with)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:->\s*[^;{\n]+|:\s*[^;{\n]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*?)?\s*\{'
+        r'^\s*(?!(?:(?:public|private|protected|internal|open|abstract|final|sealed|data|value|inner|annotation|enum)\s+)*class\b)(?:\b(?:public|private|protected|static|final|override|async|abstract|synchronized|virtual|inline)\s+){0,5}'
+        r'(?:(?!(?:class|interface|enum|struct|trait|object|return|throw|await|new|const|case|default)\b)[\w<>\[\],.?|&]+\s+){1,3}(?!(?:if|for|while|catch|switch|when|return|with|new|else|class|case|default)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^;{=]*$|'
+        # 5. Direct identifier method signature (supports Dart 3 => switch (...) { and => {)
+        r'^\s*(?!(?:if|for|while|catch|switch|when|return|with|class|init|get|set|case|default)\b)[A-Za-z_][A-Za-z0-9_]*\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?:->\s*[^;{\n]+|:\s*[^;{\n]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*?)?\s*(?:\{|=>\s*(?:switch\b[^{]*\{|\{))'
     )
 
     func_depth = 0
@@ -1246,7 +1356,10 @@ RESERVED_KEYWORDS = {
     "abstract", "void", "int", "string", "bool", "boolean", "true", "false",
     "null", "nil", "None", "self", "this", "super", "try", "catch", "except",
     "finally", "throw", "raise", "async", "await", "yield", "default", "new",
-    "package", "in", "is", "not", "and", "or", "with", "pass", "lambda"
+    "package", "in", "is", "not", "and", "or", "with", "pass", "lambda",
+    "when", "get", "set", "init", "constructor", "typeof", "instanceof",
+    "delete", "where", "guard", "defer", "match", "loop", "impl", "mod",
+    "use", "crate", "move", "ref", "mut", "unsafe", "extern", "late", "required"
 }
 
 COMMON_METHOD_NOISE = {
@@ -1280,6 +1393,17 @@ def _find_ast_grep_bin(extra_dirs: Optional[List[str]] = None) -> Optional[str]:
         return None
 
 
+def _is_conn_read_only(conn: Any) -> bool:
+    """Detects whether an SQLite connection is operating in read-only mode."""
+    if conn is None:
+        return False
+    try:
+        row = conn.execute("PRAGMA query_only;").fetchone()
+        return bool(row and row[0] == 1)
+    except Exception:
+        return False
+
+
 def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Dict[str, List[Tuple[int, str]]], Set[str]]:
     """
     Extracts definitions and references from a single source file.
@@ -1305,19 +1429,17 @@ def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Di
                 orion_dir = os.path.join(os.getcwd(), ".orion")
                 cache_db_path = os.path.join(orion_dir, "orion.db") if os.path.isdir(orion_dir) else None
             if cache_db_path and os.path.exists(cache_db_path):
-                from core.db import connect_sqlite
-                active_conn = connect_sqlite(cache_db_path, timeout_sec=5.0)
-                close_conn = True
+                try:
+                    from core.db import connect_sqlite
+                    active_conn = connect_sqlite(cache_db_path, timeout_sec=10.0, read_only=True)
+                    close_conn = True
+                except Exception as _ce:
+                    # Concurrency safety: on lock or access failure, bypass cache cleanly without hanging
+                    active_conn = None
+                    close_conn = False
 
         if active_conn:
             try:
-                if not getattr(active_conn, "_ast_cache_table_initialized", False):
-                    active_conn.execute(
-                        "CREATE TABLE IF NOT EXISTS ast_symbol_cache ("
-                        "filepath TEXT PRIMARY KEY, mtime_ns INTEGER, size_b INTEGER, "
-                        "defines_json TEXT, references_json TEXT)"
-                    )
-                    setattr(active_conn, "_ast_cache_table_initialized", True)
                 cur = active_conn.cursor()
                 cur.execute(
                     "SELECT mtime_ns, size_b, defines_json, references_json FROM ast_symbol_cache WHERE filepath = ?",
@@ -1474,16 +1596,16 @@ def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Di
 
             # Fast in-memory CST extractor (sub-millisecond, zero subprocess overhead)
             patterns = [
-                (re.compile(r'^\s*(?:export\s+)?(?:abstract\s+|sealed\s+|open\s+|pub(?:\([^)]*\))?\s+|public\s+|private\s+)?(?:class|struct|interface|trait|enum|type)\s+([A-Za-z0-9_]+)'), "class"),
+                (re.compile(r'^\s*(?:export\s+)?(?:abstract\s+|sealed\s+|base\s+|interface\s+|final\s+|open\s+|pub(?:\([^)]*\))?\s+|public\s+|private\s+)?(?:(?:class|struct|interface|trait|enum|mixin|extension|typedef)\s+([A-Za-z0-9_]+)|type\s+([A-Za-z0-9_]+)\s*(?:<[^>]+>)?\s*=)'), "class"),
                 (re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*:\s*[^=]+)?\s*=\s*(?:async\s*)?(?:<[^>]+>\s*)?\([^;]*?\)\s*(?::\s*[^=]+)?=>'), "func"),
                 (re.compile(
                     r'^\s*(?:(?:export|default|async|pub(?:\([^)]*\))?|public|private|protected|internal|static|final|override|abstract|virtual|inline|suspend)\s+)*'
-                    r'(?:(?:fn|def|fun|function|func)\s+(?:\([A-Za-z0-9_*,\s]+\)\s+)?|(?:[A-Za-z_][A-Za-z0-9_<>\[\],.?|&]*\s+){1,3})'
-                    r'(?!(?:if|for|while|catch|switch|return|with|new|else|super|this)\b)([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]+>)?\s*\('
-                    r'(?:[^()]{0,240}\)\s*(?:\s*->\s*[^;{\n:]+|\s*:\s*[^;{\n:]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*?)?\s*[{=>;:]|[^;{}]*$)'
+                    r'(?:(?:fn|def|fun|function|func)\s+(?:\([A-Za-z0-9_*,\s]+\)\s+)?|(?:(?!(?:return|throw|await|new|const|final|var|val|let|class|when|with|require|check|assert|synchronized)\b)[A-Za-z_][A-Za-z0-9_<>\\[\\],.?|&]*\s+){1,3})'
+                    r'(?!(?:if|for|while|catch|switch|when|return|throw|await|with|new|else|super|this|class|get|set|require|check|assert|synchronized|run|let|apply|also)\b)([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]+>)?\s*\('
+                    r'(?:[^()]{0,240}\)\s*(?:\s*->\s*[^;{\n:]+|\s*:\s*[^;{\n:]+|\s+[A-Za-z0-9_<>\[\],.?|&()]+)?\s*(?:async\*?|sync\*?)?\s*[{=>])'
                 ), "func"),
                 (re.compile(
-                    r'^\s*(?!(?:if|for|while|catch|switch|return|with|new|else|super|this)\b)([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]+>)?\s*\([^()]{0,240}\)'
+                    r'^\s*(?!(?:if|for|while|catch|switch|when|return|throw|await|with|new|else|super|this|class|get|set|require|check|assert|synchronized|run|let|apply|also)\b)([A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]+>)?\s*\([^()]{0,240}\)'
                     r'(?:\s*->\s*[^;{\n:]+|\s*:\s*[^;{\n:]+)?\s*(?:async\*?|sync\*?)?\s*\{'
                 ), "func"),
             ]
@@ -1496,8 +1618,8 @@ def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Di
                 for pat, _ in patterns:
                     m = pat.match(clean)
                     if m:
-                        sym_name = m.group(1).strip()
-                        if sym_name in RESERVED_KEYWORDS:
+                        sym_name = (m.group(1) or m.group(2) or "").strip()
+                        if not sym_name or sym_name in RESERVED_KEYWORDS:
                             continue
                         sig = clean.rstrip('{:;').strip()
                         defines.setdefault(sym_name, []).append((line_num, sig))
@@ -1507,8 +1629,11 @@ def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Di
             _log_telemetry(_e, f"extract_file_symbols_polyglot:{file_path}")
 
     if mtime_ns > 0:
-        write_conn = conn
+        write_conn = None
         close_write = False
+        if conn is not None and not _is_conn_read_only(conn):
+            write_conn = conn
+
         if write_conn is None:
             if not cache_db_path:
                 try:
@@ -1518,23 +1643,36 @@ def extract_file_symbols(file_path: str, conn: Optional[Any] = None) -> Tuple[Di
                     pass
             if cache_db_path and os.path.exists(cache_db_path):
                 try:
-                    from core.db import connect_sqlite
-                    write_conn = connect_sqlite(cache_db_path, timeout_sec=5.0)
+                    try:
+                        from core.db import connect_sqlite
+                        write_conn = connect_sqlite(cache_db_path, timeout_sec=5.0, read_only=False)
+                    except ImportError:
+                        import sqlite3
+                        write_conn = sqlite3.connect(cache_db_path, timeout=5.0)
                     close_write = True
                 except (OSError, sqlite3.Error) as _e:
-                    _log_telemetry(_e, "scanner.py:connect_sqlite")
+                    # Concurrency safety: if locked or busy during parallel scan, silently bypass write cache
+                    write_conn = None
+                    close_write = False
+                    _log_telemetry(_e, "scanner.py:connect_sqlite_write")
         if write_conn:
             try:
+                write_conn.execute(
+                    "CREATE TABLE IF NOT EXISTS ast_symbol_cache ("
+                    "filepath TEXT PRIMARY KEY, mtime_ns INTEGER, size_b INTEGER, "
+                    "defines_json TEXT, references_json TEXT)"
+                )
                 write_conn.execute(
                     "INSERT OR REPLACE INTO ast_symbol_cache (filepath, mtime_ns, size_b, defines_json, references_json) VALUES (?, ?, ?, ?, ?)",
                     (norm_path, mtime_ns, size_b, json.dumps(defines), json.dumps(list(references)))
                 )
                 if close_write:
                     write_conn.commit()
-            except Exception as _se:
+            except (OSError, sqlite3.OperationalError, sqlite3.Error) as _se:
+                # Fail-open: write contention shouldn't fail scan
                 _log_telemetry(_se, "scanner.py:ast_symbol_cache_write")
             finally:
-                if close_write:
+                if close_write and write_conn:
                     try:
                         write_conn.close()
                     except (OSError, sqlite3.Error) as _e:
@@ -1575,7 +1713,7 @@ def extract_symbols(root_dir: str, max_files: int = 500) -> Dict[str, List[Dict[
         from core.paths import get_persistence_db_path
         db_p = str(get_persistence_db_path())
         if os.path.exists(db_p):
-            shared_conn = connect_sqlite(db_p)
+            shared_conn = connect_sqlite(db_p, read_only=True)
     except (OSError, sqlite3.Error) as _e:
         _log_telemetry(_e, "scanner.py:connect_shared_db")
 
@@ -1601,7 +1739,8 @@ def extract_symbols(root_dir: str, max_files: int = 500) -> Dict[str, List[Dict[
     finally:
         if shared_conn:
             try:
-                shared_conn.commit()
+                if not _is_conn_read_only(shared_conn):
+                    shared_conn.commit()
                 shared_conn.close()
             except (OSError, sqlite3.Error) as _e:
                 _log_telemetry(_e, "scanner.py:shared_conn_close")
@@ -1929,7 +2068,7 @@ def build_repo_map(
         from core.paths import get_persistence_db_path
         db_p = str(get_persistence_db_path())
         if os.path.exists(db_p):
-            shared_conn = connect_sqlite(db_p)
+            shared_conn = connect_sqlite(db_p, read_only=True)
     except (OSError, sqlite3.Error) as _e:
         _log_telemetry(_e, "scanner.py:connect_shared_db_repomap")
 
@@ -1944,7 +2083,8 @@ def build_repo_map(
     finally:
         if shared_conn:
             try:
-                shared_conn.commit()
+                if not _is_conn_read_only(shared_conn):
+                    shared_conn.commit()
                 shared_conn.close()
             except (OSError, sqlite3.Error) as _e:
                 _log_telemetry(_e, "scanner.py:shared_conn_close_repomap")
@@ -2156,11 +2296,307 @@ def cmd_security(args: argparse.Namespace) -> None:
         sys.exit(0)
 
 
+# === WORKER DELEGATION OVERLAP GATE ===
+
+def _resolve_local_1hop_closure(raw_paths: List[str], root_dir: str = ".") -> Set[str]:
+    """
+    Resolves target files and their 1-hop local repository imports into a closed dependency set.
+    Each item in raw_paths can be a file or a directory.
+    Directories are recursively expanded to source files.
+    Returns a set of normalized relative paths (using forward slashes).
+    """
+    abs_root = os.path.abspath(root_dir)
+    target_files: Set[str] = set()
+    source_exts = {".py", ".dart", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".kt", ".java"}
+    ignore_dirs = {"node_modules", "build", "dist", "coverage", ".git", "ios", "android", ".gemini", "__pycache__", "scratch", ".scratch", ".worktrees", ".orion"}
+
+    # 1. Expand raw paths
+    for item in raw_paths:
+        item_str = str(item).strip().strip("'\"")
+        if not item_str:
+            continue
+        sub_items = [p.strip() for p in item_str.split(",") if p.strip()] if "," in item_str else [item_str]
+
+        for p in sub_items:
+            # Strip task label prefix if present, e.g. "task1:path/to/file"
+            if ":" in p and not (len(p) > 2 and p[1] == ":" and p[2] in ("\\", "/")):
+                parts = p.split(":", 1)
+                p = parts[1].strip()
+
+            candidate = os.path.abspath(os.path.join(abs_root, p)) if not os.path.isabs(p) else os.path.abspath(p)
+            if os.path.isfile(candidate):
+                target_files.add(candidate)
+            elif os.path.isdir(candidate):
+                for r, d_list, f_list in os.walk(candidate):
+                    d_list[:] = [d for d in d_list if _should_traverse_dir(d, ignore_dirs, include_agents_runtime=True)]
+                    for f in f_list:
+                        ext = os.path.splitext(f)[1].lower()
+                        if ext in source_exts:
+                            target_files.add(os.path.abspath(os.path.join(r, f)))
+
+    closure: Set[str] = set()
+
+    def _add_to_closure(p: str) -> None:
+        try:
+            rel = os.path.relpath(p, abs_root).replace("\\", "/")
+            if not rel.startswith("../"):
+                closure.add(rel)
+        except ValueError:
+            pass
+
+    for f_path in target_files:
+        _add_to_closure(f_path)
+        f_dir = os.path.dirname(f_path)
+        ext = os.path.splitext(f_path)[1].lower()
+
+        if ext == ".py":
+            try:
+                import ast as _ast
+                with open(f_path, "r", encoding="utf-8", errors="ignore") as pf:
+                    tree = _ast.parse(pf.read(), filename=f_path)
+
+                def _probe_python_module(mod_name: str, base_dir: str) -> None:
+                    if not mod_name:
+                        return
+                    rel_mod = mod_name.replace(".", os.sep)
+                    search_bases = [
+                        base_dir,
+                        abs_root,
+                        os.path.join(abs_root, ".agents", "scripts"),
+                        os.path.join(abs_root, "src"),
+                        os.path.join(abs_root, "lib"),
+                    ]
+                    for s_base in search_bases:
+                        cand_file = os.path.join(s_base, rel_mod + ".py")
+                        cand_pkg = os.path.join(s_base, rel_mod, "__init__.py")
+                        if os.path.isfile(cand_file):
+                            _add_to_closure(cand_file)
+                            return
+                        elif os.path.isfile(cand_pkg):
+                            _add_to_closure(cand_pkg)
+                            return
+
+                for node in _ast.walk(tree):
+                    if isinstance(node, _ast.Import):
+                        for alias in node.names:
+                            _probe_python_module(alias.name, f_dir)
+                    elif isinstance(node, _ast.ImportFrom):
+                        mod_name = node.module or ""
+                        if node.level > 0:
+                            cur_dir = f_dir
+                            for _ in range(node.level - 1):
+                                cur_dir = os.path.dirname(cur_dir)
+                            rel_mod = mod_name.replace(".", os.sep) if mod_name else ""
+                            base_target = os.path.join(cur_dir, rel_mod)
+                            for alias in node.names:
+                                cand_sub = os.path.join(base_target, alias.name + ".py")
+                                if os.path.isfile(cand_sub):
+                                    _add_to_closure(cand_sub)
+                            cand_f = base_target + ".py"
+                            cand_init = os.path.join(base_target, "__init__.py")
+                            if os.path.isfile(cand_f):
+                                _add_to_closure(cand_f)
+                            elif os.path.isfile(cand_init):
+                                _add_to_closure(cand_init)
+                        else:
+                            _probe_python_module(mod_name, f_dir)
+                            for alias in node.names:
+                                sub_mod = f"{mod_name}.{alias.name}" if mod_name else alias.name
+                                _probe_python_module(sub_mod, f_dir)
+            except Exception as _pe:
+                _log_telemetry(_pe, f"resolve_1hop_closure:py:{f_path}")
+
+        else:
+            try:
+                with open(f_path, "r", encoding="utf-8", errors="ignore") as poly_f:
+                    p_content = poly_f.read()
+                rel_matches = re.findall(r'''(?:import|from|require)\s*\(?['"]((?:\.|@/|\~/|package:)[^'"]+)['"]''', p_content)
+                dart_matches = re.findall(r'''import\s+['"]([^'"]+\.dart)['"]''', p_content)
+                for rel_imp in rel_matches + dart_matches:
+                    clean_imp = rel_imp.split("?")[0].split("#")[0]
+                    if clean_imp.startswith("package:"):
+                        pkg_parts = clean_imp[len("package:"):].split("/", 1)
+                        if len(pkg_parts) == 2:
+                            cand_base = os.path.normpath(os.path.join(abs_root, "lib", pkg_parts[1]))
+                        else:
+                            continue
+                    elif clean_imp.startswith(("@/", "~/")):
+                        sub_rel = clean_imp[2:]
+                        cand_base = os.path.normpath(os.path.join(abs_root, "src", sub_rel))
+                    elif clean_imp.startswith("."):
+                        cand_base = os.path.normpath(os.path.join(f_dir, clean_imp))
+                    else:
+                        cand_base = os.path.normpath(os.path.join(f_dir, clean_imp))
+
+                    stripped_base = re.sub(r'\.(?:js|mjs|cjs)$', '', cand_base)
+                    candidates = [cand_base, stripped_base]
+                    for base_probe in (cand_base, stripped_base):
+                        for s_ext in [".ts", ".tsx", ".js", ".jsx", ".dart", ".go", ".rs", ".kt", ".java"]:
+                            candidates.append(base_probe + s_ext)
+                            candidates.append(os.path.join(base_probe, f"index{s_ext}"))
+                    for cand in candidates:
+                        if os.path.isfile(cand):
+                            _add_to_closure(cand)
+                            break
+            except Exception as _poly_e:
+                _log_telemetry(_poly_e, f"resolve_1hop_closure:polyglot:{f_path}")
+
+    return closure
+
+
+def check_delegation_overlap(
+    task_groups: List[List[str]],
+    threshold: float = 0.20,
+    root_dir: str = ".",
+    as_json: bool = False
+) -> int:
+    """
+    Calculates Jaccard Dependency Overlap across multiple task file sets.
+    Formula: J(T1, T2) = |D(T1) ∩ D(T2)| / |D(T1) ∪ D(T2)|
+    Exit Code 1: If max Jaccard > threshold (MERGE_TO_SINGLE_AGENT).
+    Exit Code 0: If max Jaccard <= threshold (ALLOW_DELEGATION / ALLOW_PARALLEL_DISJOINT).
+    """
+    if len(task_groups) < 2:
+        msg = "Error: At least 2 task groups are required for dependency overlap check."
+        if as_json:
+            print(json.dumps({"error": msg, "exit_code": 1}))
+        else:
+            print(f"[DELEGATE-CHECK] ❌ {msg}", file=sys.stderr)
+            print("Usage: python .agents/scripts/orion.py delegate-check <task1_files> <task2_files> [--threshold 0.20]", file=sys.stderr)
+        return 1
+
+    closures: List[Set[str]] = [_resolve_local_1hop_closure(tg, root_dir=root_dir) for tg in task_groups]
+    pairs = []
+    max_jaccard = 0.0
+
+    for i in range(len(closures)):
+        for j in range(i + 1, len(closures)):
+            d_i, d_j = closures[i], closures[j]
+            intersection = d_i.intersection(d_j)
+            union = d_i.union(d_j)
+            jaccard = len(intersection) / len(union) if union else 0.0
+            if jaccard > max_jaccard:
+                max_jaccard = jaccard
+            pairs.append({
+                "task_a_index": i + 1,
+                "task_b_index": j + 1,
+                "task_a_closure_size": len(d_i),
+                "task_b_closure_size": len(d_j),
+                "shared_count": len(intersection),
+                "union_count": len(union),
+                "shared_dependencies": sorted(list(intersection)),
+                "jaccard": round(jaccard, 4),
+                "jaccard_pct": round(jaccard * 100, 2)
+            })
+
+    if max_jaccard > threshold:
+        verdict = "MERGE_TO_SINGLE_AGENT"
+        exit_code = 1
+        summary = (
+            f"Dependency overlap exceeds threshold ({max_jaccard * 100:.1f}% > {threshold * 100:.1f}%). "
+            "Parallel sub-agents will experience split-brain state drift and broken KV-cache locality. "
+            "Merge all tasks into a single sequential plan (implementation_plan.md) on the main thread."
+        )
+    elif max_jaccard == 0.0:
+        verdict = "ALLOW_PARALLEL_DISJOINT"
+        exit_code = 0
+        summary = (
+            "Tasks are strictly disjoint (0.0% overlap). "
+            "Safe to delegate to parallel read-only scouts or execute concurrently in background."
+        )
+    else:
+        verdict = "ALLOW_DELEGATION"
+        exit_code = 0
+        summary = (
+            f"Dependency overlap is within acceptable threshold ({max_jaccard * 100:.1f}% <= {threshold * 100:.1f}%). "
+            "Pendelegasian disetujui. Ensure shared dependencies are treated as read-only."
+        )
+
+    if as_json:
+        payload = {
+            "verdict": verdict,
+            "max_jaccard": round(max_jaccard, 4),
+            "max_jaccard_pct": round(max_jaccard * 100, 2),
+            "threshold": threshold,
+            "threshold_pct": round(threshold * 100, 2),
+            "exit_code": exit_code,
+            "summary": summary,
+            "tasks": [
+                {
+                    "task_index": idx + 1,
+                    "input_spec": task_groups[idx],
+                    "closure_size": len(closures[idx]),
+                    "closure_files": sorted(list(closures[idx]))
+                }
+                for idx in range(len(task_groups))
+            ],
+            "pairs": pairs
+        }
+        print(json.dumps(payload, indent=2))
+        return exit_code
+
+    print("\n⚖️ Worker Delegation Dependency Overlap Gate")
+    print("=" * 64)
+    print(f"Task Partitions : {len(task_groups)}")
+    print(f"Max Threshold   : {threshold * 100:.1f}%\n")
+
+    for idx, c in enumerate(closures, 1):
+        sample = sorted(list(c))
+        display = sample[:4]
+        suffix = f" ... (+{len(sample) - 4} more)" if len(sample) > 4 else ""
+        print(f"Task {idx} Closure ({len(c)} files):")
+        for item in display:
+            print(f"  • {item}")
+        if suffix:
+            print(f"  {suffix}")
+        print()
+
+    for p in pairs:
+        print(f"Pair ({p['task_a_index']} ↔ {p['task_b_index']}) Jaccard Overlap: {p['jaccard_pct']}% (|D1 ∩ D2| = {p['shared_count']}, |D1 ∪ D2| = {p['union_count']})")
+        if p["shared_dependencies"]:
+            print("  Shared Dependencies:")
+            for s in p["shared_dependencies"][:6]:
+                print(f"    - {s}")
+            if len(p["shared_dependencies"]) > 6:
+                print(f"    ... (+{len(p['shared_dependencies']) - 6} more)")
+        print()
+
+    print("-" * 64)
+    if exit_code == 1:
+        print(f"[DELEGATE-CHECK] ❌ VERDICT: {verdict} (Exit Code 1)")
+        print(f"REASON: {summary}\n")
+    else:
+        print(f"[DELEGATE-CHECK] ✅ VERDICT: {verdict} (Exit Code 0)")
+        print(f"REASON: {summary}\n")
+
+    return exit_code
+
+
+def cmd_delegate_check(args: argparse.Namespace) -> None:
+    raw_tasks: List[str] = []
+    if getattr(args, "task_flags", None):
+        raw_tasks.extend(args.task_flags)
+    if getattr(args, "tasks", None):
+        raw_tasks.extend(args.tasks)
+
+    task_groups: List[List[str]] = []
+    for t_spec in raw_tasks:
+        parts = [p.strip() for p in t_spec.split(",") if p.strip()]
+        if parts:
+            task_groups.append(parts)
+
+    threshold = getattr(args, "threshold", 0.20)
+    as_json = getattr(args, "json", False)
+    root_dir = getattr(args, "root_dir", ".")
+    exit_code = check_delegation_overlap(task_groups, threshold=threshold, root_dir=root_dir, as_json=as_json)
+    sys.exit(exit_code)
+
+
 # === CLI DISPATCH ===
 
 def main() -> None:
     # Direct invocation support: python scanner.py <path> [--budget 1500]
-    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "-h", "--help"}
+    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "delegate-check", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_subcmds:
         if sys.argv[1].startswith("-") and sys.argv[1] not in {"-h", "--help"}:
             sys.argv.insert(1, "repomap")
@@ -2203,12 +2639,21 @@ def main() -> None:
     parser_sec.add_argument("--record-baseline", action="store_true", help="Save active findings to baseline file")
     parser_sec.add_argument("--json", action="store_true", help="Output results in JSON format")
 
-    for sub_p in (parser_targets, parser_map, parser_repomap, parser_tokens, parser_sec):
+    # Delegate Check
+    parser_del = subparsers.add_parser("delegate-check", help="Deterministic Jaccard dependency overlap gate for worker delegation")
+    parser_del.add_argument("tasks", nargs="*", help="Task file groups (e.g. task1_files task2_files)")
+    parser_del.add_argument("--task", action="append", dest="task_flags", help="Task file group (repeatable)")
+    parser_del.add_argument("--threshold", type=float, default=0.20, help="Maximum allowed Jaccard dependency overlap (default: 0.20)")
+    parser_del.add_argument("--json", action="store_true", help="Output in raw JSON format")
+
+    for sub_p in (parser_targets, parser_map, parser_repomap, parser_tokens, parser_sec, parser_del):
         sub_p.add_argument("--dir", dest="dir_flag", help="Target directory or file override")
 
     parsed_args = parser.parse_args()
     if getattr(parsed_args, "dir_flag", None):
         parsed_args.dir = parsed_args.dir_flag
+        if hasattr(parsed_args, "root_dir"):
+            parsed_args.root_dir = parsed_args.dir_flag
     
     if parsed_args.command == "targets":
         cmd_targets(parsed_args)
@@ -2220,6 +2665,8 @@ def main() -> None:
         cmd_tokens(parsed_args)
     elif parsed_args.command == "security":
         cmd_security(parsed_args)
+    elif parsed_args.command == "delegate-check":
+        cmd_delegate_check(parsed_args)
     else:
         parser.print_help()
 

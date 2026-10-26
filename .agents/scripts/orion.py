@@ -12,13 +12,15 @@ if SCRIPTS_DIR not in sys.path:
 # Prevent Python from writing .pyc and __pycache__ inside .agents ecosystem
 sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8:replace")
 
-# Force utf-8 encoding for standard output to avoid UnicodeEncodeError on Windows
-if sys.stdout.encoding.lower() != 'utf-8':
+# Force utf-8 encoding with replace fallback for standard streams
+if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except AttributeError:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, OSError, ValueError):
         pass
 
 def load_env():
@@ -52,6 +54,9 @@ CMD_MAP = {
     "push-upstream": ["commands", "foundation.py"],
     "sync-ai": ["commands", "foundation.py"],
     "foundation": ["commands", "foundation.py"],
+    "dna": ["commands", "foundation.py"],
+    "dna-lint": ["commands", "foundation.py"],
+    "evolve": ["commands", "foundation.py"],
     "scan": ["core", "scanner.py"],
     "scanner": ["core", "scanner.py"],
     "compress": ["commands", "brain.py"],
@@ -70,6 +75,10 @@ CMD_MAP = {
     "instruction-lint": ["commands", "verify_agents.py"],
     "instruction_language_lint": ["commands", "verify_agents.py"],
     "linkify": ["commands", "reflexion.py"],
+    "observe": ["commands", "reflexion.py"],
+    "observations": ["commands", "reflexion.py"],
+    "resolve": ["commands", "reflexion.py"],
+    "habits": ["commands", "reflexion.py"],
     "matrix": ["commands", "brain.py"],
     "matrix-query": ["commands", "brain.py"],
     "matrix_query": ["commands", "brain.py"],
@@ -86,6 +95,8 @@ CMD_MAP = {
     "consolidate": ["commands", "reflexion.py"],
     "contradict": ["commands", "brain.py"],
     "fsm": ["commands", "state_machine.py"],
+    "bento": ["commands", "bento_slicer.py"],
+    "bento_slicer": ["commands", "bento_slicer.py"],
     "shrink": ["commands", "brain.py"],
     "distill": ["commands", "brain.py"],
     "eval": ["..", "evals", "audit_aesthetics.py"],
@@ -116,7 +127,9 @@ CMD_MAP = {
     "diagnostics": ["commands", "rag.py"],
     "repomap": ["core", "scanner.py"],
     "graph": ["core", "orion_graph.py"],
-    "orion_graph": ["core", "orion_graph.py"]
+    "orion_graph": ["core", "orion_graph.py"],
+    "delegate-check": ["core", "scanner.py"],
+    "delegate_check": ["core", "scanner.py"]
 }
 
 _ALIAS_NAMES = {
@@ -128,7 +141,7 @@ _ALIAS_NAMES = {
     "rtk_proxy", "reflect", "trace", "response-validator",
     "bun_runtime", "compactor", "events", "consequence-verify", "false-green",
     "sovereign_harness", "compile_ast", "ast_rules", "repomap", "orion_graph",
-    "packer", "digest", "contrast", "event_stream", "clean"
+    "packer", "digest", "contrast", "event_stream", "clean", "delegate_check", "bento_slicer"
 }
 CANONICAL_CMD_MAP = {name: path for name, path in CMD_MAP.items() if name not in _ALIAS_NAMES}
 ALIAS_CMD_MAP = {name: CMD_MAP[name] for name in _ALIAS_NAMES}
@@ -166,8 +179,8 @@ _HELP_GROUPS = {
                             "adversarial", "context-lint", "instruction-lint",
                             "matrix", "compile", "consequence"],
     "Compression Suite":   ["compact", "compress", "shrink", "distill"],
-    "Foundation / Deploy": ["setup", "foundation", "bun"],
-    "Runtime / Misc":      ["fsm", "reflexion", "harness", "rtk", "telemetry",
+    "Foundation / Deploy": ["setup", "foundation", "dna", "evolve", "bun"],
+    "Runtime / Misc":      ["fsm", "bento", "reflexion", "harness", "rtk", "telemetry",
                             "sandbox", "events", "pack", "budget",
                             "compile_ast", "diagnostics", "validate-response",
                             "assert", "state_graph"],
@@ -223,7 +236,7 @@ def main():
         python_exec = sys.executable or "python"
         t0 = time.time()
         try:
-            result = subprocess.run([python_exec, "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
             t1 = time.time()
             try:
                 from core.db import SovereignTracer
@@ -280,9 +293,9 @@ def main():
 
     # Foundation, state machine, verify_agents, evals, brain, db, and reflexion subcommands are passed explicitly
     if cmd in {
-        "setup", "init", "onboard", "doctor",
+        "setup", "init", "onboard", "doctor", "dna", "dna-lint", "evolve",
         "deploy", "push-upstream", "sync-ai", "budget", "track_budget", "amnesia", "rule_eviction",
-        "consolidate", "linkify", "record", "reflect", "reflexion", "state_graph",
+        "consolidate", "linkify", "record", "reflect", "reflexion", "observe", "observations", "resolve", "habits", "state_graph",
         "preflight", "preflight_check", "context-lint", "context_naming_lint",
         "instruction-lint", "instruction_language_lint", "adversarial",
         "validate-response", "response-validator",
@@ -290,9 +303,11 @@ def main():
         "matrix", "matrix-query", "matrix_query", "memory", "raw_ingest", "contradict",
         "shrink", "distill", "compact", "compactor", "diagnostics", "context", "ingest",
         "gc", "clean", "rtk", "rtk_proxy", "bun", "bun_runtime",
-        "repomap", "telemetry", "trace", "events", "event_stream"
+        "repomap", "telemetry", "trace", "events", "event_stream",
+        "delegate-check", "delegate_check"
     }:
-        args = [cmd] + sys.argv[2:]
+        forward_cmd = "delegate-check" if cmd == "delegate_check" else cmd
+        args = [forward_cmd] + sys.argv[2:]
     else:
         args = sys.argv[2:]
 
@@ -332,7 +347,7 @@ def main():
 
     if not in_process_success:
         try:
-            result = subprocess.run([python_exec, "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
             exit_code = result.returncode
         except KeyboardInterrupt:
             sys.exit(130)

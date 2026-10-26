@@ -2,7 +2,7 @@
 activation: model_decision
 description: Decision trees for performance optimization, token usage, and Bolt-level speed enforcement.
 
-version: 0.0.1
+version: 0.0.2
 last_updated: 2026-05-20
 ---
 
@@ -29,8 +29,8 @@ Context bloat degrades model attention. Use this guideline when editing code:
 
 *Actionable Command*: Run `python .agents/scripts/orion.py scan tokens` to identify ghost tokens.
 
-## 2.1 Code Skeleton First (Zero Sequential Paging)
-For files >350 lines, run `python .agents/scripts/orion.py scan map <file>` to obtain exact symbol spans, then call `view_file` once with exact `StartLine` and `EndLine`. Never read large files in sequential contiguous chunks.
+## 2.1 Code Skeleton First (Zero Contiguous Paging)
+For files >350 lines, run `python .agents/scripts/orion.py scan map <file>` to obtain exact symbol spans, then call `view_file` with exact `StartLine` and `EndLine`. Never read large files in sequential contiguous chunks. Non-contiguous symbol reads are permitted.
 
 ## 3. Application Performance Decision Tree
 
@@ -94,12 +94,17 @@ Agents MUST eliminate the four operational latency traps during file inspection 
 3. **Batched Edit & Single Diff Discipline**: Agents MUST coalesce edits on a target file into minimal `replace_file_content` calls (`AllowMultiple=true` when applicable) and run `git diff` at most once after all edits complete.
 4. **Delta-Scoped Verification Gate**: Agents MUST run `python .agents/scripts/orion.py verify --fast` for rapid iterative validation, running full `verify` ONLY when modifying `.agents/` internals, SQLite schemas, routers (`AGENTS.md` / `GEMINI.md`), or `VERSION`. Pure root documentation edits (`README.md`, `CHANGELOG.md`) MUST skip full-system verification.
 
-### 7.1. Parallel Batch-Edit Protocol (2-Turn Maximum)
+### 7.1. Tier-Aware Batch-Edit Protocol (2-Turn Maximum vs Bento Sequential)
 
-When implementing multi-file changes or multi-section refactors, agents MUST operate under the 2-Turn Maximum protocol to eliminate repetitive edit rounds:
-1. **Turn 1 (Parallel Inspection)**: Execute all required `view_file` calls in parallel in a single turn with exact line spans from `orion.py scan map`. Never inspect files sequentially across multiple turns.
-2. **Turn 2 (Parallel Batch Replacement & Verification)**:
+When implementing multi-file changes or multi-section refactors, agents MUST select the execution strategy appropriate to their model tier:
+1. **PREMIUM Tier (Thinking / Opus - 2-Turn Maximum)**:
+   - **Turn 1 (Parallel Inspection)**: Execute all required `view_file` calls in parallel in a single turn with exact line spans from `orion.py scan map`.
+   - **Turn 2 (Parallel Batch Replacement & Verification)**:
    - Execute all `replace_file_content` calls in parallel in the second turn.
    - Run the single verification pass (`python .agents/scripts/orion.py verify --fast` for delta gates or `verify` for system mods).
-3. **Zero Blind Binary Search**: Never use identical string replacement (`+0 -0`) or probe edits to guess line numbers. Always obtain line numbers mechanically via AST code mapping (`orion.py scan map`) or search.
+2. **BUDGET / STANDARD Tier (Flash / Sonnet / Android Studio - Bento Sequential)**:
+   - Slice implementation plan into atomic cards via `python .agents/scripts/orion.py bento slice <plan.md>`.
+   - Execute one atomic Bento Action Card at a time (`.orion/working/ACTIVE_TASK.md`).
+   - Run verification gate (`python .agents/scripts/orion.py bento next --verify`) before proceeding to the next card to prevent line-shift corruption and hallucinated replacements.
+3. **Zero Blind Binary Search (All Tiers)**: Never use identical string replacement (`+0 -0`) or probe edits to guess line numbers. Always obtain line numbers mechanically via AST code mapping (`orion.py scan map`) or search.
 

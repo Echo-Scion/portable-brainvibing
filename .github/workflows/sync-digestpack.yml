@@ -1,0 +1,86 @@
+name: Auto-Sync digestpack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.agents/scripts/utils/packer.py'
+      - '.agents/scripts/core/scanner.py'
+      - '.agents/scripts/core/security.py'
+      - '.agents/scripts/core/dna.py'
+      - '.github/workflows/sync-digestpack.yml'
+
+jobs:
+  sync:
+    name: Sync to Echo-Scion/digestpack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout portable-brainvibing (Source of Truth)
+        uses: actions/checkout@v4
+
+      - name: Checkout Echo-Scion/digestpack (Child Distribution)
+        uses: actions/checkout@v4
+        with:
+          repository: Echo-Scion/digestpack
+          token: ${{ secrets.SYNC_DIGESTPACK_PAT || secrets.SYNC_PACKSCANNER_PAT || secrets.GITHUB_TOKEN }}
+          path: target_repo
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Execute Automated Module Synchronization
+        run: |
+          python -c "
+          import os, re
+
+          # 1. Adapt and copy packer.py
+          with open('.agents/scripts/utils/packer.py', 'r', encoding='utf-8') as f:
+              p_code = f.read()
+          p_code = re.sub(r'from core\.dna import', 'from .dna import', p_code)
+          p_code = re.sub(r'from core\.scanner import', 'from .scanner import', p_code)
+          p_code = re.sub(r'from core\.security import', 'from .security import', p_code)
+          with open('target_repo/digestpack/packer.py', 'w', encoding='utf-8') as f:
+              f.write(p_code)
+
+          # 2. Adapt and copy scanner.py
+          with open('.agents/scripts/core/scanner.py', 'r', encoding='utf-8') as f:
+              s_code = f.read()
+          s_code = re.sub(r'from core\.security import', 'from .security import', s_code)
+          with open('target_repo/digestpack/scanner.py', 'w', encoding='utf-8') as f:
+              f.write(s_code)
+
+          # 3. Copy security.py
+          with open('.agents/scripts/core/security.py', 'r', encoding='utf-8') as f:
+              sec_code = f.read()
+          with open('target_repo/digestpack/security.py', 'w', encoding='utf-8') as f:
+              f.write(sec_code)
+
+          # 4. Copy dna.py
+          with open('.agents/scripts/core/dna.py', 'r', encoding='utf-8') as f:
+              dna_code = f.read()
+          with open('target_repo/digestpack/dna.py', 'w', encoding='utf-8') as f:
+              f.write(dna_code)
+
+          print('[SUCCESS] Synced packer, scanner, security, and dna modules into standalone package.')
+          "
+
+      - name: Run Standalone Verification Tests
+        run: |
+          cd target_repo
+          python -m unittest discover tests
+
+      - name: Push Synchronized Changes
+        run: |
+          cd target_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes detected. digestpack is already up to date."
+          else
+            git commit -m "chore(sync): auto-sync from portable-brainvibing [skip ci]"
+            git push origin main
+          fi

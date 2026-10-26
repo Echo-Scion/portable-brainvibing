@@ -22,7 +22,10 @@ import subprocess
 import shlex
 import bisect
 import ast
+import time
+import hashlib
 from datetime import datetime
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple, Union, Set
 
@@ -74,6 +77,8 @@ from core.paths import get_persistence_db_path
 from core.capabilities import enqueue_cloud_handoff
 
 LEARNINGS_FILE = os.path.join(BASE_DIR, 'LEARNINGS.md')
+OBSERVATIONS_FILE = os.path.join(BASE_DIR, 'OBSERVATIONS.md')
+OBSERVATIONS_ARCHIVE_FILE = os.path.join(BASE_DIR, 'OBSERVATIONS.archive.md')
 MATRIX_DIR = os.path.join(WORKSPACE_DIR, '.orion', 'matrix')
 
 EPISODIC_DIR = os.path.join(WORKSPACE_DIR, '.orion', 'episodic')
@@ -294,19 +299,598 @@ class ReflexionEngine:
         }
 
     def detect_and_graduate_recurring(self, intents_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+        # 1. Drain recurring mechanical catches from Seam 1 (.orion/working/mechanical_catches.json) into LEARNINGS.md
+        try:
+            from core.db import drain_mechanical_catches
+            catches = drain_mechanical_catches(clear=False)
+            ctx_counts: Dict[str, List[Dict[str, Any]]] = {}
+            for c in catches:
+                ctx_key = f"{c.get('context', 'unknown')}::{c.get('exception_type', 'Error')}"
+                ctx_counts.setdefault(ctx_key, []).append(c)
+            for ctx_key, events in ctx_counts.items():
+                if len(events) >= 2:
+                    sample = events[-1]
+                    self.record_learning(
+                        title=f"Recurring Mechanical Catch in {sample.get('context', 'unknown')}",
+                        root_cause=f"{sample.get('exception_type')}: {sample.get('error', '')[:200]}",
+                        fix_applied="Captured via @sovereign_catch telemetry sink",
+                        self_evolve_rule=f"Enforce boundary invariant guard on {sample.get('context')}",
+                        trigger=f"When invoking {sample.get('context')}",
+                        evidence=f"Observed {len(events)} mechanical catch events in mechanical_catches.json",
+                        intervention=f"Validate input/output contract for {sample.get('context')}",
+                        guard="Do not suppress genuine runtime exceptions",
+                        resting_tier="TIER-0",
+                    )
+        except Exception as _ce:
+            _log_telemetry(_ce, "reflexion.py:drain_catches_to_learnings")
+
         learnings = self.list_learnings()
         graduated = []
-        seen_titles: Dict[str, int] = {}
-        for l in learnings:
-            t_clean = re.sub(r"\[Graduated.*\]", "", l["title"]).strip().lower()
-            seen_titles[t_clean] = seen_titles.get(t_clean, 0) + 1
-
-        for t_clean, count in seen_titles.items():
-            if count >= 2:
-                res = self.graduate_learning(t_clean, intents_dir=intents_dir)
+        seen_norms = set()
+        for item in learnings:
+            title = item.get("title", "")
+            norm = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+            if norm and norm not in seen_norms:
+                seen_norms.add(norm)
+                res = self.graduate_learning(title, intents_dir=intents_dir)
                 if res.get("ok"):
                     graduated.append(res)
         return graduated
+
+
+class ObservationLedger:
+    """
+    Observation Ledger & Signal Capture System (Phase 1).
+    Manages raw observations in .agents/OBSERVATIONS.md and .agents/OBSERVATIONS.archive.md.
+    """
+    def __init__(self, active_path: str = None, archive_path: str = None, ledger_path: str = None):
+        self.active_path = active_path or ledger_path or OBSERVATIONS_FILE
+        self.archive_path = archive_path or OBSERVATIONS_ARCHIVE_FILE
+        self._ensure_files_exist()
+
+    def _ensure_files_exist(self):
+        if not os.path.exists(self.active_path):
+            header = (
+                "# Observation Ledger (Active & Parked Signals)\n\n"
+                "> Raw signals: corrections, tool failures, mechanical catches, verify fails, rule violations.\n\n"
+            )
+            atomic_write_text(self.active_path, header)
+        if not os.path.exists(self.archive_path):
+            header = (
+                "# Observation Ledger Archive (Resolved Signals)\n\n"
+                "> Resolved, declined, or superseded observations.\n\n"
+            )
+            atomic_write_text(self.archive_path, header)
+
+    def _parse_file(self, filepath: str) -> List[Dict[str, Any]]:
+        if not os.path.exists(filepath):
+            return []
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+
+        entries = []
+        blocks = re.split(r"(?m)^(?=##\s+Observation\s+)", content)
+        for block in blocks:
+            if not block.strip().startswith("## Observation "):
+                continue
+            lines = block.strip().splitlines()
+            title_line = lines[0]
+            m_title = re.match(r"##\s+Observation\s+#?(\d+):\s*(.+)", title_line)
+            if not m_title:
+                continue
+            obs_id = int(m_title.group(1))
+            title = m_title.group(2).strip()
+
+            entry = {
+                "id": obs_id,
+                "anchor_id": f"O{obs_id}",
+                "title": title,
+                "fingerprint": "",
+                "status": "open",
+                "kind": "improve",
+                "target": "",
+                "rule_id": "",
+                "siblings_checked": "true",
+                "scope": "project",
+                "parked_until": "",
+                "evidence": "",
+                "created": "",
+                "resolved": "",
+                "resolution": "",
+                "superseded_by": "",
+                "count": 1,
+                "seen_in": "",
+                "applies_to": ""
+            }
+
+            for line in lines[1:]:
+                m_kv = re.match(r"^\s*-\s*\*\*([a-zA-Z0-9_]+)\*\*\s*:\s*(.*)$", line)
+                if m_kv:
+                    k = m_kv.group(1).lower()
+                    v = m_kv.group(2).strip()
+                    if k == "id":
+                        try:
+                            entry["id"] = int(v)
+                        except ValueError:
+                            pass
+                    elif k == "count":
+                        try:
+                            entry["count"] = int(v)
+                        except ValueError:
+                            entry["count"] = 1
+                    elif k in entry:
+                        entry[k] = v
+
+            entries.append(entry)
+        return entries
+
+    def get_all_observations(self) -> List[Dict[str, Any]]:
+        return self._parse_file(self.active_path)
+
+    def get_archive_observations(self) -> List[Dict[str, Any]]:
+        return self._parse_file(self.archive_path)
+
+    def get_next_id(self) -> int:
+        active = self.get_all_observations()
+        arch = self.get_archive_observations()
+        max_id = 0
+        for item in active + arch:
+            if item["id"] > max_id:
+                max_id = item["id"]
+        return max_id + 1
+
+    def compute_fingerprint(self, kind: str, target_or_rule: str, title: str) -> str:
+        raw = f"{kind.strip().lower()}:{target_or_rule.strip().lower()}:{title.strip().lower()}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+
+    def add_observation(
+        self,
+        title: str,
+        kind: str = "improve",
+        target: str = "",
+        rule_id: str = "",
+        scope: str = "project",
+        evidence: str = "",
+        status: str = "open",
+        parked_until: str = "",
+        siblings_checked: str = "true",
+        count: int = 1,
+        seen_in: str = "",
+        applies_to: str = ""
+    ) -> Dict[str, Any]:
+        if status == "parked" and not parked_until.strip():
+            raise ValueError("Observations with status 'parked' require a valid 'parked_until' date (YYYY-MM-DD)")
+
+        is_subagent = (
+            os.environ.get("ANTIGRAVITY_SUBAGENT") == "1" or
+            os.environ.get("SUBAGENT") == "1" or
+            os.environ.get("WORKER_DELEGATE") == "1"
+        )
+        if is_subagent:
+            return {
+                "id": -1,
+                "fingerprint": "subagent_refused",
+                "title": title,
+                "status": "refused_subagent",
+                "kind": kind,
+                "target": target,
+                "rule_id": rule_id,
+                "siblings_checked": siblings_checked,
+                "scope": scope,
+                "parked_until": parked_until,
+                "evidence": evidence,
+                "created": "",
+                "resolved": "",
+                "resolution": "subagents write nothing",
+                "count": count,
+                "seen_in": seen_in,
+                "applies_to": applies_to
+            }
+
+        ws_dir = os.path.abspath(WORKSPACE_DIR)
+        if target and os.path.isabs(target):
+            norm_target = os.path.abspath(target)
+            if norm_target.startswith(ws_dir):
+                target = os.path.relpath(norm_target, ws_dir).replace("\\", "/")
+
+        if evidence:
+            if ws_dir in evidence:
+                evidence = evidence.replace(ws_dir, ".").replace(ws_dir.replace("\\", "/"), ".")
+            if "file://" in evidence:
+                evidence = re.sub(r"file://[^\s)]+", lambda m: m.group(0).replace("file://", ""), evidence)
+
+        target_or_rule = rule_id if rule_id else target
+        fp = self.compute_fingerprint(kind, target_or_rule, title)
+
+        active = self.get_all_observations()
+        for item in active:
+            if item.get("fingerprint") == fp and item.get("status") in ("open", "parked"):
+                if evidence:
+                    existing_ev_parts = [p.strip() for p in item.get("evidence", "").split(" | ") if p.strip()]
+                    if evidence.strip() not in existing_ev_parts:
+                        existing_ev_parts.append(evidence.strip())
+                    item["evidence"] = " | ".join(existing_ev_parts)
+                item["count"] = int(item.get("count", 1)) + 1
+                if seen_in and seen_in not in item.get("seen_in", ""):
+                    item["seen_in"] = (item.get("seen_in", "") + ", " + seen_in).strip(", ")
+                if applies_to and applies_to not in item.get("applies_to", ""):
+                    item["applies_to"] = (item.get("applies_to", "") + ", " + applies_to).strip(", ")
+                self._write_active_list(active)
+                return item
+
+        obs_id = self.get_next_id()
+        now_str = datetime.now().isoformat()
+
+        entry = {
+            "id": obs_id,
+            "fingerprint": fp,
+            "title": title.strip(),
+            "status": status.strip(),
+            "kind": kind.strip(),
+            "target": target.strip(),
+            "rule_id": rule_id.strip(),
+            "siblings_checked": siblings_checked.strip() or "true",
+            "scope": scope.strip() or "project",
+            "parked_until": parked_until.strip(),
+            "evidence": evidence.strip(),
+            "created": now_str,
+            "resolved": "",
+            "resolution": "",
+            "count": count,
+            "seen_in": seen_in.strip(),
+            "applies_to": applies_to.strip()
+        }
+
+        if status.strip() in ("actioned", "resolved", "declined"):
+            entry["resolved"] = now_str
+            entry["resolution"] = "Added directly with resolved status"
+            self._append_to_archive(entry)
+            return entry
+
+        active.append(entry)
+        self._write_active_list(active)
+        return entry
+
+    def _format_entry(self, entry: Dict[str, Any]) -> str:
+        lines = [
+            f"## Observation {entry['id']}: {entry['title']}",
+            f"- **id**: {entry['id']}",
+            f"- **fingerprint**: {entry['fingerprint']}",
+            f"- **status**: {entry['status']}",
+            f"- **kind**: {entry['kind']}",
+            f"- **target**: {entry['target']}",
+            f"- **rule_id**: {entry['rule_id']}",
+            f"- **siblings_checked**: {entry['siblings_checked']}",
+            f"- **scope**: {entry['scope']}",
+        ]
+        if entry.get("count") and int(entry.get("count", 1)) > 1:
+            lines.append(f"- **count**: {entry['count']}")
+        if entry.get("seen_in"):
+            lines.append(f"- **seen_in**: {entry['seen_in']}")
+        if entry.get("applies_to"):
+            lines.append(f"- **applies_to**: {entry['applies_to']}")
+        if entry.get("parked_until"):
+            lines.append(f"- **parked_until**: {entry['parked_until']}")
+        if entry.get("evidence"):
+            lines.append(f"- **evidence**: {entry['evidence']}")
+        if entry.get("created"):
+            lines.append(f"- **created**: {entry['created']}")
+        if entry.get("resolved"):
+            lines.append(f"- **resolved**: {entry['resolved']}")
+        if entry.get("resolution"):
+            lines.append(f"- **resolution**: {entry['resolution']}")
+        if entry.get("superseded_by"):
+            lines.append(f"- **superseded_by**: {entry['superseded_by']}")
+        lines.append("")
+        return "\n".join(lines)
+
+    def _write_active_list(self, entries: List[Dict[str, Any]]):
+        header = (
+            "# Observation Ledger (Active & Parked Signals)\n\n"
+            "> Raw signals: corrections, tool failures, mechanical catches, verify fails, rule violations.\n\n"
+        )
+        content = header + "\n".join(self._format_entry(e) for e in entries)
+        atomic_write_text(self.active_path, content)
+
+    def _write_archive_list(self, entries: List[Dict[str, Any]]):
+        header = (
+            "# Observation Ledger Archive (Resolved Signals)\n\n"
+            "> Resolved, declined, or superseded observations.\n\n"
+        )
+        content = header + "\n".join(self._format_entry(e) for e in entries)
+        atomic_write_text(self.archive_path, content)
+
+    def _append_to_archive(self, entry: Dict[str, Any]) -> None:
+        arch = self.get_archive_observations()
+        arch.append(entry)
+        self._write_archive_list(arch)
+
+    def list_observations(self, status: str = None, limit: int = None) -> List[Dict[str, Any]]:
+        active = self.get_all_observations()
+        if status:
+            active = [e for e in active if e.get("status") == status]
+        if limit and limit > 0:
+            active = active[:limit]
+        return active
+
+    def check_rule_violations(self, rule_id: str) -> Dict[str, Any]:
+        if not rule_id:
+            return {"rule_id": "", "count": 0, "forced_tier0": False, "observations": []}
+        active = self.get_all_observations()
+        arch = self.get_archive_observations()
+        matching_active = [e for e in active if e.get("rule_id") == rule_id and e.get("status") in ("open", "parked")]
+        matching_rolled = [e for e in arch if e.get("rule_id") == rule_id and e.get("kind") == "violation" and e.get("status") == "superseded"]
+        all_matching = matching_active + matching_rolled
+        count = sum(int(e.get("count", 1)) for e in all_matching)
+        forced_tier0 = count >= 2
+        return {
+            "rule_id": rule_id,
+            "count": count,
+            "forced_tier0": forced_tier0,
+            "observations": all_matching
+        }
+
+    def get_digest(self) -> str:
+        active = self.get_all_observations()
+
+        if os.path.exists(self.active_path):
+            with open(self.active_path, "r", encoding="utf-8", errors="replace") as f:
+                raw = f.read()
+            if "## Observation " in raw and len(active) == 0:
+                return "OBSERVATION SCAN BROKEN"
+
+        open_count = sum(1 for e in active if e.get("status") == "open")
+        parked_count = sum(1 for e in active if e.get("status") == "parked")
+        targets = [e.get("target") or e.get("rule_id") for e in active if e.get("target") or e.get("rule_id")]
+        top_target = targets[0] if targets else "none"
+
+        # Check Head Generation if available
+        head_gen_label = "none"
+        try:
+            from core.memory import RecallMemoryManager
+            with RecallMemoryManager() as rm:
+                head = rm.get_head_generation()
+                if head:
+                    head_gen_label = f"G{head.get('generation_count', 0)}"
+        except Exception:
+            pass
+
+        return f"gen={head_gen_label} open={open_count} parked={parked_count} top-target={top_target}"
+
+    def rollover_generation(self, max_active_keep: int = 10) -> Dict[str, Any]:
+        """
+        Synthesizes older active/actioned observations into a compact Head Reflection
+        and retires them into OBSERVATIONS.archive.md with status='superseded' and
+        superseded_by='GEN-<n>'. Preserves freshest max_active_keep entries in active ledger.
+        """
+        active = self.get_all_observations()
+        if len(active) <= max_active_keep:
+            return {"status": "NOOP", "active_count": len(active), "superseded_count": 0}
+
+        # Keep freshest max_active_keep entries (sorted by id desc)
+        sorted_active = sorted(active, key=lambda x: x.get("id", 0))
+        to_retire = sorted_active[:-max_active_keep]
+        to_keep = sorted_active[-max_active_keep:]
+
+        # Build synthesis summary and anchor index
+        anchor_map = {}
+        summary_lines = []
+        for e in to_retire:
+            anchor_id = f"O{e['id']}"
+            anchor_map[anchor_id] = {
+                "title": e.get("title", ""),
+                "target": e.get("target", "") or e.get("rule_id", ""),
+                "kind": e.get("kind", ""),
+                "evidence": e.get("evidence", "")[:120]
+            }
+            summary_lines.append(f"[{anchor_id}] {e.get('title')} ({e.get('target', 'core')}): {e.get('evidence', '')[:100]}")
+
+        raw_summary_text = "\n".join(summary_lines)
+
+        # Compact summary text using Shannon Surprisal if available
+        compacted_summary = raw_summary_text
+        try:
+            from commands.compact import CorpusInformationCompactor
+            with CorpusInformationCompactor() as compactor:
+                compacted_summary = compactor.compact(raw_summary_text, keep_ratio=0.6)
+        except Exception as _ce:
+            _log_telemetry(_ce, "reflexion:rollover_compact")
+
+        # Persist to memory_generations table
+        new_gen_id = f"GEN-OBS-{int(time.time())}"
+        try:
+            from core.memory import RecallMemoryManager
+            with RecallMemoryManager() as rm:
+                gen_res = rm.create_reflection_generation(
+                    reflection_text=compacted_summary,
+                    anchor_map=anchor_map,
+                    retention_floor_turns=6
+                )
+                new_gen_id = gen_res["id"]
+        except Exception as _me:
+            _log_telemetry(_me, "reflexion:rollover_memory_gen")
+
+        # Mark retired entries with superseded_by and move to archive
+        now_str = datetime.now().isoformat()
+        for e in to_retire:
+            e["status"] = "superseded"
+            e["superseded_by"] = new_gen_id
+            e["resolved"] = now_str
+            e["resolution"] = f"Rolled over into {new_gen_id}"
+
+        self._write_active_list(to_keep)
+
+        arch = self.get_archive_observations()
+        arch.extend(to_retire)
+        self._write_archive_list(arch)
+
+        return {
+            "status": "SUCCESS",
+            "head_generation_id": new_gen_id,
+            "active_remaining": len(to_keep),
+            "superseded_count": len(to_retire),
+            "reflection_bytes": len(compacted_summary)
+        }
+
+    def resolve_observation(self, obs_id: int, resolution: str = "resolved", status: str = "actioned") -> bool:
+        active = self.get_all_observations()
+        target_entry = None
+        remaining = []
+
+        for e in active:
+            if e["id"] == obs_id:
+                target_entry = e
+            else:
+                remaining.append(e)
+
+        if not target_entry:
+            return False
+
+        target_entry["status"] = status
+        target_entry["resolved"] = datetime.now().isoformat()
+        target_entry["resolution"] = resolution
+
+        self._write_active_list(remaining)
+
+        arch = self.get_archive_observations()
+        arch.append(target_entry)
+        self._write_archive_list(arch)
+        return True
+
+
+def mine_operator_habits(workspace_dir: Optional[str] = None, profile_path: Optional[str] = None) -> Dict[str, Any]:
+    ws = os.path.abspath(workspace_dir) if workspace_dir else WORKSPACE_DIR
+    orion_working = os.path.join(ws, ".orion", "working")
+    if not profile_path:
+        profile_path = os.path.join(orion_working, "operator_profile.json")
+
+    os.makedirs(os.path.dirname(profile_path), exist_ok=True)
+
+    tool_histogram = Counter()
+    correction_heatmap = Counter()
+    action_sequence = []
+    verify_failures = 0
+
+    traj_file = os.path.join(orion_working, "trajectory.jsonl")
+    if os.path.exists(traj_file):
+        try:
+            with open(traj_file, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            item = json.loads(line.strip())
+                            action_type = item.get("action_type") or item.get("payload", {}).get("tool_name")
+                            if action_type:
+                                tool_histogram[action_type] += 1
+                                action_sequence.append(action_type)
+                        except Exception:
+                            pass
+        except Exception as _te:
+            _log_telemetry(_te, "reflexion:mine_habits_read_traj")
+
+    ngram_counts = Counter()
+    if len(action_sequence) >= 3:
+        for i in range(len(action_sequence) - 2):
+            gram = tuple(action_sequence[i:i+3])
+            ngram_counts[gram] += 1
+
+    ngram_patterns = []
+    for gram, cnt in ngram_counts.items():
+        if cnt >= 3:
+            ngram_patterns.append({
+                "pattern": list(gram),
+                "count": cnt,
+                "proposes_skill": f"propose_skill_{'_and_'.join(gram)}"
+            })
+
+            try:
+                ledger = ObservationLedger()
+                pattern_str = " -> ".join(gram)
+                ledger.add_observation(
+                    title=f"Propose skill for frequent action sequence: {pattern_str}",
+                    kind="habit",
+                    target="skills",
+                    rule_id="OPERATOR_HABIT_SKILL_PROPOSAL",
+                    evidence=f"Action sequence [{pattern_str}] repeated {cnt} times"
+                )
+            except Exception:
+                pass
+
+    catches_file = os.path.join(orion_working, "mechanical_catches.json")
+    if os.path.exists(catches_file):
+        try:
+            with open(catches_file, "r", encoding="utf-8", errors="replace") as f:
+                catches = json.load(f)
+                if isinstance(catches, list):
+                    for c in catches:
+                        ctx = c.get("context", "unknown")
+                        correction_heatmap[ctx] += 1
+                        if "verify" in ctx.lower() or "gate" in ctx.lower():
+                            verify_failures += 1
+        except Exception as _ce:
+            _log_telemetry(_ce, "reflexion:mine_habits_read_catches")
+
+    profile_data = {
+        "timestamp": datetime.now().isoformat(),
+        "tool_histogram": dict(tool_histogram),
+        "correction_heatmap": dict(correction_heatmap),
+        "ngram_patterns": ngram_patterns,
+        "verify_failures": verify_failures,
+        "total_actions_logged": len(action_sequence)
+    }
+
+    try:
+        from core.harness.capture import SecretRedactor
+        raw_json = json.dumps(profile_data, indent=2)
+        redacted_json = SecretRedactor.redact_text(raw_json)
+        atomic_write_text(profile_path, redacted_json)
+        return {"ok": True, "profile_path": profile_path, "patterns_found": len(ngram_patterns)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def backfill_historical_observations(workspace_dir: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Backfills historical friction points, bugfixes, and handover notes into ObservationLedger.
+    Scans context/00_Strategy/MEMORY.md and .orion/episodic/session_history.md.
+    """
+    ws = os.path.abspath(workspace_dir) if workspace_dir else WORKSPACE_DIR
+    ledger = ObservationLedger()
+    backfilled_count = 0
+
+    sources = [
+        os.path.join(ws, "context", "00_Strategy", "MEMORY.md"),
+        os.path.join(ws, ".orion", "episodic", "session_history.md"),
+    ]
+
+    for src_path in sources:
+        if not os.path.isfile(src_path):
+            continue
+        try:
+            with open(src_path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+
+            for line in content.splitlines():
+                line_s = line.strip()
+                if not line_s.startswith(("-", "*")):
+                    continue
+                lower_l = line_s.lower()
+                if any(m in lower_l for m in ("[bugfix]", "[fix]", "[friction]", "[error]", "[learning]", "[deviation]", "[gap]")):
+                    clean_title = re.sub(r"^[-*]\s*(\[[A-Za-z0-9_-]+\]\s*)?", "", line_s).strip()
+                    if len(clean_title) > 10:
+                        ledger.add_observation(
+                            title=clean_title[:120],
+                            kind="improve",
+                            target=os.path.basename(src_path),
+                            rule_id="HISTORICAL_BACKFILL",
+                            evidence=line_s[:200],
+                            status="actioned"
+                        )
+                        backfilled_count += 1
+        except Exception as _e:
+            _log_telemetry(_e, "reflexion:backfill_historical")
+
+    return {"ok": True, "backfilled_count": backfilled_count}
 
 
 class PromptRuleCompiler:
@@ -542,6 +1126,187 @@ class ReflexionLoop:
             prompt.append(f"Verbal Self-Reflection:\n{t.reflection}\n")
         prompt.append("Instruction: Provide a corrected implementation resolving the flaws diagnosed above.")
         return "\n".join(prompt)
+
+    @staticmethod
+    def _classify_failure_complexity(error_output: str, source_lines_count: int) -> Tuple[str, int]:
+        """
+        Tier-0 Mechanical Complexity Estimator:
+        Inspects error output and file metrics to classify repair difficulty dynamically
+        so 3B, 7B, 14B, and 30B+ models each receive tasks matching their capability envelope.
+        """
+        err_lower = (error_output or "").lower()
+        if any(k in err_lower for k in ("syntaxerror", "indentationerror", "importerror", "modulenotfounderror", "nameerror")):
+            return "micro_syntax", min(source_lines_count, 15)
+        if source_lines_count <= 250:
+            return "single_fn", min(source_lines_count, 50)
+        return "multi_fn", min(source_lines_count, 120)
+
+    def auto_heal(
+        self,
+        target_file: str,
+        test_cmd: Union[str, List[str]],
+        problem_description: str = "",
+        timeout: float = 30.0,
+        min_params_b: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Seam 3: Elastic Neuro-Symbolic Self-Healing Loop across 0B..70B+ Local SLMs & Cloud Tiers.
+        - Dynamically matches failure complexity against available local model parameters (1.5B, 3B, 7B, 14B, 30B+).
+        - Enforces AST validity and test verification on every candidate patch with atomic rollback on failure.
+        - Gracefully slides to Cloud 'BUDGET', 'STANDARD', or 'PREMIUM' with a pre-digested AST diagnostic packet
+          whenever the local model is offline, below the dynamic complexity floor, or exhausts its trial budget.
+        """
+        from core.capabilities import execute_neuro_symbolic, resolve_elastic_execution_plan
+        from core.db import atomic_write_text
+
+        abs_target = os.path.abspath(target_file)
+        if not os.path.isfile(abs_target):
+            return {"healed": False, "reason": f"Target file not found: {target_file}", "trials": 0}
+
+        exit_code, output = self.run_evaluator(test_cmd, timeout=timeout)
+        if exit_code == 0:
+            return {"healed": True, "status": "already_green", "trials": 0, "output": output}
+
+        with open(abs_target, "r", encoding="utf-8", errors="replace") as f:
+            original_source = f.read()
+
+        source_lines_count = len(original_source.splitlines())
+        task_complexity, est_span = self._classify_failure_complexity(output, source_lines_count)
+        elastic_plan = resolve_elastic_execution_plan(
+            task_complexity=task_complexity,
+            blast_radius_files=1,
+            span_lines=est_span,
+        )
+
+        effective_min_b = min_params_b if min_params_b is not None else elastic_plan["effective_min_params_b"]
+        dynamic_max_trials = (
+            min(self.max_trials, elastic_plan["local_max_trials"])
+            if min_params_b is None
+            else self.max_trials
+        )
+
+        def _validate_patch_schema(data: Any) -> Tuple[bool, str]:
+            if not isinstance(data, dict):
+                return False, "Output must be a JSON object"
+            for req_key in ("old_string", "new_string", "reflection"):
+                if req_key not in data or not isinstance(data[req_key], str):
+                    return False, f"Missing or non-string required key: '{req_key}'"
+            if not data["old_string"].strip():
+                return False, "'old_string' must be non-empty"
+            if data["old_string"] not in original_source:
+                return False, "'old_string' does not match exact lines in target file"
+            if abs_target.endswith(".py"):
+                candidate = original_source.replace(data["old_string"], data["new_string"], 1)
+                try:
+                    ast.parse(candidate)
+                except SyntaxError as se:
+                    return False, f"Candidate patch introduces Python SyntaxError: {se}"
+            return True, "valid"
+
+        local_slm_skipped = (dynamic_max_trials == 0)
+        while not self.is_circuit_broken() and len(self.history) < dynamic_max_trials:
+            trial_num = len(self.history) + 1
+            critique = self.synthesize_critique(output)
+            reflection_ctx = self.build_reflection_prompt(problem_description or critique)
+            prompt = (
+                f"{reflection_ctx}\n\n"
+                f"Target File ({os.path.basename(abs_target)}):\n"
+                f"```\n{original_source[:8000]}\n```\n\n"
+                f"Latest Test Output (Exit Code {exit_code}):\n{output[-1500:]}\n\n"
+                "Return ONLY a JSON object with keys:\n"
+                '{"old_string": "<exact lines to replace>", "new_string": "<fixed lines>", "reflection": "<root cause>"}'
+            )
+
+            patch_data, provider = execute_neuro_symbolic(
+                task_type="autoharness_self_heal",
+                prompt=prompt,
+                validator_fn=_validate_patch_schema,
+                fallback_fn=None,
+                handoff_payload=None,
+                timeout_sec=min(timeout, 25.0),
+                temperature=0.1,
+                min_params_b=effective_min_b,
+            )
+
+            if not isinstance(patch_data, dict):
+                local_slm_skipped = True
+                break
+
+            patched_source = original_source.replace(patch_data["old_string"], patch_data["new_string"], 1)
+            atomic_write_text(abs_target, patched_source)
+
+            new_code, new_out = self.run_evaluator(test_cmd, timeout=timeout)
+            self.record_attempt(
+                solution=patch_data["new_string"][:300],
+                error_output=new_out[:500],
+                reflection=patch_data.get("reflection", critique),
+            )
+
+            if new_code == 0:
+                engine = ReflexionEngine()
+                engine.record_learning(
+                    title=f"Self-Healed {os.path.basename(abs_target)} on trial #{trial_num}",
+                    root_cause=patch_data.get("reflection", critique),
+                    fix_applied=f"Surgical diff applied via {provider}",
+                    self_evolve_rule=f"Verify AST and invariant conditions in {os.path.basename(abs_target)}",
+                    trigger=f"Test failure on {os.path.basename(abs_target)}",
+                    evidence=f"Exit Code {exit_code} -> Exit Code 0 in {trial_num} trial(s)",
+                    intervention=patch_data.get("reflection", critique),
+                    guard="Preserve existing function signatures",
+                    resting_tier="TIER-0",
+                )
+                return {
+                    "healed": True,
+                    "provider": provider,
+                    "trials": trial_num,
+                    "task_complexity": task_complexity,
+                    "reflection": patch_data.get("reflection", ""),
+                }
+
+            # Mandatory Rollback Gate (Anti-Shotgun Rule)
+            atomic_write_text(abs_target, original_source)
+            exit_code, output = new_code, new_out
+
+        atomic_write_text(abs_target, original_source)
+
+        if len(self.history) >= 3:
+            recommended_tier = "PREMIUM"
+            reason_code = "circuit_breaker_3_consecutive_local_failures"
+        else:
+            recommended_tier = elastic_plan["recommended_cloud_tier"]
+            reason_code = (
+                f"elastic_downshift_local_{elastic_plan['installed_params_b']}B_for_{task_complexity}_min_{effective_min_b}B"
+                if local_slm_skipped
+                else f"borderline_local_trial_exhausted_escalate_{recommended_tier.lower()}"
+            )
+
+        critique_summary = self.synthesize_critique(output)
+        try:
+            from core.capabilities import enqueue_cloud_handoff
+            enqueue_cloud_handoff(
+                task_type="reflexion_surgical_repair",
+                payload={
+                    "target_file": os.path.relpath(abs_target, WORKSPACE_DIR),
+                    "test_cmd": test_cmd if isinstance(test_cmd, str) else " ".join(test_cmd),
+                    "task_complexity": task_complexity,
+                    "trials_attempted": len(self.history),
+                    "recommended_tier": recommended_tier,
+                    "ast_critique": critique_summary,
+                    "last_error": output[-1000:],
+                },
+                reason=reason_code,
+            )
+        except Exception as _he:
+            _log_telemetry(_he, "ReflexionLoop:enqueue_cloud_handoff")
+
+        return {
+            "healed": False,
+            "reason": reason_code,
+            "task_complexity": task_complexity,
+            "recommended_tier": recommended_tier,
+            "ast_critique": critique_summary,
+            "trials": len(self.history),
+        }
 
 
 # ==============================================================================
@@ -946,6 +1711,32 @@ def consolidate_milestone():
     tagged = _extract_tagged_observations(all_text)
     db_ctx = _query_orion_db_context()
 
+    obs_review_block = ""
+    try:
+        obs_ledger = ObservationLedger()
+        open_obs = obs_ledger.list_observations(status="open")
+        total_open = len(open_obs)
+        if total_open > 0:
+            review_slice = open_obs[:10] if total_open > 15 else open_obs
+            rule_groups = {}
+            for item in open_obs:
+                r_id = item.get("rule_id")
+                if r_id:
+                    rule_groups.setdefault(r_id, []).append(item)
+
+            obs_lines = [
+                f"### Active Observation Bounded Slice Review (Total Open: {total_open}, Reviewing: {len(review_slice)})"
+            ]
+            for item in review_slice:
+                r_id = item.get("rule_id") or "none"
+                obs_lines.append(f"- **#{item['id']}** [{item['kind']}] {item['title']} (target: {item['target'] or 'workspace'}, rule: {r_id})")
+                if r_id != "none" and len(rule_groups.get(r_id, [])) >= 2:
+                    obs_lines.append(f"  - ⚡ **2nd Violation Barrier Escalation**: Rule `{r_id}` has {len(rule_groups[r_id])} open violations. Forced to **Tier-0** AST/assertion check.")
+
+            obs_review_block = "\n".join(obs_lines)
+    except Exception as _obs_err:
+        _log_telemetry(_obs_err, "reflexion:consolidate_milestone_obs_review")
+
     nb = None
     try:
         from commands.brain import NanoBrain
@@ -1008,11 +1799,23 @@ def consolidate_milestone():
 ## Consolidated Observations & Progress
 {synthesized_text}
 
+## Active Observations & Barrier Escalations
+{obs_review_block if obs_review_block else '- Zero open observations in active ledger.'}
+
 ---
 _Generated by Temporal Pulse Engine with Cognitive-Deterministic Verification at {datetime.now().isoformat()}_
 """
 
     atomic_write_text(output_path, summary)
+
+    # Trigger Generational Rollover of ObservationLedger to maintain lean active context
+    try:
+        ledger = ObservationLedger()
+        rollover_res = ledger.rollover_generation(max_active_keep=10)
+        if rollover_res.get("superseded_count", 0) > 0:
+            print(f"[PULSE] Observation Generational Rollover complete: {rollover_res['head_generation_id']} (archived {rollover_res['superseded_count']} observations).")
+    except Exception as _ro_err:
+        _log_telemetry(_ro_err, "consolidate_milestone:rollover_generation")
 
     for f_path in session_files:
         shutil.move(f_path, os.path.join(SESSION_ARCHIVE, os.path.basename(f_path)))
@@ -1354,6 +2157,28 @@ def main():
     recur_parser = subparsers.add_parser("detect-recurring", help="Scan learnings for recurring failures and auto-graduate to harness")
     recur_parser.add_argument("--json", action="store_true", help="JSON output")
 
+    obs_add = subparsers.add_parser("observe", help="Record a raw signal observation in OBSERVATIONS.md")
+    obs_add.add_argument("--title", default="", help="Title of observation")
+    obs_add.add_argument("--backfill", action="store_true", help="Backfill historical observations from memory and session history")
+    obs_add.add_argument("--kind", default="improve", choices=["improve", "new-skill", "simplify", "violation", "habit"], help="Observation kind")
+    obs_add.add_argument("--target", default="", help="Target file or component")
+    obs_add.add_argument("--rule-id", default="", help="Associated rule ID")
+    obs_add.add_argument("--scope", default="project", choices=["project", "foundation"], help="Scope")
+    obs_add.add_argument("--evidence", default="", help="Evidence or trajectory excerpt")
+    obs_add.add_argument("--status", default="open", choices=["open", "parked"], help="Initial status")
+    obs_add.add_argument("--parked-until", default="", help="Parked until date (YYYY-MM-DD)")
+
+    obs_list = subparsers.add_parser("observations", help="List observations from OBSERVATIONS.md")
+    obs_list.add_argument("--status", choices=["open", "parked", "actioned", "declined", "superseded"], help="Filter by status")
+    obs_list.add_argument("--slice", type=int, default=0, help="Limit output count")
+
+    obs_res = subparsers.add_parser("resolve", help="Resolve an observation and move to archive")
+    obs_res.add_argument("id", type=int, help="Observation ID to resolve")
+    obs_res.add_argument("--resolution", default="actioned", help="Resolution description")
+    obs_res.add_argument("--status", default="actioned", choices=["actioned", "declined", "superseded"], help="Target status")
+
+    subparsers.add_parser("habits", help="Mine operator habits and action n-grams into operator_profile.json")
+
     parsed_args = parser.parse_args(sys.argv[1:])
 
     engine = ReflexionEngine()
@@ -1433,6 +2258,58 @@ def main():
             print(f"[RECURRING_SCAN] Found {len(res)} recurring learnings graduated:")
             for item in res:
                 print(f"  - Graduated to '{item['skill_name']}' (Intent: {item['intent_id']})")
+
+    elif parsed_args.subcommand == "observe":
+        if getattr(parsed_args, "backfill", False):
+            res = backfill_historical_observations()
+            print(f"[BACKFILL] Completed backfill: {res.get('backfilled_count', 0)} historical observation(s) recorded.")
+        else:
+            if not parsed_args.title:
+                print("[ERROR] --title is required when not using --backfill", file=sys.stderr)
+                sys.exit(1)
+            ledger = ObservationLedger()
+            item = ledger.add_observation(
+                title=parsed_args.title,
+                kind=parsed_args.kind,
+                target=parsed_args.target,
+                rule_id=parsed_args.rule_id,
+                scope=parsed_args.scope,
+                evidence=parsed_args.evidence,
+                status=parsed_args.status,
+                parked_until=parsed_args.parked_until
+            )
+            print(f"[OBSERVE] Recorded Observation #{item['id']} [{item['kind']}] '{item['title']}' (fingerprint: {item['fingerprint']})")
+
+    elif parsed_args.subcommand == "observations":
+        ledger = ObservationLedger()
+        items = ledger.list_observations(status=parsed_args.status, limit=parsed_args.slice if parsed_args.slice > 0 else None)
+        print(f"\n🔍 Observation Ledger ({len(items)} active entries)")
+        print("=" * 60)
+        for item in items:
+            print(f"#{item['id']} [{item['status'].upper()}] ({item['kind']}) — {item['title']}")
+            if item['target']:
+                print(f"     Target : {item['target']}")
+            if item['rule_id']:
+                print(f"     Rule ID: {item['rule_id']}")
+            if item['evidence']:
+                print(f"     Evidence: {item['evidence'][:100]}\n")
+
+    elif parsed_args.subcommand == "resolve":
+        ledger = ObservationLedger()
+        ok = ledger.resolve_observation(parsed_args.id, resolution=parsed_args.resolution, status=parsed_args.status)
+        if ok:
+            print(f"[RESOLVE] Observation #{parsed_args.id} resolved ({parsed_args.status}) and archived.")
+        else:
+            print(f"[ERROR] Observation #{parsed_args.id} not found in active ledger.")
+            sys.exit(1)
+
+    elif parsed_args.subcommand == "habits":
+        res = mine_operator_habits()
+        if res.get("ok"):
+            print(f"[HABITS] Operator habit profile generated: {res['profile_path']} ({res['patterns_found']} habit patterns found)")
+        else:
+            print(f"[ERROR] Failed to mine operator habits: {res.get('error')}")
+            sys.exit(1)
     else:
         parser.print_help()
 

@@ -73,4 +73,5 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
 | **Temporal Pulse, Activity-Based Cadence** | .agents/skills/self-evolve/references/temporal-pulse.md |
-
+| **Observation Signals & Signal Funnel** | .agents/skills/self-evolve/references/observation-signals.md |
+| **Starter Principles & Cross-Cutting Rules Seed** | .agents/skills/self-evolve/references/starter-principles.md |

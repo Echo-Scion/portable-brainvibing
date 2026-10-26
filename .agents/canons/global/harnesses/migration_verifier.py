@@ -22,7 +22,7 @@ except Exception:
 
 
 DANGEROUS_PATTERNS = {
-    'Unconditional Delete': r'DELETE\s+FROM\s+\w+(?!\s+WHERE)',
+    'Unconditional Delete': r'DELETE\s+FROM\s+(?:[\w."`\[\]]+)\b(?!\s+WHERE\b)',
     'Drop Table': r'DROP\s+TABLE\s+',
     'Truncate Table': r'TRUNCATE\s+TABLE\s+'
 }

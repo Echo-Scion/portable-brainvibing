@@ -12,7 +12,7 @@ Every capability pattern, skill, or synthesized procedure must satisfy these fou
 | :--- | :--- | :--- |
 | **1. Signal-to-Noise Ratio** | Terse, actionable operational steps. Free of conversational fluff, buzzwords, or tautological commentary. | Generic advice, placeholder steps, or marketing filler. |
 | **2. Progressive Disclosure** | Strict 3-tier layering: Metadata (<100 tokens), Body (<500 lines), References (loaded on demand). | Monolithic files dumping unneeded domain docs into early context turns. |
-| **3. Machine Portability** | Zero absolute paths, user-specific home directory references, or compiled external C++ daemon dependencies. | Path hardcoding (`/Users/foo/`), unportable wheels, or background daemon requirements. |
+| **3. Machine Portability** | Zero absolute paths, user-specific home directory references, or compiled external C++ daemon dependencies. | Path hardcoding (absolute user paths or drives), unportable wheels, or background daemon requirements. |
 | **4. Deterministic Verification** | Every domain pattern must pair with a verifiable mechanical command (`Exit Code 0 = Pass`, `Exit Code > 0 = Fail`). | Subjective or unprovable success claims without execution evidence. |
 
 ---

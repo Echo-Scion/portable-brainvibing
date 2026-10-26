@@ -72,7 +72,9 @@ class ToolQuantumCapture:
             try:
                 with open(p, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return SessionTelemetryState(**data)
+                    valid_keys = set(SessionTelemetryState.__dataclass_fields__.keys())
+                    filtered = {k: v for k, v in data.items() if k in valid_keys}
+                    return SessionTelemetryState(**filtered)
             except Exception as _e:
                 _log_telemetry(_e, "capture.py:load_session")
         return SessionTelemetryState(session_id=session_id)
@@ -80,9 +82,17 @@ class ToolQuantumCapture:
     def save_session(self, state: SessionTelemetryState) -> None:
         p = self._get_session_path(state.session_id)
         tmp = f"{p}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(state.__dict__, f, indent=2)
-        os.replace(tmp, p)
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(state.__dict__, f, indent=2)
+            os.replace(tmp, p)
+        except Exception:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except Exception:
+                    pass
+            raise
 
     def record_tool_call(self, session_id: str, tool_name: str, args: Dict[str, Any]) -> Tuple[bool, int]:
         """
@@ -98,13 +108,38 @@ class ToolQuantumCapture:
             )
         state.tool_call_count += 1
         state.total_turns += 1
+        is_post_success = isinstance(args, dict) and args.get("exit_code") == 0
+        if isinstance(args, dict):
+            ec = args.get("exit_code") if "exit_code" in args else args.get("exitCode")
+            if ec is not None and isinstance(ec, int) and ec > 0:
+                try:
+                    from commands.reflexion import ObservationLedger, BASE_DIR as _REFLEXION_BASE
+                    norm_state = os.path.abspath(self.state_dir)
+                    ws_root = os.path.abspath(os.path.dirname(_REFLEXION_BASE))
+                    if norm_state.startswith(ws_root):
+                        ledger = ObservationLedger()
+                    else:
+                        ledger = ObservationLedger(
+                            active_path=os.path.join(self.state_dir, "OBSERVATIONS.md"),
+                            archive_path=os.path.join(self.state_dir, "OBSERVATIONS.archive.md"),
+                        )
+                    ledger.add_observation(
+                        title=f"Tool failure in {tool_name} (Exit Code {ec})",
+                        kind="violation",
+                        target=tool_name,
+                        rule_id="TOOL_EXIT_NONZERO",
+                        evidence=f"Args: {str(args)[:200]}"
+                    )
+                except Exception:
+                    pass
+
         self.event_stream.record(
-            kind="action",
+            kind="observation" if is_post_success else "action",
             source="tool",
             payload={"session_id": session_id, "tool_name": tool_name, "args": args},
             action_type=tool_name,
         )
-        is_stuck = self.event_stream.detect_stuck_loop(window_size=3, session_id=session_id)
+        is_stuck = False if is_post_success else self.event_stream.detect_stuck_loop(window_size=3, session_id=session_id)
         if is_stuck:
             state.active = False
             self.save_session(state)
@@ -136,6 +171,12 @@ class ToolQuantumCapture:
         state = self.load_session(session_id)
         state.last_reflection_call = state.tool_call_count
         self.save_session(state)
+        # Flush observations on watermark boundary
+        try:
+            from commands.reflexion import ObservationLedger
+            ObservationLedger().get_digest()
+        except Exception as _e:
+            _log_telemetry(_e, "capture.py:reset_reflection_watermark:flush_obs")
 
     def reset_circuit_breaker(self, session_id: str) -> None:
         state = self.load_session(session_id)

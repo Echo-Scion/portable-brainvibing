@@ -5,7 +5,7 @@ description: >
   and epoch cadences. Activity-based instead of calendar-based.
 trigger: /temporal-pulse, "session summary", "milestone synthesis", "consolidate [[knowledge]]"
 activation: manual or via IDE /schedule
-version: 1.0.0
+
 ---
 
 # Temporal Pulse — Proactive Knowledge Evolution

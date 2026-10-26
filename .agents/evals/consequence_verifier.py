@@ -20,8 +20,8 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
 
@@ -258,13 +258,20 @@ class FalseGreenScanner:
         re.compile(r'(?:fireEvent|userEvent)\.click\(|\.click\(\)|tap\(', re.IGNORECASE),
     ]
 
+    SHALLOW_SUBSTRING_PATTERNS = [
+        re.compile(r'assert\.(?:ok|strictEqual|isTrue)\s*\(\s*[a-zA-Z0-9_.]+\.includes\s*\(', re.IGNORECASE),
+        re.compile(r'expect\([^)]+\)\.(?:toContain|toMatch)\s*\(', re.IGNORECASE),
+        re.compile(r'self\.assertIn\s*\(\s*["\'][^"\']+["\']\s*,\s*(?:output|code|result|src|res|generated)', re.IGNORECASE),
+        re.compile(r'assert\s+["\'][^"\']+["\']\s+in\s+(?:output|code|result|src|res|generated)', re.IGNORECASE),
+    ]
+
     @staticmethod
     def audit_content(content: str, filename: str = "") -> List[Dict[str, Any]]:
         findings = []
         lines = content.splitlines()
 
-        # Test block detection (it, test, def test_, testWidgets)
-        test_block_pattern = re.compile(r'\b(?:it|test|def\s+test_\w+|testWidgets)\s*\((?:["\']([^"\']+)["\'])?', re.IGNORECASE)
+        # Test block detection (it, test, def test_, testWidgets) - negative lookbehind prevents matching .test(...)
+        test_block_pattern = re.compile(r'(?<!\.)\b(?:it|test|def\s+test_\w+|testWidgets)\s*\((?:["\']([^"\']+)["\'])?', re.IGNORECASE)
 
         current_test: Optional[str] = None
         current_lines: List[str] = []
@@ -319,6 +326,28 @@ class FalseGreenScanner:
                         "reason": "Test verifies mock invocation but does not assert contract structure or status codes.",
                         "suggestion": "Ensure mock assertion checks exact wire contract or response status."
                     })
+
+            # Shape 4: Shallow Substring / Semantic Bypass Assertion
+            shallow_matches = sum(len(p.findall(block_text)) for p in FalseGreenScanner.SHALLOW_SUBSTRING_PATTERNS)
+            is_codegen_test = any(k in (filename.lower() + " " + name.lower() + " " + block_text.lower()) for k in [
+                "generate", "generator", "converter", "transpile", "codegen", "decompile", "parser"
+            ])
+            has_structural_assertion = any(k in block_text.lower() for k in [
+                "exitcode", "ast", "syntax", "schema", "parse", "valid", "compile", "toequal", "assertdeep", "tomatchobject"
+            ])
+            if is_codegen_test and shallow_matches > 0 and not has_structural_assertion:
+                findings.append({
+                    "file": filename,
+                    "line": l_start,
+                    "test_name": name,
+                    "shape": "Shape 4: Shallow Substring / Semantic Bypass Assertion",
+                    "severity": "HIGH",
+                    "reason": (
+                        f"Test asserts code generator/parser output using only shallow substring checks "
+                        f"({shallow_matches} match(es)) without structural, AST, schema, or compiler verification."
+                    ),
+                    "suggestion": "Validate resulting AST node structure, schema types, or verify compiler exit code."
+                })
 
         for idx, line in enumerate(lines, 1):
             m = test_block_pattern.search(line)

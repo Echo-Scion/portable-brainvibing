@@ -43,7 +43,7 @@ Executes `python .agents/scripts/orion.py contradict detect` and `python .agents
 - **Typed Relationships**: Use `page|extends`, `page|contradicts`, `page|implements`. Do not use plain wikilinks.
 - **Context Weighting**: Assign `weight: <1-10>` in the frontmatter. High-impact nodes (e.g., core architecture) receive higher weights. `orion.py resolve` prioritizes high-weight nodes during token eviction.
 - **Canon Supremacy**: Canons (`.agents/canons/`) always receive `confidence: canonical`. Any context that contradicts a canon is a `[VIOLATION]`.
-- **82-File Boundary**: Never write into `context/`. All orion outputs go to `.orion/`.
+- **Context Pillar Boundary**: Never write into `context/` without explicit user intent. All orion outputs go to `.orion/`.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
 *If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*

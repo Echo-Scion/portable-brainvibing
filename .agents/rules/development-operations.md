@@ -115,5 +115,19 @@ If a trigger is present and no harness is used, the action must be blocked.
 - **No UI Links in Source**: When writing or modifying files using your IDE editing tools, you MUST NEVER write absolute paths or `file://` schemes into file contents. Absolute `file://` links are STRICTLY for chat UI responses. 
 - **Relative & Wikilinks Only**: You MUST use relative paths or standard `[[wikilinks]]` in the source code.
 
+## 10. Starter Verification & Operational Invariants
+
+- **Pre-flight Verification (#3)**: Run `python .agents/scripts/orion.py preflight` before initiating multi-file refactors or cross-repo migrations.
+- **Complete Subagent Inputs (#7)**: Worker delegations MUST specify explicit file targets, exact line spans, and output contracts — never vague instructions.
+- **Surgical Pruning (#11)**: Clean up orphaned imports, unused variables, and temporary scratchpad files created during your own edits before completing the task.
+- **Interrupted Operation Recovery (#16)**: After any interrupted command or mid-workflow session crash, execute `python .agents/scripts/orion.py verify` to confirm workspace state before resuming edits.
+- **Surgical Diff Preservation (#20)**: Every modified line must trace directly to user intent. Do not alter adjacent formatting, comments, or unrelated modules.
+
+## 11. Windows Shell & UTF-8 Terminal Guardrails
+
+- **Zero Inline Quoting Traps (`python -c`)**: On Windows PowerShell, NEVER run inline `python -c` snippets that contain complex regex, quotes (`\"`, `\'`), or square brackets (`[` / `]`). Always write temporary diagnostic scripts to a dedicated scratch file (e.g. via `write_file`) and execute it via `python <script>.py`, deleting it after verification.
+- **Mandatory `-X utf8` on Windows CLI**: To prevent `UnicodeEncodeError: 'charmap' codec can't encode character...` (Windows legacy `cp1252` default), all one-off Python terminal executions reading/printing UTF-8 or emoji MUST pass `python -X utf8` or set `PYTHONUTF8=1`.
+
+
 
 

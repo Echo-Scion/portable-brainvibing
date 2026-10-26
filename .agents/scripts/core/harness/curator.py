@@ -66,9 +66,7 @@ class ClusterCurator:
                     if fm and "category" in fm and fm["category"]:
                         category = str(fm["category"]).strip().strip("\"'")
                 except Exception as _e:
-                    if os.environ.get("ORION_DEBUG"):
-                        import sys
-                        sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in curator:scan_skills: {_e}\n")
+                    _log_telemetry(_e, "curator:scan_skills")
 
             skills[entry] = {
                 "name": entry,
@@ -151,3 +149,54 @@ class ClusterCurator:
                 )
 
         return proposals
+
+    def propose_siblings(self, skill_name: str) -> List[str]:
+        """
+        Identifies existing sibling skills sharing prefix families or semantic similarity.
+        Prevents micro-skill fragmentation before creating/staging a new skill.
+        """
+        skills = self.scan_skills()
+        if not skills:
+            return []
+
+        siblings: Set[str] = set()
+        parts = skill_name.split("-")
+        prefix = parts[0] if len(parts) >= 2 else skill_name
+        generic_prefixes = {"project", "meta", "app", "code", "system", "auto", "strict", "core", "test"}
+
+        # 1. Prefix match if non-generic
+        if len(prefix) >= 3 and prefix not in generic_prefixes:
+            for existing_name in skills:
+                if existing_name != skill_name:
+                    if existing_name.startswith(f"{prefix}-") or existing_name == prefix:
+                        siblings.add(existing_name)
+
+        # 2. Semantic match if Ollama is available
+        try:
+            from core.capabilities import resolve_ollama_base_url, get_embedding
+            from core.db import cosine_similarity
+            host = resolve_ollama_base_url()
+            if host:
+                target_emb = get_embedding(skill_name, host=host)
+                if target_emb:
+                    for existing_name, meta in skills.items():
+                        if existing_name != skill_name and existing_name not in siblings:
+                            desc = meta.get("description", "")
+                            existing_emb = get_embedding(f"{existing_name}: {desc}", host=host)
+                            if existing_emb and cosine_similarity(target_emb, existing_emb) >= 0.78:
+                                siblings.add(existing_name)
+        except Exception as _e:
+            _log_telemetry(_e, "curator:propose_siblings_ollama")
+
+        # 3. Token-based overlap fallback
+        target_tokens = set(re.findall(r"\w+", skill_name.lower()))
+        for existing_name in skills:
+            if existing_name != skill_name and existing_name not in siblings:
+                existing_tokens = set(re.findall(r"\w+", existing_name.lower()))
+                overlap = target_tokens.intersection(existing_tokens)
+                meaningful_overlap = [t for t in overlap if len(t) >= 4 and t not in generic_prefixes]
+                if meaningful_overlap:
+                    siblings.add(existing_name)
+
+        return sorted(list(siblings))
+

@@ -1,170 +1,157 @@
 ---
 name: worker-delegate
 description: >-
-  Splits heavy tasks into parallel sub-agent delegatable units to save tokens and enable asynchronous execution. Use when collecting data across many files, running bulk codebase searches, or performing multi-worker research.
+  Context-isolating read-only scout and partitioned audit delegator. Protects main thread token budget by offloading high-volume file exploration, log triage, and disjoint domain reviews to isolated sub-agents or background CLI engines.
 ---
 
-# Worker Delegation Protocol
+# Worker Delegation Protocol (Context-Isolating Scout)
 
-> Split heavy tasks into sub-agent delegatable units to save tokens and enable parallel execution.
+> **Core Law**: The Main Agent owns all architectural state and file mutations (Single-Writer Principle). Subagents operate strictly as **Read-Only Scouts, Patch-Spec Drafters, or Partitioned Auditors** to prevent context pollution and split-brain code modifications.
 
-## When to Delegate
+---
 
-### DELEGATE (to sub-agent or script)
-- Data collection: `grep_search`, file listing, bulk API calls
-- Batch file operations: rename, move, format multiple files
-- Static analysis: lint, count, measure across codebase
-- Research: web search, repo analysis (non-reasoning tasks)
+## 1. The 4-Way Execution Routing Gate (Choose Before Delegating)
 
-### KEEP IN MAIN (never delegate)
-- Architecture decisions and reasoning
-- Code review synthesis and judgment
-- User interaction and clarification
-- Security-sensitive operations
-- Contradiction resolution
+Before spawning a subagent, the Agent MUST evaluate the task against this deterministic routing matrix:
 
-## Protocol
+| Task Characteristic | Context Overlap | Target Mechanism | Operational Rationale |
+| :--- | :---: | :--- | :--- |
+| **Multi-file feature coding / refactoring** | $\ge 20\%$ | **Main Thread (`/plan` $\to$ `implementation_plan.md`)** | Prevents split-brain state drift, interface drift, and redundant context prefill. |
+| **End-to-end autonomous module / greenfield app** | High (Swarm) | **`/teamwork-preview` (`invoke_subagent`)** | Uses platform-native multi-agent shared blackboard & internal review loop. |
+| **Heavy CLI build / pack / test / AST scan** | $0\%$ (OS Process) | **Native Async (`run_command` background)** | Zero LLM token burn during execution; reactive wakeup on completion. |
+| **Searching 20+ files, log triage, or disjoint read-only audit** | $< 20\%$ | **`/worker-delegate` (Scout / Reviewer)** | Condenses 50,000+ raw tokens into a 20-line surgical brief for the main thread. |
 
-### 1. Structured Worker Task Specification Schema
+---
 
-Every delegation requires an explicit, contractually bounded specification:
+## 2. Pre-Delegation Mechanical Gates
+
+The Agent MUST enforce three deterministic gates prior to dispatching any subagent:
+
+### Gate 1: Deterministic Dependency Overlap Gate (`orion.py delegate-check`)
+The Agent MUST NOT guess context overlap. Before splitting tasks across subagents, the Agent MUST run:
+```bash
+python .agents/scripts/orion.py delegate-check <task1_files> <task2_files> [--threshold 0.20]
+```
+The CLI resolves 1-hop local imports and calculates pairwise Jaccard Dependency Overlap:
+$$J(T_1, T_2) = \frac{|D(T_1) \cap D(T_2)|}{|D(T_1) \cup D(T_2)|}$$
+- **Exit Code 1 (`MERGE_TO_SINGLE_AGENT`)**: If $J(T_1, T_2) > 0.20$ ($20\%$), the Agent MUST abort delegation and merge all tasks into a single sequential plan (`implementation_plan.md`) on the main thread.
+- **Exit Code 0 (`ALLOW_DELEGATION` / `ALLOW_PARALLEL_DISJOINT`)**: If $J(T_1, T_2) \le 0.20$, the Agent MAY proceed with subagent delegation.
+
+### Gate 2: Tier-0 Mechanical Scout First (Zero-Token Pre-Filter)
+The Agent MUST NOT dispatch an LLM subagent to read unindexed files sequentially.
+1. The Agent MUST run `python .agents/scripts/orion.py scan map <target_dir>` or `grep_search` to extract exact AST symbol spans `[Lstart-Lend]`.
+2. The Agent MUST pass the generated AST skeleton map into the subagent's task specification.
+3. The Subagent MUST inspect only the targeted `[Lstart-Lend]` spans using `view_file` rather than reading entire source files.
+
+### Gate 3: Prefix-Cache Aligned Sub-Agent Prompting (Cloud LLM Parallelism)
+When dispatching 2–3 subagents concurrently, the Agent MUST structure subagent prompts using an **Immutable Prefix + Variable Suffix** layout:
+1. **Immutable Prefix (100% Identical Order Across Subagents)**:
+   - Root rules (`AGENTS.md`)
+   - Repository Map & PageRank symbol topology
+   - Global symbol definitions
+2. **Variable Suffix (Partition-Specific)**:
+   - Specific task contract
+   - Isolated partition file list
+This structure maximizes Cloud LLM prefix-cache hits across concurrent subagent executions.
+
+---
+
+## 3. Read-Only Subagent Archetypes (Single-Writer Principle)
+
+The Subagent MUST NOT write or edit files in the workspace. All file mutations belong exclusively to the Main Agent.
+
+### Archetype 1: `investigator` (Code Locating & Log Triage)
+- **Role**: Discovers candidate symbol definitions, references, or error patterns across large file trees.
+- **Output Contract**:
+  ```
+  <Header>:
+  - path:line — `symbol` — short note
+  totals: <counts>.
+  ```
+
+### Archetype 2: `patch-drafter` (Surgical Patch Specification Synthesizer)
+- **Role**: Performs read-only inspection of candidate sites and drafts drop-in replacement specifications without touching files.
+- **Output Contract**:
+  ```
+  path:Lstart-Lend — `symbol_signature`
+  Root Cause: <1-sentence analysis>
+  Replacement Code:
+  ```language
+  <exact replacement block>
+  ```
+  Verification: <expected assertion / exit code>
+  ```
+- **Execution**: The Main Agent reviews the patch specification and applies edits using native file-editing tools.
+
+### Archetype 3: `reviewer` (Adversarial Security & Logic Auditor)
+- **Role**: Audits diffs or disjoint codebase partitions against `.agents/skills/integrity-sentinel/references/audit_vectors.md`.
+- **Output Contract**:
+  ```
+  path:line: <emoji> <severity>: <problem>. <fix>.
+  totals: N🔴 N🟡 N🔵 N❓
+  ```
+
+---
+
+## 4. Structured Task Specification Schema
+
+The Agent MUST write delegation task specifications to `.agents/working/delegations/task-{task_id}.md`:
 
 ```markdown
 # File: .agents/working/delegations/task-{task_id}.md
 
 ## Task Contract
 - task_id: "TASK-001"
+- archetype: "investigator" | "patch-drafter" | "reviewer"
 - intent: "[Single-sentence measurable objective]"
-- target_files:
-  - "path/to/writable/file1.ext"
-  - "path/to/writable/file2.ext"
+- target_partition:
+  - "path/to/read_only_dir_or_file1"
+  - "path/to/read_only_dir_or_file2"
 - forbidden_files:
-  - "path/to/protected/file.ext"
   - ".agents/rules/*"
-- context_inputs:
-  - "path/to/read_only_reference.md"
-- verification_command: "pytest tests/test_task.py"  # MUST return Exit Code 0
+  - ".orion/*"
+- ast_skeleton_input: "Path to compiled AST skeleton map"
 - output_artifact: ".agents/working/delegations/result-TASK-001.md"
 ```
 
-#### Field Invariants:
-- **`target_files` (Strict Write Whitelist)**: Worker is permitted to modify ONLY these listed paths. Any modification outside this list constitutes a contract violation.
-- **`forbidden_files` (Strict Write Blacklist)**: Critical configuration, security guardrails, and master registries that must never be altered by the subagent.
-- **`context_inputs` (Zero Context Bloat)**: Inject only strictly necessary reference files and type interfaces. Never dump entire session conversation history or unneeded logs.
-- **`verification_command` (Evidence Mandate)**: Deterministic mechanical command proving success. Worker must not declare completion without fresh Exit Code 0 proof.
-- **`output_artifact`**: Standardized destination for output synthesis and results.
+---
 
-### 2. Execution
-- **Sub-agents**: Use native `invoke_subagent`, `browser_subagent`, or MCP servers to delegate reasoning or browser tasks.
-- **Background Tasks**: Execute heavy scripts via `run_command` (async) and monitor with `manage_task`.
-- **Lessword compression**: Task specs and results use lessword mode.
+## 5. Result Collection & Omni-Buffer Auto-Ingestion
 
-### 2.2 Subagent Archetypes & Structured Output Contracts
-Subagents return compressed, machine-parseable outputs to preserve main context budget:
-
-**1. `investigator` (Code Locating & Scouting)**
-- Output contract:
-  ```
-  <Header>:
-  - path:line — `symbol` — short note
-  totals: <counts>.
-  ```
-  Or `No match.` Always file-path-first, line-number-attached, backticked symbols. Safe to grep with `path:\d+`.
-
-**2. `builder` (Surgical Code Modification, ≤2 files)**
-- Output contract:
-  ```
-  <path:line-range> — <change ≤10 words>.
-  verified: <re-read OK | mismatch @ path:line>.
-  ```
-  Or boundary token: `too-big.` / `needs-confirm.` / `ambiguous.` / `regressed.`.
-
-**3. `reviewer` (Adversarial Diff & Vulnerability Audit)**
-- Output contract:
-  ```
-  path:line: <emoji> <severity>: <problem>. <fix>.
-  totals: N🔴 N🟡 N🔵 N❓
-  ```
-  Or `No issues.` Findings sorted by file and line number ascending.
-
-### 2.3 Chaining Protocols
-- **Locate → Fix → Verify** (Standard): `investigator` finds candidate sites → `builder` executes surgical edit on 1-2 sites → `reviewer` verifies diff.
-- **Parallel Scout**: Spawn 2-3 `investigators` concurrently across defs vs callers vs test coverage. Main thread aggregates findings.
-- **Single-Shot Edit**: Target file and line are already proven; pass directly to `builder` without preliminary investigation.
-
-### 2.5 Worktree Isolation Protocol (Parallel / High-Risk Tasks)
-When delegating tasks that perform file modifications or risky experimental edits:
-1. **Spawn Worktree**: Create an isolated worktree branch to keep main working tree pristine:
-   ```bash
-   git worktree add -b worker/{task-name} .worktrees/{task-name} HEAD
-   ```
-2. **Isolated Execution**: Worker executes file edits and tests exclusively inside `.worktrees/{task-name}`.
-3. **Verification Gate**: Worker confirms mechanical pass (`Exit Code 0`) before notifying main agent.
-4. **Merge & Teardown**: Main agent fast-forwards verified branch and prunes worktree:
-   ```bash
-   git merge worker/{task-name}
-   git worktree remove .worktrees/{task-name} --force
-   ```
-
-### 2.6 Parallel Execution & Non-Collision Contracts
-When dispatching multiple subagents concurrently:
-1. **File Disjointness Invariant**: Parallel workers MUST have mutually exclusive `target_files` whitelists (`target_files(A) ∩ target_files(B) = ∅`).
-2. **Worktree Sandboxing**: Each concurrent worker must operate within its own dedicated git worktree (`.worktrees/worker-{id}`).
-3. **Read-Only Common Foundations**: Shared utility libraries, schemas, and type definitions are treated as immutable during parallel runs.
-
-### 2.7 Continuous Execution & Decision Rulings Protocol
-A coordinating agent must not stall execution or barrage the user with trivial status queries:
-1. **Continuous Forward Motion**: Execute planned tasks sequentially to completion without pausing for "Should I continue?" check-ins.
-2. **Deterministic Rulings, Not Stalls**: When facing minor plan ambiguities or implementation edge cases, rule autonomously based on specification authority:
-   ```
-   Ruling: <what you decided> — <why> — <what it costs if wrong>
-   ```
-   Log every ruling in the task ledger and keep moving forward.
-3. **The Four Absolute Hard Stops**:
-   Pause for human intervention ONLY when:
-   - Operation is irreversible or destructive (data loss, force push).
-   - Operation crosses a security or privilege boundary.
-   - External side-effect outside the workspace occurs (production release, unprompted network mutation).
-   - Plan is fundamentally broken where every forward path is a blind guess.
-
-For full continuous execution details and ruling formats, refer to:
-`.agents/skills/worker-delegate/references/continuous_execution.md`
-
-### 3. Result Collection
-Worker writes result to: `.agents/working/delegations/result-{task_id}.md`
-
-Main agent reads result file for synthesis — **NEVER from worker stdout stream** (token waste).
-
-### 4. Cleanup
-- Results auto-pruned after 24h (or end of session).
-- Task specs archived to `.agents/archive/delegations/` monthly.
-
-## Result File Format
+The Subagent MUST write its final output to `.agents/working/delegations/result-{task_id}.md`.
+Every result file MUST include a fenced ```` ```jsonl ```` Context Delta block:
 
 ```markdown
-# Result: {task-name}
+# Result: {task_id}
 ## Status: SUCCESS | PARTIAL | FAILED
+
 ## Summary
 [1-3 sentence lessword summary]
 
-## Data
-[Structured output: tables, lists, code blocks]
-
-## Errors (if any)
-[What went wrong, what was skipped]
+## Context Delta
+```jsonl
+{"target_file": "path/to/file.py", "ast_span": "[L120-L165]", "symbol_signature": "def process_data()", "action_recipe": "Add bounds check before indexing list"}
 ```
 
-## Integration with Existing Tools
+## Detailed Findings
+[Structured tables, patch specifications, or audit notes]
+```
 
-| IDE Tool | Delegation Pattern |
-|---|---|
-| `invoke_subagent` / MCP | Spawn independent sub-agent → read returned artifacts or transcript |
-| `run_command` (async) | Launch background script → use `manage_task` to check status → read result file |
-| `browser_subagent` | Describe task → subagent executes → read DOM/screenshot |
-| `schedule` | Queue delayed polling/task → receive notification when done |
+### Automatic Omni-Buffer Ingestion
+The `pre-agent-wake.py` hook automatically scans `.agents/working/delegations/result-*.md` and extracts all Context Delta records into `context_payload["delegation_deltas"]` inside `.orion/working/context.json`. The Main Agent consumes these surgical recipes with $<5\%$ context footprint without re-reading raw files.
 
-## Anti-Patterns
-- ❌ Don't delegate reasoning or architecture decisions
-- ❌ Don't read worker stdout — read result files
-- ❌ Don't delegate to more than 3 workers in parallel (context fragmentation)
-- ❌ Don't skip task spec — it's the contract between main and worker
+---
+
+## 6. Anti-Patterns & Operational Invariants
+
+- ❌ The Agent MUST NOT delegate tasks when $J(T_1, T_2) > 0.20$ via `delegate-check`.
+- ❌ The Agent MUST NOT delegate code modification (`write_file`, `edit_file`) to subagents.
+- ❌ The Subagent MUST NOT execute git worktree mutations for routine delegations.
+- ❌ The Agent MUST NOT read worker output from raw stdout streams; the Agent MUST read `.agents/working/delegations/result-{task_id}.md`.
+- ❌ The Agent MUST NOT spawn more than 3 subagents concurrently.
+
+---
+
+## 7. Operational References
+
+- Continuous execution rulings: `references/continuous_execution.md`

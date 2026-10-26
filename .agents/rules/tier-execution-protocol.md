@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.1
+version: 0.0.2
 last_updated: 2026-09-26
 ---
 
@@ -24,25 +24,30 @@ last_updated: 2026-09-26
 
 ---
 
-## 1. The 3-Tier Model Ecosystem (Antigravity IDE)
+## 1. The Elastic Neuro-Symbolic Continuum (Mechanical + Local SLM + Cloud 3-Tier Ecosystem)
 
-| Task Tier | Capabilities & Practical Scope | Recommended Antigravity Model |
+`.agents` dynamically pairs **Tier 0 Mechanical Pre-Digestion** (`scanner.py`, `db.py`, `consequence_verifier.py`) with whatever Local SLM ($0\text{B}$ offline, $1.5\text{B}$, $3\text{B}$, $7\text{B}$, $14\text{B}$, $30\text{B}+$) and Cloud Model Tier are available:
+
+| Execution Layer / Tier | Dynamic Scope (After Tier-0 AST Pre-Digestion) | Target Engine / Model Spectrum |
 | :--- | :--- | :--- |
-| **BUDGET** | Background indexing, telemetry, targeted single-file fixes, high-frequency real-time tasks. | **Gemini Flash** (Fast, token-lean) |
-| **STANDARD** | UI prototyping, standard code generation, test runs, nuanced instruction following. | **Gemini Pro** (Balanced reasoning & coding) |
-| **PREMIUM** | Enterprise planning, deep conceptual reasoning, complex multi-step problem solving. | **Gemini Thinking / Gemini Next** (Max intelligence) |
+| **Tier 0: Mechanical Kernel** | AST skeleton mapping `[Lstart-Lend]`, PageRank centrality, `@sovereign_catch` post-conditions, FTS5 BM25, False-Green test scanning. | **Pure Python 3.10+ Stdlib + Rust (`rtk`/`sg`) + Bun** ($0\text{ cost}$, deterministic) |
+| **Tier 1: Elastic Local SLM** | • **$1\text{B}\text{--}2\text{B}$ (`1.5b`)**: RAG keyword expansion, binary tags, short slugging.<br>• **$3\text{B}\text{--}4\text{B}$ (`3b`)**: Above + 1-shot narrow syntax/import repair guarded by `ast.parse`.<br>• **$7\text{B}\text{--}14\text{B}$**: Single-function `auto_heal()`, GraphRAG triplet extraction, Stage 2 security triage.<br>• **$30\text{B}\text{--}70\text{B}+$**: Multi-block refactoring, cross-encoder reranking, deep local autonomy. | **Ollama / `llama-server` / LM Studio / vLLM** ($0\text{ cloud cost}$; auto-skips if offline or task exceeds model envelope) |
+| **Cloud `BUDGET`** | Targeted single-file fixes, routine day-to-day execution, and resolving pre-digested AST failure packets when Local SLM is offline or $\le 3\text{B}$. | **Gemini Flash / Claude Haiku** (Fast, ultra-low token cost via Bento-Box workflow) |
+| **Cloud `STANDARD`** | Multi-file feature development (2–5 files), authoring standard test suites & invariant guards, UI prototyping. | **Gemini Pro / Claude Sonnet** (Balanced reasoning & coding) |
+| **Cloud `PREMIUM`** | Phase 1 Genesis Blueprinting, designing complex cross-layer Invariant Fortresses, or resolving 3-attempt Circuit Breaker escalations. | **Gemini Thinking / Claude Opus** (Maximum intelligence, invoked $O(1)$ upfront) |
 
 ## 2. Infrastructure Special Note
 - **Don't Over-Classify**: Modifying files inside `.agents/` is NOT automatically `PREMIUM`.
 - If the change is purely about keeping the registry/map up to date, use `STANDARD`.
 - If the change modifies the *logic* of how agents operate (e.g., changing Section 1 Core Guardrails in `AGENTS.md`), use `PREMIUM`.
 
-## 3. Mandatory Declaration & Manual Routing (Antigravity IDE)
-- Because **Antigravity IDE** does not have an *auto-routing* feature, switching models must be done **MANUALLY** by the user via the UI model dropdown.
-- When finishing a phase or major task, the agent **MUST** output an explicit Model Tier Recommendation in the chat footer:
-  `⚡ RECOMMENDED TIER: [BUDGET (Gemini Flash) | STANDARD (Gemini Pro) | PREMIUM (Gemini Thinking / Next)]`
-- **Escalation Advice**: If a user prompts for an architectural overhaul or deep audit on a BUDGET model, the agent MUST recommend switching to `Gemini Thinking / Gemini Next` in the initial plan.
-- **Overpowered Exemption**: If the user uses a PREMIUM model for a BUDGET task, proceed immediately without aborting.
+## 3. Mandatory Declaration & Manual Routing (Cloud-First / All IDEs)
+- Because most IDEs (including **Antigravity IDE**) do not auto-route models and not all users have a Local LLM installed, model switching is performed **MANUALLY** by the user via the IDE model dropdown.
+- **Every-Turn Next-Task Reminder**: Whenever a response includes a non-empty `NEXT TASK` (i.e. not `"None"`), the agent **MUST** include `⚡ **RECOMMENDED TIER**` in the response footer specifying `BUDGET (Flash/Haiku)`, `STANDARD (Pro/Sonnet)`, or `PREMIUM (Thinking/Opus)` with a 1-phrase rationale for the next step.
+- **Pre-Implementation Plan Gate**: Every `implementation_plan.md` MUST include `> ⚡ **EXECUTION TIER RECOMMENDATION**: ...` at the top so the user can switch down (e.g. from `PREMIUM` planning to `STANDARD`/`BUDGET` execution) or escalate before approving the plan.
+- **Diagnosis-to-Plan Gate**: When a turn uncovers a defect, error, or architectural solution, `NEXT TASK` MUST NOT be `"None"`. It MUST proactively recommend `/plan` (or `/strict-tdd` for isolated bug fixes) to transition diagnosis into an executable plan.
+- **Escalation Advice**: If a user prompts for an architectural overhaul or deep audit on a BUDGET model, the agent MUST recommend switching to `PREMIUM (Gemini Thinking / Claude Opus)` in the initial plan.
+- **Overpowered Exemption**: If the user uses a PREMIUM model for a BUDGET task, proceed immediately without aborting, then recommend `BUDGET` for the follow-up turn.
 
 ## 4. Forced Intelligence Per Tier (Capability Harness)
 
@@ -76,9 +81,10 @@ See `Reasoning Standards` (Section 4 below) for the full protocol. Sequential Th
 | `STANDARD` | 3-5 (surgical sections) | `view_file` with line range | Mandatory for independent steps |
 | `PREMIUM` | Unlimited (justified) | Full reads when necessary | Mandatory |
 
-### Subagent Delegation (Lessword Delegation Protocol)
+### Subagent Delegation (Lessword & 20% Overlap Gate)
 To preserve the main thread's token context during long sessions, use subagents for investigative or atomic tasks.
-- **Rule**: When delegating to subagents (e.g., `research` or `self`), ALWAYS instruct them to return their final output in the compressed **Lessword Format** (terse, no fluff). 
+- **20% Overlap Gate**: Never delegate tasks with $\ge 20\%$ shared context or interdependent code modifications to subagents. Validate before delegating using `python .agents/scripts/orion.py delegate-check <task1> <task2>`. If Exit Code 1 (`MERGE_TO_SINGLE_AGENT`), use single-agent sequential execution (`implementation_plan.md`) to maintain KV-cache prefix locality and prevent split-brain state drift. Delegate strictly to **Context-Isolating Scouts** (scanning raw logs, docs, or test outputs with $<10\%$ context overlap).
+- **Lessword Rule**: When delegating to subagents (e.g., `research` or `self`), ALWAYS instruct them to return their final output in the compressed **Lessword Format** (terse, no fluff). 
 - **Why**: Subagent tool results are injected into the main context verbatim. A 2k token prose response eats 2k tokens of main budget. A lessword response cuts this by ~60%, allowing the main session to last longer.
 ## 7. Deterministic Tier Fallback (Anti-Subjectivity)
 When classification is ambiguous, use this deterministic fallback:

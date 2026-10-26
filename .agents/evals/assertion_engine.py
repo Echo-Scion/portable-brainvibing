@@ -15,6 +15,17 @@ if scripts_dir not in sys.path:
     sys.path.insert(0, scripts_dir)
 
 try:
+    from core.db import configure_utf8
+    configure_utf8()
+except ImportError:
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
+try:
     from core.db import log_telemetry as _log_telemetry
 except ImportError:
     def _log_telemetry(err: Exception, context: str = "") -> None:
@@ -269,8 +280,14 @@ class AssertionEvaluator:
             if target:
                 tokens = target if isinstance(target, (list, tuple)) else [str(target)]
                 found_canaries = CanaryDefense.detect_leaks(output, tokens)
-                if not found_canaries and any(re.findall(t, output) for t in tokens if '(' in t or '[' in t):
-                    found_canaries = [t for t in tokens if re.search(t, output)]
+                if not found_canaries and any(('(' in t or '[' in t) for t in tokens):
+                    for t in tokens:
+                        if ('(' in t or '[' in t):
+                            try:
+                                if re.search(re.escape(t), output):
+                                    found_canaries.append(t)
+                            except Exception:
+                                pass
             else:
                 tokens = re.findall(r'CANARY_[a-f0-9]{16}', output)
                 found_canaries = CanaryDefense.detect_leaks(output, tokens)
@@ -355,11 +372,17 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="Output result as JSON")
     args = parser.parse_args()
 
+    has_explicit_inputs = any(
+        x is not None for x in (args.output, args.file, args.assertions, args.assertions_file)
+    )
+
     output_text = args.output
-    if not output_text and args.file:
-        if os.path.exists(args.file):
-            with open(args.file, "r", encoding="utf-8") as f:
-                output_text = f.read()
+    if output_text is None and args.file:
+        if not os.path.exists(args.file):
+            sys.stderr.write(f"Error: Output file not found: {args.file}\n")
+            sys.exit(1)
+        with open(args.file, "r", encoding="utf-8") as f:
+            output_text = f.read()
 
     assertions_list = None
     if args.assertions:
@@ -369,12 +392,21 @@ def main() -> None:
             sys.stderr.write(f"Error parsing --assertions JSON: {e}\n")
             sys.exit(1)
     elif args.assertions_file:
-        if os.path.exists(args.assertions_file):
+        if not os.path.exists(args.assertions_file):
+            sys.stderr.write(f"Error: Assertions file not found: {args.assertions_file}\n")
+            sys.exit(1)
+        try:
             with open(args.assertions_file, "r", encoding="utf-8") as f:
                 assertions_list = json.load(f)
+        except Exception as e:
+            sys.stderr.write(f"Error parsing --assertions-file JSON: {e}\n")
+            sys.exit(1)
 
     if output_text is None or assertions_list is None:
-        # Self-test demonstration mode
+        if has_explicit_inputs:
+            sys.stderr.write("Error: Both an output source (--output or --file) and assertions (--assertions or --assertions-file) are required.\n")
+            sys.exit(1)
+        # Self-test demonstration mode (only when invoked with no input/assertion arguments)
         sample_text = '{"status": "success", "count": 42, "items": ["a", "b"]}'
         assertions = [
             {"type": "is-json"},
@@ -412,10 +444,6 @@ def main() -> None:
 # RESPONSE VALIDATOR (Absorbed from response_validator.py)
 # ==============================================================================
 
-INDONESIAN_MARKERS = {
-    "apa", "atau", "bahwa", "dengan", "dan", "dari", "ini", "karena",
-    "kenapa", "untuk", "yang", "sudah", "harus", "tidak", "bukan",
-}
 REQUIRED_FOOTER_LABELS = ("CHECKPOINT", "EVIDENCE", "NEXT TASK")
 LESSWORD_FILLER_PATTERNS = (
     r"\bhere(?:'s| is) what you need to know\b",
@@ -451,12 +479,18 @@ def validate_response(
 
     if require_footer:
         is_qa_turn = allow_qa and ("CHECKPOINT" in response and "NEXT TASK" in response and "EVIDENCE" not in response)
-        if is_qa_turn:
-            pass
-        else:
+        if not is_qa_turn:
             missing = [label for label in REQUIRED_FOOTER_LABELS if label not in response]
             if missing:
                 findings.append(Finding("footer", f"Missing required footer labels: {', '.join(missing)}."))
+        next_task_match = re.search(r"NEXT TASK\*{0,2}\s*:\s*(.+)", response)
+        if next_task_match:
+            next_task_val = next_task_match.group(1).strip().rstrip(".")
+            if next_task_val.lower() not in ("none", "n/a", "-") and "RECOMMENDED TIER" not in response:
+                findings.append(Finding(
+                    "tier_recommendation",
+                    "Active NEXT TASK detected without 'RECOMMENDED TIER' (BUDGET | STANDARD | PREMIUM) in footer."
+                ))
 
     if "EVIDENCE" in response and "Exit Code 0" in response:
         try:

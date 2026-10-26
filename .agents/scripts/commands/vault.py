@@ -14,6 +14,17 @@ _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
+try:
+    from core.db import configure_utf8
+    configure_utf8()
+except ImportError:
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
 from core.paths import get_orion_dir, get_workspace_dir, get_persistence_db_path
 from core.memory import ObsidianVaultExporter, SecondBrainManager
 
@@ -65,6 +76,9 @@ def build_second_brain(out_dir: Optional[str] = None) -> Dict[str, str]:
         return {}
 
 
+import shutil
+
+
 def clean_vault_mirrors(orion_dir: Optional[str] = None) -> int:
     """Prunes stale vault mirrors and temporary export artifacts."""
     target_orion = orion_dir or str(get_orion_dir())
@@ -79,12 +93,22 @@ def clean_vault_mirrors(orion_dir: Optional[str] = None) -> int:
     for d in stale_dirs:
         if os.path.isdir(d):
             try:
-                for f in os.listdir(d):
-                    fp = os.path.join(d, f)
-                    if os.path.isfile(fp):
-                        os.remove(fp)
-                        cleaned += 1
-                os.rmdir(d)
+                for root, dirs, files in os.walk(d, topdown=False):
+                    for f in files:
+                        try:
+                            os.remove(os.path.join(root, f))
+                            cleaned += 1
+                        except OSError:
+                            pass
+                    for sub_d in dirs:
+                        try:
+                            os.rmdir(os.path.join(root, sub_d))
+                        except OSError:
+                            pass
+                try:
+                    os.rmdir(d)
+                except OSError:
+                    pass
             except OSError as e:
                 _log_telemetry(e, "vault.py:clean_vault_mirrors")
     return cleaned

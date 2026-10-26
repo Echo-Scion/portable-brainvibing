@@ -23,10 +23,35 @@ ecosystem: flutter
 2. **Provider Choice**: Use `AsyncNotifier` for async state mutations and `FutureProvider` for one-off fetches.
 3. **Loop Prevention**: Handle futures/streams with `.when` or `AsyncValue`.
 
+## 🌐 Cross-Boundary Hybrid Persistence Contracts (Flutter <-> Native Daemons)
+When synchronizing preferences and state between Flutter and native Android/iOS daemons (`AccessibilityService`, `BroadcastReceiver`, `WindowManager` overlays):
+
+1. **Cold-Start Listener Binding Invariant**:
+   - Native daemons MUST register `OnSharedPreferenceChangeListener` directly and unconditionally against `"FlutterSharedPreferences"` (`Context.MODE_PRIVATE`).
+   - FORBIDDEN: Conditional listener traps such as `if (flutterPrefs.all.isNotEmpty()) flutterPrefs else defaultPrefs`. On fresh installs before Flutter writes, `all.isEmpty()` evaluates to true, binding the listener permanently to the wrong file.
+
+2. **Collection Serialization Invariant (`setStringList` vs JSON)**:
+   - When storing lists or sets destined for native daemons, Flutter code MUST serialize via `_prefs.setString(key, jsonEncode(list))` instead of `setStringList`.
+   - **Rationale**: Modern `shared_preferences_android` prepends an internal Base64 identifier prefix (`VGhpcyBpcyB0aGUgcHJlZml4...`) to strings saved via `setStringList`, causing native `JSONArray` and `getStringSet` to fail with `JSONException` or `ClassCastException` and silently return empty sets.
+   - Native Kotlin reader pattern:
+     ```kotlin
+     fun getSharedList(context: Context, key: String): List<String> {
+         val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+         val raw = prefs.getString("flutter.$key", null) ?: return emptyList()
+         return try {
+             val json = org.json.JSONArray(raw)
+             List(json.length()) { json.getString(it) }
+         } catch (e: Exception) {
+             emptyList()
+         }
+     }
+     ```
+
 ## Troubleshooting
 - **copyWith not found**: Missing `part` directive.
 - **UI not rebuilding**: Using `ref.read` instead of `ref.watch`.
 - **Duplicate Provider**: Multiple `@riverpod` with same name.
+- **Native Daemon Missing Pref Updates**: Listener registered to wrong preferences file on cold start or collection format mismatch.
 
 ---
 *Flutter Logic Patterns - Ecosystem Canon*
