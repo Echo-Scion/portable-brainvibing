@@ -1,17 +1,17 @@
-# Style Guide: {{project_name}}
+# Style & Ergonomics Guide: {{project_name}}
 
-## 🎨 Visual Identity
+## 🎨 Visual Identity & Terminal Palette
 - **Primary Palette**: {{primary_palette}}
-- **Typography**: {{typography_stack}}
+- **Typography / Monospace**: {{typography_stack}}
 - **Core Aesthetics**: {{visual_aesthetic_keywords}}
 
-## 🧩 UI Principles
-- **Layout Philosophy**: {{layout_approach}} (e.g., Responsive, Mobile-First)
-- **Component Standard**: {{ui_kit_reference}} (e.g., Liquid Glass, Material 3)
+## 🧩 Interface Principles (UI & CLI)
+- **Layout / Command Philosophy**: {{layout_approach}}
+- **Component / Standard Stream**: {{ui_kit_reference}}
 
-## 👤 UX Flows
-- **User Persona**: {{primary_persona}}
-- **Key Navigation Patterns**: {{nav_patterns}}
+## 👤 User & Consumer Personas
+- **Primary Target**: {{primary_persona}}
+- **Navigation & Access Patterns**: {{nav_patterns}}
 
 ## 📝 Tone & Voice
 - **Communication Style**: {{brand_voice}}

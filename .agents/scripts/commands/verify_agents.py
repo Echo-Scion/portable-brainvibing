@@ -693,7 +693,7 @@ def check_links(res: AuditResult, verbose: bool = True):
 def check_ghost_references(res: AuditResult, verbose: bool = True):
     if verbose: print("\n--- SCANNING FOR GHOST REFERENCES ---")
     
-    script_pat = re.compile(r'(?P<prefix>scripts/|commands/|core/|utils/|evals/|hooks/)(?P<name>[a-zA-Z0-9_/-]+)\.py')
+    script_pat = re.compile(r'(?<![a-zA-Z0-9_/-])(?P<prefix>scripts/|commands/|core/|utils/|evals/|hooks/)(?P<name>[a-zA-Z0-9_/-]+)\.py')
     skill_pat = re.compile(r'\.agents/skills/([a-zA-Z0-9_-]+)/SKILL\.md')
     skill_ref_pat = re.compile(r'(?:(\.agents/skills/[a-zA-Z0-9_-]+/)?references/([a-zA-Z0-9_\-\.]+\.md))')
     orion_cmd_pat = re.compile(r'python\s+\.?\.agents/scripts/orion\.py\s+([a-zA-Z0-9_-]+)')
@@ -747,6 +747,8 @@ def check_ghost_references(res: AuditResult, verbose: bool = True):
                     res.add_error("IO", f"Could not read {skill_md}: {str(e)}")
 
     for filepath in iter_files(BASE_DIR, (".md",)):
+        if os.path.basename(filepath) in ("OBSERVATIONS.md", "OBSERVATIONS.archive.md", "LEARNINGS.md"):
+            continue
         rel_path = os.path.relpath(filepath, BASE_DIR)
         try:
             content = read_text(filepath)
@@ -761,12 +763,14 @@ def check_ghost_references(res: AuditResult, verbose: bool = True):
                     "hooks/": os.path.join(BASE_DIR, "hooks"),
                 }.get(prefix, os.path.join(scripts_root, prefix.rstrip("/")))
                 script_path = os.path.join(root_dir, f"{script_name}.py")
-                if not os.path.exists(script_path):
+                workspace_script_path = os.path.join(PROJECT_ROOT, f"{prefix}{script_name}.py")
+                if not os.path.exists(script_path) and not os.path.exists(workspace_script_path):
                     res.add_error("GHOST", f"Ghost script reference: {script_name}.py", rel_path)
             
             for skill_name in skill_pat.findall(content):
                 skill_path = os.path.join(BASE_DIR, 'skills', skill_name, 'SKILL.md')
-                if not os.path.exists(skill_path) and skill_name != "internal":
+                workspace_skill_path = os.path.join(PROJECT_ROOT, 'skills', skill_name, 'SKILL.md')
+                if not os.path.exists(skill_path) and not os.path.exists(workspace_skill_path) and skill_name != "internal":
                     res.add_error("GHOST", f"Ghost skill reference: {skill_name}", rel_path)
 
             # Universal skill reference validation across all scanned documents
@@ -789,7 +793,8 @@ def check_ghost_references(res: AuditResult, verbose: bool = True):
                 if any(tok in target_rel for tok in ['{{', '}}', '<', '>']):
                     continue
                 target_full = os.path.normpath(os.path.join(BASE_DIR, target_rel))
-                if not os.path.exists(target_full) and "skills/internal" not in target_rel.replace('\\', '/'):
+                target_workspace = os.path.normpath(os.path.join(PROJECT_ROOT, target_rel))
+                if not os.path.exists(target_full) and not os.path.exists(target_workspace) and "skills/internal" not in target_rel.replace('\\', '/'):
                     if not (IS_SPOKE and target_rel.replace('\\', '/').startswith("canons/ecosystems/")):
                         line_no = find_line_num(content, match.group(0))
                         res.add_error("GHOST", f"Ghost path reference: `{target_rel}`", f"{rel_path}:{line_no}")
@@ -1619,6 +1624,31 @@ def check_command_parity(res: AuditResult, verbose: bool = True):
             res.add_warning("PARITY", f"Failed to verify skill_routes.json: {e}", severity="LOW")
     else:
         res.add_warning("PARITY", "Missing .orion/matrix/skill_routes.json. Run 'python .agents/scripts/orion.py compile'.", severity="LOW")
+
+    # 3. Master AGENTS_INDEX.md Exhaustiveness & Tier-3 Reference Drift Check
+    agents_index_path = os.path.join(BASE_DIR, "AGENTS_INDEX.md")
+    if os.path.exists(agents_index_path):
+        try:
+            index_content = read_text(agents_index_path)
+            unindexed_refs = []
+            for r_root, _, r_files in os.walk(skills_dir):
+                if os.path.basename(r_root) == "references":
+                    skill_parent = os.path.basename(os.path.dirname(r_root))
+                    if skill_parent == "internal":
+                        continue
+                    for rf in r_files:
+                        if rf.endswith(".md"):
+                            rel_ref = os.path.relpath(os.path.join(r_root, rf), os.path.dirname(BASE_DIR)).replace("\\", "/")
+                            if rel_ref not in index_content and rf not in index_content:
+                                unindexed_refs.append(rel_ref)
+            if unindexed_refs:
+                for ur in unindexed_refs:
+                    res.add_error("INDEX_DRIFT", f"Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '{ur}'", "AGENTS_INDEX.md", severity="HIGH")
+                    if verbose: print(f" [FAIL] AGENTS_INDEX Drift: Unindexed reference '{ur}'")
+            elif verbose:
+                print(" [PASS] AGENTS_INDEX Reference Parity: All active Tier-3 skill references are registered in AGENTS_INDEX.md.")
+        except Exception as e:
+            res.add_warning("PARITY", f"Failed to verify AGENTS_INDEX.md reference exhaustiveness: {e}", severity="LOW")
 
 
 def check_capability_pillars(res: AuditResult, verbose: bool = True):

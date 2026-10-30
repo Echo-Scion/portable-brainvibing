@@ -19,14 +19,23 @@ Used for Context & Brain Engine (`orion.py`), SQLite3 FTS5 GraphRAG, and validat
 - **Linux (Debian/Ubuntu)**: `sudo apt install python3`
 - *Mandate*: Zero-Pip — all core algorithms run on pure standard library.
 
-## 2. Pillar 2: Cargo Rust Systems Engine (`rtk` + `ast-grep`)
-Used for token-optimized CLI proxying (60-90% token reduction) and polyglot Concrete Syntax Tree (CST) structural code intelligence.
+## 2. Pillar 2: Cargo Rust Systems Engine (`rtk` + `ast-grep` + Ephemeral Binaries)
+Used for token-optimized CLI proxying (60-90% token reduction), polyglot Concrete Syntax Tree (CST) structural code intelligence, syntax diffing, secret scrubbing, and atomic VCS checkpointing.
 - **Install Rust toolchain**:
   - `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - **Install RTK**:
   - `cargo install --git https://github.com/rtk-ai/rtk`
 - **Install ast-grep (`sg`)**:
   - `cargo install ast-grep --locked` or `winget install ast-grep`
+- **Install difftastic (`difft`)** (Optional):
+  - `cargo install difftastic` or `winget install Wilfred.Difftastic`
+  - *Fallback*: Python standard library `difflib.unified_diff`.
+- **Install gitleaks** (Optional):
+  - `cargo install gitleaks` or `winget install Gitleaks.Gitleaks`
+  - *Fallback*: Pure-Python regex & Shannon Entropy ($H(X) > 4.3$) secret scrubber.
+- **Install jujutsu (`jj`)** (Optional):
+  - `cargo install --locked jj-cli` or `winget install jj`
+  - *Fallback*: Non-destructive atomic `git stash create` snapshots.
 
 ## 3. Pillar 3: Local Neural Coprocessor (Ollama / llama.cpp / OpenAI-Compatible)
 
@@ -44,7 +53,36 @@ Used for zero-compile TypeScript execution, instant zero-install Model Context P
 - **macOS / Linux**: `curl -fsSL https://bun.sh/install | bash`
 - **Verify**: `bun --version` or `python .agents/scripts/orion.py bun status`
 
-## 5. Ecosystem-Specific (Optional)
+## 5. Tier 2: Optional Ephemeral Accelerators (Isolated User Cache & PATH)
+To accelerate vector math, token counting, telemetry queries, serialization, fuzzy matching, and deep syntax queries, install Tier 2 optional accelerators. These live strictly inside an isolated global cache directory (`~/.agents/cache/venv`) or user PATH and never touch your project workspace or host application virtual environment.
+
+- **Included Python Accelerators**:
+  - `sqlite-vec`: Native C-extension for vector KNN queries inside SQLite (`vec_distance_cosine`). *(Fallback: Pure-Python float32 cosine similarity)*.
+  - `model2vec`: Ultra-fast static CPU embeddings without PyTorch or daemon (<1ms latency). *(Fallback: Ollama nomic-embed-text or SQLite FTS5)*.
+  - `tokenizers`: Exact HuggingFace Rust BPE token counter for strict prompt context budgeting. *(Fallback: `chars/3.8` ratio estimation)*.
+  - `duckdb`: High-performance stateless in-memory (`:memory:`) OLAP query engine for `.jsonl` streaming telemetry. *(Fallback: Pure-Python streaming JSONL parser)*.
+  - `orjson`: 5x–10x faster JSON serialization for GraphRAG memory and cache. *(Fallback: Standard library `json`)*.
+  - `rapidfuzz`: High-speed C++ Levenshtein distance and fuzzy string resolution. *(Fallback: Standard library `difflib`)*.
+  - `tree-sitter`: Concrete syntax tree parsing across polyglot languages. *(Fallback: Python stdlib `ast`)*.
+- **One-Line Installation via `uv` (Recommended)**:
+  - Windows:
+    ```powershell
+    uv venv "$HOME\.agents\cache\venv"
+    uv pip install --python "$HOME\.agents\cache\venv\Scripts\python.exe" orjson rapidfuzz tree-sitter sqlite-vec model2vec tokenizers duckdb
+    ```
+  - macOS / Linux:
+    ```bash
+    uv venv "$HOME/.agents/cache/venv"
+    uv pip install --python "$HOME/.agents/cache/venv/bin/python" orjson rapidfuzz tree-sitter sqlite-vec model2vec tokenizers duckdb
+    ```
+  - Or via automated script:
+    ```bash
+    python .agents/scripts/core/accelerators.py install
+    ```
+- **Fallback Guarantee**: If any accelerator is absent, the engine falls back to standard library equivalents seamlessly. Zero pip installs are required for baseline operation.
+- **Verify**: `python .agents/scripts/orion.py doctor`
+
+## 6. Ecosystem-Specific (Optional)
 Depending on your target project, ensure the appropriate SDK is installed:
 
 ### Flutter & Android (If building Mobile Apps)

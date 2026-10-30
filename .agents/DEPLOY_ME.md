@@ -17,6 +17,7 @@ This command returns a complete JSON report containing:
 - `hardware`: CPU cores, System RAM, GPU Name, VRAM in GB
 - `ollama_recommendations`: Recommended coder model & embedding model (`nomic-embed-text`) tailored to host hardware tier, plus fitness warnings
 - `missing_laptop_deps`: Any missing optional 4-Pillar tools (`rtk`, `ast-grep`, `ollama`, `bun`) and their `install_commands`
+- `accelerators`: Status of Tier 2 optional Python wheels (`orjson`, `rapidfuzz`, `tree-sitter`) in isolated user cache (`~/.agents/cache/venv`)
 - `project_assets_status`: Which `.agents` and `.orion` assets are already present or missing
 - `optional_features_catalog`: The 6 Orion power-features available for activation
 
@@ -48,6 +49,18 @@ python .agents/scripts/orion.py setup --yes --target . --enable all
 
 # Direct foundation deploy CLI command:
 python .agents/scripts/orion.py foundation deploy --target /path/to/project
+
+# Hydrate Constitutional Vision (Option A: Direct Creator Statement via CLI):
+python .agents/scripts/orion.py hydrate-vision --target /path/to/project --statement "P2P offline ledger with zero cloud dependencies"
+
+# Hydrate Constitutional Vision (Option B: Interactive Terminal Q&A Grill):
+python .agents/scripts/orion.py hydrate-vision --target /path/to/project --interactive
+
+# Hydrate Constitutional Vision (Option C: In Agent Chat via Q&A / Grill-Me):
+# Agent prompts creator for 3 pillars (Core Essence, Invariants, Anti-Vision) before drafting.
+
+# Confirm and lock draft into context/VISION.md as immutable HUMAN_ONLY:
+python .agents/scripts/orion.py hydrate-vision --target /path/to/project --confirm
 ```
 
 ---
@@ -99,7 +112,7 @@ For the active AI platform, create its manifest in the target project root point
 ```json
 {
   "name": "portable-brainvibing",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
   "skills": ".agents/skills"
 }
@@ -197,5 +210,5 @@ when unavailable.
 
 ---
 > [!NOTE]
-> **Version**: 0.0.2 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
+> **Version**: 0.0.3 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
 > All 18 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.

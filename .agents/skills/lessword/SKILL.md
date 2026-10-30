@@ -33,6 +33,11 @@ Pattern: `[thing] [action] [reason]. [next step].`
 ### 3. Short words
 - Use concise synonyms: "fix" not "implement a solution for", "big" not "extensive". Standard acronyms fine (DB, API, HTTP). Avoid invented abbreviations (cfg, impl, fn) in standard mode. No decorative arrows unless ultra mode.
 
+### 3.5. Plain Modern English (Anti-Stiffness & Natural Tone)
+- Sound like a pragmatic senior engineer in a clean GitHub PR review, not an 18th-century treatise, bureaucratic memo, or broken robot.
+- Use plain active verbs: "use" (not "utilize"), "start" (not "commence"), "find/check" (not "ascertain"), "fix" (not "rectify"), "after" (not "subsequent to"), "before" (not "prior to").
+- Natural cadence: Do not produce broken, artificial staccato. Keep natural spoken flow. Clarity beats compression every time.
+
 ### 4. Articles optional, meaning never
 - Drop a/an/the when sentence reads without ambiguity in one pass. Fragments fine.
 - **Never drop**: `not`, `never`, `no`, `only`, `except`. Numbers, units, errors, and paths must stay exact.
@@ -89,7 +94,7 @@ Drop lessword (use plain English prose), then resume:
 2. **Irreversible action confirmations**: Destructive file deletions, table drops, force pushes.
 3. **Multi-step sequences**: Complex ordered procedures where fragment ambiguity could scramble execution.
 4. **User confusion**: User repeats question or asks for clarification.
-5. **Interactive questions & options**: Interviewing user (`/grill-me`, Composer Ask) requires full sentences so answers come back right.
+5. **Interactive questions & options**: Interviewing user (`ask_question`, `/grill-me`) requires full sentences so answers come back right.
 6. **Persisted content outside chat**: Commit messages, PR descriptions, source code comments, documentation.
 
 Example — destructive op:

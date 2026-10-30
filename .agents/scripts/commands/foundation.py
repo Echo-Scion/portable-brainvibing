@@ -205,7 +205,8 @@ def _read_python_deps(root: str) -> set[str]:
 
 def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
     """Generate dynamic stack configuration for Python projects based on detected dependencies."""
-    # Web Framework
+    # Web / Quantitative / Plugin Framework
+    is_plugin_or_quant = any(p in deps for p in ("ccxt", "pandas", "numpy", "optuna", "yfinance", "scipy")) or "hermes" in deps
     if "fastapi" in deps:
         fw_name = "FastAPI"
         arch_fw = "FastAPI Clean Architecture"
@@ -217,15 +218,23 @@ def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
         arch_fw = "Flask Application Factory Architecture"
     else:
         fw_name = "Headless / CLI / Daemon"
-        arch_fw = "Clean Python Architecture"
+        arch_fw = "Decoupled Plugin & Daemon Architecture" if is_plugin_or_quant else "Clean Python Architecture"
 
     # UI Framework
     if has_ui:
         ui_fw = "HTML / Tailwind CSS" if fw_name != "Headless / CLI / Daemon" else "Modular UI"
         ui_ref = "Tailwind CSS"
+        layout_app = "Responsive Grid & Flexbox"
+        persona = "Full-stack and web engineers"
+        palette = "Deep Indigo, Slate Neutral, Cyan Accent"
+        aesthetics = "clean, tactile, modern"
     else:
-        ui_fw = "None (headless)"
-        ui_ref = "N/A — headless project"
+        ui_fw = "None (headless / CLI)"
+        ui_ref = "POSIX CLI Standards, ANSI Color Tokens & Structured JSON"
+        layout_app = "Subcommand Hierarchy & Stream-Based Output"
+        persona = "Backend, systems, and terminal engineers"
+        palette = "Monochrome Terminal & ANSI Semantic Codes (Green/Red/Yellow/Cyan)"
+        aesthetics = "terse, structured, deterministic, observable"
 
     # Persistence
     pers_parts = []
@@ -281,6 +290,11 @@ def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
         "state_management": state_mgmt,
         "ui_framework": ui_fw,
         "ui_kit_reference": ui_ref,
+        "layout_approach": layout_app,
+        "primary_persona": persona,
+        "primary_palette": palette,
+        "visual_aesthetic_keywords": aesthetics,
+        "brand_voice": "Technical, precise, and terse engineering prose (ASD-STE100)",
         "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
         "decision_1_logic": "Separates domain logic from I/O for testability.",
         "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
@@ -290,9 +304,9 @@ def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
 
 
 def scan_monorepo_workspaces(target_dir):
-    """Scan root and sub-directories (apps, packages, services, etc.) to detect distinct workspaces."""
+    """Scan root and sub-directories (apps, packages, services, plugins, etc.) to detect distinct workspaces."""
     candidate_roots = [target_dir]
-    for sub in ("apps", "packages", "services", "modules", "crates", "libs"):
+    for sub in ("apps", "packages", "services", "modules", "crates", "libs", "plugins"):
         sp = os.path.join(target_dir, sub)
         if os.path.isdir(sp):
             try:
@@ -434,13 +448,18 @@ def get_stack_defaults(framework, language, target_dir=None):
             "MODEL_TYPE": "dataclasses",
             "tech_stack": "Python, SQLite",
             "primary_languages": "Python",
-            "frontend_framework": "Not detected — fill in manually",
+            "frontend_framework": "Headless / CLI / Service",
             "backend_persistence": "Persistent Storage / SQLite",
             "state_management_choice": "Dataclasses / Typed Dicts",
             "arch_framework": "Clean Python Architecture",
             "state_management": "Dataclasses / Typed Dicts",
-            "ui_framework": "None (headless)",
-            "ui_kit_reference": "N/A — headless project",
+            "ui_framework": "None (headless / CLI)",
+            "ui_kit_reference": "POSIX CLI Standards, ANSI Color Tokens & Structured JSON",
+            "layout_approach": "Subcommand Hierarchy & Stream-Based Output",
+            "primary_persona": "Backend, systems, and terminal engineers",
+            "primary_palette": "Monochrome Terminal & ANSI Semantic Codes (Green/Red/Yellow/Cyan)",
+            "visual_aesthetic_keywords": "terse, structured, deterministic, observable",
+            "brand_voice": "Technical, precise, and terse engineering prose (ASD-STE100)",
             "decision_1_title": "Adopt Layered Architecture with Explicit Boundaries",
             "decision_1_logic": "Separates domain logic from I/O for testability.",
             "decision_1_tradeoffs": "Requires disciplined abstraction between layers.",
@@ -614,7 +633,11 @@ def resolve_template_string(content: str, manifest: dict, project_name: str = ""
     
     new_content = content
     if project_name:
-        new_content = new_content.replace("{project_name}", project_name).replace("{{PROJECT_NAME}}", project_name).replace("{{project_name}}", project_name)
+        new_content = (
+            new_content.replace("{{PROJECT_NAME}}", project_name)
+            .replace("{{project_name}}", project_name)
+            .replace("{project_name}", project_name)
+        )
 
     if framework:
         # Prevent broken links by checking if the ecosystem canon directory exists in the active foundation
@@ -819,9 +842,9 @@ SEED_FILES = [
 ]
 SEED_FILE_MAP = {
     "context/VISION.md": ".agents/templates/VISION.template.md",
-    "context/00_Strategy/BLUEPRINT.md": ".agents/templates/PROJECT_SCAFFOLD.template.md",
+    "context/00_Strategy/BLUEPRINT.md": ".agents/templates/BLUEPRINT.template.md",
     "context/00_Strategy/MEMORY.md": ".agents/templates/MEMORY.template.md",
-    "context/01_Product/ROADMAP.md": ".agents/templates/TASK_PLANNING.template.md",
+    "context/01_Product/ROADMAP.md": ".agents/templates/ROADMAP.template.md",
     "context/02_Creative/STYLE_GUIDE.md": ".agents/templates/STYLE_GUIDE.template.md",
     "context/03_Tech/ARCHITECTURE.md": ".agents/templates/PROJECT_SCAFFOLD.template.md",
     "context/AGENT_IDENTITY.md": ".agents/templates/agent-identity-template.md",
@@ -927,20 +950,37 @@ def cmd_deploy(args):
             if scripts_dir not in sys.path:
                 sys.path.insert(0, scripts_dir)
             from core.dna import build_initial_dna_manifest, sequence_project_dna
+
+            existing_dna = {}
+            if os.path.isfile(dna_path):
+                try:
+                    with open(dna_path, "r", encoding="utf-8") as _df:
+                        existing_dna = json.load(_df)
+                except Exception:
+                    existing_dna = {}
+
             dna_data = build_initial_dna_manifest(framework, language, target_dir)
+            if existing_dna:
+                for preserve_key in ("pillars", "context_topology", "context_aliases", "custom_invariants", "architecture_topology", "origin", "deployed_at"):
+                    if preserve_key in existing_dna:
+                        dna_data[preserve_key] = existing_dna[preserve_key]
+
             seq_dna = sequence_project_dna(target_dir)
             has_brownfield_code = bool(
                 seq_dna and any(t != "0_pillars_and_manifests" for t in seq_dna.file_tier_map.values())
             )
             if seq_dna and has_brownfield_code:
-                dna_data["dna_state"] = "MUTATING" if seq_dna.epigenetic_aliases else "BORN"
-                dna_data["origin"] = "brownfield_mutation" if seq_dna.epigenetic_aliases else "foundation_init"
+                dna_data["dna_state"] = existing_dna.get("dna_state") or ("MUTATING" if seq_dna.epigenetic_aliases else "BORN")
+                dna_data["origin"] = existing_dna.get("origin") or ("brownfield_mutation" if seq_dna.epigenetic_aliases else "foundation_init")
                 dna_data["archetype"] = seq_dna.archetype
                 dna_data["stacks"] = seq_dna.stacks
                 dna_data["execution_spine"] = seq_dna.execution_spine
                 dna_data["dna_compliance_score"] = seq_dna.dna_compliance_score
                 dna_data["epigenetic_aliases"] = seq_dna.epigenetic_aliases
                 dna_data["layer_violations"] = seq_dna.layer_violations[:15]
+                dna_data["chimera_files"] = seq_dna.chimera_files[:15]
+                if "mutation_ledger" not in dna_data or not isinstance(dna_data["mutation_ledger"], dict):
+                    dna_data["mutation_ledger"] = {}
                 dna_data["mutation_ledger"]["epigenetic_aliases"] = seq_dna.epigenetic_aliases
                 dna_data["mutation_ledger"]["dna_compliance_score"] = seq_dna.dna_compliance_score
                 dna_data["mutation_ledger"]["layer_violations"] = seq_dna.layer_violations[:15]
@@ -1098,8 +1138,8 @@ def cmd_deploy(args):
         orion_script = os.path.join(foundation_dir, ".agents", "scripts", "orion.py")
         if os.path.exists(orion_script):
             try:
-                # 1. Initialize empty Graph Database
-                subprocess.run([sys.executable, orion_script, "orion_ops", "init"], cwd=target_dir, check=True)
+                # 1. Initialize empty Graph Database (enforcing cross-platform UTF-8)
+                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "init"], cwd=target_dir, check=True)
                 
                 # 2. Scaffold Base Context Directory to prevent amnesia
                 context_dir = os.path.join(target_dir, "context")
@@ -1133,9 +1173,9 @@ def cmd_deploy(args):
                 if not os.path.exists(readme_md):
                     atomic_write_text(readme_md, f"# {os.path.basename(os.path.abspath(target_dir))}\n\nProject initialized by Portable Brainvibing.\n")
 
-                # 3. Auto-Hydrate Graph with Rules, Skills, and Context
+                # 3. Auto-Hydrate Graph with Rules, Skills, and Context (enforcing cross-platform UTF-8)
                 print("  -> Auto-Hydrating Rules & Context into Brain Graph...")
-                subprocess.run([sys.executable, orion_script, "orion_ops", "ingest", ".agents/rules", ".agents/skills", "context", "README.md"], cwd=target_dir, check=True)
+                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "ingest", ".agents/rules", ".agents/skills", "context", "README.md"], cwd=target_dir, check=True)
                 
             except Exception as e:
                 print(f"    [WARNING] Failed to initialize Orion Brain Graph: {e}")
@@ -1146,9 +1186,19 @@ def cmd_deploy(args):
     git_hooks_dir = os.path.join(target_dir, ".git", "hooks")
     if os.path.exists(git_hooks_dir):
         pre_commit_path = os.path.join(git_hooks_dir, "pre-commit")
-        pre_commit_script = "#!/bin/sh\n# Pre-commit secret scanning gatekeeper\npython .agents/scripts/orion.py scan security . || exit 1\n"
+        pre_commit_script = (
+            "#!/bin/sh\n"
+            "# Pre-commit secret scanning gatekeeper\n"
+            "PYTHON_BIN=$(command -v python3 || command -v python)\n"
+            "\"$PYTHON_BIN\" -X utf8 .agents/scripts/orion.py scan security . || exit 1\n"
+        )
         post_commit_path = os.path.join(git_hooks_dir, "post-commit")
-        hook_script = "#!/bin/sh\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n"
+        hook_script = (
+            "#!/bin/sh\n"
+            "# Auto-sync Orion Brain Graph after commit\n"
+            "PYTHON_BIN=$(command -v python3 || command -v python)\n"
+            "\"$PYTHON_BIN\" -X utf8 .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n"
+        )
         if not args.dry_run:
             try:
                 # Pre-commit hook
@@ -1168,7 +1218,7 @@ def cmd_deploy(args):
                         if not existing_hook:
                             f.write(hook_script)
                         else:
-                            f.write("\n# Auto-sync Orion Brain Graph after commit\npython .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n")
+                            f.write("\n# Auto-sync Orion Brain Graph after commit\nPYTHON_BIN=$(command -v python3 || command -v python)\n\"$PYTHON_BIN\" -X utf8 .agents/scripts/orion.py brain sync \"post-commit auto sync\" >/dev/null 2>&1 &\n")
                     
                     if os.name != 'nt':
                         os.chmod(post_commit_path, 0o755)
@@ -1811,7 +1861,7 @@ def sync_ai_configs(
                     "SessionStart": [
                         {
                             "type": "command",
-                            "command": "python .agents/hooks/pre-agent-wake.py"
+                            "command": "python .agents/hooks/pre-agent-wake.py --hook"
                         }
                     ]
                 }
@@ -1840,7 +1890,7 @@ def sync_ai_configs(
                             "SessionStart": [
                                 {
                                     "type": "command",
-                                    "command": "python .agents/hooks/pre-agent-wake.py"
+                                    "command": "python .agents/hooks/pre-agent-wake.py --hook"
                                 }
                             ]
                         }
@@ -1858,7 +1908,7 @@ def sync_ai_configs(
                         "hooks": {
                             "sessionStart": [
                                 {
-                                    "command": "python .agents/hooks/pre-agent-wake.py"
+                                    "command": "python .agents/hooks/pre-agent-wake.py --hook"
                                 }
                             ]
                         }
@@ -1978,6 +2028,12 @@ OPTIONAL_ORION_FEATURES = [
         "desc": "Packs project code into <=10 balanced .md bundles ready for upload to Gemini Web or Claude.",
         "default": False,
     },
+    {
+        "id": "tier2-accelerators",
+        "name": "Tier 2 High-Value Accelerators (~/.agents/cache/venv)",
+        "desc": "Installs in-process Python accelerators (sqlite-vec, model2vec, tokenizers, duckdb, orjson, rapidfuzz, tree-sitter).",
+        "default": False,
+    },
 ]
 
 
@@ -2075,6 +2131,19 @@ def _get_missing_pillar_install_commands() -> dict:
             ["winget", "install", "--id", "ggml.llamacpp", "-e", "--accept-source-agreements", "--accept-package-agreements"]
             if is_win else (["brew", "install", "llama.cpp"] if is_mac else [])
         ),
+        "difftastic": (
+            ["winget", "install", "--id", "Wilfred.Difftastic", "-e", "--accept-source-agreements", "--accept-package-agreements"]
+            if is_win else (["brew", "install", "difftastic"] if is_mac else ["cargo", "install", "difftastic"])
+        ),
+        "gitleaks": (
+            ["winget", "install", "--id", "Gitleaks.Gitleaks", "-e", "--accept-source-agreements", "--accept-package-agreements"]
+            if is_win else (["brew", "install", "gitleaks"] if is_mac else ["cargo", "install", "gitleaks"])
+        ),
+        "jj": (
+            ["winget", "install", "--id", "jj-vcs.jj", "-e", "--accept-source-agreements", "--accept-package-agreements"]
+            if is_win else (["brew", "install", "jj"] if is_mac else ["cargo", "install", "--locked", "jj-cli"])
+        ),
+        "tier2_accelerators": [sys.executable, "-B", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "core", "accelerators.py"), "install"],
     }
     return cmds
 
@@ -2305,6 +2374,7 @@ def inspect_environment_and_workspace(target_dir: str = ".") -> dict:
             },
             "bun": caps.get("bun", {}),
         },
+        "accelerators": caps.get("accelerators", {}),
         "ollama_recommendations": ollama_rec,
         "missing_laptop_deps": missing_deps,
         "install_commands": install_cmds,
@@ -2455,7 +2525,7 @@ def execute_setup_pipeline(
         "00_Strategy/BLUEPRINT.md": "BLUEPRINT.template.md",
         "01_Product/ROADMAP.md": "ROADMAP.template.md",
         "02_Creative/STYLE_GUIDE.md": "STYLE_GUIDE.template.md",
-        "03_Tech/ARCHITECTURE.md": "ARCHITECTURE.template.md",
+        "03_Tech/ARCHITECTURE.md": "PROJECT_SCAFFOLD.template.md",
     }
     proj_name = os.path.basename(abs_target)
     for rel_pillar, tpl_name in pillars_map.items():
@@ -2579,7 +2649,17 @@ def execute_setup_pipeline(
             "detail": "Exported <=10 balanced hybrid audit bundles to .orion/bundles/hybrid/",
         })
 
-    # 8. Fast Mechanical Gate Verification
+    # 8. Optional Feature 7: Tier 2 High-Value Accelerators (`tier2-accelerators`)
+    if "tier2-accelerators" in enabled_features:
+        acc_script = os.path.join(scripts_dir, "core", "accelerators.py")
+        ok_acc, out_acc = _run_orion_subcommand(acc_script, ["install"], cwd=abs_target, timeout=300)
+        steps_log.append({
+            "step": "tier2-accelerators",
+            "ok": ok_acc,
+            "detail": "Installed Tier 2 accelerators into isolated user cache (~/.agents/cache/venv)" if ok_acc else out_acc[:200],
+        })
+
+    # 9. Fast Mechanical Gate Verification
     ok_ver, _ = _run_orion_subcommand(orion_py, ["verify", "--fast"], cwd=abs_target)
     steps_log.append({"step": "verify_fast", "ok": ok_ver, "detail": "Mechanical verification gate passed (Exit Code 0)"})
 
@@ -2618,7 +2698,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.2)     ║")
+    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.3)     ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")
@@ -2628,6 +2708,11 @@ def cmd_setup(args: argparse.Namespace) -> None:
     rtk_ok = "✅ Installed" if p_info["rtk"].get("available") else "⚠️ Missing (Fallback: Python Stream Filter)"
     sg_ok = "✅ Installed" if p_info["ast_grep"].get("available") else "⚠️ Missing (Fallback: Python AST/Regex)"
     print(f"  • Pillar 2 (Rust): rtk: {rtk_ok} | ast-grep: {sg_ok}")
+    opt_rust = info.get("accelerators", {}).get("opt_in_pillars", {}).get("rust_fabric", {})
+    difft_st = "✅" if opt_rust.get("difftastic") else "ℹ️"
+    gl_st = "✅" if opt_rust.get("gitleaks") else "ℹ️"
+    jj_st = "✅" if opt_rust.get("jj") else "ℹ️"
+    print(f"                     Companions   : difftastic: {difft_st} | gitleaks: {gl_st} | jujutsu (jj): {jj_st}")
 
     if ol_info.get("available"):
         provider_name = ol_info.get("provider", "ollama")
@@ -2662,6 +2747,18 @@ def cmd_setup(args: argparse.Namespace) -> None:
 
     bun_ok = f"✅ {p_info['bun'].get('version')}" if p_info["bun"].get("available") else "⚠️ Missing (Fallback: Host Node/Pytest)"
     print(f"  • Pillar 4 (Bun): {bun_ok}")
+
+    acc_info = info.get("accelerators", {})
+    all_acc = acc_info.get("accelerators", {})
+    total_acc = len(all_acc) or 7
+    active_acc = [k for k, v in all_acc.items() if v.get("available")]
+    missing_acc = [k for k, v in all_acc.items() if not v.get("available")]
+    if active_acc:
+        print(f"  • Tier 2 (Accel): ✅ Active: {', '.join(active_acc)} ({len(active_acc)}/{total_acc}) [~/.agents/cache/venv]")
+        if missing_acc:
+            print(f"                     Optional     : {', '.join(missing_acc)} (Install: 'python .agents/scripts/core/accelerators.py install')")
+    else:
+        print(f"  • Tier 2 (Accel): ℹ️ Optional (Zero-Pip Baseline Active — Run 'python .agents/scripts/core/accelerators.py install' to enable)")
 
     print("\n[2/4] 📂 WORKSPACE & PROJECT DIAGNOSTIC")
     mode_labels = {
@@ -2947,6 +3044,83 @@ def cmd_dna(args: argparse.Namespace) -> None:
         else:
             print("No DNA snapshots recorded yet. Run 'orion dna snapshot' to record one.\n")
 
+    elif action == "semver":
+        from core.dna import evaluate_dna_semver
+        since_ref = getattr(args, "since", None)
+        as_json = getattr(args, "json", False)
+        bump_type_arg = getattr(args, "bump_type", "auto") or "auto"
+        res = evaluate_dna_semver(
+            abs_target,
+            since_ref=since_ref,
+            allow_major_override=(bump_type_arg == "major"),
+            allow_minor_override=(bump_type_arg == "minor"),
+        )
+        if as_json:
+            print(json.dumps(res, indent=2))
+            return
+        print(f"\n🧬 DNA SEMVER RADAR: {os.path.basename(abs_target)}")
+        print("------------------------------------------------------------")
+        print(f"  • Current Version   : v{res['current_version']} (via {res['manifest_source']})")
+        print(f"  • Recommended Bump  : {res['recommended_bump']} -> v{res['target_version']}")
+        print(f"  • Modified Files    : {res['changed_files_count']}")
+        if res.get("tier_distribution"):
+            tiers_summary = ", ".join(f"{k}: {v}" for k, v in res['tier_distribution'].items())
+            print(f"  • DNA Strata Touched: {tiers_summary}")
+        if res.get("reasons"):
+            print("  • Justification (Anti-AI-Slop Gate):")
+            for r in res["reasons"]:
+                print(f"    - {r}")
+        print()
+
+    elif action == "bump":
+        from core.dna import (
+            evaluate_dna_semver,
+            update_project_version,
+            stamp_changelog_release,
+            bump_semver_tuple,
+            parse_semver,
+            detect_project_version,
+        )
+        bump_type = getattr(args, "bump_type", "auto") or "auto"
+        dry_run = getattr(args, "dry_run", False)
+
+        curr_v, manifest_src = detect_project_version(abs_target)
+        if bump_type == "auto":
+            eval_res = evaluate_dna_semver(abs_target, since_ref=getattr(args, "since", None))
+            target_v = eval_res["target_version"]
+            bump_choice = eval_res["recommended_bump"]
+            reasons = eval_res.get("reasons", [])
+        else:
+            bump_choice = bump_type.upper()
+            parsed = parse_semver(curr_v)
+            maj, minr, pat = (parsed[0], parsed[1], parsed[2]) if parsed else (0, 1, 0)
+            n_maj, n_min, n_pat = bump_semver_tuple(maj, minr, pat, bump_type)
+            target_v = f"{n_maj}.{n_min}.{n_pat}"
+            reasons = [f"Explicit human override: {bump_choice}"]
+
+        print(f"\n🚀 PROJECT DNA RELEASE BUMP: {os.path.basename(abs_target)}")
+        print("------------------------------------------------------------")
+        print(f"  • Current Version  : v{curr_v} (Manifest: {manifest_src})")
+        print(f"  • Release Bump     : {bump_choice} -> v{target_v} (Dry Run: {dry_run})")
+        for r in reasons:
+            print(f"  • Rationale        : {r}")
+
+        if dry_run:
+            print("\n[DRY RUN] No files modified.\n")
+            return
+
+        updated_manifests = update_project_version(abs_target, target_v)
+        stamped_changelog = stamp_changelog_release(abs_target, target_v, compact=True)
+
+        print(f"\n✅ Release v{target_v} Applied Successfully:")
+        for m in updated_manifests:
+            print(f"  • Updated Manifest : {m}")
+        if stamped_changelog:
+            print(f"  • Updated Changelog: CHANGELOG.md (## [{target_v}] stamped via Lessword compactor)")
+        else:
+            print("  • Note: No CHANGELOG.md with ## [Unreleased] found to stamp.")
+        print()
+
 
 # === CLI ===
 def cmd_evolve(args):
@@ -2998,6 +3172,396 @@ def cmd_evolve(args):
     print(f"✔ Evolutionary Sync Complete! Target project archetype upgraded to '{target_archetype}'.")
 
 
+# === HYDRATE VISION (LOCAL SLM / CLOUD LLM + CONFIRMATION GATE) ===
+
+def harvest_project_grounding(target_dir: str, statement: Optional[str] = None) -> dict:
+    """Harvest grounding metadata from target project files (README, manifests, dependencies) and direct creator statements."""
+    abs_target = os.path.abspath(target_dir)
+    project_name = os.path.basename(abs_target)
+
+    readme_snippet = ""
+    readme_path = os.path.join(abs_target, "README.md")
+    if os.path.isfile(readme_path):
+        try:
+            with open(readme_path, "r", encoding="utf-8", errors="ignore") as f:
+                readme_snippet = f.read(2500).strip()
+                for line in readme_snippet.splitlines():
+                    clean_l = line.strip()
+                    if clean_l.startswith("# ") and not clean_l.lower().startswith("# readme"):
+                        title_candidate = clean_l[2:].strip()
+                        if title_candidate:
+                            project_name = title_candidate
+                            break
+        except Exception as e:
+            _log_telemetry(e, "harvest_project_grounding:readme")
+
+    framework, language = detect_stack(abs_target)
+    deps = list(_read_python_deps(abs_target)) if language == "python" else []
+
+    manifest_type = "generic"
+    for mf, name in [
+        ("pubspec.yaml", "flutter"),
+        ("package.json", "node/web"),
+        ("pyproject.toml", "python"),
+        ("requirements.txt", "python"),
+        ("Cargo.toml", "rust"),
+        ("go.mod", "go"),
+    ]:
+        if os.path.isfile(os.path.join(abs_target, mf)):
+            manifest_type = name
+            break
+
+    return {
+        "project_name": project_name,
+        "framework": framework,
+        "language": language,
+        "manifest_type": manifest_type,
+        "dependencies": deps[:15],
+        "readme_snippet": readme_snippet,
+        "creator_statement": statement.strip() if statement else "",
+    }
+
+
+def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> Optional[str]:
+    """Query local Ollama instance on port 11434 via Python standard library."""
+    import urllib.request
+    import urllib.error
+
+    base_url = "http://127.0.0.1:11434"
+    try:
+        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.3"})
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            models = [m.get("name") for m in data.get("models", []) if m.get("name")]
+    except Exception:
+        return None
+
+    if not models:
+        return None
+
+    selected_model = model or next((m for m in models if any(k in m for k in ("code", "qwen", "llama", "deepseek"))), models[0])
+
+    payload = json.dumps({
+        "model": selected_model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": 0.2,
+            "num_predict": 1024
+        }
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(
+            f"{base_url}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.3"}
+        )
+        with urllib.request.urlopen(req, timeout=10.0) as resp:
+            res_data = json.loads(resp.read().decode("utf-8"))
+            return res_data.get("response", "").strip()
+    except Exception as e:
+        _log_telemetry(e, "probe_local_ollama_for_vision")
+        return None
+
+
+def generate_vision_content(grounding: dict, raw_model_response: Optional[str] = None) -> str:
+    """Format structured VISION.md markdown content from model output or grounded heuristics."""
+    proj = grounding.get("project_name", "App")
+    fw = grounding.get("framework", "generic")
+    lang = grounding.get("language", "generic")
+    readme = grounding.get("readme_snippet", "")
+    creator_statement = grounding.get("creator_statement", "")
+
+    if raw_model_response and "## 1. Core Essence" in raw_model_response and "## 2. Non-Negotiable Invariants" in raw_model_response:
+        clean = raw_model_response.strip()
+        if not clean.startswith("---"):
+            header = f"---\ndescription: Immutable foundational vision and anti-drift invariants for {proj}.\nownership: HUMAN_ONLY (AI agents MUST NOT modify this file without explicit user command)\nimportance: 10\n---\n\n"
+            clean = header + clean
+        return clean
+
+    lines = [
+        "---",
+        f"description: Immutable foundational vision and anti-drift invariants for {proj}.",
+        "ownership: HUMAN_ONLY (AI agents MUST NOT modify this file without explicit user command)",
+        "importance: 10",
+        "---",
+        "",
+        f"# 🌟 FOUNDATIONAL VISION: {proj}",
+        "",
+        "> **CRITICAL MANDATE FOR AI AGENTS**:",
+        f"> This document is the Constitutional North Star of `{proj}`.",
+        "> Every architecture decision, feature proposal, UI change, refactoring, and \"improvement\" MUST strictly align with this vision.",
+        "> If a generic best-practice or \"improvement\" contradicts any principle below, **VISION.md ALWAYS WINS**.",
+        "",
+        "## 1. Core Essence",
+    ]
+
+    first_desc = ""
+    if creator_statement:
+        first_desc = creator_statement
+    else:
+        for rline in readme.splitlines():
+            clean_l = rline.strip("# -*\t")
+            if clean_l and len(clean_l) > 15 and not clean_l.startswith("Project initialized"):
+                first_desc = clean_l
+                break
+
+    if not first_desc:
+        first_desc = f"A high-reliability, modular {fw} ({lang}) application engineered for zero latency and deterministic workflows."
+
+    lines.append(f"- **What This App Is**: {first_desc}")
+    lines.append(f"- **Core Problem Solved**: Eliminates operational friction, cognitive overhead, and fragmentation in {proj} user workflows.")
+    lines.append("- **Primary Feel & Philosophy**: Fast, deterministic, observable, local-first, zero cognitive overload.")
+    lines.append("")
+    lines.append("## 2. Non-Negotiable Invariants")
+    lines.append("1. **Simplicity Over Feature Bloat**: Never sacrifice core execution speed and single-purpose clarity for secondary feature creep.")
+    lines.append("2. **Local Sovereignty & Predictability**: Application state must remain deterministic with clear boundaries and minimal external coupling.")
+    lines.append("3. **Mechanical Verification**: Every feature change and critical path must be backed by verifiable test assertion gates.")
+    lines.append("")
+    lines.append("## 3. Anti-Vision (What This App Is NOT & WILL NEVER BE)")
+    lines.append("*Guardrails to prevent AI from adding unwanted complexity in the name of \"improvement\":*")
+    lines.append(f"- ❌ **Not an Over-Engineered Monolith**: {proj} is NOT an enterprise monolith; do not introduce complex speculative abstractions.")
+    lines.append("- ❌ **Do Not \"Improve\" Layouts with Noise**: Do not replace clean, purpose-driven surfaces with decorative or cluttered analytics.")
+    lines.append("- ❌ **Reject Complexity for Solved Problems**: Reject multi-layered wrappers when straightforward, direct implementations suffice.")
+    lines.append("")
+    lines.append("## 4. The AI \"Improvement\" Filter (Mandatory Pre-flight Check Before Modifying Code)")
+    lines.append("1. Does this change strengthen the **Core Essence (§1)**?")
+    lines.append("2. Is this change 100% compliant with **Non-Negotiable Invariants (§2)**?")
+    lines.append("3. Is this change completely free from items in the **Anti-Vision (§3)**?")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def hydrate_vision(
+    target_dir: str,
+    model: Optional[str] = None,
+    statement: Optional[str] = None,
+    force: bool = False,
+    auto_confirm: bool = False,
+) -> dict:
+    """
+    Hydrates context/VISION.md with AI/heuristic grounding, producing a draft first
+    and requiring confirmation before locking down as immutable HUMAN_ONLY.
+    """
+    abs_target = os.path.abspath(target_dir)
+    context_dir = os.path.join(abs_target, "context")
+    os.makedirs(context_dir, exist_ok=True)
+
+    vision_path = os.path.join(context_dir, "VISION.md")
+    draft_path = os.path.join(context_dir, "VISION.draft.md")
+
+    if os.path.isfile(vision_path) and not force:
+        try:
+            with open(vision_path, "r", encoding="utf-8") as vf:
+                v_content = vf.read()
+            is_template = "[" in v_content and "]" in v_content and "[1-2 foundational" in v_content
+            if not is_template:
+                return {
+                    "status": "SKIPPED_EXISTING",
+                    "path": vision_path,
+                    "message": "Preserved existing human-customized context/VISION.md (use --force to overwrite)",
+                }
+        except Exception as _ve:
+            _log_telemetry(_ve, "hydrate_vision:check_existing")
+
+    if auto_confirm and os.path.isfile(draft_path):
+        with open(draft_path, "r", encoding="utf-8") as df:
+            draft_content = df.read()
+        atomic_write_text(vision_path, draft_content)
+        orion_script = os.path.join(abs_target, ".agents", "scripts", "orion.py")
+        if not os.path.isfile(orion_script):
+            hub_path = get_foundation_path(abs_target)
+            if hub_path:
+                orion_script = os.path.join(hub_path, ".agents", "scripts", "orion.py")
+        if os.path.isfile(orion_script):
+            try:
+                subprocess.run(
+                    [sys.executable, "-X", "utf8", orion_script, "orion_ops", "ingest", "context/VISION.md"],
+                    cwd=abs_target,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=30,
+                    shell=False,
+                )
+            except Exception as _ie:
+                _log_telemetry(_ie, "hydrate_vision:ingest")
+        return {
+            "status": "CONFIRMED_LOCKED",
+            "path": vision_path,
+            "message": "Confirmed and locked context/VISION.md as immutable HUMAN_ONLY North Star",
+        }
+
+    grounding = harvest_project_grounding(abs_target, statement=statement)
+    proj = grounding["project_name"]
+
+    creator_clause = f"\nHuman Creator Direct Mandate:\n\"{statement}\"\n" if statement else ""
+    prompt = (
+        f"You are the Lead Systems Architect. Synthesize the Foundational Vision for the project '{proj}'.\n"
+        f"{creator_clause}"
+        f"Detected Framework: {grounding['framework']}, Language: {grounding['language']}.\n"
+        f"Dependencies: {', '.join(grounding['dependencies']) if grounding['dependencies'] else 'Standard'}.\n"
+        f"Project README Overview:\n{grounding['readme_snippet'][:1000] if grounding['readme_snippet'] else 'None provided'}\n\n"
+        "Draft the exact content for 'context/VISION.md' following these 4 sections precisely:\n"
+        f"# 🌟 FOUNDATIONAL VISION: {proj}\n"
+        "## 1. Core Essence\n- What This App Is (anchor strictly to creator mandate if provided)\n- Core Problem Solved\n- Primary Feel & Philosophy\n"
+        "## 2. Non-Negotiable Invariants (3 strict invariants tailored to this project)\n"
+        "## 3. Anti-Vision (What This App Is NOT & WILL NEVER BE - 3 concrete items)\n"
+        "## 4. The AI \"Improvement\" Filter\n"
+        "Return pure markdown without backtick codeblock wrappers."
+    )
+
+    raw_response = probe_local_ollama_for_vision(prompt, model=model)
+    model_source = "ollama" if raw_response else "grounded_heuristic"
+
+    vision_content = generate_vision_content(grounding, raw_response)
+    atomic_write_text(draft_path, vision_content)
+
+    if auto_confirm:
+        atomic_write_text(vision_path, vision_content)
+        return {
+            "status": "CONFIRMED_LOCKED",
+            "source": model_source,
+            "draft_path": draft_path,
+            "path": vision_path,
+            "message": f"Successfully generated and locked context/VISION.md ({model_source})",
+        }
+
+    return {
+        "status": "DRAFT_CREATED",
+        "source": model_source,
+        "draft_path": draft_path,
+        "vision_path": vision_path,
+        "prompt_fallback": prompt if not raw_response else None,
+        "message": f"Draft generated at context/VISION.draft.md ({model_source}). Awaiting human confirmation.",
+    }
+
+
+def cmd_hydrate_vision(args: argparse.Namespace) -> None:
+    target = getattr(args, "target", ".")
+    model = getattr(args, "model", None)
+    statement = getattr(args, "statement", None)
+    interactive = getattr(args, "interactive", False)
+    force = getattr(args, "force", False)
+    confirm = getattr(args, "confirm", False)
+    as_json = getattr(args, "json", False)
+
+    if interactive and not statement and sys.stdin.isatty():
+        print("\n🎯 Portable Brainvibing: Human Creator Vision Grill")
+        print("-----------------------------------------------------")
+        try:
+            val = input("1. What is the Core Essence / Purpose of this project?\n> ").strip()
+            if val:
+                invariants = input("2. What are 2-3 Non-Negotiable Invariants? (comma-separated or empty)\n> ").strip()
+                anti = input("3. What is this project NOT? (Anti-Vision, or empty)\n> ").strip()
+                statement = f"Core Purpose: {val}."
+                if invariants:
+                    statement += f" Invariants: {invariants}."
+                if anti:
+                    statement += f" Anti-Vision: {anti}."
+        except (KeyboardInterrupt, EOFError):
+            print("\nAborted interactive vision input.")
+            return
+
+    res = hydrate_vision(target_dir=target, model=model, statement=statement, force=force, auto_confirm=confirm)
+
+    if as_json:
+        print(json.dumps(res, indent=2))
+        return
+
+    status = res.get("status")
+    if status == "SKIPPED_EXISTING":
+        print(f"  [INFO] {res.get('message')}")
+    elif status == "CONFIRMED_LOCKED":
+        print(f"  [SUCCESS] {res.get('message')}")
+    elif status == "DRAFT_CREATED":
+        print(f"  [DRAFT] {res.get('message')}")
+        print("  Review context/VISION.draft.md and run:")
+        print("  python .agents/scripts/orion.py hydrate-vision --confirm")
+
+
+def cmd_upgrade(args: argparse.Namespace) -> None:
+    """Executes sovereign surgical foundation upgrade on current or target spoke project."""
+    from pathlib import Path
+    target_dir = getattr(args, "target", ".") or "."
+    abs_target = os.path.abspath(target_dir)
+
+    try:
+        from core.upgrade_engine import TransactionalUpgrader
+    except ImportError:
+        scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        from core.upgrade_engine import TransactionalUpgrader
+
+    upgrader = TransactionalUpgrader(Path(abs_target))
+    source = getattr(args, "source", None)
+    dry_run = getattr(args, "dry_run", False)
+    check_only = getattr(args, "check", False)
+    force = getattr(args, "force", False)
+    run_verify = not getattr(args, "no_verify", False)
+
+    print("\n" + "=" * 65)
+    print(f"🛡️  SOVEREIGN FOUNDATION SURGICAL UPGRADE: {os.path.basename(abs_target)}")
+    print("=" * 65)
+
+    if check_only:
+        try:
+            res = upgrader.check(source)
+            print(f"  • Spoke Version     : v{res['current_version']}")
+            print(f"  • Upstream Version  : v{res['upstream_version']}")
+            print(f"  • Has Updates       : {res['has_updates']}")
+            print(f"  • Update Candidates : {res['changed_files_count']} files")
+            print(f"  • Shielded Files    : {res['shielded_files_count']} files (100% Protected)")
+            if res['changed_files']:
+                print("\nChanged Framework Files:")
+                for cf in res['changed_files'][:15]:
+                    print(f"    - {cf}")
+                if len(res['changed_files']) > 15:
+                    print(f"    ... and {len(res['changed_files']) - 15} more files")
+            print()
+            return
+        except Exception as e:
+            print(f"\n[ERROR] Failed to check upstream source: {e}\n")
+            sys.exit(1)
+
+    try:
+        res = upgrader.upgrade(
+            source=source,
+            dry_run=dry_run,
+            run_verify=run_verify,
+            force=force,
+        )
+        if res.get("status") == "up_to_date":
+            print(f"  • Status : {res['message']}\n")
+            return
+        elif res.get("status") == "dry_run":
+            print(f"  • Status            : [DRY RUN]")
+            print(f"  • Spoke Version     : v{res['current_version']}")
+            print(f"  • Upstream Version  : v{res['upstream_version']}")
+            print(f"  • Scheduled Files   : {len(res['planned_updates'])}")
+            print(f"  • Shielded Files    : {res['shielded_count']} (Protected)")
+            print("\nPlanned Upgrades:")
+            for pf in res["planned_updates"][:15]:
+                print(f"    - {pf}")
+            if len(res["planned_updates"]) > 15:
+                print(f"    ... and {len(res['planned_updates']) - 15} more files")
+            print("\n[DRY RUN COMPLETE] Zero files written to disk.\n")
+            return
+        else:
+            print(f"  • Status            : SUCCESS")
+            print(f"  • Spoke Version     : v{res['current_version']}")
+            print(f"  • Upstream Version  : v{res['upstream_version']}")
+            print(f"  • Updated Files     : {res['updated_files_count']}")
+            print(f"  • Verification Gate : Exit Code 0 Verified")
+            print(f"\n✅ {res['message']}\n")
+    except Exception as e:
+        print(f"\n[UPGRADE FAILED] {e}\n")
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Foundation Package & Deployment Manager")
     subparsers = parser.add_subparsers(dest="command")
@@ -3047,12 +3611,15 @@ def main():
 
     # DNA Manager (Living Genome, Epigenetic Mutation & Dependency Audit)
     parser_dna = subparsers.add_parser("dna", help="Universal Living Project DNA manager, brownfield sequencer & epigenetic mutation engine")
-    parser_dna.add_argument("dna_action", choices=["sequence", "mutate", "audit", "lint", "snapshot", "trend"], nargs="?", default="sequence", help="Action: sequence DNA, mutate brownfield code, audit 5-tier dependency laws, snapshot DNA metrics, or view trend")
+    parser_dna.add_argument("dna_action", choices=["sequence", "mutate", "audit", "lint", "snapshot", "trend", "semver", "bump"], nargs="?", default="sequence", help="Action: sequence DNA, mutate brownfield code, audit 5-tier dependency laws, snapshot DNA metrics, semver analysis, or version bump")
     parser_dna.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
     parser_dna.add_argument("--file", help="Specific file to lint for architectural dependency violations")
     parser_dna.add_argument("--strict", action="store_true", help="Fail with non-zero exit code on violations")
     parser_dna.add_argument("--mode", choices=["epigenetic", "plan", "scaffold"], default="epigenetic", help="Mutation mode: epigenetic (safe mapping), plan (blueprint), or scaffold (directories)")
     parser_dna.add_argument("--dry-run", action="store_true", help="Simulate action without writing files")
+    parser_dna.add_argument("--bump-type", choices=["auto", "major", "minor", "patch"], default="auto", help="Version bump type (default: auto via DNA)")
+    parser_dna.add_argument("--since", default=None, help="Git ref or tag to compare against (default: auto)")
+    parser_dna.add_argument("--json", action="store_true", help="Output SemVer analysis as JSON")
 
     parser_dnalint = subparsers.add_parser("dna-lint", help="Direct JIT dependency linter for 5-Tier Directed Dependency Laws")
     parser_dnalint.add_argument("file", nargs="?", default=".", help="File or directory path to lint")
@@ -3064,12 +3631,33 @@ def main():
     parser_evolve.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
     parser_evolve.add_argument("--dry-run", action="store_true", help="Simulate evolution without writing files")
 
+    # Hydrate Vision
+    parser_vision = subparsers.add_parser("hydrate-vision", aliases=["hydrate_vision"], help="Hydrate context/VISION.md with local SLM / Cloud LLM assistance and confirmation gate")
+    parser_vision.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
+    parser_vision.add_argument("--model", default=None, help="Specific Ollama model name to use for generation")
+    parser_vision.add_argument("--statement", "--prompt", dest="statement", default=None, help="Direct human creator vision statement/mandate (avoids LLM guesswork)")
+    parser_vision.add_argument("--interactive", action="store_true", help="Launch interactive terminal Vision Q&A grill")
+    parser_vision.add_argument("--force", action="store_true", help="Force overwrite even if VISION.md was previously customized")
+    parser_vision.add_argument("--confirm", action="store_true", help="Confirm and lock draft into context/VISION.md as HUMAN_ONLY")
+    parser_vision.add_argument("--json", action="store_true", help="Output result summary as JSON")
+
+    # Surgical Upgrade
+    parser_upgrade = subparsers.add_parser("upgrade", aliases=["foundation-upgrade"], help="Surgically upgrade framework from upstream without clobbering sovereign assets")
+    parser_upgrade.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
+    parser_upgrade.add_argument("--source", default=None, help="Custom upstream source: local folder path or GitHub 'owner/repo' (default: local .foundation_path or Echo-Scion/portable-brainvibing)")
+    parser_upgrade.add_argument("--check", action="store_true", help="Check for available updates without staging or applying")
+    parser_upgrade.add_argument("--dry-run", action="store_true", help="Simulate surgical upgrade without writing files to disk")
+    parser_upgrade.add_argument("--force", action="store_true", help="Force upgrade even if versions match")
+    parser_upgrade.add_argument("--no-verify", action="store_true", help="Skip running post-upgrade verify_agents gate")
+
     args = parser.parse_args()
     
     if args.command in ("setup", "init", "onboard", "doctor"):
         cmd_setup(args)
     elif args.command == "deploy":
         cmd_deploy(args)
+    elif args.command in ("hydrate-vision", "hydrate_vision"):
+        cmd_hydrate_vision(args)
     elif args.command == "evolve":
         cmd_evolve(args)
     elif args.command == "push-upstream":
@@ -3078,6 +3666,8 @@ def main():
         cmd_sync_ai(args)
     elif args.command == "dna":
         cmd_dna(args)
+    elif args.command in ("upgrade", "foundation-upgrade"):
+        cmd_upgrade(args)
     elif args.command == "dna-lint":
         setattr(args, "dna_action", "lint")
         setattr(args, "target", args.file)

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.2-blue.svg?style=flat-square" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.3-blue.svg?style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/core-Python%203.10%2B%20Stdlib-brightgreen.svg?style=flat-square" alt="Core"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/database-SQLite3%20WAL-informational.svg?style=flat-square" alt="Database"></a>
@@ -72,6 +72,7 @@ Every subsystem addresses a specific failure mode of standard AI coding and runs
 * **Strict TDD & Delta Mutation Testing**: Enforces `RED -> GREEN -> REFACTOR` cycles and runs AST mutations exclusively on `git diff` lines (`orion.py adversarial mutate <file> --diff`) to verify that tests actually catch regressions.
 * **Hermetic PEP 578 Sovereign Sandbox**: Executes exploratory scripts inside an AST-gated syscall jail that intercepts filesystem deletions/renames (`os.remove`, `rmdir`, `rename`, `shutil.rmtree`) and blocks subprocess spawning outside `_JAIL_ROOT`.
 * **8-Gate Ecosystem Verifier with AST Caching**: Audits link integrity, ghost references, schema parity, polyglot security rules, structural line ceilings (`core_max_lines`), and instruction language hygiene (`orion.py verify`) backed by persistent `(mtime_ns, size)` AST caching.
+* **12-Vector Security Suite & 3-Branch Finding Validator**: Natively absorbs Cloudflare security audit runbooks covering AI/LLM boundary security, native memory safety (C/C++/Rust), and Desktop/Mobile IPC. Validates finding ledgers against strict schemas (`orion.py scan audit-validate <json>`) ensuring unverified candidates remain strictly unrated.
 * **27-Suite Contract Test Matrix**: 210 standard library `unittest` suites in `.agents/scripts/tests/` running full coverage with 100% pass rates.
 
 ### 4. 📦 Universal Project DNA, Context Packaging & Humanizer (`utils/packer.py`, `compact.py`, `tools/digestpack/`)
@@ -80,7 +81,7 @@ Every subsystem addresses a specific failure mode of standard AI coding and runs
 * **Pre-Audit Static Radar & 4-Turn Playbook**: Embeds a cross-bundle import router and static risk radar (execution sinks, broad catch blocks) in Bundle 01, paired with an automated 4-turn review prompt (`00_GEMINI_WEB_AUDIT_PROMPT.txt`).
 * **Prompt-in-Data Shield**: Escapes literal closing tags (`</artifact>`) and neutralizes control tags (`<system>`, `<prompt_instructions>`) across all lines including code fences.
 * **5-Tier Context Compactor & Lessword Protocol**: Compresses terminal streams, AST payloads, and prose by 15%–85% across unified compaction tiers (`lite`, `stream`, `full`, `aggressive`, `ultra`).
-* **Prose Authenticity Engine (De-AI Prose Filter)**: Integrated 26-tell AI writing detector based on *Wikipedia: Signs of AI writing* and standard structural prose guidelines (`orion.py compact --humanize` and `--humanize-check`) guarded by syntax anchors so code, paths, and identifiers remain unmodified.
+* **Prose Authenticity Engine (De-AI Prose Filter)**: Integrated 26-tell AI writing detector based on *Wikipedia: Signs of AI writing* and standard structural prose guidelines (`orion.py compact --humanize` and `--humanize-check`) guarded by syntax anchors so code, paths, and identifiers remain unmodified. Paired with Plain Modern Engineering English calibration (ASD-STE100 active plain verbs: use, fix, check) eliminating both corporate marketing puffery and archaic Latinate stiffness.
 
 ### 5. 🛡️ Cache-Aware State Recovery & Latency-Optimized Hooks (`state_machine.py`, `pre-agent-wake.py`, `capabilities.py`)
 * **Problem Solved**: IDE restarts wipe in-progress context, runaway tool loops repeat failing commands, and regenerating state files on every keystroke invalidates LLM KV prompt caches.
@@ -116,15 +117,26 @@ The runtime works out-of-the-box with **only Python 3.10+**. Optional native bin
 ├──────────────────┬──────────────────┬──────────────────┬───────────────────┤
 │ PILLAR 1 (Floor) │ PILLAR 2 (Rust)  │ PILLAR 3 (Local) │ PILLAR 4 (JS/TS)  │
 │ Python 3.10+     │ rtk + ast-grep   │ Ollama/llama.cpp │ Bun Runtime       │
-│ Stdlib & SQLite3 │ CLI & CST Engine │ Neural Embeddings│ Fast TS & MCP     │
+│ Stdlib & SQLite3 │ difft + gitleaks │ Neural Embeddings│ Biome Formatter   │
+│ WAL Architecture │ jujutsu (jj VCS) │ Triplet Miner    │ Fast TS & MCP     │
 ├──────────────────┼──────────────────┼──────────────────┼───────────────────┤
 │  ALWAYS ACTIVE   │ Fallback: Python │ Fallback: SQLite │ Fallback: Host    │
-│  Zero pip deps   │ stream + ast mod │ FTS5 Porter BM25 │ runner / Node/Py  │
-└──────────────────┴──────────────────┴──────────────────┴───────────────────┘
+│  Zero pip deps   │ difflib+re+stash │ FTS5 Porter BM25 │ runner / Node/Py  │
+└──────────────────┴─────────┬────────┴──────────────────┴───────────────────┘
+                             │ Accelerated by
+┌────────────────────────────▼───────────────────────────────────────────────┐
+│ TIER 2: Optional Ephemeral Accelerators (~/.agents/cache/venv & PATH)      │
+│ • sqlite-vec (SIMD Vector KNN)       • model2vec (Static CPU Embeddings)   │
+│ • tokenizers (Exact Rust BPE)        • duckdb (Stateless In-Memory OLAP)   │
+│ • orjson (Fast SIMD JSON)            • rapidfuzz (Fast C++ Levenshtein)    │
+│ • tree-sitter (Concrete Syntax Tree) • difftastic / gitleaks / jujutsu     │
+│ Strictly isolated in user home cache; zero host workspace contamination.   │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Check your machine's active pillars at any time (cached with a 900s TTL in `.orion/working/capabilities.json`):
+Check your machine's active pillars and Tier 2 accelerators at any time:
 ```bash
+python .agents/scripts/orion.py doctor
 python .agents/scripts/orion.py preflight --pillars
 ```
 
@@ -160,6 +172,16 @@ python /path/to/<foundation_path>/.agents/scripts/orion.py deploy --target <proj
   ```bash
   python .agents/scripts/orion.py doctor
   ```
+
+#### Step C: Surgically Upgrading Downstream Spokes
+Keep downstream spoke projects synchronized with upstream framework updates without clobbering sovereign assets (`context/**`, `.orion/**`, local rules/skills, and `## PROJECT-SPECIFIC MANDATES`):
+```bash
+# Preview changes safely without modifying disk
+python .agents/scripts/orion.py upgrade --check
+
+# Execute surgical upgrade from upstream GitHub repository or local path
+python .agents/scripts/orion.py upgrade --source https://github.com/Echo-Scion/portable-brainvibing.git
+```
 
 ### 2. Operating in the Upstream Foundation Hub (`<foundation_path>`)
 ```bash
@@ -204,6 +226,7 @@ python .agents/scripts/orion.py consolidate session         # Run Temporal Pulse
 # --- Quality, Security & Mutation Gates ---
 python .agents/scripts/orion.py verify                      # Run 8-gate mechanical, ceiling & portability audit
 python .agents/scripts/orion.py scan security .             # AST vulnerability, secret & Trojan Unicode scan
+python .agents/scripts/orion.py scan audit-validate <json>  # Validate 3-branch security findings (confirmed/unrated/rejected)
 python .agents/scripts/orion.py adversarial mutate <f> --diff # Delta-scoped AST mutation testing on git diff
 python .agents/scripts/orion.py eval --dir src/             # Audit UI tokens, 8pt grid & prose anti-slop
 
@@ -213,7 +236,37 @@ python .agents/scripts/orion.py pack arch                   # Tier 1: <=10 Macro
 python .agents/scripts/orion.py pack hybrid                 # Tier 2: <=10 Balanced production bundles
 python .agents/scripts/orion.py pack full                   # Tier 3: <=10 Complete codebase bundles
 python .agents/scripts/orion.py pack pr                     # Scope strictly to staged PR changes
+
+# --- Foundation Hub-and-Spoke & Upstream Upgrade ---
+python .agents/scripts/orion.py upgrade --check            # Preview upstream engine updates without writing to disk
+python .agents/scripts/orion.py upgrade                    # Surgically update framework while shielding sovereign state
+python .agents/scripts/orion.py deploy --target <dir>      # Deploy complete foundation to target repository
 ```
+
+---
+
+## 🎖️ Credits & Acknowledgments (Accelerators & Pillars)
+
+`.agents` is architected with a strict **100% Zero-Pip Floor Sovereignty** invariant (pure Python 3.10+ stdlib & SQLite3), but achieves elite sub-millisecond execution when supercharged by outstanding open-source tools across Rust, C/C++, and Python ecosystems. We gratefully credit and acknowledge the creators and maintainers of these high-value accelerators and anchored pillars:
+
+| Category | Tool / Library | Author / Organization | Role & Architectural Impact in `.agents` |
+| :--- | :--- | :--- | :--- |
+| **Pillar 2 (Rust)** | [rtk](https://github.com/rtk-ai/rtk) | RTK AI | Rust Token Killer CLI proxy; cuts terminal command noise by 60%–90%. |
+| **Pillar 2 (Rust)** | [ast-grep](https://github.com/ast-grep/ast-grep) | Herrington Darkholme | Lightning-fast polyglot structural AST search, code rewrites, and linting. |
+| **Pillar 2 (Rust)** | [difftastic](https://github.com/Wilfred/difftastic) | Wilfred Hughes | Syntax-aware structural AST diffing that ignores trivial formatting changes. |
+| **Pillar 2 (Rust)** | [gitleaks](https://github.com/gitleaks/gitleaks) | Zachary Rice | High-speed secret and token scanner protecting LLM and git boundaries. |
+| **Pillar 2 (Rust)** | [jujutsu (`jj`)](https://github.com/martinvonz/jj) | Martin von Zweigbergk & Google | Git-compatible VCS providing first-class anonymous working-copy commits & atomic stashes. |
+| **Pillar 3 (Local)** | [Ollama](https://github.com/ollama/ollama) | Ollama Team | Frictionless local neural coprocessor for embeddings and background triplet mining. |
+| **Pillar 3 (Local)** | [llama.cpp](https://github.com/ggerganov/llama.cpp) | Georgi Gerganov | Ultra-portable C/C++ LLM inference engine powering local neural coprocessing. |
+| **Pillar 4 (JS/TS)** | [Bun](https://github.com/oven-sh/bun) | Jarred Sumner & Oven | High-performance JavaScript/TypeScript runtime for instant MCP server spawning. |
+| **Pillar 4 (JS/TS)** | [Biome](https://github.com/biomejs/biome) | Biomejs Team | Sub-millisecond formatter and linter for web ecosystems. |
+| **Tier 2 Accelerator** | [sqlite-vec](https://github.com/asg017/sqlite-vec) | Alex Garcia | SIMD C-extension for native vector KNN search directly inside SQLite without split-brain databases. |
+| **Tier 2 Accelerator** | [model2vec](https://github.com/MinishLab/model2vec) | Minish Lab | Ultra-fast static CPU embeddings with zero PyTorch / Torch dependencies (<1ms latency). |
+| **Tier 2 Accelerator** | [tokenizers](https://github.com/huggingface/tokenizers) | HuggingFace | Exact HuggingFace Rust BPE token counter for strict prompt context budgeting. |
+| **Tier 2 Accelerator** | [duckdb](https://github.com/duckdb/duckdb) | DuckDB Foundation | High-performance in-memory (`:memory:`) zero-copy OLAP query engine for `.jsonl` streaming telemetry. |
+| **Tier 2 Accelerator** | [orjson](https://github.com/ijl/orjson) | Ilya Rumyantsev | Ultra-fast SIMD JSON serializer/deserializer accelerating GraphRAG memory caches. |
+| **Tier 2 Accelerator** | [rapidfuzz](https://github.com/rapidfuzz/RapidFuzz) | Max Bachmann | C++ accelerated Levenshtein string metric calculation for fuzzy symbol resolution. |
+| **Tier 2 Accelerator** | [tree-sitter](https://github.com/tree-sitter/tree-sitter) | Max Brunsfeld & GitHub | Robust incremental Concrete Syntax Tree parsing across polyglot languages. |
 
 ---
 

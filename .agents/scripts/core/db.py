@@ -501,10 +501,28 @@ def cosine_similarity(v1: Any, v2: Any) -> float:
 
 
 def estimate_tokens(text: str) -> int:
-    """Deterministic BPE token estimator across all scanner, repomap, and packer tables."""
+    """Deterministic BPE token counter (uses Tier 2 HF tokenizers if installed, else len/3.8 fallback)."""
     if not text:
         return 0
+    try:
+        from core.accelerators import HAS_TOKENIZERS, count_bpe_tokens
+        if HAS_TOKENIZERS:
+            return count_bpe_tokens(text)
+    except Exception:
+        pass
     return max(1, int(math.ceil(len(text) / 3.8)))
+
+
+def compute_structural_fingerprint(signatures: List[str], imports: Optional[List[str]] = None) -> str:
+    """
+    Computes an 8-byte (16-hex) structural AST interface digest over exported signatures & imports.
+    Immune to internal function-body edits, whitespace formatting, or comment changes.
+    """
+    import hashlib
+    canonical = "\n".join(sorted(s.strip() for s in (signatures or []) if s.strip()))
+    if imports:
+        canonical += "\n--IMPORTS--\n" + "\n".join(sorted(i.strip() for i in imports if i.strip()))
+    return hashlib.blake2b(canonical.encode("utf-8", errors="replace"), digest_size=8).hexdigest()
 
 
 def truncate_tokens(text: str, max_tokens: int) -> str:

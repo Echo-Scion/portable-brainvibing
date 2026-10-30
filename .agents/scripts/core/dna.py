@@ -24,6 +24,7 @@ import math
 import hashlib
 import fnmatch
 import sqlite3
+import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from collections import defaultdict, Counter
@@ -103,18 +104,18 @@ CANONICAL_5_TIERS: Dict[str, Dict[str, Any]] = {
         "symbol_stereotypes": [
             "repository", "service", "datasource", "client", "dao", "adapter", "api", "database", "storage"
         ],
-        "audit_focus": "Audit network resilience, SQLite/Drift schemas, connection pooling, idempotency, auth header injection, and retry policies."
+        "audit_focus": "Audit network resilience, SQLite/ORM schemas, connection pooling, idempotency, auth header injection, and retry policies."
     },
     "4_state": {
         "gravity": 6,
         "slug": "STATE_ORCHESTRATION_AND_CONTROLLERS",
-        "title": "Unidirectional State Providers, Notifiers & Controllers",
-        "folder_tokens": ["state", "providers", "controllers", "bloc", "cubit", "notifier", "store", "viewmodel", "reducer"],
+        "title": "State Orchestration, Notifiers, Workers & Daemon Controllers",
+        "folder_tokens": ["state", "providers", "controllers", "bloc", "cubit", "notifier", "store", "viewmodel", "reducer", "apps", "daemons", "workers", "jobs", "pipelines"],
         "manifest_files": [],
         "symbol_stereotypes": [
             "notifier", "provider", "bloc", "cubit", "controller", "store", "viewmodel", "reducer", "statemachine"
         ],
-        "audit_focus": "Audit unidirectional data flow (UDF), race conditions, stream subscription leaks, autoDispose lifecycles, and error state transitions."
+        "audit_focus": "Audit state orchestration, task pipelines, concurrency safety, stream/task lifecycles, race conditions, and error transitions."
     },
     "5_presentation": {
         "gravity": 7,
@@ -179,6 +180,25 @@ CANONICAL_DEPENDENCY_LAWS: Dict[str, Any] = {
         }
     ]
 }
+
+
+def get_stack_adapted_tier_meta(tier_key: str, framework: str = "generic", has_ui: bool = False) -> Dict[str, Any]:
+    """Returns a stack-accurate copy of canonical tier metadata without leaking mobile/UI bias into headless/backend projects."""
+    if tier_key not in CANONICAL_5_TIERS:
+        return {"gravity": 4, "slug": "MODULE", "title": "Module", "audit_focus": "Audit core logic and boundaries."}
+    meta = dict(CANONICAL_5_TIERS[tier_key])
+    fw_l = (framework or "generic").lower()
+    if not has_ui or fw_l in ("python", "rust", "go", "node"):
+        if tier_key == "4_state":
+            meta["title"] = "State Orchestration, Pipelines, Workers & Daemon Controllers"
+            meta["audit_focus"] = "Audit state orchestration, task pipelines, concurrency safety, race conditions, and error transitions."
+        elif tier_key == "3_services":
+            meta["title"] = "Repositories, API Services, Engines & Persistence"
+            meta["audit_focus"] = "Audit network resilience, SQLite/ORM schemas, connection pooling, idempotency, and retry policies."
+        elif tier_key == "5_presentation":
+            meta["title"] = "CLI Commands, Gateways & External Presentation"
+            meta["audit_focus"] = "Audit CLI argument parsing, output formatting, terminal safety, and API gateway routing."
+    return meta
 
 
 @dataclass
@@ -425,8 +445,16 @@ def classify_file_to_tier(
 
     # Tier 1: Contracts, Schemas & Immutable Models
     is_contract_path = any(seg in CANONICAL_5_TIERS["1_contracts"]["folder_tokens"] for seg in parts[:-1])
-    is_contract_sym = any(any(st in s for st in CANONICAL_5_TIERS["1_contracts"]["symbol_stereotypes"]) for s in syms_lower)
-    if is_contract_path or stem_tier == "1_contracts" or (is_contract_sym and not any(seg in ("screens", "views", "controllers", "services", "commands") for seg in parts)):
+    non_contract_folders = {"screens", "views", "controllers", "services", "commands", "apps", "batch", "daemon", "engine", "tools", "persistence", "scripts", "workers", "jobs"}
+    is_contract_sym = (
+        bool(syms_lower)
+        and not any(seg in non_contract_folders for seg in parts[:-1])
+        and any(
+            any(s.endswith(st) or s == st or f"_{st}" in s for st in ("model", "dto", "entity", "schema", "contract", "dataclass", "basemodel", "freezed", "struct"))
+            for s in syms_lower[:5]
+        )
+    )
+    if is_contract_path or stem_tier == "1_contracts" or is_contract_sym:
         t1 = CANONICAL_5_TIERS["1_contracts"]
         return "1_contracts", t1["gravity"], t1["slug"], t1["title"]
 
@@ -901,7 +929,14 @@ def lint_dependencies_path(
     all_violations: List[Dict[str, Any]] = []
     if os.path.isdir(abs_target):
         for root, dirs, files in os.walk(abs_target):
-            dirs[:] = [d for d in dirs if d not in (".git", ".orion", "node_modules", ".dart_tool", "build", "dist", ".scratch", "scratch")]
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".")
+                and d not in (
+                    "node_modules", ".dart_tool", "build", "dist", "target", "__pycache__",
+                    "cache", "venv", "env", "site-packages", ".scratch", "scratch", ".orion", ".git"
+                )
+            ]
             for f in files:
                 ext = os.path.splitext(f)[1].lower()
                 if ext in (".dart", ".ts", ".tsx", ".js", ".jsx", ".py"):
@@ -919,8 +954,9 @@ def discover_epigenetic_aliases(root_dir: str, files: List[str], existing_aliase
     abs_root = os.path.abspath(root_dir)
     discovered: Dict[str, str] = normalize_epigenetic_aliases(existing_aliases or {})
 
-    # 1. Baseline legacy mappings
+    # 1. Baseline legacy mappings (Multi-platform & multi-paradigm: Mobile, Web, Backend, Daemon & Quantitative)
     baseline_mappings = [
+        # Standard Clean / Frontend / Mobile Mappings
         ("src/api", "3_services"), ("src/services", "3_services"), ("src/repositories", "3_services"),
         ("src/network", "3_services"), ("lib/network", "3_services"), ("lib/services", "3_services"),
         ("lib/data", "3_services"), ("src/views", "5_presentation"), ("src/pages", "5_presentation"),
@@ -930,6 +966,18 @@ def discover_epigenetic_aliases(root_dir: str, files: List[str], existing_aliase
         ("lib/bloc", "4_state"), ("src/types", "1_contracts"), ("src/schemas", "1_contracts"),
         ("src/models", "1_contracts"), ("lib/models", "1_contracts"), ("lib/contracts", "1_contracts"),
         ("src/domain", "2_domain"), ("lib/domain", "2_domain"),
+        # Backend / Python / Daemon / Pipeline / CLI Orchestrators
+        ("src/apps", "4_state"), ("apps", "4_state"), ("src/daemons", "4_state"),
+        ("src/workers", "4_state"), ("src/jobs", "4_state"), ("src/pipelines", "4_state"),
+        ("src/runners", "4_state"), ("hermes_cli", "4_state"),
+        # Core Services, Engines, Persistence & Tools
+        ("src/engine", "3_services"), ("src/persistence", "3_services"), ("src/tools", "3_services"),
+        ("src/brain", "3_services"), ("src/adapters", "3_services"), ("src/infra", "3_services"),
+        ("src/infrastructure", "3_services"), ("src/storage", "3_services"), ("src/db", "3_services"),
+        ("scripts", "3_services"), ("plugins", "3_services"),
+        # Pure Domain, Math, Indicators & Rules
+        ("src/core", "2_domain"), ("src/math", "2_domain"), ("src/indicators", "2_domain"),
+        ("src/strategies", "2_domain"), ("src/rules", "2_domain"),
     ]
     for rel_folder, target_tier in baseline_mappings:
         if os.path.isdir(os.path.join(abs_root, rel_folder)) and rel_folder not in discovered:
@@ -1143,7 +1191,14 @@ def sequence_project_dna(
     if not files:
         for r, dirs, filenames in os.walk(abs_root):
             # prune noise
-            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "build", "dist", "target", "__pycache__", ".dart_tool")]
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".")
+                and d not in (
+                    "node_modules", "build", "dist", "target", "__pycache__", ".dart_tool",
+                    "cache", "venv", "env", "site-packages", ".scratch", "scratch", ".orion", ".git"
+                )
+            ]
             for fn in filenames:
                 rel = os.path.relpath(os.path.join(r, fn), abs_root).replace("\\", "/")
                 files.append(rel)
@@ -1250,9 +1305,9 @@ def sequence_project_dna(
     vision_path = pillars.get("vision") or ("context/VISION.md" if os.path.isfile(os.path.join(abs_root, "context/VISION.md")) else None)
     blueprint_path = pillars.get("tech") or pillars.get("strategy") or ("ARCHITECTURE.md" if os.path.isfile(os.path.join(abs_root, "ARCHITECTURE.md")) else None)
 
-    # 6. Epigenetic Aliases from Stored DNA & Context Topology
+    # 6. Epigenetic Aliases from Stored DNA & Dynamic Context Topology
     raw_aliases = stored_dna.get("mutation_ledger", {}).get("epigenetic_aliases", {}) or stored_dna.get("epigenetic_aliases", {})
-    epigenetic_aliases = normalize_epigenetic_aliases(raw_aliases)
+    epigenetic_aliases = discover_epigenetic_aliases(abs_root, files, existing_aliases=raw_aliases)
     context_topology, discovered_context_aliases = discover_context_epigenetic_map(abs_root)
     stored_context_aliases = stored_dna.get("context_aliases", {}) or {}
     if discovered_context_aliases:
@@ -1287,12 +1342,22 @@ def sequence_project_dna(
     ) >= 3
     # Dynamic synthesis ensures non-UI / headless / backend projects don't carry stale UI invariants
     invariants = _synthesize_invariants_for_stack(detected_fw, has_ui=has_ui)
-    if os.path.isfile(dna_path) and stored_dna.get("invariants") != invariants:
-        try:
-            stored_dna["invariants"] = invariants
-            atomic_write_text(dna_path, json.dumps(stored_dna, indent=2))
-        except Exception as _e:
-            _log_telemetry(_e, "sequence_project_dna:update_dna_invariants")
+
+    # Preserve custom project-specific invariants from .dna.json
+    custom_invs = stored_dna.get("custom_invariants") or stored_dna.get("invariants") or []
+    if isinstance(custom_invs, list):
+        for ci in custom_invs:
+            if isinstance(ci, str):
+                ci_clean = ci.strip()
+                if ci_clean and not ci_clean.startswith("[SCAL_ADVISORY]") and ci_clean not in invariants:
+                    invariants.append(ci_clean)
+
+    # Ingest real invariants and anti-vision statements from VISION.md
+    if vision_path:
+        full_v_path = vision_path if os.path.isabs(vision_path) else os.path.join(abs_root, vision_path)
+        for vi in _extract_vision_invariants(full_v_path):
+            if vi not in invariants:
+                invariants.append(vi)
 
     # Polyglot Invariant Guard & Test Suite Evaluation (SCAL Readiness)
     verification_count = sum(1 for t in file_tier_map.values() if t == "9_verification")
@@ -1325,7 +1390,7 @@ def sequence_project_dna(
 
     # Multi-workspace / Monorepo discovery
     workspaces = [{"path": ".", "framework": detected_fw, "language": detected_lang, "role": "primary_app"}]
-    for mono_dir in ("apps", "packages", "services", "modules", "tools"):
+    for mono_dir in ("apps", "packages", "services", "modules", "tools", "plugins"):
         full_mono = os.path.join(abs_root, mono_dir)
         if os.path.isdir(full_mono):
             for sub_d in sorted(os.listdir(full_mono)):
@@ -1339,6 +1404,40 @@ def sequence_project_dna(
                         "language": sub_lang,
                         "role": "workspace_module"
                     })
+
+    # Auto-persist synchronized DNA state to .agents/.dna.json when it exists
+    if os.path.isfile(dna_path):
+        try:
+            changed = False
+            if stored_dna.get("invariants") != invariants:
+                stored_dna["invariants"] = invariants
+                changed = True
+            if stored_dna.get("dna_compliance_score") != compliance_score:
+                stored_dna["dna_compliance_score"] = compliance_score
+                changed = True
+            clean_viols = violations[:15]
+            if stored_dna.get("layer_violations") != clean_viols:
+                stored_dna["layer_violations"] = clean_viols
+                changed = True
+            clean_chims = chimeras[:15]
+            if stored_dna.get("chimera_files") != clean_chims:
+                stored_dna["chimera_files"] = clean_chims
+                changed = True
+            if epigenetic_aliases and stored_dna.get("epigenetic_aliases") != epigenetic_aliases:
+                stored_dna["epigenetic_aliases"] = epigenetic_aliases
+                changed = True
+            if stored_dna.get("dna_state") != dna_state:
+                stored_dna["dna_state"] = dna_state
+                changed = True
+            if changed:
+                if "mutation_ledger" not in stored_dna or not isinstance(stored_dna["mutation_ledger"], dict):
+                    stored_dna["mutation_ledger"] = {}
+                stored_dna["mutation_ledger"]["dna_compliance_score"] = compliance_score
+                stored_dna["mutation_ledger"]["layer_violations"] = clean_viols
+                stored_dna["mutation_ledger"]["epigenetic_aliases"] = epigenetic_aliases
+                atomic_write_text(dna_path, json.dumps(stored_dna, indent=2))
+        except Exception as _e:
+            _log_telemetry(_e, "sequence_project_dna:sync_dna_state")
 
     return ProjectDNA(
         is_dna_app=has_explicit_dna,
@@ -1369,6 +1468,36 @@ def sequence_project_dna(
         dna_compliance_score=compliance_score,
         file_tier_map=file_tier_map
     )
+
+
+def _extract_vision_invariants(vision_path: str) -> List[str]:
+    """Extracts populated architectural invariants and anti-vision statements from VISION.md."""
+    if not vision_path or not os.path.isfile(vision_path):
+        return []
+    try:
+        with open(vision_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+    except Exception:
+        return []
+
+    extracted: List[str] = []
+    sections = re.split(r"(?m)^##\s+", content)
+    for sec in sections:
+        sec_str = sec.strip()
+        sec_lower = sec_str.split("\n", 1)[0].lower() if sec_str else ""
+        if any(k in sec_lower for k in ("invariant", "anti-vision", "non-goal", "guardrail")):
+            for line in sec_str.splitlines()[1:]:
+                clean_l = line.strip()
+                if not clean_l or clean_l.startswith("#"):
+                    continue
+                m_bullet = re.match(r"^(?:[-*]|\d+\.)\s+(.+)$", clean_l)
+                if m_bullet:
+                    val = m_bullet.group(1).strip()
+                    if "[Invariant" in val or "[X]" in val or "[Y]" in val or "[Z]" in val or "e.g." in val:
+                        continue
+                    if len(val) >= 10 and val not in extracted:
+                        extracted.append(val)
+    return extracted
 
 
 def _synthesize_invariants_for_stack(framework: str, has_ui: bool) -> List[str]:
@@ -1746,3 +1875,497 @@ def get_dna_trend(root_dir: str, limit: int = 10, db_path: Optional[str] = None)
         }
     except Exception as e:
         return {"ok": False, "error": str(e), "snapshots": [], "has_regression": False, "regression_reason": ""}
+
+
+# ==============================================================================
+# UNIVERSAL POLYGLOT DNA SEMVER & CHANGELOG ENGINE
+# ==============================================================================
+
+SEMVER_REGEX = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$")
+
+def parse_semver(version_str: str) -> Optional[Tuple[int, int, int, str, str]]:
+    """Parses SemVer string into (major, minor, patch, prerelease, build)."""
+    clean_v = version_str.strip().lstrip("vV")
+    m = SEMVER_REGEX.match(clean_v)
+    if not m:
+        return None
+    return int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) or "", m.group(5) or ""
+
+
+def bump_semver_tuple(major: int, minor: int, patch: int, bump_type: str = "patch") -> Tuple[int, int, int]:
+    """Increments major, minor, or patch."""
+    b = bump_type.lower()
+    if b == "major":
+        return major + 1, 0, 0
+    elif b == "minor":
+        return major, minor + 1, 0
+    else:
+        return major, minor, patch + 1
+
+
+def detect_project_version(root_dir: str = ".") -> Tuple[str, str]:
+    """
+    Universal polyglot version detector.
+    Scans in order:
+      1. Root VERSION file (plain text)
+      2. package.json ("version": "x.y.z")
+      3. pubspec.yaml (version: x.y.z+build or x.y.z)
+      4. pyproject.toml (version = "x.y.z")
+      5. Cargo.toml (version = "x.y.z")
+      6. pom.xml (<version>x.y.z</version>)
+      7. build.gradle / build.gradle.kts (version = 'x.y.z')
+      8. CHANGELOG.md (first ## [x.y.z])
+    Returns (version_string, manifest_relpath).
+    Defaults to ("0.1.0", "VERSION") if none found.
+    """
+    abs_root = os.path.abspath(root_dir)
+
+    # 1. Plain root VERSION file
+    ver_path = os.path.join(abs_root, "VERSION")
+    if os.path.isfile(ver_path):
+        try:
+            with open(ver_path, "r", encoding="utf-8") as f:
+                raw = f.read().strip()
+                if parse_semver(raw):
+                    return raw.lstrip("vV"), "VERSION"
+        except OSError:
+            pass
+
+    # 2. Node.js / Web / TypeScript package.json
+    pkg_path = os.path.join(abs_root, "package.json")
+    if os.path.isfile(pkg_path):
+        try:
+            with open(pkg_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                v = data.get("version")
+                if v and parse_semver(v):
+                    return v.lstrip("vV"), "package.json"
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    # 3. Flutter / Dart pubspec.yaml
+    pub_path = os.path.join(abs_root, "pubspec.yaml")
+    if os.path.isfile(pub_path):
+        try:
+            with open(pub_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r"^version:\s*([0-9a-zA-Z.+_-]+)", line.strip())
+                    if m:
+                        v = m.group(1).strip("'\"")
+                        if parse_semver(v):
+                            return v.lstrip("vV"), "pubspec.yaml"
+        except OSError:
+            pass
+
+    # 4. Python pyproject.toml
+    pyproj_path = os.path.join(abs_root, "pyproject.toml")
+    if os.path.isfile(pyproj_path):
+        try:
+            with open(pyproj_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r'^\s*version\s*=\s*["\']([^"\']+)["\']', line)
+                    if m:
+                        v = m.group(1)
+                        if parse_semver(v):
+                            return v.lstrip("vV"), "pyproject.toml"
+        except OSError:
+            pass
+
+    # 5. Rust Cargo.toml
+    cargo_path = os.path.join(abs_root, "Cargo.toml")
+    if os.path.isfile(cargo_path):
+        try:
+            with open(cargo_path, "r", encoding="utf-8") as f:
+                in_package = False
+                for line in f:
+                    sline = line.strip()
+                    if sline == "[package]":
+                        in_package = True
+                        continue
+                    elif sline.startswith("[") and in_package:
+                        in_package = False
+                    if in_package:
+                        m = re.match(r'^\s*version\s*=\s*["\']([^"\']+)["\']', sline)
+                        if m:
+                            v = m.group(1)
+                            if parse_semver(v):
+                                return v.lstrip("vV"), "Cargo.toml"
+        except OSError:
+            pass
+
+    # 6. Java / Maven pom.xml
+    pom_path = os.path.join(abs_root, "pom.xml")
+    if os.path.isfile(pom_path):
+        try:
+            with open(pom_path, "r", encoding="utf-8") as f:
+                m = re.search(r'<version>([0-9a-zA-Z.+_-]+)</version>', f.read())
+                if m:
+                    v = m.group(1)
+                    if parse_semver(v):
+                        return v.lstrip("vV"), "pom.xml"
+        except OSError:
+            pass
+
+    # 7. Gradle build.gradle / build.gradle.kts
+    for g_name in ("build.gradle.kts", "build.gradle"):
+        g_path = os.path.join(abs_root, g_name)
+        if os.path.isfile(g_path):
+            try:
+                with open(g_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        m = re.match(r'^\s*(?:version\s*=\s*|version\s+)["\']([^"\']+)["\']', line.strip())
+                        if m:
+                            v = m.group(1)
+                            if parse_semver(v):
+                                return v.lstrip("vV"), g_name
+            except OSError:
+                pass
+
+    # 8. CHANGELOG.md (topmost release header)
+    ch_path = os.path.join(abs_root, "CHANGELOG.md")
+    if os.path.isfile(ch_path):
+        try:
+            with open(ch_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r'^##\s*\[([0-9a-zA-Z.+_-]+)\]', line.strip())
+                    if m:
+                        v = m.group(1)
+                        if v.lower() != "unreleased" and parse_semver(v):
+                            return v.lstrip("vV"), "CHANGELOG.md"
+        except OSError:
+            pass
+
+    return "0.1.0", "VERSION"
+
+
+def update_project_version(root_dir: str = ".", new_version: str = "0.1.0") -> List[str]:
+    """
+    Updates the detected primary version manifest(s) with new_version using pure stdlib atomic writes.
+    Returns list of modified relative paths.
+    """
+    clean_v = new_version.strip().lstrip("vV")
+    abs_root = os.path.abspath(root_dir)
+    updated: List[str] = []
+
+    # 1. Update VERSION if it exists or if no other manifest exists
+    ver_path = os.path.join(abs_root, "VERSION")
+    has_known_manifest = any(
+        os.path.isfile(os.path.join(abs_root, m))
+        for m in ("package.json", "pubspec.yaml", "pyproject.toml", "Cargo.toml")
+    )
+    if os.path.isfile(ver_path) or not has_known_manifest:
+        atomic_write_text(ver_path, clean_v + "\n")
+        updated.append("VERSION")
+
+    # 2. Update package.json
+    pkg_path = os.path.join(abs_root, "package.json")
+    if os.path.isfile(pkg_path):
+        try:
+            with open(pkg_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'("version"\s*:\s*")([^"]+)(")', rf'\g<1>{clean_v}\g<3>', raw, count=1)
+            if subbed != raw:
+                atomic_write_text(pkg_path, subbed)
+                updated.append("package.json")
+        except OSError:
+            pass
+
+    # 3. Update pubspec.yaml
+    pub_path = os.path.join(abs_root, "pubspec.yaml")
+    if os.path.isfile(pub_path):
+        try:
+            with open(pub_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            def _pub_repl(m):
+                old_v = m.group(1)
+                build_part = ""
+                if "+" in old_v:
+                    build_part = "+" + old_v.split("+", 1)[1]
+                return f"version: {clean_v}{build_part}"
+            subbed = re.sub(r'^version:\s*([^\r\n]+)', _pub_repl, raw, flags=re.MULTILINE, count=1)
+            if subbed != raw:
+                atomic_write_text(pub_path, subbed)
+                updated.append("pubspec.yaml")
+        except OSError:
+            pass
+
+    # 4. Update pyproject.toml
+    pyproj_path = os.path.join(abs_root, "pyproject.toml")
+    if os.path.isfile(pyproj_path):
+        try:
+            with open(pyproj_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{clean_v}\g<3>', raw, count=1)
+            if subbed != raw:
+                atomic_write_text(pyproj_path, subbed)
+                updated.append("pyproject.toml")
+        except OSError:
+            pass
+
+    # 5. Update Cargo.toml
+    cargo_path = os.path.join(abs_root, "Cargo.toml")
+    if os.path.isfile(cargo_path):
+        try:
+            with open(cargo_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            parts = re.split(r'(\[package\])', raw, maxsplit=1)
+            if len(parts) >= 3:
+                pkg_section = parts[2]
+                subbed_pkg = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{clean_v}\g<3>', pkg_section, count=1)
+                full_cargo = parts[0] + parts[1] + subbed_pkg
+                atomic_write_text(cargo_path, full_cargo)
+                updated.append("Cargo.toml")
+        except OSError:
+            pass
+
+    return updated
+
+
+def compact_changelog_entries(raw_content: str) -> str:
+    """
+    Lessword Compact Changelog Synthesizer:
+    Consolidates raw bullet points into 3-5 dense domain sentences.
+    Eliminates AI slop, conversational filler, and verbose multi-line laundry lists.
+    """
+    lines = [l.strip() for l in raw_content.splitlines() if l.strip()]
+    if not lines:
+        return "- Maintenance release and performance hardening."
+
+    raw_items: List[str] = []
+    for line in lines:
+        if line.startswith(("#", "---")):
+            continue
+        cleaned = re.sub(r"^[-*+]\s*(\[[ x]\]\s*)?", "", line).strip()
+        cleaned = re.sub(r"^(?:Added|Changed|Fixed|Breaking Changes?|Security|Deprecated):\s*", "", cleaned, flags=re.IGNORECASE).strip()
+        if cleaned and len(cleaned) > 2:
+            raw_items.append(cleaned)
+
+    if not raw_items:
+        return "- Maintenance release and performance hardening."
+
+    core_items: List[str] = []
+    services_items: List[str] = []
+    ui_items: List[str] = []
+    verification_items: List[str] = []
+    general_items: List[str] = []
+
+    for item in raw_items:
+        low = item.lower()
+        if any(k in low for k in ("dna", "strata", "ast", "scaffold", "semver", "vision", "blueprint", "rule", "guardrail", "manifest", "contract", "tier")):
+            core_items.append(item)
+        elif any(k in low for k in ("service", "repo", "api", "bento", "packer", "bundle", "pipeline", "db", "sqlite", "query", "state", "cache", "hazard")):
+            services_items.append(item)
+        elif any(k in low for k in ("ui", "screen", "widget", "token", "view", "theme", "design", "css", "layout", "craft")):
+            ui_items.append(item)
+        elif any(k in low for k in ("test", "spec", "verify", "gate", "bugfix", "fix", "regression", "leak", "clean")):
+            verification_items.append(item)
+        else:
+            general_items.append(item)
+
+    def _condense(items: List[str]) -> str:
+        phrases: List[str] = []
+        for it in items:
+            p = re.sub(r"^(?:Added|Changed|Implemented|Created|Updated|Fixed|Resolved|Supported)\s+", "", it, flags=re.IGNORECASE).strip()
+            p = p.rstrip(".")
+            if p and p not in phrases:
+                phrases.append(p)
+        if not phrases:
+            return ""
+        if len(phrases) == 1:
+            return phrases[0] + "."
+        elif len(phrases) <= 3:
+            return ", ".join(phrases[:-1]) + ", and " + phrases[-1] + "."
+        else:
+            return ", ".join(phrases[:3]) + f", and {len(phrases) - 3} auxiliary improvements."
+
+    dense_lines: List[str] = []
+    if core_items:
+        dense_lines.append(f"- **Architecture & Governance**: {_condense(core_items)}")
+    if services_items:
+        dense_lines.append(f"- **Core Services & Pipelines**: {_condense(services_items)}")
+    if ui_items:
+        dense_lines.append(f"- **Presentation & UI Craft**: {_condense(ui_items)}")
+    if verification_items:
+        dense_lines.append(f"- **Integrity & Bug Fixes**: {_condense(verification_items)}")
+    if general_items and len(dense_lines) < 4:
+        dense_lines.append(f"- **Operational Polish**: {_condense(general_items)}")
+
+    if not dense_lines:
+        dense_lines.append("- Maintenance update and performance hardening.")
+
+    return "\n".join(dense_lines)
+
+
+def stamp_changelog_release(root_dir: str = ".", version: str = "0.1.0", date_str: Optional[str] = None, compact: bool = True) -> bool:
+    """
+    Transitions ## [Unreleased] in root CHANGELOG.md into ## [vX.Y.Z] - YYYY-MM-DD
+    synthesizing dense, Lessword-compact domain paragraphs, and reseeds a clean ## [Unreleased] template.
+    """
+    abs_root = os.path.abspath(root_dir)
+    ch_path = os.path.join(abs_root, "CHANGELOG.md")
+    if not os.path.isfile(ch_path):
+        return False
+
+    clean_v = version.strip().lstrip("vV")
+    today = date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    try:
+        with open(ch_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        unreleased_match = re.search(r"^##\s*\[Unreleased\]\s*([\s\S]*?)(?=^##\s*\[|\Z)", content, flags=re.MULTILINE)
+        if not unreleased_match:
+            return False
+
+        unreleased_body = unreleased_match.group(1).strip()
+        if compact and unreleased_body:
+            synthesized_body = compact_changelog_entries(unreleased_body)
+        elif unreleased_body:
+            synthesized_body = unreleased_body
+        else:
+            synthesized_body = "- Maintenance release and performance hardening."
+
+        new_unreleased_header = (
+            "## [Unreleased]\n\n"
+            "- \n\n"
+            f"## [{clean_v}] - {today}\n\n"
+            f"{synthesized_body}\n\n"
+        )
+
+        updated = content[:unreleased_match.start()] + new_unreleased_header + content[unreleased_match.end():]
+        atomic_write_text(ch_path, updated)
+        return True
+    except OSError:
+        return False
+
+
+def evaluate_dna_semver(
+    root_dir: str = ".",
+    since_ref: Optional[str] = None,
+    file_list: Optional[List[str]] = None,
+    commit_messages: Optional[List[str]] = None,
+    allow_major_override: bool = False,
+    allow_minor_override: bool = False,
+) -> Dict[str, Any]:
+    """
+    Evaluates changed files and commit messages against Project DNA 5-Tier Strata
+    to deterministically calculate SemVer impact (MAJOR, MINOR, or PATCH) with
+    strict Anti-AI-Slop and Lessword thresholds.
+    """
+    abs_root = os.path.abspath(root_dir)
+    curr_v_str, manifest_src = detect_project_version(abs_root)
+    parsed = parse_semver(curr_v_str)
+    maj, minr, pat = (parsed[0], parsed[1], parsed[2]) if parsed else (0, 1, 0)
+
+    # 1. Collect modified files
+    changed_files = list(file_list or [])
+    if not changed_files:
+        try:
+            ref = since_ref or "HEAD"
+            cmd = ["git", "diff", "--name-only", ref]
+            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            if proc.returncode == 0 and proc.stdout.strip():
+                changed_files = [f.strip().replace("\\", "/") for f in proc.stdout.strip().splitlines() if f.strip()]
+            else:
+                proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+                if proc2.returncode == 0 and proc2.stdout.strip():
+                    for line in proc2.stdout.splitlines():
+                        parts = line.strip().split(None, 1)
+                        if len(parts) >= 2:
+                            changed_files.append(parts[1].strip().replace("\\", "/"))
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    # 2. Collect commit messages / session tags if available
+    msgs = list(commit_messages or [])
+    if not msgs:
+        try:
+            cmd = ["git", "log", "-n", "10", "--pretty=format:%B---COMMIT_DELIM---"]
+            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            if proc.returncode == 0 and proc.stdout.strip():
+                msgs = [m.strip() for m in proc.stdout.split("---COMMIT_DELIM---") if m.strip()]
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    session_history_path = os.path.join(abs_root, ".orion", "episodic", "session_history.md")
+    if os.path.isfile(session_history_path):
+        try:
+            with open(session_history_path, "r", encoding="utf-8", errors="ignore") as f:
+                msgs.append(f.read())
+        except OSError:
+            pass
+
+    # 3. Analyze Tiers and Gravity
+    tier_counts: Dict[str, int] = defaultdict(int)
+    file_tier_map: Dict[str, str] = {}
+    reasons: List[str] = []
+
+    for f_rel in changed_files:
+        t_key, gravity, slug, title = classify_file_to_tier(f_rel)
+        tier_counts[t_key] += 1
+        file_tier_map[f_rel] = t_key
+
+    # 4. Strict Major Gate (Quarantined against AI slop)
+    is_major = False
+    is_minor = False
+    combined_text = " ".join(msgs).lower()
+
+    if allow_major_override:
+        is_major = True
+        reasons.append("Explicit human authorization for MAJOR release override")
+    else:
+        vision_modified = any("context/vision.md" in f.lower() or f.lower().endswith("vision.md") for f in changed_files)
+        if vision_modified and any(k in combined_text for k in ("[paradigm-shift]", "[breaking-vision]")):
+            is_major = True
+            reasons.append("Sacred North Star (context/VISION.md) paradigm shift confirmed in history")
+        elif vision_modified:
+            reasons.append("⚠️ Sacred North Star (context/VISION.md) modified without explicit [paradigm-shift] tag; autonomous Major Quarantine preserves minor/patch stability")
+
+    # 5. Strict Minor Gate (High-Threshold: requires new feature organ, new pillar, or milestone)
+    if not is_major:
+        if allow_minor_override:
+            is_minor = True
+            reasons.append("Explicit human authorization for MINOR release override")
+        elif any(k in combined_text for k in ("[milestone]", "[epoch]", "[new-organ]")):
+            is_minor = True
+            reasons.append("Explicit Milestone or New Feature Organ tag detected in session history")
+        elif any("0_pillars_and_manifests" in file_tier_map.get(f, "") and "pillar" in f.lower() for f in changed_files):
+            is_minor = True
+            reasons.append("New capability pillar introduced in Tier 0")
+        else:
+            # Check if any new feature organ directory was added (e.g. src/organ/ or features/organ/)
+            detected_organs = set()
+            for f in changed_files:
+                parts = f.replace("\\", "/").split("/")
+                if len(parts) >= 3 and parts[0] in ("src", "lib", "features", "packages", "apps", "services"):
+                    detected_organs.add(f"{parts[0]}/{parts[1]}")
+            if len(detected_organs) >= 2:
+                # Multiple broad organs touched simultaneously with feature tag
+                if any(k in combined_text for k in ("[feature]", "feat:", "feat(")):
+                    is_minor = True
+                    reasons.append(f"Broad multi-organ feature evolution across {len(detected_organs)} contexts ({', '.join(sorted(detected_organs)[:3])})")
+
+    # 6. Universal Patch Default
+    if is_major:
+        bump = "MAJOR" if maj >= 1 else "MINOR"
+        next_maj, next_min, next_pat = bump_semver_tuple(maj, minr, pat, "major" if maj >= 1 else "minor")
+    elif is_minor:
+        bump = "MINOR"
+        next_maj, next_min, next_pat = bump_semver_tuple(maj, minr, pat, "minor")
+    else:
+        bump = "PATCH"
+        next_maj, next_min, next_pat = bump_semver_tuple(maj, minr, pat, "patch")
+        reasons.append("Incremental development: routine endpoints, UI polish, bugfixes, refactorings, and test additions stay strictly PATCH (Anti-AI-Slop Invariant)")
+
+    target_v = f"{next_maj}.{next_min}.{next_pat}"
+
+    return {
+        "current_version": curr_v_str,
+        "manifest_source": manifest_src,
+        "recommended_bump": bump,
+        "target_version": target_v,
+        "changed_files_count": len(changed_files),
+        "tier_distribution": dict(tier_counts),
+        "reasons": reasons,
+        "file_tier_map": file_tier_map,
+    }

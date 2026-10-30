@@ -12,6 +12,7 @@ Bridges monolithic Audit Reports and implementation_plan.md files directly into:
 """
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -146,11 +147,67 @@ def _extract_line_bounds(span_text: str, target_file: str) -> Tuple[int, int]:
 
 
 def _clean_target_path(raw_path: str) -> str:
-    """Strips #Lxx-Lyy anchors and surrounding quotes/backticks from file path."""
+    """Strips #Lxx-Lyy anchors, ::Symbol anchors, and surrounding quotes/backticks from file path."""
     cleaned = raw_path.strip().strip("`").strip("'").strip('"')
     if "#L" in cleaned:
         cleaned = cleaned.split("#L", 1)[0]
+    if "::" in cleaned:
+        cleaned = cleaned.split("::", 1)[0]
     return cleaned.replace("\\", "/")
+
+
+def _extract_symbol_name(span_text: str, target_file: str) -> str:
+    """Extracts symbol name from target_file::Symbol, Target Span, or explicit Symbol: header."""
+    for source in (target_file, span_text):
+        if "::" in source:
+            parts = source.split("::")
+            if len(parts) >= 2:
+                sym = parts[1].strip().split()[0].strip("`").strip("'").strip('"')
+                if sym:
+                    return sym
+        m = re.search(r"(?:Symbol|Function|Class|Method)\s*[:=]\s*`?([a-zA-Z0-9_]+)`?", source, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
+def resolve_live_ast_symbol_span(file_path: Path, symbol_name: str) -> Optional[Tuple[int, int]]:
+    """
+    Inspects live disk AST (or regex fallback) to dynamically retrieve exact (lineno, end_lineno)
+    for a function, method, or class symbol, eliminating line-shift drift.
+    """
+    if not file_path.is_file() or not symbol_name:
+        return None
+
+    clean_sym = symbol_name.strip().strip("`").strip("'").strip('"')
+    if "::" in clean_sym:
+        clean_sym = clean_sym.split("::")[-1].strip()
+    if not clean_sym:
+        return None
+
+    if file_path.suffix == ".py":
+        try:
+            content = file_path.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(content, filename=str(file_path))
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    if node.name == clean_sym:
+                        end = getattr(node, "end_lineno", node.lineno + 25)
+                        return (node.lineno, max(node.lineno, end))
+        except Exception:
+            pass
+
+    # Polyglot fallback (regex-based search for symbol definition line)
+    try:
+        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        sym_pattern = re.compile(rf"(?:def|class|function|fn|void|async|const|let|var)\s+{re.escape(clean_sym)}\b")
+        for idx, line in enumerate(lines, 1):
+            if sym_pattern.search(line):
+                return (idx, min(len(lines), idx + 30))
+    except Exception:
+        pass
+
+    return None
 
 
 def _find_task_headers_outside_fences(markdown_text: str) -> List[re.Match]:
@@ -388,6 +445,8 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
         else:
             pairs.append(("python", "", ""))
 
+        target_symbol = _extract_symbol_name(span_text, raw_file)
+
         tier_key, gravity, slug, tier_title = classify_file_to_tier(target_file)
 
         for p_idx, (p_lang, p_search, p_repl) in enumerate(pairs):
@@ -398,6 +457,7 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
                     "task_id": sub_id,
                     "title": sub_title,
                     "target_file": target_file,
+                    "target_symbol": target_symbol,
                     "span_text": span_text,
                     "root_cause": root_cause,
                     "start_line": start_line,
@@ -470,10 +530,11 @@ def read_live_target_window(
     end_line: int,
     search_code: str = "",
     context_pad: int = 6,
+    symbol_name: str = "",
 ) -> Tuple[str, str, int, int]:
     """
     Reads the exact current lines from disk and dynamically recalibrates (start_line, end_line)
-    if search_code is found on disk, eliminating line-shift drift completely.
+    via Live AST Symbol Re-Anchoring or search_code location, eliminating line-shift drift completely.
     Returns (numbered_window, raw_unnumbered_window, actual_start_line, actual_end_line).
     """
     if not rel_path:
@@ -489,7 +550,13 @@ def read_live_target_window(
         lines = content.splitlines()
         total = len(lines)
 
-        # Dynamic Live Anchor Recalibration: locate search_code on disk if present
+        # 1. Live AST Symbol Re-Anchoring (eliminates line-shift drift across prior cards)
+        if symbol_name:
+            sym_span = resolve_live_ast_symbol_span(full_path, symbol_name)
+            if sym_span:
+                start_line, end_line = sym_span
+
+        # 2. Dynamic Live Anchor Recalibration: locate search_code on disk if present
         clean_search = search_code.strip()
         if clean_search and not clean_search.startswith("# [File does not exist"):
             search_lines = clean_search.splitlines()
@@ -707,6 +774,7 @@ def render_active_bento_markdown(
         task["start_line"],
         task["end_line"],
         search_code=task.get("search_code", ""),
+        symbol_name=task.get("target_symbol", ""),
     )
     task["start_line"] = actual_start
     task["end_line"] = actual_end
@@ -955,6 +1023,45 @@ def cmd_next(run_verify: bool = False) -> int:
             )
             return 2
 
+        # Pre-Flight AST Syntax Guard (milliseconds)
+        target_file_rel = current_task.get("target_file", "").strip()
+        if target_file_rel.endswith(".py"):
+            target_path_full = ws / target_file_rel
+            if target_path_full.is_file():
+                try:
+                    ast.parse(target_path_full.read_text(encoding="utf-8", errors="replace"), filename=str(target_path_full))
+                except SyntaxError as se:
+                    syntax_err = f"SyntaxError in {target_file_rel}:{se.lineno} — {se.msg}"
+                    print(
+                        f"\n❌ [BENTO SYNTAX ERROR] Pre-flight AST syntax check failed (Exit Code 2).\n"
+                        f"{syntax_err}\n"
+                        f"Task {current_task['task_id']} remains OPEN. Repair Python syntax before executing test suite.",
+                        file=sys.stderr,
+                    )
+                    return 2
+
+        # Pre-Flight Scope Guard
+        try:
+            diff_proc = subprocess.run(
+                ["git", "diff", "--name-only"],
+                cwd=str(ws),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            if diff_proc.returncode == 0:
+                modified_files = [f.strip().replace("\\", "/") for f in diff_proc.stdout.splitlines() if f.strip()]
+                clean_target = target_file_rel.replace("\\", "/")
+                unauthorized = [
+                    f for f in modified_files
+                    if f != clean_target and not f.startswith(".orion/") and not f.startswith(".scratch/")
+                ]
+                if unauthorized:
+                    print(f"⚠️ [BENTO SCOPE NOTICE] Files modified outside target scope: {unauthorized}")
+        except Exception:
+            pass
+
         v_cmd = current_task.get("verification_cmd", "python .agents/scripts/orion.py verify --fast")
         print(f"[ORION BENTO GATE] Running verification for Task {current_task['task_id']}: {v_cmd}")
         retcode, stdout, stderr = _run_verification_command(v_cmd, ws)
@@ -963,6 +1070,35 @@ def cmd_next(run_verify: bool = False) -> int:
         if retcode != 0:
             if stderr:
                 print(stderr.strip(), file=sys.stderr)
+
+            # Record Structured Failure Memory in ACTIVE_TASK.md
+            try:
+                if active_path.is_file():
+                    active_content = active_path.read_text(encoding="utf-8", errors="replace")
+                    err_snippet = (stderr.strip() or stdout.strip())[-500:]
+                    failure_entry = (
+                        f"\n\n## ❌ Attempted & Failed Approaches\n"
+                        f"- **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                        f"- **Failing Command**: `{v_cmd}` (Exit Code {retcode})\n"
+                        f"- **Error Output Snippet**:\n"
+                        f"```text\n{err_snippet}\n```\n"
+                        f"- **Directive**: Do NOT retry the exact same modification pattern. Re-diagnose root cause."
+                    )
+                    if "## ❌ Attempted & Failed Approaches" not in active_content:
+                        active_content += failure_entry
+                    else:
+                        additional_attempt = (
+                            f"\n- **Subsequent Attempt**: `{v_cmd}` (Exit Code {retcode})\n"
+                            f"```text\n{err_snippet}\n```\n"
+                        )
+                        active_content = active_content.replace(
+                            "## ❌ Attempted & Failed Approaches",
+                            "## ❌ Attempted & Failed Approaches" + additional_attempt,
+                        )
+                    atomic_write_text(active_path, active_content)
+            except Exception as e:
+                _log_telemetry(e, "bento_record_failure_memory")
+
             print(
                 f"\n❌ [BENTO HARD PAUSE] Verification failed (Exit Code {retcode}). "
                 f"Task {current_task['task_id']} remains OPEN. Fix before advancing.",
