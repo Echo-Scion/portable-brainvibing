@@ -73,6 +73,8 @@ jobs:
           python -m unittest discover tests
 
       - name: Push Synchronized Changes
+        env:
+          SYNC_PAT: ${{ secrets.SYNC_DIGESTPACK_PAT || secrets.SYNC_PACKSCANNER_PAT }}
         run: |
           cd target_repo
           git config user.name "github-actions[bot]"
@@ -80,7 +82,10 @@ jobs:
           git add -A
           if git diff --staged --quiet; then
             echo "No changes detected. digestpack is already up to date."
+          elif [ -z "$SYNC_PAT" ]; then
+            echo "::warning::SYNC_DIGESTPACK_PAT secret is not configured in repository settings. Child distribution sync skipped."
+            exit 0
           else
             git commit -m "chore(sync): auto-sync from portable-brainvibing [skip ci]"
-            git push origin main
+            git push "https://x-access-token:${SYNC_PAT}@github.com/Echo-Scion/digestpack.git" main
           fi
