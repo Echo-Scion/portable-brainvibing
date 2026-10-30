@@ -1555,12 +1555,76 @@ def generate_fractal_shorthand(dry_run: bool = False):
     state_hash = hashlib.sha256(blueprint.encode()).hexdigest()[:4].upper()
     shorthand = f"[STATE_HASH: 0x{state_hash}] [ARCH: "
     
-    if "flutter" in blueprint.lower(): shorthand += "Flutter]"
-    elif "react" in blueprint.lower(): shorthand += "React]"
-    else: shorthand += "Unknown]"
-    
-    if "supabase" in blueprint.lower(): shorthand += " [DB: Supabase]"
-    if "riverpod" in blueprint.lower(): shorthand += " [STATE: Riverpod]"
+    manifest_path = os.path.join(WORKSPACE_DIR, ".agents", ".project_manifest.json")
+    fw_name = None
+    db_name = None
+    state_name = None
+
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                mdata = json.load(mf)
+                raw_fw = mdata.get("framework") or mdata.get("frontend_framework") or ""
+                raw_lang = mdata.get("language") or mdata.get("primary_languages") or ""
+                raw_db = mdata.get("backend_persistence") or ""
+                raw_state = mdata.get("state_management") or mdata.get("state_management_choice") or ""
+
+                if "flutter" in raw_fw.lower() or "dart" in raw_lang.lower():
+                    fw_name = "Flutter"
+                elif "react" in raw_fw.lower() or "next" in raw_fw.lower():
+                    fw_name = "React"
+                elif "python" in raw_fw.lower() or "python" in raw_lang.lower():
+                    fw_name = "Python"
+                elif "node" in raw_fw.lower() or "express" in raw_fw.lower():
+                    fw_name = "Node.js"
+                elif "rust" in raw_fw.lower() or "rust" in raw_lang.lower():
+                    fw_name = "Rust"
+                elif "go" in raw_fw.lower() or "golang" in raw_lang.lower():
+                    fw_name = "Go"
+                elif raw_fw and raw_fw != "generic":
+                    fw_name = raw_fw.capitalize()
+
+                if "sqlite" in raw_db.lower(): db_name = "SQLite"
+                elif "supabase" in raw_db.lower(): db_name = "Supabase"
+                elif "postgres" in raw_db.lower(): db_name = "Postgres"
+                elif "mongo" in raw_db.lower(): db_name = "MongoDB"
+                elif "redis" in raw_db.lower(): db_name = "Redis"
+
+                if "pydantic" in raw_state.lower(): state_name = "Pydantic"
+                elif "riverpod" in raw_state.lower(): state_name = "Riverpod"
+                elif "zustand" in raw_state.lower(): state_name = "Zustand"
+                elif "bloc" in raw_state.lower(): state_name = "BLoC"
+                elif "redux" in raw_state.lower(): state_name = "Redux"
+        except Exception:
+            pass
+
+    bp_lower = blueprint.lower()
+    if not fw_name:
+        if "flutter" in bp_lower: fw_name = "Flutter"
+        elif "react" in bp_lower or "next" in bp_lower: fw_name = "React"
+        elif "python" in bp_lower or "fastapi" in bp_lower: fw_name = "Python"
+        elif "node" in bp_lower: fw_name = "Node.js"
+        elif "rust" in bp_lower: fw_name = "Rust"
+        elif "go" in bp_lower: fw_name = "Go"
+        else: fw_name = "Modular"
+
+    shorthand += f"{fw_name}]"
+
+    if not db_name:
+        if "sqlite" in bp_lower: db_name = "SQLite"
+        elif "supabase" in bp_lower: db_name = "Supabase"
+        elif "postgres" in bp_lower: db_name = "Postgres"
+
+    if db_name:
+        shorthand += f" [DB: {db_name}]"
+
+    if not state_name:
+        if "pydantic" in bp_lower: state_name = "Pydantic"
+        elif "riverpod" in bp_lower: state_name = "Riverpod"
+        elif "zustand" in bp_lower: state_name = "Zustand"
+
+    if state_name:
+        shorthand += f" [STATE: {state_name}]"
     
     shorthand += " [TIER: BUDGET]"
     

@@ -1319,6 +1319,44 @@ def cmd_map(args: argparse.Namespace) -> None:
         cmd_repomap(args)
         return
 
+    if getattr(args, 'diff', False):
+        try:
+            diff_proc = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=target_dir if os.path.isdir(target_dir) else ".",
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            changed_files = []
+            if diff_proc.returncode == 0:
+                for line in diff_proc.stdout.splitlines():
+                    if line.strip():
+                        file_part = line[3:].strip().strip('"')
+                        if " -> " in file_part:
+                            file_part = file_part.split(" -> ")[1].strip()
+                        clean_rel = file_part.replace("\\", "/")
+                        if any(clean_rel.endswith(ext) for ext in valid_extensions):
+                            changed_files.append(clean_rel)
+            print(f"📦 Differential Code Map (--diff): {len(changed_files)} changed file(s)\n" + "=" * 60)
+            if not changed_files:
+                print("  │ [Zero modified or untracked code files detected in git status]")
+                return
+            for rel_file in changed_files:
+                full_p = os.path.join(target_dir, rel_file)
+                if os.path.isfile(full_p):
+                    skel = generate_skeleton(full_p)
+                    print(f"\n {rel_file}")
+                    if skel:
+                        for l in skel:
+                            print(l)
+                    else:
+                        print("  │ [No structural classes or functions]")
+            return
+        except Exception as _e:
+            _log_telemetry(_e, "scanner.py:diff_map")
+
     def build_tree(current_dir: str, current_depth: int) -> None:
         if current_depth > getattr(args, 'max_depth', 5):
             return
@@ -2468,15 +2506,44 @@ def check_delegation_overlap(
     closures: List[Set[str]] = [_resolve_local_1hop_closure(tg, root_dir=root_dir) for tg in task_groups]
     pairs = []
     max_jaccard = 0.0
+    hard_hazard = False
+    hard_hazard_summary = ""
 
     for i in range(len(closures)):
         for j in range(i + 1, len(closures)):
             d_i, d_j = closures[i], closures[j]
+            w_i = set(task_groups[i])
+            w_j = set(task_groups[j])
+            r_i = d_i - w_i
+            r_j = d_j - w_j
+
             intersection = d_i.intersection(d_j)
             union = d_i.union(d_j)
             jaccard = len(intersection) / len(union) if union else 0.0
             if jaccard > max_jaccard:
                 max_jaccard = jaccard
+
+            ww_conflicts = w_i.intersection(w_j)
+            wr_hazards = (w_i.intersection(r_j)).union(w_j.intersection(r_i))
+            pair_hazard = None
+
+            if ww_conflicts:
+                hard_hazard = True
+                pair_hazard = "WRITE_WRITE_CONFLICT"
+                if not hard_hazard_summary:
+                    hard_hazard_summary = (
+                        f"Hard block: Task {i+1} and Task {j+1} both write to shared file(s): "
+                        f"{sorted(list(ww_conflicts))}. Parallel writes cause split-brain collisions."
+                    )
+            elif wr_hazards:
+                hard_hazard = True
+                pair_hazard = "WRITE_READ_HAZARD"
+                if not hard_hazard_summary:
+                    hard_hazard_summary = (
+                        f"Hard block: Task write target conflicts with dependent read imports: "
+                        f"{sorted(list(wr_hazards))}. Parallel execution causes stale state hazard."
+                    )
+
             pairs.append({
                 "task_a_index": i + 1,
                 "task_b_index": j + 1,
@@ -2485,11 +2552,18 @@ def check_delegation_overlap(
                 "shared_count": len(intersection),
                 "union_count": len(union),
                 "shared_dependencies": sorted(list(intersection)),
+                "write_write_conflicts": sorted(list(ww_conflicts)),
+                "write_read_hazards": sorted(list(wr_hazards)),
+                "hazard": pair_hazard,
                 "jaccard": round(jaccard, 4),
                 "jaccard_pct": round(jaccard * 100, 2)
             })
 
-    if max_jaccard > threshold:
+    if hard_hazard:
+        verdict = "MERGE_TO_SINGLE_AGENT"
+        exit_code = 1
+        summary = hard_hazard_summary
+    elif max_jaccard > threshold:
         verdict = "MERGE_TO_SINGLE_AGENT"
         exit_code = 1
         summary = (
@@ -2572,6 +2646,9 @@ def check_delegation_overlap(
     return exit_code
 
 
+check_delegation_safety = check_delegation_overlap
+
+
 def cmd_delegate_check(args: argparse.Namespace) -> None:
     raw_tasks: List[str] = []
     if getattr(args, "task_flags", None):
@@ -2592,11 +2669,87 @@ def cmd_delegate_check(args: argparse.Namespace) -> None:
     sys.exit(exit_code)
 
 
+def cmd_audit_validate(args: argparse.Namespace) -> None:
+    findings_path = args.findings_file
+    if not os.path.isfile(findings_path):
+        print(f"[FAIL] Findings file not found: {findings_path}", file=sys.stderr)
+        sys.exit(1)
+        
+    try:
+        with open(findings_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"[FAIL] Invalid JSON format in {findings_path}: {e}", file=sys.stderr)
+        sys.exit(1)
+        
+    errors = []
+    # 1. Top-level keys
+    required_top = ["version", "target_repository", "audit_date", "confirmed", "needs_validation", "rejected"]
+    for key in required_top:
+        if key not in data:
+            errors.append(f"Missing required top-level key: '{key}'")
+
+    if errors:
+        for err in errors:
+            print(f"  [ERROR] {err}", file=sys.stderr)
+        sys.exit(1)
+
+    confirmed = data.get("confirmed", [])
+    needs_validation = data.get("needs_validation", [])
+    rejected = data.get("rejected", [])
+
+    if not isinstance(confirmed, list) or not isinstance(needs_validation, list) or not isinstance(rejected, list):
+        print("[FAIL] 'confirmed', 'needs_validation', and 'rejected' must be lists.", file=sys.stderr)
+        sys.exit(1)
+
+    # 2. Validate confirmed findings
+    for idx, f in enumerate(confirmed):
+        prefix = f"confirmed[{idx}]"
+        req = ["id", "vector_id", "title", "source_file", "line_range", "severity", "impact", "reproduction_proof", "remediation"]
+        for r in req:
+            if r not in f:
+                errors.append(f"{prefix}: Missing required field '{r}'")
+        if f.get("severity") not in {"CRITICAL", "HIGH", "MEDIUM", "LOW"}:
+            errors.append(f"{prefix}: 'severity' must be one of CRITICAL, HIGH, MEDIUM, LOW (got '{f.get('severity')}')")
+
+    # 3. Validate needs_validation findings (STRICTLY NO SEVERITY)
+    for idx, f in enumerate(needs_validation):
+        prefix = f"needs_validation[{idx}]"
+        req = ["id", "vector_id", "title", "source_file", "unresolved_hypothesis", "validation_prerequisite"]
+        for r in req:
+            if r not in f:
+                errors.append(f"{prefix}: Missing required field '{r}'")
+        if "severity" in f:
+            errors.append(f"{prefix}: Violation of 3-Branch Verdict Contract: 'needs_validation' candidate must NOT contain a 'severity' rating")
+
+    # 4. Validate rejected findings
+    for idx, f in enumerate(rejected):
+        prefix = f"rejected[{idx}]"
+        req = ["id", "candidate_claim", "refutation_proof", "rejection_reason"]
+        for r in req:
+            if r not in f:
+                errors.append(f"{prefix}: Missing required field '{r}'")
+
+    if errors:
+        print(f"[FAIL] Schema verification failed ({len(errors)} error(s)):", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+
+    total_valid = len(confirmed) + len(needs_validation) + len(rejected)
+    print(f"[PASS] Audit Findings Schema Validated ({findings_path})")
+    print(f"  Confirmed        : {len(confirmed)}")
+    print(f"  Needs Validation : {len(needs_validation)} (Unrated candidates)")
+    print(f"  Rejected         : {len(rejected)} (Disproved candidates)")
+    print(f"  Total Validated  : {total_valid}")
+    sys.exit(0)
+
+
 # === CLI DISPATCH ===
 
 def main() -> None:
     # Direct invocation support: python scanner.py <path> [--budget 1500]
-    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "delegate-check", "-h", "--help"}
+    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "delegate-check", "audit-validate", "audit_validate", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_subcmds:
         if sys.argv[1].startswith("-") and sys.argv[1] not in {"-h", "--help"}:
             sys.argv.insert(1, "repomap")
@@ -2618,6 +2771,7 @@ def main() -> None:
     parser_map.add_argument("dir", nargs="?", default=".", help="Directory to map (default: .)")
     parser_map.add_argument("--max-depth", type=int, default=5, help="Maximum directory depth")
     parser_map.add_argument("--ranked", action="store_true", help="Rank code map using PageRank symbol topology")
+    parser_map.add_argument("--diff", action="store_true", help="Only map files modified or untracked in git status")
     parser_map.add_argument("--budget", type=int, default=1500, help="Token budget for ranked map (default: 1500)")
     parser_map.add_argument("--focus", nargs="+", help="Files or symbols to personalize/focus PageRank on")
 
@@ -2646,6 +2800,10 @@ def main() -> None:
     parser_del.add_argument("--threshold", type=float, default=0.20, help="Maximum allowed Jaccard dependency overlap (default: 0.20)")
     parser_del.add_argument("--json", action="store_true", help="Output in raw JSON format")
 
+    # Audit Validate
+    parser_audit = subparsers.add_parser("audit-validate", aliases=["audit_validate"], help="Validate security audit findings against report-schema.json")
+    parser_audit.add_argument("findings_file", help="Path to findings.json to validate")
+
     for sub_p in (parser_targets, parser_map, parser_repomap, parser_tokens, parser_sec, parser_del):
         sub_p.add_argument("--dir", dest="dir_flag", help="Target directory or file override")
 
@@ -2667,6 +2825,8 @@ def main() -> None:
         cmd_security(parsed_args)
     elif parsed_args.command == "delegate-check":
         cmd_delegate_check(parsed_args)
+    elif parsed_args.command in ("audit-validate", "audit_validate"):
+        cmd_audit_validate(parsed_args)
     else:
         parser.print_help()
 

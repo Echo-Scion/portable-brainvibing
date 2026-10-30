@@ -17,9 +17,9 @@ Before spawning a subagent, the Agent MUST evaluate the task against this determ
 | Task Characteristic | Context Overlap | Target Mechanism | Operational Rationale |
 | :--- | :---: | :--- | :--- |
 | **Multi-file feature coding / refactoring** | $\ge 20\%$ | **Main Thread (`/plan` $\to$ `implementation_plan.md`)** | Prevents split-brain state drift, interface drift, and redundant context prefill. |
-| **End-to-end autonomous module / greenfield app** | High (Swarm) | **`/teamwork-preview` (`invoke_subagent`)** | Uses platform-native multi-agent shared blackboard & internal review loop. |
+| **End-to-end autonomous module / greenfield app** | High (Swarm) | **`/teamwork` (`invoke_subagent`)** | Uses platform-native multi-agent shared blackboard & internal review loop. |
 | **Heavy CLI build / pack / test / AST scan** | $0\%$ (OS Process) | **Native Async (`run_command` background)** | Zero LLM token burn during execution; reactive wakeup on completion. |
-| **Searching 20+ files, log triage, or disjoint read-only audit** | $< 20\%$ | **`/worker-delegate` (Scout / Reviewer)** | Condenses 50,000+ raw tokens into a 20-line surgical brief for the main thread. |
+| **Searching 20+ files, log triage, or disjoint read-only audit** | $< 20\%$ | **`/worker-delegate` (`invoke_subagent`)** | Condenses 50,000+ raw tokens into a 20-line surgical brief for the main thread. |
 
 ---
 
@@ -39,9 +39,9 @@ $$J(T_1, T_2) = \frac{|D(T_1) \cap D(T_2)|}{|D(T_1) \cup D(T_2)|}$$
 
 ### Gate 2: Tier-0 Mechanical Scout First (Zero-Token Pre-Filter)
 The Agent MUST NOT dispatch an LLM subagent to read unindexed files sequentially.
-1. The Agent MUST run `python .agents/scripts/orion.py scan map <target_dir>` or `grep_search` to extract exact AST symbol spans `[Lstart-Lend]`.
+1. The Agent MUST run `python .agents/scripts/orion.py scan map <target_dir>` or `rtk grep` to extract exact AST symbol spans `[Lstart-Lend]`.
 2. The Agent MUST pass the generated AST skeleton map into the subagent's task specification.
-3. The Subagent MUST inspect only the targeted `[Lstart-Lend]` spans using `view_file` rather than reading entire source files.
+3. The Subagent MUST inspect only the targeted `[Lstart-Lend]` spans using `read_file` rather than reading entire source files.
 
 ### Gate 3: Prefix-Cache Aligned Sub-Agent Prompting (Cloud LLM Parallelism)
 When dispatching 2–3 subagents concurrently, the Agent MUST structure subagent prompts using an **Immutable Prefix + Variable Suffix** layout:

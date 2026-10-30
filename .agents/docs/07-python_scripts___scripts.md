@@ -33,6 +33,7 @@ The execution engine resides in `.agents/scripts/`. To prevent execution fragmen
 
 ### 16.1. Core Subsystem (`core/`)
 Centralized infrastructure utilities imported across the ecosystem:
+- **`core/accelerators.py`**: Tier 2 Ephemeral Accelerators providing isolated site-packages auto-bootstrap, orjson, rapidfuzz, and tree-sitter wrappers without polluting system environments.
 - **`core/db.py`**: Centralized SQLite3 connection manager and telemetry tracer. Mandates `PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;` across all database operations, and guards test runners (`unittest`/`pytest`) against writing telemetry into the production `.agents/OBSERVATIONS.md`.
 - **`core/memory.py`**: Virtual context manager and 3-tier Observational Memory engine. Manages dynamic token budgets (`max(3600, total // 2)`), ephemeral observation anchors (`[O1]`–`[On]`), zero-LLM generational rollover (`memory_generations` with millisecond-resolution `GEN-<count>-<ms>` IDs), `superseded_by` lineage, and on-demand anchor recall (`recall_anchor`).
 - **`core/capabilities.py`**: Single source of truth for the 4-Pillar capability matrix (Universal Local AI Coprocessor with multi-port auto-probe across Ollama, llama-server, LM Studio, and vLLM; RTK proxy stream filter; Bun static runtime engine) with 900s TTL cache in `.orion/working/capabilities.json`.
@@ -78,7 +79,7 @@ Centralized infrastructure utilities imported across the ecosystem:
 - **`commands/state_machine.py` (`orion.py fsm` / `orion.py state_graph`, `amnesia`, `budget`)**: Formal state machine manager and superstep cyclic execution graph engine tracking active phases, channel reducers, Git-bound snapshots, rule eviction, and budget telemetry.
 - **`core/capabilities.py` (`orion.py rtk` / `orion.py bun`, PreToolUse Hook)**: Terminal token filter (RTK proxy), Bun static runtime engine, and fail-closed IDE tool execution interceptor with inline circuit breaker enforcement.
 - **`commands/compact.py` (`orion.py compact`, `shrink`, `distill`, `compress`)**: Unified token optimization engine providing 5-tier context compaction (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), AST/JSON/CSV payload shaping, stream elision, corpus surprisal pruning, episodic memory compression, and Ollama/heuristic distillation.
-- **`core/scanner.py` (`orion.py scan tokens|map|targets`)**: Codebase token analytics breakdown table, PageRank AST symbol skeletons, and prioritized offensive audit targets.
+- **`core/scanner.py` (`orion.py scan tokens|map|targets|audit-validate`)**: Codebase token analytics breakdown table, PageRank AST symbol skeletons, prioritized offensive audit targets, and pure Python zero-pip JSON findings schema validator (`audit-validate`).
 - **`utils/packer.py` (`orion.py pack [arch|hybrid|full|pr|diff|security|stats|<url>]`)**: Universal Project DNA context exporter bundling polyglot monorepo containers, AST skeletons, PageRank repo-maps, cross-bundle import routers, and static audit radars into at most 10 balanced Markdown bundles across isolated tier directories (`.orion/bundles/{arch,hybrid,full}/`). Also maintained as standalone CLI in `tools/digestpack/`.
 
 ---

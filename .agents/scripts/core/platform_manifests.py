@@ -15,7 +15,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -25,7 +25,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -35,7 +35,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -45,7 +45,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -55,7 +55,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -65,7 +65,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -75,7 +75,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "contextFileName": "GEMINI.md"
         }
@@ -85,7 +85,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "contextFileName": "GEMINI.md"
         }
@@ -95,7 +95,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "instructions": ".github/copilot-instructions.md"
         }
@@ -105,7 +105,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -115,7 +115,7 @@ PLATFORM_SPECS = {
         "format": "raw",
         "content": (
             "name: portable-brainvibing\n"
-            "version: 0.0.2\n"
+            "version: 0.0.3\n"
             "description: Turnkey Auto-Vibe Coding Brain Ecosystem\n"
             "skills_dir: .agents/skills\n"
         )
@@ -125,7 +125,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -135,7 +135,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -145,7 +145,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -163,7 +163,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -173,7 +173,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -183,7 +183,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }
@@ -193,7 +193,7 @@ PLATFORM_SPECS = {
         "format": "json",
         "data": {
             "name": "portable-brainvibing",
-            "version": "0.0.2",
+            "version": "0.0.3",
             "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
             "skills": ".agents/skills"
         }

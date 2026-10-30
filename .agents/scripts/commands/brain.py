@@ -2643,7 +2643,6 @@ def ingest_main(paths, autonomy, embed=False):
                 print(f"[NEURAL COPROCESSOR] Successfully auto-extracted & injected triplets for {auto_extracted}/{len(ingested_files)} files.")
 
             if pending_files:
-                print(f"\n[TRIPLET_REQUEST] {len(pending_files)} files need graph triplet extraction.")
                 pending_payload = {
                     "files": [
                         {
@@ -2653,20 +2652,32 @@ def ingest_main(paths, autonomy, embed=False):
                         for o, t in pending_files
                     ]
                 }
-                enqueue_cloud_handoff(
-                    "EXTRACT_GRAPH_TRIPLETS",
-                    pending_payload,
-                    reason="local_model_cannot_extract_triplets",
-                )
-            print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
-            if pending_files:
-                print("Files:")
-                for i, (orig, target) in enumerate(pending_files, 1):
-                    rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
-                    rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
-                    print(f"{i}. {rel_target} (source: {rel_orig})")
-                print("[ACTION] Read each source file, extract 3-5 triplets, save as JSON list to `.orion/scratch/triplets.json` (`s`, `p`, `o`, `src`),")
-                print("then run: python .agents/scripts/orion.py brain inject_triplets .orion/scratch/triplets.json")
+                if nb.ping(capability="LLM"):
+                    enqueue_cloud_handoff(
+                        "EXTRACT_GRAPH_TRIPLETS",
+                        pending_payload,
+                        reason="deferred_to_background_local_worker",
+                    )
+                    spawned = spawn_background_triplet_miner()
+                    if spawned:
+                        print(f"\n[LOCAL TRIPLET MINER] Dispatched autonomous background worker for {len(pending_files)} files.")
+                    else:
+                        print(f"\n[LOCAL TRIPLET MINER] Background worker already active or deferred.")
+                else:
+                    print(f"\n[TRIPLET_REQUEST] {len(pending_files)} files need graph triplet extraction.")
+                    enqueue_cloud_handoff(
+                        "EXTRACT_GRAPH_TRIPLETS",
+                        pending_payload,
+                        reason="local_model_cannot_extract_triplets",
+                    )
+                    print("⚡ RECOMMENDED TIER: BUDGET — Ingest/deploy operations are batch tasks. Switch to Budget model.")
+                    print("Files:")
+                    for i, (orig, target) in enumerate(pending_files, 1):
+                        rel_target = os.path.relpath(target, WORKSPACE_DIR).replace("\\", "/")
+                        rel_orig = os.path.relpath(orig, WORKSPACE_DIR).replace("\\", "/")
+                        print(f"{i}. {rel_target} (source: {rel_orig})")
+                    print("[ACTION] Read each source file, extract 3-5 triplets, save as JSON list to `.orion/scratch/triplets.json` (`s`, `p`, `o`, `src`),")
+                    print("then run: python .agents/scripts/orion.py brain inject_triplets .orion/scratch/triplets.json")
                 
         else:
             print("No new or updated markdown files found to ingest. Graph is up to date.")
@@ -2873,7 +2884,7 @@ def resolve_wiki(query):
     print("=" * 60)
     print(" Graph Neighborhood Resolved. Use this context to answer the user.")
 
-def inject_triplets(json_data):
+def inject_triplets(json_data, exit_on_error: bool = True):
     try:
         import sqlite3
         if os.path.exists(json_data):
@@ -2889,7 +2900,7 @@ def inject_triplets(json_data):
 
         if not triplets:
             print("[INFO] No triplets provided.")
-            return
+            return 0
             
         conn = get_db()
         c = conn.cursor()
@@ -2949,7 +2960,9 @@ def inject_triplets(json_data):
         conn.close()
         if count == 0:
             print(f"[FAIL] 0 triplets injected from {len(triplets)} item(s). Check keys (expected 's'/'subject', 'p'/'predicate', 'o'/'object').")
-            sys.exit(1)
+            if exit_on_error:
+                sys.exit(1)
+            return 0
         else:
             print(f"[SUCCESS] Injected {count} triplets into orion.db.")
             clear_cloud_handoff("EXTRACT_GRAPH_TRIPLETS")
@@ -2960,9 +2973,156 @@ def inject_triplets(json_data):
         except Exception as _ce:
             _log_telemetry(_ce, "orion_ops:contradict_detect")
             
+        return count
     except Exception as e:
         print(f"[ERROR] Failed to inject triplets: {e}")
-        sys.exit(1)
+        if exit_on_error:
+            sys.exit(1)
+        return 0
+
+
+def spawn_background_triplet_miner() -> bool:
+    """
+    Spawns an autonomous detached background worker to mine semantic triplets locally
+    via Ollama (Pillar 3) without blocking interactive agent turns or UI commands.
+    Uses lockfile cooldown to avoid overlapping background spawns.
+    """
+    lock_path = os.path.join(ORION_DIR, "working", "triplet_miner.lock")
+    try:
+        if os.path.exists(lock_path):
+            mtime = os.path.getmtime(lock_path)
+            if (time.time() - mtime) < 60.0:
+                return False  # Already active or spawned recently
+    except Exception:
+        pass
+
+    try:
+        os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+        atomic_write_text(lock_path, str(time.time()))
+
+        cmd = [sys.executable, "-B", os.path.abspath(__file__), "mine-triplets-worker"]
+        kwargs = {
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+            "stdin": subprocess.DEVNULL,
+            "close_fds": True,
+            "shell": False,
+        }
+        if sys.platform == "win32":
+            kwargs["creationflags"] = 0x00000008 | 0x00000200
+        else:
+            kwargs["start_new_session"] = True
+
+        subprocess.Popen(cmd, **kwargs)
+        return True
+    except Exception as exc:
+        _log_telemetry(exc, "brain.py:spawn_background_triplet_miner")
+        return False
+
+
+def run_local_triplet_miner_worker(sub_args=None) -> int:
+    """
+    Autonomous background worker that processes EXTRACT_GRAPH_TRIPLETS tasks
+    from .orion/working/cloud_handoff_queue.json using the local Ollama LLM.
+    Applies secret scrubbing before sending text to LLM and injects results into orion.db.
+    """
+    lock_path = os.path.join(ORION_DIR, "working", "triplet_miner.lock")
+    try:
+        atomic_write_text(lock_path, str(time.time()))
+    except Exception:
+        pass
+
+    try:
+        nb = NanoBrain()
+        if not nb.ping(capability="LLM"):
+            return 0  # Ollama not reachable; leave tasks in queue for cloud agent
+
+        handoff_file = os.path.join(ORION_DIR, "working", "cloud_handoff_queue.json")
+        if not os.path.exists(handoff_file):
+            return 0
+
+        with open(handoff_file, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            data = json.loads(content) if content else {}
+
+        tasks = data.get("tasks", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+        pending_triplet_tasks = [
+            t for t in tasks
+            if t.get("task_type") == "EXTRACT_GRAPH_TRIPLETS" and t.get("status") == "pending"
+        ]
+
+        if not pending_triplet_tasks:
+            return 0
+
+        from core.accelerators import scrub_secrets
+
+        for task in pending_triplet_tasks:
+            task_id = task.get("id")
+            payload = task.get("payload", {})
+            files_to_process = payload.get("files", [])
+
+            for f_info in files_to_process:
+                target_rel = f_info.get("target") or f_info.get("source")
+                source_rel = f_info.get("source") or target_rel
+                if not target_rel and not source_rel:
+                    continue
+
+                full_path = os.path.join(WORKSPACE_DIR, target_rel)
+                if not os.path.exists(full_path) and source_rel:
+                    full_path = os.path.join(WORKSPACE_DIR, source_rel)
+
+                if not os.path.exists(full_path):
+                    continue
+
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="ignore") as f_src:
+                        raw_content = f_src.read()
+
+                    # Zero-Pip Secret Scrubbing
+                    safe_content = scrub_secrets(raw_content)
+
+                    # Extract triplets via local model
+                    raw_res = nb.extract_triplets(safe_content)
+                    if not raw_res or raw_res.startswith("[DELEGATE_TO_CLOUD]"):
+                        continue
+
+                    # Parse output
+                    res_json = json.loads(raw_res)
+                    triplets_list = res_json if isinstance(res_json, list) else (
+                        res_json.get("triplets", []) if isinstance(res_json, dict) else []
+                    )
+                    valid_triplets = []
+                    for item in triplets_list:
+                        if (
+                            isinstance(item, dict)
+                            and str(item.get("s", "")).strip()
+                            and str(item.get("p", "")).strip()
+                            and str(item.get("o", "")).strip()
+                        ):
+                            item["src"] = source_rel
+                            valid_triplets.append(item)
+
+                    if valid_triplets:
+                        inject_triplets(json.dumps(valid_triplets), exit_on_error=False)
+                except Exception as file_exc:
+                    _log_telemetry(file_exc, f"brain.py:worker_file_extract:{target_rel}")
+
+            # Once processed, clear task from queue
+            if task_id:
+                clear_cloud_handoff("EXTRACT_GRAPH_TRIPLETS", match_fn=lambda t: t.get("id") == task_id)
+            else:
+                clear_cloud_handoff("EXTRACT_GRAPH_TRIPLETS")
+
+        return 0
+    except Exception as exc:
+        _log_telemetry(exc, "brain.py:run_local_triplet_miner_worker")
+        return 1
+    finally:
+        try:
+            if os.path.exists(lock_path):
+                os.remove(lock_path)
+        except Exception:
+            pass
 
 
 
@@ -3537,6 +3697,7 @@ def main():
         print("  raw-ingest                - Ingest context/raw/ files")
         print("  diagnostics               - RAG relevance & faithfulness diagnostics")
         print("  memory                    - Multi-layer memory status")
+        print("  mine-triplets-worker      - Autonomous background local LLM triplet miner")
         return 0
 
     cmd = argv[0].lower()
@@ -3651,6 +3812,8 @@ def main():
         return 0
     elif cmd in ("handoff", "cloud_handoff", "cloud-handoff"):
         return handoff_main(sub_args)
+    elif cmd in ("mine-triplets-worker", "mine_triplets_worker"):
+        return run_local_triplet_miner_worker(sub_args)
     else:
         # Default fallback to sync
         return sync(" ".join(argv), delta=False)

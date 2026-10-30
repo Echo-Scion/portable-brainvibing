@@ -575,11 +575,46 @@ class ArchivalMemoryManager:
             return False
 
     def search_vectors(self, query_vec: List[float], top_k: int = 5, include_superseded: bool = False) -> List[Tuple[str, str, float]]:
-        """Performs in-memory cosine similarity search across float32 BLOB vectors. Filters superseded vectors by default."""
+        """Performs SIMD sqlite-vec KNN search when available, with automatic fallback to Python float32 cosine similarity."""
+        if not query_vec:
+            return []
         try:
             conn = self._get_connection()
             self._init_vectors(conn)
             cur = conn.cursor()
+
+            # Path A: Tier 2 sqlite-vec SIMD C-level distance evaluation
+            try:
+                from core.accelerators import HAS_SQLITE_VEC, try_load_sqlite_vec
+                if HAS_SQLITE_VEC and try_load_sqlite_vec(conn):
+                    q_blob = pack_vector(query_vec)
+                    if include_superseded:
+                        cur.execute(
+                            """
+                            SELECT id, content, (1.0 - vec_distance_cosine(embedding, ?)) AS sim
+                            FROM archival_vectors
+                            WHERE embedding IS NOT NULL AND length(embedding) = ?
+                            ORDER BY sim DESC
+                            LIMIT ?
+                            """,
+                            (q_blob, len(q_blob), top_k),
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            SELECT id, content, (1.0 - vec_distance_cosine(embedding, ?)) AS sim
+                            FROM archival_vectors
+                            WHERE embedding IS NOT NULL AND length(embedding) = ? AND (superseded_by IS NULL OR superseded_by = '')
+                            ORDER BY sim DESC
+                            LIMIT ?
+                            """,
+                            (q_blob, len(q_blob), top_k),
+                        )
+                    return [(r[0], r[1], float(r[2] or 0.0)) for r in cur.fetchall()]
+            except Exception as _vec_err:
+                _log_telemetry(_vec_err, "memory.py:search_vectors:sqlite_vec_fallback")
+
+            # Path B: Tier 0 Pure-Python float32 BLOB cosine similarity fallback
             if include_superseded:
                 cur.execute("SELECT id, content, embedding FROM archival_vectors")
             else:

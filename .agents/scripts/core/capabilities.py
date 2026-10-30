@@ -43,6 +43,13 @@ except ImportError:
                 except OSError:
                     pass
 
+try:
+    from core.accelerators import get_accelerator_status as _get_accelerator_status
+except ImportError:
+    def _get_accelerator_status() -> Dict[str, Any]:
+        return {"tier": "Tier 2: Optional Ephemeral Accelerators", "active_count": 0, "accelerators": {}}
+
+
 CAPABILITIES_CACHE_TTL = 900  # 15 minutes
 
 
@@ -81,7 +88,7 @@ def find_binary(candidates: List[str], extra_dirs: Optional[List[str]] = None) -
 
 def find_ast_grep(extra_dirs: Optional[List[str]] = None) -> Optional[str]:
     """Locates ast-grep (sg) binary on system PATH or Cargo toolchain bin directory."""
-    return find_binary(["sg", "ast-grep", "sg.exe", "ast-grep.exe"], extra_dirs=extra_dirs)
+    return find_binary(["ast-grep", "ast-grep.exe", "sg", "sg.exe"], extra_dirs=extra_dirs)
 
 
 # Backwards compatibility alias
@@ -327,7 +334,10 @@ def probe_capabilities(
         }
 
     rtk_status = binary_status("rtk", ["rtk"], "python", find_rtk_bin)
-    ast_status = binary_status("ast-grep", ["sg", "ast-grep"], "python-ast", find_ast_grep)
+    ast_status = binary_status("ast-grep", ["ast-grep", "sg"], "python-ast", find_ast_grep)
+    difft_status = binary_status("difftastic", ["difft"], "git-diff", lambda: find_binary(["difft", "difft.exe"]))
+    gitleaks_status = binary_status("gitleaks", ["gitleaks"], "shannon-entropy", lambda: find_binary(["gitleaks", "gitleaks.exe"]))
+    jj_status = binary_status("jj", ["jj"], "git-stash-create", lambda: find_binary(["jj", "jj.exe"]))
     llama_server_bin = find_llama_server_bin()
 
     if ollama_probe is not None:
@@ -351,7 +361,7 @@ def probe_capabilities(
     py_ver = platform.python_version()
     sql_ver = sqlite3.sqlite_version
 
-    p2_active = bool(rtk_status["available"] or ast_status["available"])
+    p2_active = bool(rtk_status["available"] or ast_status["available"] or difft_status["available"] or gitleaks_status["available"] or jj_status["available"])
     p2_both = bool(rtk_status["available"] and ast_status["available"])
     p2_status_label = "ACTIVE" if p2_both else ("PARTIAL" if p2_active else "FALLBACK")
     p3_active = bool(ollama_status["available"])
@@ -371,6 +381,9 @@ def probe_capabilities(
     result = {
         "rtk": rtk_status,
         "ast-grep": ast_status,
+        "difftastic": difft_status,
+        "gitleaks": gitleaks_status,
+        "jj": jj_status,
         "ollama": ollama_status,
         "bun": bun_status,
         "pillars": {
@@ -382,11 +395,17 @@ def probe_capabilities(
                 "fallback": None,
             },
             "pillar_2": {
-                "name": "Pillar 2: Rust Toolchain (rtk & ast-grep)",
+                "name": "Pillar 2: Rust Toolchain (rtk, ast-grep, difft, gitleaks, jj)",
                 "available": p2_active,
                 "status": p2_status_label,
-                "details": f"rtk: {rtk_status['version'] or 'N/A'}, ast-grep: {ast_status['version'] or 'N/A'}",
-                "fallback": "Python stream filters & Python ast.parse",
+                "details": (
+                    f"rtk: {rtk_status['version'] or 'N/A'}, "
+                    f"ast-grep: {ast_status['version'] or 'N/A'}, "
+                    f"difft: {difft_status['version'] or 'N/A'}, "
+                    f"gitleaks: {gitleaks_status['version'] or 'N/A'}, "
+                    f"jj: {jj_status['version'] or 'N/A'}"
+                ),
+                "fallback": "Python stream filters, ast.parse, git diff, Shannon entropy & git stash create",
             },
             "pillar_3": {
                 "name": f"Pillar 3: {p3_label} (nomic-embed-text & SLM)",
@@ -404,6 +423,7 @@ def probe_capabilities(
             },
         },
         "active_pillars_count": active_count,
+        "accelerators": _get_accelerator_status(),
         "timestamp": time.time(),
         "ttl": CAPABILITIES_CACHE_TTL,
     }
@@ -451,6 +471,12 @@ def print_pillars_matrix(capabilities: Optional[Dict[str, Any]] = None, force_re
     p4_status = p4.get("status", "FALLBACK")
     print(f" [Pillar 4] Bun Runtime         : [{p4_status}] {p4.get('details', '')}")
     print(f"   |-- Active Fallback           : {p4.get('fallback')}")
+
+    acc_info = caps.get("accelerators", {})
+    if acc_info.get("active_count", 0) > 0:
+        active_names = [k for k, v in acc_info.get("accelerators", {}).items() if v.get("available")]
+        print(f" [Tier 2 Accelerators] Active   : {', '.join(active_names)} ({acc_info['active_count']}/3 active)")
+        print(f"   |-- Isolated Cache Venv       : {acc_info.get('venv_path') or 'N/A'}")
 
     print("-" * 76)
     active_count = caps.get("active_pillars_count", 1)
@@ -899,11 +925,29 @@ def _extract_json_payload(raw_text: str) -> Any:
         raise ValueError(f"No valid JSON object found in output: {cleaned[:120]}")
 
 
+def compute_scaffold_discount(base_score: float, scaffold_stage: str = "raw") -> float:
+    """
+    Computes effective complexity score after applying the Scaffolding Discount Factor (gamma).
+    - raw: gamma = 0.0 (unsliced raw task prompt)
+    - ast_mapped: gamma = 0.35 (symbol spans pre-mapped via scanner.py scan map)
+    - bento_card: gamma = 0.65 (active Bento Action Card <= 2 files with live anchor)
+    """
+    discounts = {
+        "raw": 0.0,
+        "ast_mapped": 0.35,
+        "bento_card": 0.65,
+    }
+    gamma = discounts.get(scaffold_stage, 0.0)
+    return round(base_score * (1.0 - gamma), 2)
+
+
 def resolve_elastic_execution_plan(
     task_complexity: str = "micro",
     blast_radius_files: int = 1,
     span_lines: int = 20,
     host: Optional[str] = None,
+    scaffold_stage: str = "raw",
+    use_2d: bool = False,
 ) -> Dict[str, Any]:
     """
     Dynamic Capability-to-Complexity Matcher across the full Local + Cloud continuum:
@@ -912,6 +956,7 @@ def resolve_elastic_execution_plan(
       1. min_params_b floor for the task (reduced when Tier-0 AST pre-digestion narrows span_lines)
       2. local_max_trials (0 if offline/under-spec, 1 for borderline models like 3B on small spans, 2-3 for >=7B)
       3. recommended_cloud_tier ('BUDGET', 'STANDARD', or 'PREMIUM') if cloud handoff is needed.
+      4. recommended_cloud_tier_2d ('BUDGET [Low/High Effort]', etc.) factoring in Scaffolding Discount.
     """
     complexity_floors = {
         "nano": 0.5,          # Keyword synonyms, binary classification, short slugging (1.5B shines)
@@ -922,9 +967,11 @@ def resolve_elastic_execution_plan(
     }
     base_floor = complexity_floors.get(task_complexity, 6.0)
 
-    # Mechanical Synergy Discount: if Tier-0 narrowed the target span to <= 15 lines in 1 file, lower the floor slightly
+    # Mechanical Synergy & Scaffolding Discount
     if blast_radius_files == 1 and span_lines <= 15 and base_floor > 2.5:
         effective_floor = max(2.8, base_floor * 0.5)
+    elif scaffold_stage == "bento_card" and base_floor > 2.5:
+        effective_floor = max(2.8, base_floor * 0.45)
     else:
         effective_floor = base_floor
 
@@ -946,12 +993,29 @@ def resolve_elastic_execution_plan(
         local_trials = 2
         eligible_model = best_model
 
+    raw_score = (1.0 * blast_radius_files) + (base_floor / 2.0)
+    effective_score = compute_scaffold_discount(raw_score, scaffold_stage)
+
+    # Base Cloud Tier (1D backward-compatible baseline)
     if blast_radius_files <= 1 and span_lines <= 80 and task_complexity in ("nano", "micro_syntax", "single_fn"):
-        cloud_tier = "BUDGET"
+        base_cloud = "BUDGET"
     elif blast_radius_files <= 4 and task_complexity != "architectural":
-        cloud_tier = "STANDARD"
+        base_cloud = "STANDARD"
     else:
-        cloud_tier = "PREMIUM"
+        base_cloud = "PREMIUM"
+
+    # 2D Tier × Effort determination (factoring in Scaffolding Discount)
+    if effective_score <= 1.5 and blast_radius_files <= 1 and task_complexity in ("nano", "micro_syntax"):
+        cloud_tier_2d = "BUDGET [Low Effort]"
+    elif scaffold_stage == "bento_card" or (blast_radius_files <= 2 and task_complexity in ("nano", "micro_syntax", "single_fn")):
+        cloud_tier_2d = "BUDGET [High Effort]"
+    elif blast_radius_files <= 4 and task_complexity != "architectural":
+        cloud_tier_2d = "STANDARD [Medium/High Effort]"
+    else:
+        cloud_tier_2d = "PREMIUM [High Effort]"
+
+    cloud_tier = cloud_tier_2d if use_2d else base_cloud
+    gamma = 0.65 if scaffold_stage == "bento_card" else (0.35 if scaffold_stage == "ast_mapped" else 0.0)
 
     return {
         "eligible_local_model": eligible_model,
@@ -959,6 +1023,9 @@ def resolve_elastic_execution_plan(
         "effective_min_params_b": round(effective_floor, 2),
         "local_max_trials": local_trials,
         "recommended_cloud_tier": cloud_tier,
+        "recommended_cloud_tier_2d": cloud_tier_2d,
+        "scaffold_discount_gamma": gamma,
+        "effective_score": effective_score,
     }
 
 

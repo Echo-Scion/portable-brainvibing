@@ -16,6 +16,7 @@ import sys
 import threading
 import queue
 import uuid
+import re
 from typing import List, Optional, Tuple
 
 try:
@@ -56,19 +57,17 @@ def _read_stdin_nonblocking(timeout: float = 0.15) -> dict:
                 if success and avail.value > 0:
                     chunk = os.read(sys.stdin.fileno(), avail.value)
                     accumulated.append(chunk)
-                    # Check if accumulated text forms valid JSON
-                    raw_try = b"".join(accumulated).decode('utf-8', errors='replace').strip()
+                    # Check if accumulated text forms valid JSON (stripping UTF-8 BOM if emitted by PowerShell)
+                    raw_try = b"".join(accumulated).decode('utf-8-sig', errors='replace').strip()
                     if raw_try.startswith(("{", "[")) and raw_try.endswith(("}", "]")):
                         try:
                             return json.loads(raw_try)
                         except Exception:
                             pass
-                elif accumulated:
-                    break
                 time.sleep(0.01)
 
             if accumulated:
-                raw_str = b"".join(accumulated).decode('utf-8', errors='replace').strip()
+                raw_str = b"".join(accumulated).decode('utf-8-sig', errors='replace').strip()
                 return json.loads(raw_str) if raw_str else {}
             return {}
         except Exception as _pe:
@@ -388,6 +387,24 @@ def _is_pid_alive(pid: Optional[int]) -> bool:
 def _check_and_sync(base_agents_dir: str, base_dir: str) -> None:
     import subprocess
     manifest_path = os.path.join(base_dir, '.orion', '_manifest.json')
+    now = time.time()
+    
+    # Throttle directory walk: skip if checked within last 30 seconds
+    last_walk_file = os.path.join(base_dir, '.orion', 'working', '.last_sync_walk')
+    if os.path.exists(last_walk_file):
+        try:
+            with open(last_walk_file, 'r', encoding='utf-8') as wf:
+                last_walk = float(wf.read().strip())
+            if now - last_walk < 30.0:
+                return
+        except Exception:
+            pass
+    try:
+        os.makedirs(os.path.dirname(last_walk_file), exist_ok=True)
+        _atomic_write_text(last_walk_file, str(now))
+    except Exception:
+        pass
+
     needs_sync = False
     try:
         watch_dirs = [
@@ -524,21 +541,47 @@ def enforce_bento_and_tdd_gates(workspace_dir: str, model_name: str, context_dir
     import subprocess
     warnings = []
     try:
-        res = subprocess.run(["git", "status", "--porcelain"], cwd=workspace_dir, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3)
-        if res.returncode == 0:
-            modified_files = []
-            for line in res.stdout.splitlines():
-                if not line.strip() or len(line) < 4:
-                    continue
-                status = line[:2]
-                path_part = line[3:].strip()
-                # Skip deleted files from active code modification counting
-                if "D" in status:
-                    continue
-                # For renamed files (R  old -> new), inspect the destination path
-                if "->" in path_part:
-                    path_part = path_part.split("->")[-1].strip()
-                modified_files.append(path_part)
+        # Cache check: if git index mtime unchanged and checked within 10s, reuse cached status
+        git_index = os.path.join(workspace_dir, ".git", "index")
+        cache_file = os.path.join(context_dir, ".git_status_cache.json")
+        now = time.time()
+        cached_lines = None
+        index_mtime = os.path.getmtime(git_index) if os.path.exists(git_index) else 0
+
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r", encoding="utf-8") as cf:
+                    cdata = json.load(cf)
+                if cdata.get("index_mtime") == index_mtime and (now - float(cdata.get("ts", 0))) < 10.0:
+                    cached_lines = cdata.get("lines", [])
+            except Exception:
+                pass
+
+        if cached_lines is None:
+            res = subprocess.run(["git", "status", "--porcelain"], cwd=workspace_dir, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3)
+            if res.returncode == 0:
+                cached_lines = res.stdout.splitlines()
+                try:
+                    with open(cache_file, "w", encoding="utf-8") as cf:
+                        json.dump({"index_mtime": index_mtime, "ts": now, "lines": cached_lines}, cf)
+                except Exception:
+                    pass
+            else:
+                cached_lines = []
+
+        modified_files = []
+        for line in cached_lines:
+            if not line.strip() or len(line) < 4:
+                continue
+            status = line[:2]
+            path_part = line[3:].strip()
+            # Skip deleted files from active code modification counting
+            if "D" in status:
+                continue
+            # For renamed files (R  old -> new), inspect the destination path
+            if "->" in path_part:
+                path_part = path_part.split("->")[-1].strip()
+            modified_files.append(path_part)
             code_files = [f for f in modified_files if f.endswith((".py", ".dart", ".ts", ".tsx", ".js", ".rs", ".go", ".kt"))]
             test_files = [f for f in code_files if "test" in f.lower() or "spec" in f.lower()]
             prod_files = [f for f in code_files if f not in test_files and not f.startswith(".agents")]
@@ -591,8 +634,9 @@ def main():
     
     args = parser.parse_args()
 
-    # 0. Debounce & hook payload extraction
-    hook_payload = (_read_stdin_nonblocking() if args.hook else {}) or {}
+    # 0. Debounce & hook payload extraction (Self-healing auto-pipe detection)
+    hook_payload = _read_stdin_nonblocking() or {}
+    is_hook_mode = args.hook or bool(hook_payload)
     conversation_id = hook_payload.get("conversationId") or hook_payload.get("conversation_id")
     transcript_path = hook_payload.get("transcriptPath") or hook_payload.get("transcript_path")
     artifact_directory_path = hook_payload.get("artifactDirectoryPath") or hook_payload.get("artifact_directory_path")
@@ -610,6 +654,8 @@ def main():
     user_intent = (
         hook_payload.get("userIntent")
         or hook_payload.get("user_intent")
+        or hook_payload.get("lastUserInput")
+        or hook_payload.get("last_user_input")
         or hook_payload.get("prompt")
         or hook_payload.get("query")
         or args.user_intent
@@ -645,8 +691,42 @@ def main():
         except Exception as _t_err:
             _log_telemetry(_t_err, "pre_agent_wake:read_transcript_tail")
 
-    # If context.json is fresh (<15s) and .git/index is unchanged, fast-exit in <5ms.
-    if args.hook and os.path.exists(CONTEXT_FILE):
+    if not os.path.exists(CONTEXT_DIR):
+        os.makedirs(CONTEXT_DIR, exist_ok=True)
+
+    # Cold-Start Grounding & Priming Check (Evaluated before debounce)
+    current_session_id = conversation_id or args.conversation_id or "default_session"
+    now_ts = time.time()
+    is_cold_start = False
+
+    inv_num_int = None
+    if invocation_num is not None:
+        try:
+            inv_num_int = int(invocation_num)
+        except (ValueError, TypeError):
+            pass
+
+    active_sessions_file = os.path.join(CONTEXT_DIR, '.active_sessions.json')
+    sessions_map = {}
+    if os.path.exists(active_sessions_file):
+        try:
+            with open(active_sessions_file, 'r', encoding='utf-8') as asf:
+                sessions_map = json.load(asf)
+        except Exception:
+            sessions_map = {}
+
+    sess_entry = sessions_map.get(current_session_id, {})
+    last_seen = float(sess_entry.get("last_seen", 0))
+    already_cold_started = bool(sess_entry.get("cold_started", False))
+
+    # A session must trigger cold-start on its very first wake turn, or if idle > 1h
+    if not already_cold_started or (now_ts - last_seen > 3600):
+        is_cold_start = True
+    else:
+        is_cold_start = False
+
+    # If context.json is fresh (<15s), .git/index is unchanged, and NOT a cold start, fast-exit in <5ms.
+    if (args.hook or is_hook_mode) and not is_cold_start and os.path.exists(CONTEXT_FILE):
         try:
             now = time.time()
             ctx_mtime = os.path.getmtime(CONTEXT_FILE)
@@ -1000,8 +1080,8 @@ def main():
             curr_hash = _struct_hash(context_payload)
             prev_hash = _struct_hash(prev_ctx)
 
-            # Preserve cache prefix if structural state is identical and within TTL window
-            if curr_hash == prev_hash and (now_ms - prev_time_ms) < DEFAULT_CACHE_TTL_MS:
+            # Preserve cache prefix if structural state is identical and within TTL window (never skip on cold start)
+            if curr_hash == prev_hash and (now_ms - prev_time_ms) < DEFAULT_CACHE_TTL_MS and not is_cold_start:
                 skip_write = True
         except Exception as _ctx_err:
             _log_telemetry(_ctx_err, "pre_wake:ttl_check")
@@ -1022,6 +1102,103 @@ def main():
     _check_passive_orion_gc(BASE_DIR)
 
     active_warnings = []
+
+    # Persist session tracking in multi-session dictionary
+    try:
+        active_sessions_file = os.path.join(CONTEXT_DIR, '.active_sessions.json')
+        sessions_map = {}
+        if os.path.exists(active_sessions_file):
+            try:
+                with open(active_sessions_file, 'r', encoding='utf-8') as asf:
+                    sessions_map = json.load(asf)
+            except Exception:
+                sessions_map = {}
+        
+        sessions_map[current_session_id] = {
+            "last_seen": now_ts,
+            "cold_started": True,
+            "last_invocation": inv_num_int
+        }
+        
+        # Clean up sessions older than 24 hours
+        sessions_map = {
+            sid: sdata for sid, sdata in sessions_map.items()
+            if (now_ts - float(sdata.get("last_seen", 0))) < 86400
+        }
+        
+        with open(active_sessions_file, 'w', encoding='utf-8') as asf:
+            json.dump(sessions_map, asf, indent=2)
+    except Exception:
+        pass
+
+    if is_cold_start:
+        os_label = "Windows" if os.name == 'nt' else ("macOS" if sys.platform == 'darwin' else "Linux")
+        shell_label = "PowerShell (LF line endings, UTF-8 mode, no '&&' separators)" if os.name == 'nt' else "POSIX (bash/zsh)"
+        
+        accel_info = "7/7 Active"
+        try:
+            from core.accelerators import get_active_accelerator_manifest
+            accel_m = get_active_accelerator_manifest()
+            accel_active = sum(1 for v in accel_m.values() if v.get("status") == "active")
+            accel_info = f"{accel_active}/7 Active"
+        except Exception:
+            pass
+
+        cold_start_lines = [
+            "🌐 [FOUNDATION COGNITION: COLD-START INVARIANTS]",
+            "• Architecture: Universal Agnostic | 100% Zero-Pip Floor Sovereignty | 4-Pillar Sovereign Mesh",
+            f"• Host Environment: {os_label} [{shell_label}] | Python {sys.version.split()[0]} stdlib | Tier 2 Accel: {accel_info}",
+            "• Ecosystem Scope: Multi-Project (Flutter, React, Android, Python, Systems) | Multi-OS | Multi-IDE (Antigravity, Cursor, Claude Code, VS Code)",
+            "• Pillars: P1 (Py stdlib floor) | P2 (Rust rtk+ast-grep+difft+gl+jj) | P3 (Ollama Local AI) | P4 (Bun)",
+            "• Constitutional North Star: VISION.md Immutable Lock | Anti-Enterprise-Bloat | YAGNI | Evidence Mandate (Exit Code 0) | Lessword Token Efficiency"
+        ]
+
+        handoff_path = os.path.join(CONTEXT_DIR, "handoff.md")
+        if os.path.exists(handoff_path):
+            try:
+                with open(handoff_path, "r", encoding="utf-8") as hf:
+                    h_text = hf.read()
+                m = re.search(r'## 1\. Resume Point\s*\n(.*?)(?=\n## |\Z)', h_text, re.DOTALL)
+                if m:
+                    res_point = m.group(1).strip()
+                    if res_point and not res_point.startswith("["):
+                        cold_start_lines.append(f"📌 RESUME POINT (.orion/working/handoff.md):\n{res_point[:300]}")
+            except Exception:
+                pass
+
+        # User-Configured Anchor Targets (Optional: from .cold_start.json or .dna.json)
+        anchor_file = os.path.join(base_agents_dir, ".cold_start.json")
+        if os.path.exists(anchor_file):
+            try:
+                with open(anchor_file, "r", encoding="utf-8") as af:
+                    adata = json.load(af)
+                anchors = adata.get("anchor_targets", [])
+                if anchors:
+                    cold_start_lines.append("🎯 USER ANCHOR TARGETS: " + ", ".join(anchors[:5]))
+            except Exception:
+                pass
+
+        # Core Memory (Tier 0 - Persona & Human Invariants)
+        if core_memory_prompt and core_memory_prompt.strip():
+            cold_start_lines.append(core_memory_prompt.strip())
+
+        # Anchor Triplets from orion.db (Tier 1 - Semantic Invariants)
+        db_path = os.path.join(BASE_DIR, '.orion', 'orion.db')
+        if os.path.exists(db_path):
+            try:
+                import sqlite3
+                with sqlite3.connect(db_path, timeout=2.0) as conn:
+                    preds = ('governs', 'enforces', 'mandates', 'calibrates', 'orchestrates')
+                    c = conn.cursor()
+                    c.execute("SELECT subject_id, predicate, object_id FROM relations WHERE predicate IN (?, ?, ?, ?, ?) LIMIT 6", preds)
+                    triplets = c.fetchall()
+                    if triplets:
+                        triplet_str = " • " + "\n • ".join([f"({s} -> {p} -> {o})" for s, p, o in triplets])
+                        cold_start_lines.append(f"🧬 [GRAPH ANCHOR TRIPLETS (orion.db)]:\n{triplet_str}")
+            except Exception as _tr_err:
+                _log_telemetry(_tr_err, "cold_start_triplets")
+
+        active_warnings.append("\n".join(cold_start_lines))
     if active_bento_task_data:
         active_warnings.append(
             f"🎯 ACTIVE BENTO TASK ({active_bento_task_data['index']}): "
@@ -1055,14 +1232,15 @@ def main():
 
     ephemeral_msg = "\n\n".join(active_warnings) if active_warnings else ""
         
-    if args.hook:
+    if is_hook_mode:
         if ephemeral_msg:
+            step_payload = (
+                {"systemMessage": {"systemMessage": ephemeral_msg}}
+                if is_cold_start
+                else {"ephemeralMessage": ephemeral_msg}
+            )
             print(json.dumps({
-                "injectSteps": [
-                    {
-                        "ephemeralMessage": ephemeral_msg
-                    }
-                ]
+                "injectSteps": [step_payload]
             }))
         else:
             print("{}")

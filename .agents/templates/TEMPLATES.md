@@ -8,8 +8,10 @@ This directory contains the master blueprints and boilerplates for the **Portabl
 | Template | Target File | Purpose |
 | :--- | :--- | :--- |
 | `VISION.template.md` | `context/VISION.md` | Immutable Foundational Vision, North Star invariants, and Anti-Vision filter. |
-| `PROJECT_SCAFFOLD.template.md` | `00_Strategy/BLUEPRINT.md` & `03_Tech/ARCHITECTURE.md` | Master architecture blueprint for 25-File Golden Ratio and legacy SaaS registry mapping. |
-| `STYLE_GUIDE.template.md` | `02_Creative/STYLE_GUIDE.md` | UI/UX tokens and flows. |
+| `BLUEPRINT.template.md` | `context/00_Strategy/BLUEPRINT.md` | Executive summary, business domain objectives, system scope, and core value proposition. |
+| `ROADMAP.template.md` | `context/01_Product/ROADMAP.md` | Phased milestone horizons (Phase 1 Genesis, Phase 2 Hardening, Phase 3 Scale). |
+| `PROJECT_SCAFFOLD.template.md` | `context/03_Tech/ARCHITECTURE.md` | Master architecture blueprint, system layering, and core stack components. |
+| `STYLE_GUIDE.template.md` | `context/02_Creative/STYLE_GUIDE.md` | Dual-purpose UI/UX design tokens and Headless/CLI interface ergonomics. |
 | `DESIGN.template.md` | `DESIGN.md` | Master 20+ design archetypes, color palettes, and locked visual tokens. |
 | `AGENTS.template.md` | `.agents/AGENTS_INDEX.md` | Multi-AI instruction generator (DRY source). |
 | `AI_ADAPTER.template.md` | Native adapter files | Lightweight adapters that route tools to canonical `AGENTS.md`. |

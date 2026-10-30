@@ -58,6 +58,7 @@ python .agents/scripts/orion.py <command> [args...]
 | `bun` | Probes Bun standalone runtime and JS/TS execution capabilities. | `core/capabilities.py` |
 | `telemetry` | Structured span and execution trace telemetry logger. | `core/db.py` |
 | `sandbox` | Provides ephemeral isolated execution scratchpads for command safety. | `core/sandbox.py` |
+| `accelerators` | Tier 2 ephemeral Python accelerators (orjson, rapidfuzz, tree-sitter) in isolated cache. | `core/accelerators.py` |
 
 ### 4. Memory Hygiene & Context Evolution
 | Command | Purpose | Target Script |
@@ -81,9 +82,11 @@ python .agents/scripts/orion.py <command> [args...]
 | `foundation deploy` | Physically deploys/syncs Foundation template to a local project. | `commands/foundation.py` |
 | `foundation sync-ai` | Syncs AI brand configs to a local project. | `commands/foundation.py` |
 | `foundation push-upstream` | Guides manual curation and promotion of local learnings to Foundation. | `commands/foundation.py` |
+| `hydrate-vision` / `hydrate_vision` | Hydrates `context/VISION.md` with local SLM / Cloud LLM assistance and confirmation gate (`orion hydrate-vision [--target] [--confirm]`). | `commands/foundation.py` |
 | `evolve` | Project-aware architectural DNA evolution with archetype profile alignment (`orion evolve [archetype]`). | `commands/foundation.py` |
 | `dna` | Universal Living Project DNA sequencer, brownfield epigenetic mutation & architectural violation auditor (`orion dna <sequence|mutate|audit|lint>`). | `commands/foundation.py` (via `core/dna.py`) |
 | `dna-lint` | Direct JIT dependency linter verifying 5-Tier Directed Dependency Laws (`orion dna-lint <file_or_dir>`). | `commands/foundation.py` (via `core/dna.py`) |
+| `upgrade` / `foundation-upgrade` | Surgically upgrades framework assets from upstream hub without clobbering sovereign assets (`orion upgrade [--check\|--dry-run\|--source]`). | `commands/foundation.py` (via `core/upgrade_engine.py`) |
 | `pack` | Universal context packager & multi-platform AI audit exporter with auto-intent vibe coding (`orion pack [audit|arch|hybrid|pr|diff|security|stats|<url>]`). | `utils/packer.py` |
 
 ---

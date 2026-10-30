@@ -571,6 +571,27 @@ def evict_assets(agents_dir=BASE_DIR, orion_db_path=None, archive_dir=None, base
     print(f"Eviction Complete: {evict_count} asset(s) {mode_str}.")
 
 
+def cmd_fast_track(target_files: List[str], description: str = "") -> int:
+    """
+    Fast-Track Lane (Bypasses Bento Ceremony):
+    For lightweight tasks (<= 2 files, 0 domain crossings).
+    Enforces immediate atomic execution and verification without bento queue bloat.
+    """
+    if len(target_files) > 2:
+        print(
+            f"[FAST-TRACK REJECTED] File count ({len(target_files)}) exceeds Fast-Track limit (<= 2).\n"
+            f"Use full Bento Lane (`python .agents/scripts/orion.py bento init <plan.md>`).",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"⚡ [FAST-TRACK ACTIVE] Fast-track execution lane for: {target_files or ['Current workspace']}")
+    if description:
+        print(f"   Task: {description}")
+    print("   Protocol: Direct edit + mechanical verification (Exit Code 0). Zero Bento ceremony.")
+    return 0
+
+
 # ==============================================================================
 # 4. CLI DISPATCH
 # ==============================================================================
@@ -605,6 +626,23 @@ def main():
     elif action in ("slice", "next", "done"):
         from commands.bento_slicer import main as bento_main
         sys.exit(bento_main(sys.argv[1:]))
+    elif action in ("fast-track", "fast_track"):
+        raw_args = sys.argv[2:]
+        target_files = []
+        desc = ""
+        skip_next = False
+        for i, a in enumerate(raw_args):
+            if skip_next:
+                skip_next = False
+                continue
+            if a == "--desc":
+                if i + 1 < len(raw_args):
+                    desc = raw_args[i + 1]
+                    skip_next = True
+                continue
+            if not a.startswith("--"):
+                target_files.append(a)
+        sys.exit(cmd_fast_track(target_files, description=desc))
     elif action == "transition":
         if len(sys.argv) < 3:
             print("Usage: state_machine.py transition <PHASE>")

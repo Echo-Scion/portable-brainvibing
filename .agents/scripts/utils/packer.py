@@ -109,14 +109,14 @@ except (ImportError, OSError):
 DEFAULT_IGNORE_DIRS = {
     ".git", "node_modules", "__pycache__", ".venv", "venv", "target", "build",
     "dist", ".dart_tool", ".gradle", ".idea", ".vscode", ".gemini", ".cursor",
-    ".claude", ".clinerules", "coverage", ".orion", "scratch", ".scratch",
+    ".claude", ".clinerules", ".hermes", "coverage", ".orion", "scratch", ".scratch",
     ".worktrees", "temp", "tmp", ".turbo", ".next", ".cache", ".pytest_cache",
     ".mypy_cache", "vendor", ".svelte-kit", ".nuxt", "out", "Pods", "DerivedData",
     "CMakeFiles", "obj", ".bundle", "bower_components"
 }
 
 AGENT_TOOLING_DIRS = {
-    ".agents", ".orion", ".gemini", ".claude", ".cursor", ".opencode",
+    ".agents", ".orion", ".gemini", ".claude", ".cursor", ".opencode", ".hermes",
     ".antigravity-plugin", ".claude-plugin", ".cursor-plugin", ".codex-plugin",
     ".devin-plugin", ".copilot-plugin", ".kimi-plugin", ".hermes-plugin",
     ".muse-plugin", ".droid-plugin", ".grok-plugin", ".pi-plugin",
@@ -664,12 +664,12 @@ _AMBIGUOUS_MODULE_STEMS = {
 _STEM_MAP_CACHE: Dict[str, Dict[str, Tuple[str, str]]] = {}
 
 
-def extract_cross_bundle_imports(
+def extract_cross_bundle_dependency_edges(
     rel_path: str,
     raw_content: str,
     file_to_bundle: Dict[str, str],
-) -> List[str]:
-    """Resolves internal repository imports for any language to their target bundle IDs in O(1) amortized time."""
+) -> List[Tuple[str, str, str]]:
+    """Resolves internal repository imports for any language to (target_file_path, target_bundle_id, label) edges in O(1) amortized time."""
     ext = os.path.splitext(rel_path)[1].lower().lstrip(".")
     cur_bundle = file_to_bundle.get(rel_path, "")
     cache_key = f"{id(file_to_bundle)}:{len(file_to_bundle)}"
@@ -701,7 +701,7 @@ def extract_cross_bundle_imports(
                     stem_map[pkg_name.replace("/", ".")] = (norm_fp, b_id)
         _STEM_MAP_CACHE[cache_key] = stem_map
 
-    found: List[str] = []
+    edges: List[Tuple[str, str, str]] = []
     seen_targets: Set[Tuple[str, str]] = set()
     cur_bid = cur_bundle.split("_")[0] if cur_bundle else ""
 
@@ -717,7 +717,7 @@ def extract_cross_bundle_imports(
                 t_key = (t_fp, t_bid)
                 if t_key not in seen_targets:
                     seen_targets.add(t_key)
-                    found.append(f"{label or cand_str} (Bundle {t_bid})")
+                    edges.append((t_fp, t_bid, label or cand_str))
 
     if ext == "py":
         try:
@@ -766,7 +766,17 @@ def extract_cross_bundle_imports(
             imp = os.path.splitext(m.group(1))[0]
             _record_match(imp, label=os.path.basename(imp))
 
-    return found[:8]
+    return edges[:12]
+
+
+def extract_cross_bundle_imports(
+    rel_path: str,
+    raw_content: str,
+    file_to_bundle: Dict[str, str],
+) -> List[str]:
+    """Resolves internal repository imports for any language to their target bundle IDs in O(1) amortized time."""
+    edges = extract_cross_bundle_dependency_edges(rel_path, raw_content, file_to_bundle)
+    return [f"{label} (Bundle {t_bid})" for _, t_bid, label in edges][:8]
 
 
 _REDOS_NESTED_QUANTIFIER_RE = re.compile(
@@ -867,6 +877,9 @@ def scan_scaffold_and_spec_drift(root_dir: str, bundle_files: List[str]) -> List
                 stripped = line.strip()
                 if "STUB_SMELL" in stripped or "SUSPECT_STUB" in stripped:
                     continue
+                surrounding = " ".join(lines[max(0, idx - 3):min(len(lines), idx + 2)])
+                if any(k in surrounding for k in ("INVARIANT", "ARCH-DECISION", "INTENTIONAL-BYPASS", "OS-WORKAROUND")):
+                    continue
                 for pat, label in STUB_SMELL_PATTERNS:
                     if pat.search(line):
                         warnings.append(f"`{short_p}:L{idx}` ({label}: `{stripped[:40]}`)")
@@ -880,6 +893,49 @@ def scan_scaffold_and_spec_drift(root_dir: str, bundle_files: List[str]) -> List
                     warnings.append(f"`{short_p}` (REGEX_AS_AST_COSPLAY: Parser/Converter uses raw regex without AST library)")
 
     return warnings
+
+
+INVARIANT_ANCHOR_RE = re.compile(
+    r"^\s*(?:#|//|--|/\*+|\*)\s*(INVARIANT|ARCH-DECISION|OS-WORKAROUND|INTENTIONAL-BYPASS)(?:\s*\[([^\]]{1,40})\])?\s*:\s*(.+)$",
+    re.IGNORECASE
+)
+
+
+def harvest_invariant_anchors(root_dir: str, files: List[str]) -> List[str]:
+    """
+    Polyglot Invariant Harvester:
+    Scans files for in-code developer anchors across Python, Dart, TS/JS, Rust, Go, Kotlin, C/C++, SQL:
+    - INVARIANT [Domain]: Rationale
+    - ARCH-DECISION [Domain]: Rationale
+    - OS-WORKAROUND [Platform]: Rationale
+    - INTENTIONAL-BYPASS [Domain]: Rationale
+    Returns formatted strings: `path/to/file.ext:Lxx`: [Tag] Rationale.
+    """
+    anchors: List[str] = []
+    for rel_p in files:
+        norm_p = rel_p.replace("\\", "/")
+        if any(t in norm_p.lower() for t in ("/tests/", "/test/", "_test.", ".test.", "test_", "spec.")):
+            continue
+        full_p = os.path.join(root_dir, rel_p)
+        if not os.path.isfile(full_p):
+            continue
+        try:
+            if os.path.getsize(full_p) > 512 * 1024:
+                continue
+            with open(full_p, "r", encoding="utf-8", errors="ignore") as f:
+                for idx, line in enumerate(f, 1):
+                    m = INVARIANT_ANCHOR_RE.match(line)
+                    if m:
+                        tag_type = m.group(1).upper()
+                        domain_tag = f"[{m.group(2).strip()}] " if m.group(2) else ""
+                        rationale = m.group(3).strip().rstrip("*/").strip()
+                        if len(rationale) > 120:
+                            rationale = rationale[:117] + "..."
+                        short_p = norm_p if norm_p.count("/") <= 2 else "/".join(norm_p.split("/")[-2:])
+                        anchors.append(f"`{short_p}:L{idx}`: {tag_type} {domain_tag}{rationale}")
+        except Exception:
+            continue
+    return anchors
 
 
 def generate_bundle_pre_audit_radar(root_dir: str, files: List[str], dna: Optional[ProjectDNA] = None) -> str:
@@ -1014,17 +1070,20 @@ def generate_bundle_pre_audit_radar(root_dir: str, files: List[str], dna: Option
     redos_risks_sorted = _sort_items(redos_risks)
     raw_io_risks_sorted = _sort_items(raw_io_risks)
     scaffold_warnings = scan_scaffold_and_spec_drift(root_dir, files)
+    harvested_anchors = harvest_invariant_anchors(root_dir, files)
 
     relevant_viols = []
     if dna and getattr(dna, "layer_violations", None):
         rel_set = set(files)
         relevant_viols = [v for v in dna.layer_violations if v.get("file") in rel_set]
 
-    has_general_hotspots = any([long_funcs_sorted, large_modules_sorted, deep_nesting_sorted, broad_excepts_sorted, exec_sinks_sorted, redos_risks_sorted, raw_io_risks_sorted, scaffold_warnings])
+    has_general_hotspots = any([long_funcs_sorted, large_modules_sorted, deep_nesting_sorted, broad_excepts_sorted, exec_sinks_sorted, redos_risks_sorted, raw_io_risks_sorted, scaffold_warnings, harvested_anchors])
     if not has_general_hotspots and not relevant_viols:
         return ""
 
     radar_lines = ["## 📡 Pre-Computed Static Audit Radar (Deterministic Hotspots)"]
+    if harvested_anchors:
+        radar_lines.append(f"- **🛡️ Declared Architectural Invariants & Intentional Bypasses ({len(harvested_anchors)})**: " + _format_slice(harvested_anchors, 10))
     if scaffold_warnings:
         radar_lines.append(f"- **🚨 Suspect Stubs, Scaffolds & Spec-Drift ({len(scaffold_warnings)})**: " + _format_slice(scaffold_warnings, 12))
     if long_funcs_sorted:
@@ -2088,7 +2147,15 @@ def _synthesize_dynamic_bucket_identity(bucket: ModuleBucket, dna: Optional[Proj
             dominant_tier_key, _ = tier_counts.most_common(1)[0]
 
     if dominant_tier_key and dominant_tier_key in CANONICAL_5_TIERS:
-        t_meta = CANONICAL_5_TIERS[dominant_tier_key]
+        try:
+            from core.dna import get_stack_adapted_tier_meta
+            t_meta = get_stack_adapted_tier_meta(
+                dominant_tier_key,
+                framework=dna.primary_framework if dna else "generic",
+                has_ui=getattr(dna, "has_ui", False) if dna else False,
+            )
+        except Exception:
+            t_meta = CANONICAL_5_TIERS[dominant_tier_key]
         gravity = t_meta["gravity"]
         if t_meta["slug"] not in slug:
             slug = f"{slug}_{t_meta['slug']}"
@@ -2315,24 +2382,6 @@ def resolve_project_taxonomy(
         if compiled_tax:
             save_taxonomy_cache(root_dir, compiled_tax)
             return compiled_tax
-
-    # If Cloud & Local AI failed/offline, enqueue structured Cloud Handoff before deterministic fallback
-    try:
-        from core.capabilities import enqueue_cloud_handoff
-        sample_prefixes = list(buckets.keys())[:35]
-        enqueue_cloud_handoff(
-            "PACK_TAXONOMY",
-            {
-                "root_dir": root_dir,
-                "tree_hash": tree_hash,
-                "file_count": len(audit_files),
-                "module_prefixes": sample_prefixes,
-                "sample_files": [f.replace("\\", "/") for f in audit_files[:50]],
-            },
-            reason="cloud_and_local_ai_offline_or_failed",
-        )
-    except Exception as _ce:
-        _log_telemetry(_ce, "packer.py:enqueue_pack_taxonomy_handoff")
 
     # 4. Deterministic Graph & Dynamic Symbol Naming Fallback
     if cached:
@@ -2711,15 +2760,36 @@ def _extract_project_domain_brief(root_dir: str, dna: Optional[ProjectDNA] = Non
         try:
             content = read_text_safe(vision_path)
             if "PROJECT_SCAFFOLD" not in content and "Auto-filled by AI" not in content:
-                for block in content.split("## "):
-                    block_stripped = block.strip()
-                    if block_stripped and not block_stripped.startswith("FOUNDATIONAL VISION"):
-                        lines = [line.strip() for line in block_stripped.splitlines() if line.strip() and not line.strip().startswith("#")]
-                        if lines:
-                            header = block_stripped.split("\n")[0].strip()
-                            brief_parts.append(f"**Vision ({header})**: {' '.join(lines[:3])}")
-                        if len(brief_parts) >= 1:
-                            break
+                sections = re.split(r"(?m)^##\s+", content)
+                for sec in sections:
+                    sec_str = sec.strip()
+                    if not sec_str or sec_str.startswith("FOUNDATIONAL VISION"):
+                        continue
+                    header = sec_str.splitlines()[0].strip()
+                    header_lower = header.lower()
+                    sec_lines = [l.strip() for l in sec_str.splitlines()[1:] if l.strip() and not l.strip().startswith("#")]
+                    filtered_lines = [l for l in sec_lines if "[Invariant" not in l and "[X]" not in l and "[Y]" not in l and "[Z]" not in l and "e.g." not in l]
+                    if filtered_lines:
+                        if any(k in header_lower for k in ("essence", "core")):
+                            clean_desc = " ".join(l.lstrip("-*123456789. ") for l in filtered_lines[:3])
+                            brief_parts.append(f"**Vision ({header})**: {clean_desc}")
+                        elif any(k in header_lower for k in ("invariant", "rule")):
+                            inv_bullets = " | ".join(l.lstrip("-*123456789. ") for l in filtered_lines[:5])
+                            brief_parts.append(f"**Non-Negotiable Invariants**: {inv_bullets}")
+                        elif any(k in header_lower for k in ("anti-vision", "non-goal", "what this app is not")):
+                            anti_bullets = " | ".join(l.lstrip("-*123456789.❌ ") for l in filtered_lines[:5])
+                            brief_parts.append(f"**Anti-Vision & Non-Goals**: {anti_bullets}")
+        except Exception:
+            pass
+
+    # 0.5. Inspect context/INVARIANTS.md if present
+    invariants_path = os.path.join(abs_root, "context", "INVARIANTS.md")
+    if os.path.isfile(invariants_path):
+        try:
+            inv_c = read_text_safe(invariants_path)
+            inv_lines = [l.strip().lstrip("-*123456789. ") for l in inv_c.splitlines() if l.strip() and not l.strip().startswith("#")]
+            if inv_lines:
+                brief_parts.append(f"**Project Invariants File**: {' | '.join(inv_lines[:6])}")
         except Exception:
             pass
 
@@ -2747,7 +2817,7 @@ def _extract_project_domain_brief(root_dir: str, dna: Optional[ProjectDNA] = Non
                     if len(found_paragraphs) >= 2:
                         break
             if found_paragraphs:
-                brief_parts.append("\n\n".join(found_paragraphs))
+                brief_parts.append(f"**Repository Overview (Subordinate to VISION.md Invariants)**:\n" + "\n\n".join(found_paragraphs))
         except Exception:
             pass
 
@@ -2767,6 +2837,29 @@ def _extract_project_domain_brief(root_dir: str, dna: Optional[ProjectDNA] = Non
                         if body:
                             brief_parts.append(f"**Architecture ({header})**: {body}")
                         break
+        except Exception:
+            pass
+
+    # 2.5 Inspect Host / Integration Specs (e.g. HERMES_INTEGRATION_SPEC.md or plugin.yaml)
+    tech_dir = os.path.join(abs_root, "context", "03_Tech")
+    if os.path.isdir(tech_dir):
+        for f in os.listdir(tech_dir):
+            if "INTEGRATION" in f.upper() or "HOST" in f.upper() or "PLUGIN" in f.upper():
+                spec_p = os.path.join(tech_dir, f)
+                if os.path.isfile(spec_p):
+                    try:
+                        spec_c = read_text_safe(spec_p)
+                        first_sec = [l.strip() for l in spec_c.splitlines() if l.strip() and not l.strip().startswith("#") and "Auto-filled" not in l]
+                        if first_sec:
+                            brief_parts.append(f"**Host & Multi-Project Integration Spec ({f})**: {' '.join(first_sec[:3])}")
+                    except Exception:
+                        pass
+    plugin_yaml = os.path.join(abs_root, "plugin.yaml")
+    if os.path.isfile(plugin_yaml):
+        try:
+            p_lines = [l.strip() for l in read_text_safe(plugin_yaml).splitlines() if l.strip() and not l.strip().startswith("#")]
+            if p_lines:
+                brief_parts.append(f"**Plugin Manifest**: {' | '.join(p_lines[:4])}")
         except Exception:
             pass
 
@@ -2855,6 +2948,13 @@ def _compile_stitched_audit_methodology(
 
     # If backend/headless without UI, strip UI-specific rubric lines from stitched playbooks
     if not has_ui:
+        pb_a_review = pb_a_review.replace("XSS vulnerabilities (rendering HTML without sanitization).", "Unsanitized injection sinks or command execution.")
+        pb_a_review = pb_a_review.replace("heavy synchronous logic in `build()`, memory leaks.", "heavy blocking I/O or unbounded resource allocation in hot execution paths.")
+        pb_a_review = pb_a_review.replace("empty fallback widget shims,", "empty fallback stubs,")
+        pb_a_review = pb_a_review.replace("`package.json`, `pubspec.yaml`", "`pyproject.toml`, `requirements.txt`, `package.json`, `Cargo.toml`, `go.mod`")
+        pb_a_review = pb_a_review.replace("Freezed,", "").replace("Freezed", "")
+        pb_a_vectors = pb_a_vectors.replace("- Tier 5 (`5_presentation` / UI) MUST NOT bypass Tier 4 (`4_state`) to invoke Tier 3 (`3_services`) or database models directly.", "")
+
         for ui_term in (
             "- 5-State Visual Coverage (Loading, Empty, Success, Error, Shimmer)",
             "5-State Visual Coverage",
@@ -2871,7 +2971,14 @@ def _compile_stitched_audit_methodology(
             "Tier 3 DOM",
             "Riverpod,",
             "Riverpod",
+            "Freezed,",
+            "Freezed",
+            "Drift,",
+            "Drift",
+            "autoDispose,",
+            "autoDispose",
         ):
+            pb_a_review = pb_a_review.replace(ui_term, "")
             pb_a_vectors = pb_a_vectors.replace(ui_term, "")
             pb_b_vectors = pb_b_vectors.replace(ui_term, "")
             pb_b_sentinel = pb_b_sentinel.replace(ui_term, "")
@@ -2920,6 +3027,7 @@ def generate_gemini_web_audit_prompt(
     taxonomy: Optional[ProjectTaxonomy] = None,
     is_foundation: bool = False,
     root_dir: str = ".",
+    harvested_invariants: Optional[List[str]] = None,
 ) -> str:
     """
     Generates 00_GEMINI_WEB_AUDIT_PROMPT.txt 100% dynamically from the actual generated bundles
@@ -2959,14 +3067,20 @@ def generate_gemini_web_audit_prompt(
                 "**PHASE 1 MANDATE: ANTI-SCAFFOLD & SPEC-TO-CODE PARITY AUDIT**:\n"
                 "- *Spec-vs-Reality Drift*: Cross-check every library, parser, and capability claimed in `README.md` and `context/**/*.md` against project dependency manifests and actual source imports. Flag any doc whose claims are unbacked in source.\n"
                 "- *Regex-as-AST Cosplay*: Flag any parser, analyzer, or symbol extractor claiming AST/structural analysis that actually relies on fragile naive regexes without fence/scope awareness.\n"
-                "- *Dead-End Pipelines & Ghost Subsystems*: Trace every CLI command, hook, and data producer from entrypoint to consumer. Flag any unwired command or pipeline that writes state never read by downstream consumers.\n"
                 "- *Hardcoded Stubs & Truncated Generators*: Flag any handler or generator that returns hardcoded dummy schemas, empty no-op stubs, or placeholder strings.\n"
             )
+        anti_myopia_guard = (
+            "**LOCAL CONTRACT FREEZE LAW (ANTI-MYOPIA INVARIANT)**:\n"
+            "- *Signature & Contract Lock*: NEVER delete parameters, change default values, alter parameter order, or reshape return types/tuples (e.g. deleting tuple elements or modifying DTO keys) during this turn. Downstream consumers in other bundles or dynamic dispatchers depend on these exact contracts.\n"
+            "- *No Isolated Dead-Code Claims*: Do NOT flag exported functions, parameters, or constants as 'unused' or 'dead code' based on single-bundle reading. Dynamic dispatch registries (e.g., `CMD_MAP`, CLI runners, hook tables) and cross-bundle callers consume them.\n"
+            "- *Local-Scope Audit Focus*: Audit ONLY local implementation correctness within this bundle: null safety, bounds checking, resource leaks, swallowed exceptions, unhandled branch errors, and regex ReDoS.\n"
+        )
         return (
             f"#### 📋 Turn {turn_idx} / Phase {turn_idx}: {turn_title}\n"
             f"**Target Bundles**: {b_names}\n"
             f"**Domain-Specific Audit Checklist**:\n{focus_bullets}\n"
             f"{turn1_anti_scaffold}"
+            f"{anti_myopia_guard}"
             "**Triad Threat Probe Enforcement**:\n"
             "- *Boundary & Malformed Input*: Nullability, type coercion, injection sinks, and schema validation.\n"
             "- *Resource & Concurrency*: Race conditions, unclosed streams/subscriptions, memory leaks, and async deadlocks.\n"
@@ -3018,6 +3132,18 @@ def generate_gemini_web_audit_prompt(
 {viols_bullets}
 """
 
+    in_code_section = ""
+    if harvested_invariants:
+        anchor_lines = "\n".join(f"- {a}" for a in harvested_invariants[:25])
+        more_txt = f"\n- *... (+{len(harvested_invariants) - 25} more in bundle radars)*" if len(harvested_invariants) > 25 else ""
+        in_code_section = f"""
+---
+
+## 2.6. IN-CODE ARCHITECTURAL ANCHORS & IMMUNITY WHITELIST
+*The following lines contain verified developer invariants, intentional bypasses, or platform workarounds. DO NOT flag as defects:*
+{anchor_lines}{more_txt}
+"""
+
     content = f"""# 🔬 ADVERSARIAL ARCHITECTURAL & SECURITY AUDIT SPECIFICATION
 **Target Repository**: `{project_name}` ({proj_summary})
 **Package Tier**: `{tier_label}` | **Taxonomy Engine**: `{tax_provider}`
@@ -3044,7 +3170,18 @@ def generate_gemini_web_audit_prompt(
 6. **Convergence Gate**:
    - Base Score: **100/100** (Deduct `-15` for Critical Blockers, `-7` for High Material Defects, `-2` for Medium Risks).
    - If **Final Score >= 85/100** and **Critical Blockers == 0**, output `### 🏁 AUDIT CONVERGED: CERTIFIED` after presenting any minor surgical fixes.
-{dna_section}{methodology_section}
+7. **Negative Constraints, Conditional Returns & Invariant Immunity Law**:
+   - **Conditional Early-Return Guards**: Code following an `if <condition>: return` block (e.g. `if not is_live: return` or paper-mode guards) is the active execution branch when `<condition>` is false—NEVER flag it as unreachable or incomplete dead code.
+   - **Declared Invariants & Anti-Vision**: NEVER flag lines annotated with `INVARIANT`, `ARCH-DECISION`, `OS-WORKAROUND`, or `INTENTIONAL-BYPASS`, or omissions mandated by `VISION.md` (`Anti-Vision`), as defects, missing enterprise patterns, or dead stubs.
+   - **Agent vs. Host Isolation**: Treat `.agents/`, `.orion/`, and plugin manifests strictly as developer harness tooling, never as host application business logic.
+8. **Multi-Project, Host-Plugin & Subsystem Boundary Law**:
+   - **Host Runtime Boundaries**: If this repository is a **Plugin, Daemon Subsystem, or Tool** operating within a host agent (e.g. `hermes-agent`), host runtime imports (e.g. `from hermes_agent...`) and host credentials are provided by the host at runtime—NEVER flag them as missing local modules or unwired pipelines.
+   - **Epistemic Invariant Supremacy**: `context/VISION.md` is the supreme immutable North Star for architecture and non-negotiable invariants. If historical comments or `README.md` describe superseded capabilities that contradict `VISION.md`, `VISION.md` strictly supersedes them. Never flag adherence to `VISION.md` as an omission or defect.
+9. **Cross-File Pipeline Contract Immunity (Anti-Myopia Mandate)**:
+   - **Pipeline Contract Protection**: Functions, methods, and classes exposed across modules or registered in dispatch registries (e.g., CLI command tables `CMD_MAP`, hook registries, serializers) possess cross-file contracts.
+   - **Single-File Isolation Fallacy**: When auditing an isolated file or bundle, you have incomplete visibility of system-wide data flow. Never infer a parameter is redundant or a function is dead solely because its call site is absent in the current file or bundle.
+   - **Call-Site Blast Radius Proof**: Any recommendation that modifies an existing public signature, deletes an argument, or alters a return tuple MUST provide a verified Blast Radius table citing every caller in all bundles (`path/to/file.ext#Lxx`). If any caller cannot be synchronously migrated, the signature modification is REJECTED.
+{dna_section}{in_code_section}{methodology_section}
 ---
 
 ## 3. INTERACTIVE 4-TURN AUDIT PROTOCOL (WEB INTERFACE OPTIMIZED)
@@ -3062,7 +3199,11 @@ All {len(bundle_files)} bundles are attached in your context window. To prevent 
 #### 📋 Turn 4 / Phase 4: Cross-Bundle Seam Synthesis, Final Score & Surgical Remediation Plan
 **Target**: Complete repository synthesis across all {len(bundle_files)} bundles.
 **Directives**:
-1. Verify **Cross-Bundle Seams**: Trace Producers and Consumers across bundles to verify exact key names, data types, and symbol formats. Check whether API contracts, state models, and event payloads match without drift.
+1. Verify **Cross-Bundle Seams & Pipeline Integrity**:
+   - Trace CLI commands, hooks, and data producers across ALL bundles from entrypoint to consumer.
+   - Flag genuine **Dead-End Pipelines & Ghost Subsystems**: pipelines that write state or return structures never consumed by ANY file across all bundles or documentation.
+   - Trace Producers and Consumers across bundles to verify exact key names, data types, and symbol formats. Check whether API contracts, state models, and event payloads match without drift.
+   - **Call-Site Blast Radius Mandate**: If proposing any public signature refactoring, parameter deletion, or return type alteration, you MUST provide an explicit table citing EVERY caller in all bundles (`path/to/file.ext#Lxx`). If any caller cannot be updated simultaneously, the modification is REJECTED.
 2. Verify **Target Architecture Alignment**: Compare current capabilities against the project's stated architectural goals (identifying production-ready components vs. components needing upgrade).
 3. Compute the **Deterministic Forensic Score (0-100)** with an explicit deduction table.
 4. Present the prioritized **Dual-Regime Remediation Plan & Bento Action Cards**:
@@ -3207,12 +3348,12 @@ def _build_global_cross_bundle_router(
     line_numbers: bool = True,
     skeleton_map: Optional[Dict[str, bool]] = None,
 ) -> str:
-    rows = [
-        "## 🌐 Global Cross-Bundle File & Import Router",
-        "| Bundle | File Path | Lines | Estimated Tokens | Cross-Bundle Imports |",
-        "|---|---|---|---|---|",
-    ]
-    for rel_p, b_code in sorted(file_to_bundle.items(), key=lambda x: (x[1], x[0])):
+    # Pass 1: Cache contents and build bi-directional cross-bundle dependency graph
+    raw_cache: Dict[str, str] = {}
+    inbound_map: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+    outbound_map: Dict[str, List[str]] = defaultdict(list)
+
+    for rel_p, b_code in sorted(file_to_bundle.items()):
         b_id = b_code.split("_")[0]
         full_p = os.path.join(root_dir, rel_p)
         try:
@@ -3220,6 +3361,20 @@ def _build_global_cross_bundle_router(
                 raw = fh.read()
         except (OSError, UnicodeDecodeError):
             raw = ""
+        raw_cache[rel_p] = raw
+        edges = extract_cross_bundle_dependency_edges(rel_p, raw, file_to_bundle)
+        for t_fp, t_bid, label in edges:
+            inbound_map[t_fp].append((rel_p, b_id))
+            outbound_map[rel_p].append(f"{label} (Bundle {t_bid})")
+
+    rows = [
+        "## 🌐 Global Cross-Bundle File & Import Router",
+        "| Bundle | File Path | Lines | Estimated Tokens | Inbound Consumers (Dependents) | Outbound Cross-Bundle Imports |",
+        "|---|---|---|---|---|---|",
+    ]
+    for rel_p, b_code in sorted(file_to_bundle.items(), key=lambda x: (x[1], x[0])):
+        b_id = b_code.split("_")[0]
+        raw = raw_cache.get(rel_p, "")
 
         orig_l_cnt = len(raw.splitlines())
         ext = os.path.splitext(rel_p)[1].lower().lstrip(".")
@@ -3249,10 +3404,27 @@ def _build_global_cross_bundle_router(
             mode_tag = " (FULL)"
             l_str = f"{orig_l_cnt:,}"
 
-        importers = extract_cross_bundle_imports(rel_p, raw, file_to_bundle)
-        cross_only = [imp for imp in importers if "(Bundle " in imp]
-        imp_str = ", ".join(cross_only[:8]) if cross_only else "—"
-        rows.append(f"| `{b_id}` | `{rel_p}` | {l_str} | ~{t_cnt:,}{mode_tag} | {imp_str} |")
+        # Format Inbound Consumers
+        inbound_entries = inbound_map.get(rel_p, [])
+        if inbound_entries:
+            seen_inb = set()
+            unique_inb = []
+            for c_fp, c_bid in inbound_entries:
+                if (c_fp, c_bid) not in seen_inb:
+                    seen_inb.add((c_fp, c_bid))
+                    unique_inb.append(f"`{c_fp}` (Bundle {c_bid})")
+            crit_prefix = "⚠️ **[CRITICAL PRODUCER]** " if len(unique_inb) >= 2 else ""
+            inb_str = crit_prefix + ", ".join(unique_inb[:6])
+            if len(unique_inb) > 6:
+                inb_str += f" *(+{len(unique_inb) - 6} more)*"
+        else:
+            inb_str = "—"
+
+        # Format Outbound Imports
+        outbound_entries = outbound_map.get(rel_p, [])
+        out_str = ", ".join(outbound_entries[:6]) if outbound_entries else "—"
+
+        rows.append(f"| `{b_id}` | `{rel_p}` | {l_str} | ~{t_cnt:,}{mode_tag} | {inb_str} | {out_str} |")
     rows.append("\n---\n\n")
     return "\n".join(rows)
 
@@ -3337,8 +3509,8 @@ def export_audit_bundles(
     else:
         tier_name = "audit"
 
+    abs_root = os.path.abspath(root_dir)
     if out_dir is None:
-        abs_root = os.path.abspath(root_dir)
         base_orion = os.path.join(os.path.dirname(abs_root) if os.path.basename(abs_root) == ".agents" else abs_root, ".orion", "bundles")
         out_dir = os.path.join(base_orion, tier_name)
     if out_dir.endswith(".md"):
@@ -3362,6 +3534,27 @@ def export_audit_bundles(
         ):
             try:
                 os.remove(os.path.join(out_dir, existing))
+            except OSError:
+                pass
+
+    # Self-Pruning: Clean orphaned bundles from .orion root and obsolete bundle folders
+    orion_root_dir = os.path.join(os.path.dirname(abs_root) if os.path.basename(abs_root) == ".agents" else abs_root, ".orion")
+    if os.path.isdir(orion_root_dir) and os.path.abspath(out_dir) != os.path.abspath(orion_root_dir):
+        for loose in os.listdir(orion_root_dir):
+            if loose.lower().endswith((".md", ".txt")) and ("_bundle.md" in loose.lower() or "00_gemini_web" in loose.lower()):
+                try:
+                    os.remove(os.path.join(orion_root_dir, loose))
+                except OSError:
+                    pass
+        legacy_audit_dir = os.path.join(orion_root_dir, "audit_bundles")
+        if os.path.isdir(legacy_audit_dir) and os.path.abspath(out_dir) != os.path.abspath(legacy_audit_dir):
+            for old_f in os.listdir(legacy_audit_dir):
+                try:
+                    os.remove(os.path.join(legacy_audit_dir, old_f))
+                except OSError:
+                    pass
+            try:
+                os.rmdir(legacy_audit_dir)
             except OSError:
                 pass
 
@@ -3473,6 +3666,7 @@ def export_audit_bundles(
         bundle_summary_for_prompt.append((code, desc, len(files_in_bucket), size_kb, audit_focus))
 
     repo_name = os.path.basename(os.path.abspath(root_dir))
+    global_anchors = harvest_invariant_anchors(root_dir, audit_files)
     generate_gemini_web_audit_prompt(
         out_dir=out_dir,
         project_name=repo_name,
@@ -3483,6 +3677,7 @@ def export_audit_bundles(
         taxonomy=tax,
         is_foundation=is_foundation,
         root_dir=root_dir,
+        harvested_invariants=global_anchors,
     )
 
     print(f"\n[SUCCESS] {len(output_paths)} Dynamic Domain Bundles created (~{total_size_kb:.1f} KB total, ~{int(total_size_kb * 250):,} tokens).\n")

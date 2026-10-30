@@ -1,7 +1,7 @@
 ---
 description: Obsidian interoperability contract for authored context, Orion persistence, and generated vault projections.
 activation: triggered during brain export-vault and Obsidian graph projection workflows.
-version: 0.0.2
+version: 0.0.3
 last_updated: 2026-10-15
 ---
 

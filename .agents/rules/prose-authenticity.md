@@ -15,7 +15,7 @@ This standard governs all human-facing documentation, README files, commit messa
 Current language models default to predictable structural habits. Every entry below represents a default tell that must be eliminated:
 
 ### A. AI Vocabulary & Lexical Inflation
-1. **Tier 1 (Instant Tells)**: *delve, tapestry, testament, pivotal, beacon, undeniably, unwavering, paramount, cornerstone, foster, harness, holistic, paradigm, synergy, streamline*.
+1. **Tier 1 (Instant Tells)**: *delve, tapestry, testament, pivotal, beacon, undeniably, unwavering, paramount, cornerstone, foster, harness, holistic, paradigm, synergy, streamline, absorb (metaphorical)*.
 2. **Tier 2 (Word Clusters)**: *navigating the complexities, double-edged sword, at the intersection of, play a vital role, testament to the power of*.
 3. **Tier 3 (Overused Technical Fillers)**: *robust, comprehensive, seamless, ecosystem, leverage, facilitate, underpin* (when used decoratively rather than strictly technical).
 4. **Significance Inflation**: Framing routine mechanics as historic milestones (*"a major milestone in the evolution of", "pivotal turning point", "redefines the landscape"*).
@@ -100,3 +100,23 @@ When editing existing prose to remove AI tells:
    - YAML frontmatter headers (`--- ... ---`) are **STRICTLY IMMUTABLE**.
    - Table formatting, URLs, direct quotes, and file paths MUST NOT be modified or rephrased.
    - Limit prose editing to a maximum of **2 passes** to prevent semantic drift.
+
+---
+
+## 5. Changelog & Release Notes Integrity (Public-Facing Neutrality)
+
+`CHANGELOG.md` is a public, user-facing document. It serves consumers, contributors, and external developers—NOT internal development scratchpads, maintainer diaries, or AI introspection logs.
+
+### Required Invariants for Changelogs:
+1. **Public-Facing Neutrality**:
+   - Write from the perspective of an external developer consuming the project.
+   - Describe observable changes: features, public APIs, CLI commands, performance improvements, and bug fixes.
+2. **Exclude Internal Maintainer Minutiae**:
+   - Never document internal maintainer scripts (e.g. `bump_foundation.py`), gitignored development tools, local workspace paths, or conversational turn details.
+   - Never reference personal downstream project workspaces or private test harness names.
+3. **Zero AI Fingerprints & Promotional Buzzwords**:
+   - Strictly forbid metaphorical AI tell verbs (*absorb, supercharge, empower, revolutionize, unleash, bolster, delve, harness, orchestrate*).
+   - Use plain, neutral engineering verbs (*add, fix, update, replace, remove, enforce*).
+4. **Universal Standard (Keep a Changelog)**:
+   - Use canonical categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
+   - Keep entries concise, factual, and devoid of marketing fluff or subjective grandstanding.

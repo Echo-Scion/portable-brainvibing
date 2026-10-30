@@ -1372,3 +1372,397 @@
 - **created**: 2026-10-27T04:40:34.910491
 - **resolved**: 2026-10-27T04:40:34.910491
 - **resolution**: Added directly with resolved status
+
+## Observation 80: Propose skill for frequent action sequence: orion:evolve -> orion:foundation -> orion:brain
+- **id**: 80
+- **fingerprint**: 25a5516b06d6
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:evolve -> orion:foundation -> orion:brain] repeated 3 times
+- **created**: 2026-10-24T09:23:10.917668
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 81: Tool failure in orion:scan (Exit Code 2)
+- **id**: 81
+- **fingerprint**: cba6719a03b4
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:scan
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Args: {'args': ['security', '--target', 'echont'], 'exit_code': 2} | Args: {'args': ['grep', 'taxonomy', '--path'], 'exit_code': 2} | Args: {'args': ['map', '.agents/scripts/commands', '.agents/scripts/core'], 'exit_code': 2}
+- **created**: 2026-10-24T09:25:31.419249
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 86: Tool failure in orion:reflexion (Exit Code 1)
+- **id**: 86
+- **fingerprint**: da98810931f4
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:reflexion
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['reflexion', 'observe', '--title'], 'exit_code': 1}
+- **created**: 2026-10-24T09:39:24.803538
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 92: Tool failure in orion:resolve (Exit Code 2)
+- **id**: 92
+- **fingerprint**: 75f23c25f60f
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:resolve
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['resolve', '88', '--status'], 'exit_code': 2}
+- **created**: 2026-10-24T13:23:47.248557
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 93: Tool failure in orion:brain (Exit Code 1)
+- **id**: 93
+- **fingerprint**: ac8b27d94c6b
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:brain
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['rollover'], 'exit_code': 1}
+- **created**: 2026-10-24T14:13:35.042240
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 97: Propose skill for frequent action sequence: read_file -> replace_file_content -> run_shell_command
+- **id**: 97
+- **fingerprint**: f48507d408c3
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 6
+- **evidence**: Action sequence [read_file -> replace_file_content -> run_shell_command] repeated 3 times
+- **created**: 2026-10-24T15:43:16.432757
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 98: DNA compliance score regression (100 -> 64)
+- **id**: 98
+- **fingerprint**: 779314f4c4b2
+- **status**: superseded
+- **kind**: improve
+- **target**: core/dna.py
+- **rule_id**: DNA_COMPLIANCE_REGRESSION
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 4
+- **evidence**: Latest snapshot score 64 lower than previous 100
+- **created**: 2026-10-25T16:18:02.526132
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 99: Tool failure in orion:orion_ops (Exit Code 1)
+- **id**: 99
+- **fingerprint**: 713f0f7a5eb4
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:orion_ops
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['orion_ops', 'init'], 'exit_code': 1}
+- **created**: 2026-10-26T17:02:03.542012
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 100: Verify gate failure: SECURITY - AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.
+- **id**: 100
+- **fingerprint**: c8a30b094b3a
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/scripts/tests/test_stack_detection.py
+- **rule_id**: VERIFY_GATE_SECURITY
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 24) | AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 49)
+- **created**: 2026-10-27T01:15:16.698315
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 101: Tool failure in orion:verify_agents (Exit Code 1)
+- **id**: 101
+- **fingerprint**: b123583fa637
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify_agents
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 10
+- **evidence**: Args: {'args': [], 'exit_code': 1}
+- **created**: 2026-10-27T01:15:16.726064
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 102: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/docs/07-python_
+- **id**: 102
+- **fingerprint**: 9f183f3da0a2
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/docs/07-python_scripts___scripts.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Hardcoded user machine path found in .agents/docs/07-python_scripts___scripts.md
+- **created**: 2026-10-27T01:48:43.277339
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 103: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/docs/09-darwini
+- **id**: 103
+- **fingerprint**: 8af26ffafada
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/docs/09-darwinian_evolution_lifecycle.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Hardcoded user machine path found in .agents/docs/09-darwinian_evolution_lifecycle.md
+- **created**: 2026-10-27T01:48:43.282210
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 104: Tool failure in orion:compact (Exit Code 1)
+- **id**: 104
+- **fingerprint**: 4106edcf1c46
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:compact
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['compact', '--text', "It is not just a tool, it's a game changer! Serves as a gateway. Let that sink in."], 'exit_code': 1}
+- **created**: 2026-10-27T03:28:09.845977
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 106: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/rules/android-e
+- **id**: 106
+- **fingerprint**: e6a1c163c06a
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/rules/android-environment.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Hardcoded user machine path found in .agents/rules/android-environment.md
+- **created**: 2026-10-29T07:57:28.857408
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 107: Verify gate failure: VERSION_DRIFT - Version drift in rule: Expected version: 0.0.2, found 1.0.0
+- **id**: 107
+- **fingerprint**: fb1ade62f1ee
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents\rules\android-environment.md
+- **rule_id**: VERIFY_GATE_VERSION_DRIFT
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Version drift in rule: Expected version: 0.0.2, found 1.0.0
+- **created**: 2026-10-29T07:57:28.862825
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 108: Tool failure in orion:instruction-lint (Exit Code 1)
+- **id**: 108
+- **fingerprint**: 5d98b9094972
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:instruction-lint
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['instruction-lint', '--strict'], 'exit_code': 1}
+- **created**: 2026-10-29T20:48:30.528500
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 109: Verify gate failure: HYGIENE - subprocess.run() text mode missing explicit encoding='utf-8'
+- **id**: 109
+- **fingerprint**: 8790cc2fd2a5
+- **status**: superseded
+- **kind**: violation
+- **target**: scripts/commands/foundation.py
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 5
+- **evidence**: subprocess.run() text mode missing explicit encoding='utf-8' (scripts/commands/foundation.py:3250) | subprocess.run() text mode missing explicit encoding='utf-8' (scripts/core/accelerators.py:249) | subprocess.run() text mode missing explicit encoding='utf-8' (scripts/core/accelerators.py:265) | subprocess.run() text mode missing explicit encoding='utf-8' (scripts/core/accelerators.py:239) | subprocess.run() text mode missing explicit encoding='utf-8' (scripts/core/accelerators.py:257)
+- **created**: 2026-10-30T13:40:30.771848
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 110: Tool failure in orion:delegate-check (Exit Code 1)
+- **id**: 110
+- **fingerprint**: b2b6124354b4
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:delegate-check
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['delegate-check', '.agents/scripts/core/scanner.py', '.agents/scripts/core/scanner.py'], 'exit_code': 1}
+- **created**: 2026-10-30T19:53:24.316380
+- **resolved**: 2026-10-31T00:47:49.563211
+- **resolution**: Rolled over into GEN-2-1793382469545
+- **superseded_by**: GEN-2-1793382469545
+
+## Observation 111: Tool failure in orion:fast-track (Exit Code 1)
+- **id**: 111
+- **fingerprint**: 35bcba17d298
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:fast-track
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Args: {'args': ['file1.py', 'file2.py', '--desc'], 'exit_code': 1} | Args: {'args': ['fast-track', 'file1.py', 'file2.py'], 'exit_code': 1} | Args: {'args': ['fast-track', 'a.py', 'b.py'], 'exit_code': 1}
+- **created**: 2026-10-30T19:59:59.591858
+- **resolved**: 2026-10-31T01:33:02.029113
+- **resolution**: Rolled over into GEN-3-1793385182014
+- **superseded_by**: GEN-3-1793385182014
+
+## Observation 112: Verify gate failure: HYGIENE - Hardcoded user machine path found in CHANGELOG.md
+- **id**: 112
+- **fingerprint**: 67c9e54f1536
+- **status**: superseded
+- **kind**: violation
+- **target**: CHANGELOG.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Hardcoded user machine path found in CHANGELOG.md
+- **created**: 2026-10-30T20:07:28.227484
+- **resolved**: 2026-10-31T01:33:02.029113
+- **resolution**: Rolled over into GEN-3-1793385182014
+- **superseded_by**: GEN-3-1793385182014
+
+## Observation 113: Tool failure in orion:dna (Exit Code 1)
+- **id**: 113
+- **fingerprint**: 82bb4ac1e235
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:dna
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['dna', 'semver'], 'exit_code': 1}
+- **created**: 2026-10-30T20:41:27.902054
+- **resolved**: 2026-10-31T01:33:02.029113
+- **resolution**: Rolled over into GEN-3-1793385182014
+- **superseded_by**: GEN-3-1793385182014
+
+## Observation 114: Verify gate failure: SECURITY - AST_DANGEROUS_CALL: Dynamic module import via __import__() (
+- **id**: 114
+- **fingerprint**: e11bf1d9c42b
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/scripts/core/capabilities.py
+- **rule_id**: VERIFY_GATE_SECURITY
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: AST_DANGEROUS_CALL: Dynamic module import via __import__() (line 408)
+- **created**: 2026-10-30T21:06:03.461506
+- **resolved**: 2026-10-31T01:33:02.029113
+- **resolution**: Rolled over into GEN-3-1793385182014
+- **superseded_by**: GEN-3-1793385182014
+
+## Observation 128: Tool failure in orion:upgrade (Exit Code 2)
+- **id**: 128
+- **fingerprint**: 202d80abaaac
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:upgrade
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['--check', '--source', '.'], 'exit_code': 2}
+- **created**: 2026-10-31T02:41:09.572142
+- **resolved**: 2026-10-31T02:46:33.747941
+- **resolution**: Resolved: added upgrade to explicit forwarding in orion.py
+
+## Observation 129: Tool failure in orion:upgrade (Exit Code 1)
+- **id**: 129
+- **fingerprint**: a12e6bfe6d9b
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:upgrade
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['upgrade', '--check', '--source'], 'exit_code': 1}
+- **created**: 2026-10-31T02:41:43.314845
+- **resolved**: 2026-10-31T02:46:34.322345
+- **resolution**: Resolved: imported Path in cmd_upgrade
+
+## Observation 130: Verify gate failure: HYGIENE - subprocess.run() text mode missing explicit encoding='utf-8'
+- **id**: 130
+- **fingerprint**: 8790cc2fd2a5
+- **status**: actioned
+- **kind**: violation
+- **target**: scripts/core/upgrade_engine.py
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: subprocess.run() text mode missing explicit encoding='utf-8' (scripts/core/upgrade_engine.py:399)
+- **created**: 2026-10-31T02:44:07.138882
+- **resolved**: 2026-10-31T02:46:34.779933
+- **resolution**: Resolved: added explicit encoding to subprocess.run
+
+## Observation 131: Verify gate failure: SECURITY - AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.
+- **id**: 131
+- **fingerprint**: c8a30b094b3a
+- **status**: actioned
+- **kind**: violation
+- **target**: .agents/scripts/core/upgrade_engine.py
+- **rule_id**: VERIFY_GATE_SECURITY
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 4
+- **evidence**: AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 420) | AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 421) | AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 433) | AST_DESTRUCTIVE_FS: Recursive directory deletion via shutil.rmtree() (line 434)
+- **created**: 2026-10-31T02:44:07.154148
+- **resolved**: 2026-10-31T02:46:35.281192
+- **resolution**: Resolved: safe dir removal without shutil.rmtree

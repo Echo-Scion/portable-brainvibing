@@ -9,6 +9,13 @@ SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
+# Tier 2: Bootstrap optional Python accelerators from global cache (~/.agents/cache/venv)
+try:
+    from core.accelerators import bootstrap_accelerators
+    bootstrap_accelerators()
+except Exception:
+    pass
+
 # Prevent Python from writing .pyc and __pycache__ inside .agents ecosystem
 sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
@@ -54,6 +61,10 @@ CMD_MAP = {
     "push-upstream": ["commands", "foundation.py"],
     "sync-ai": ["commands", "foundation.py"],
     "foundation": ["commands", "foundation.py"],
+    "upgrade": ["commands", "foundation.py"],
+    "foundation-upgrade": ["commands", "foundation.py"],
+    "hydrate-vision": ["commands", "foundation.py"],
+    "hydrate_vision": ["commands", "foundation.py"],
     "dna": ["commands", "foundation.py"],
     "dna-lint": ["commands", "foundation.py"],
     "evolve": ["commands", "foundation.py"],
@@ -129,7 +140,9 @@ CMD_MAP = {
     "graph": ["core", "orion_graph.py"],
     "orion_graph": ["core", "orion_graph.py"],
     "delegate-check": ["core", "scanner.py"],
-    "delegate_check": ["core", "scanner.py"]
+    "delegate_check": ["core", "scanner.py"],
+    "fast-track": ["commands", "state_machine.py"],
+    "fast_track": ["commands", "state_machine.py"]
 }
 
 _ALIAS_NAMES = {
@@ -141,7 +154,8 @@ _ALIAS_NAMES = {
     "rtk_proxy", "reflect", "trace", "response-validator",
     "bun_runtime", "compactor", "events", "consequence-verify", "false-green",
     "sovereign_harness", "compile_ast", "ast_rules", "repomap", "orion_graph",
-    "packer", "digest", "contrast", "event_stream", "clean", "delegate_check", "bento_slicer"
+    "packer", "digest", "contrast", "event_stream", "clean", "delegate_check", "bento_slicer",
+    "fast-track", "fast_track"
 }
 CANONICAL_CMD_MAP = {name: path for name, path in CMD_MAP.items() if name not in _ALIAS_NAMES}
 ALIAS_CMD_MAP = {name: CMD_MAP[name] for name in _ALIAS_NAMES}
@@ -179,7 +193,7 @@ _HELP_GROUPS = {
                             "adversarial", "context-lint", "instruction-lint",
                             "matrix", "compile", "consequence"],
     "Compression Suite":   ["compact", "compress", "shrink", "distill"],
-    "Foundation / Deploy": ["setup", "foundation", "dna", "evolve", "bun"],
+    "Foundation / Deploy": ["setup", "foundation", "hydrate-vision", "dna", "evolve", "bun"],
     "Runtime / Misc":      ["fsm", "bento", "reflexion", "harness", "rtk", "telemetry",
                             "sandbox", "events", "pack", "budget",
                             "compile_ast", "diagnostics", "validate-response",
@@ -294,7 +308,7 @@ def main():
     # Foundation, state machine, verify_agents, evals, brain, db, and reflexion subcommands are passed explicitly
     if cmd in {
         "setup", "init", "onboard", "doctor", "dna", "dna-lint", "evolve",
-        "deploy", "push-upstream", "sync-ai", "budget", "track_budget", "amnesia", "rule_eviction",
+        "deploy", "push-upstream", "sync-ai", "hydrate-vision", "hydrate_vision", "upgrade", "foundation-upgrade", "budget", "track_budget", "amnesia", "rule_eviction",
         "consolidate", "linkify", "record", "reflect", "reflexion", "observe", "observations", "resolve", "habits", "state_graph",
         "preflight", "preflight_check", "context-lint", "context_naming_lint",
         "instruction-lint", "instruction_language_lint", "adversarial",
@@ -304,7 +318,7 @@ def main():
         "shrink", "distill", "compact", "compactor", "diagnostics", "context", "ingest",
         "gc", "clean", "rtk", "rtk_proxy", "bun", "bun_runtime",
         "repomap", "telemetry", "trace", "events", "event_stream",
-        "delegate-check", "delegate_check"
+        "delegate-check", "delegate_check", "fast-track", "fast_track"
     }:
         forward_cmd = "delegate-check" if cmd == "delegate_check" else cmd
         args = [forward_cmd] + sys.argv[2:]
