@@ -1,5 +1,5 @@
 # AI Brain: Main Encyclopedia of the `.agents` & `.orion` Ecosystem
-# (Portable Brainvibing Infrastructure v0.0.2)
+# (Portable Brainvibing Infrastructure v0.0.3)
 
 > **Complete Technical Encyclopedia.** Every architectural pillar, deterministic guardrail, local RAG component, script cluster, and operational skill is documented with technical precision and exact code examples.
 

@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.2
+version: 0.0.3
 last_updated: 2026-09-26
 ---
 
@@ -20,21 +20,22 @@ last_updated: 2026-09-26
 | Does it involve enterprise planning, complex STEM logic, core architecture, or deep debugging? | `PREMIUM` |
 | Am I unsure which tier applies? | Escalate to `PREMIUM`, declare why. |
 
-> **Anti-Deliberation Clause**: If you need to *read a file to determine* whether the task qualifies as BUDGET, the task is already STANDARD. BUDGET classification must be immediately obvious from the task description alone.
+> **Zero-Cost Reconnaissance Rule**: Reading AST skeletons (`scan map`), inspecting `.orion/working/ACTIVE_TASK.md`, or reading targeted symbol implementation spans (<=100 lines) to verify location or signature is standard BUDGET reconnaissance and does NOT trigger tier escalation.
 
 ---
 
-## 1. The Elastic Neuro-Symbolic Continuum (Mechanical + Local SLM + Cloud 3-Tier Ecosystem)
+## 1. The Elastic Neuro-Symbolic Continuum (Mechanical + Local SLM + 2D Cloud Ecosystem)
 
-`.agents` dynamically pairs **Tier 0 Mechanical Pre-Digestion** (`scanner.py`, `db.py`, `consequence_verifier.py`) with whatever Local SLM ($0\text{B}$ offline, $1.5\text{B}$, $3\text{B}$, $7\text{B}$, $14\text{B}$, $30\text{B}+$) and Cloud Model Tier are available:
+`.agents` dynamically pairs **Tier 0 Mechanical Pre-Digestion** (`scanner.py`, `db.py`, `consequence_verifier.py`) with whatever Local SLM ($0\text{B}$ offline, $1.5\text{B}$, $3\text{B}$, $7\text{B}$, $14\text{B}$, $30\text{B}+$) and Cloud 2D Model Matrix (`Tier × Effort`) are available:
 
-| Execution Layer / Tier | Dynamic Scope (After Tier-0 AST Pre-Digestion) | Target Engine / Model Spectrum |
+| Execution Layer / 2D Tier | Dynamic Scope & Scaffolding State | Target Engine / Model Spectrum |
 | :--- | :--- | :--- |
-| **Tier 0: Mechanical Kernel** | AST skeleton mapping `[Lstart-Lend]`, PageRank centrality, `@sovereign_catch` post-conditions, FTS5 BM25, False-Green test scanning. | **Pure Python 3.10+ Stdlib + Rust (`rtk`/`sg`) + Bun** ($0\text{ cost}$, deterministic) |
+| **Tier 0: Mechanical Kernel** | AST skeleton mapping `[Lstart-Lend]`, PageRank centrality, `@sovereign_catch` post-conditions, FTS5 BM25, live symbol re-anchoring. | **Pure Python 3.10+ Stdlib + Rust (`rtk`/`sg`) + Bun** ($0\text{ cost}$, deterministic) |
 | **Tier 1: Elastic Local SLM** | • **$1\text{B}\text{--}2\text{B}$ (`1.5b`)**: RAG keyword expansion, binary tags, short slugging.<br>• **$3\text{B}\text{--}4\text{B}$ (`3b`)**: Above + 1-shot narrow syntax/import repair guarded by `ast.parse`.<br>• **$7\text{B}\text{--}14\text{B}$**: Single-function `auto_heal()`, GraphRAG triplet extraction, Stage 2 security triage.<br>• **$30\text{B}\text{--}70\text{B}+$**: Multi-block refactoring, cross-encoder reranking, deep local autonomy. | **Ollama / `llama-server` / LM Studio / vLLM** ($0\text{ cloud cost}$; auto-skips if offline or task exceeds model envelope) |
-| **Cloud `BUDGET`** | Targeted single-file fixes, routine day-to-day execution, and resolving pre-digested AST failure packets when Local SLM is offline or $\le 3\text{B}$. | **Gemini Flash / Claude Haiku** (Fast, ultra-low token cost via Bento-Box workflow) |
-| **Cloud `STANDARD`** | Multi-file feature development (2–5 files), authoring standard test suites & invariant guards, UI prototyping. | **Gemini Pro / Claude Sonnet** (Balanced reasoning & coding) |
-| **Cloud `PREMIUM`** | Phase 1 Genesis Blueprinting, designing complex cross-layer Invariant Fortresses, or resolving 3-attempt Circuit Breaker escalations. | **Gemini Thinking / Claude Opus** (Maximum intelligence, invoked $O(1)$ upfront) |
+| **Cloud `BUDGET [Low Effort]`** | Direct single-file mechanical fixes, typos, configuration edits, docstrings, or direct Fast-Track lane modifications. | **Gemini Flash / Claude Haiku (Thinking Off / Low)** |
+| **Cloud `BUDGET [High Effort]`** | Active Bento Action Cards ($\le 2$ files, pre-digested AST target, deterministic verification gate). Sliced from larger plans with Scaffolding Discount ($\gamma = 0.65$). | **Gemini Flash Thinking / Claude Haiku Thinking** (High reasoning effort, ultra-low token cost) |
+| **Cloud `STANDARD [Med/High]`** | Multi-file feature development (2–5 files), cross-module contract synchronization, authoring test suites & invariant guards. | **Gemini Pro / Claude Sonnet** (Balanced global reasoning) |
+| **Cloud `PREMIUM [High Effort]`** | Phase 1 Genesis Blueprinting, unsliced complex architecture PRDs, cross-layer security audits, or 3-attempt Circuit Breaker escalations. | **Gemini Thinking / Claude Opus** (Maximum global intelligence, invoked $O(1)$ upfront) |
 
 ## 2. Infrastructure Special Note
 - **Don't Over-Classify**: Modifying files inside `.agents/` is NOT automatically `PREMIUM`.
@@ -55,15 +56,15 @@ The following constraints are **mandatory per tier**, not optional.
 
 ### BUDGET: Micro-Harness Protocol
 Even simple tasks MUST satisfy the following Validation Gate before output is accepted:
-1. **Telegraphic Execution**: Perform the action immediately without narrative justification.
-2. **Self-Verification Micro-Check**: After execution, mechanically assert that the target file contains the expected state (e.g., run `grep_search` to verify string substitution).
-- **Token Ceiling**: BUDGET tasks MUST NOT read more than 1 file in full. Use `grep_search` for targeted extraction.
+1. **Telegraphic Execution**: The Agent MUST perform the action immediately without narrative justification.
+2. **Self-Verification Micro-Check**: After execution, mechanically assert that the target file contains the expected state (e.g., run `rtk grep` to verify string substitution).
+- **Token Ceiling**: The Agent MUST NOT read more than 1 file in full for BUDGET tasks. Use `rtk grep` or targeted `read_file` line spans for extraction.
 - **Prohibited Actions**: No heavy architectural scope expansion.
 
 ### STANDARD: Lightweight Planning Gate
 Before multi-file execution:
-1. Initialize or update an execution plan Artifact (`task.md` or `implementation_plan.md`) outlining `[Approach, Files, Risks]`.
-2. Execute code modifications using native IDE tools (`replace_file_content`, `multi_replace_file_content`).
+1. Initialize or update an execution plan Artifact (`implementation_plan.md`) via `write_file` with `ArtifactMetadata: {RequestFeedback: true, UserFacing: true}` in the conversation artifact directory (`<appDataDir>/brain/<conversation-id>/`).
+2. Execute code modifications using native IDE tools (`edit_file`).
 3. Verify changes with an automated test or linter (`flutter test`, `dart analyze`, or `pytest`) ensuring `Exit Code 0`.
 
 ### PREMIUM: Full Sequential Thinking Mandate
@@ -77,8 +78,8 @@ See `Reasoning Standards` (Section 4 below) for the full protocol. Sequential Th
 ## 6. Token Economy Rules Per Tier
 | Tier | Max File Reads | Preferred Read Mode | Parallel Tool Calls |
 | :--- | :--- | :--- | :--- |
-| `BUDGET` | 1 (targeted grep preferred) | `grep_search` > `view_file` (header only) | Allowed |
-| `STANDARD` | 3-5 (surgical sections) | `view_file` with line range | Mandatory for independent steps |
+| `BUDGET` | 1 (targeted grep preferred) | `rtk grep` > `read_file` (header only) | Allowed |
+| `STANDARD` | 3-5 (surgical sections) | `read_file` with line range | Mandatory for independent steps |
 | `PREMIUM` | Unlimited (justified) | Full reads when necessary | Mandatory |
 
 ### Subagent Delegation (Lessword & 20% Overlap Gate)
@@ -86,15 +87,22 @@ To preserve the main thread's token context during long sessions, use subagents 
 - **20% Overlap Gate**: Never delegate tasks with $\ge 20\%$ shared context or interdependent code modifications to subagents. Validate before delegating using `python .agents/scripts/orion.py delegate-check <task1> <task2>`. If Exit Code 1 (`MERGE_TO_SINGLE_AGENT`), use single-agent sequential execution (`implementation_plan.md`) to maintain KV-cache prefix locality and prevent split-brain state drift. Delegate strictly to **Context-Isolating Scouts** (scanning raw logs, docs, or test outputs with $<10\%$ context overlap).
 - **Lessword Rule**: When delegating to subagents (e.g., `research` or `self`), ALWAYS instruct them to return their final output in the compressed **Lessword Format** (terse, no fluff). 
 - **Why**: Subagent tool results are injected into the main context verbatim. A 2k token prose response eats 2k tokens of main budget. A lessword response cuts this by ~60%, allowing the main session to last longer.
-## 7. Deterministic Tier Fallback (Anti-Subjectivity)
-When classification is ambiguous, use this deterministic fallback:
+## 7. Deterministic Tier Fallback & Scaffolding Discount (Anti-Subjectivity)
+When classification is ambiguous, compute the raw complexity score:
+$$S_{\text{raw}} = (1.0 \cdot N_{\text{files}}) + (2.0 \cdot N_{\text{domains}}) + C_{\text{risk}}$$
 
-1. Count impacted files.
-2. Count cross-domain boundaries (rules, scripts, workflows, security, deployment).
-3. Select tier:
-	- `BUDGET`: 1 file and 0 cross-domain boundaries.
-	- `STANDARD`: 2-5 files or 1 boundary.
-	- `PREMIUM`: >5 files or 2+ boundaries or any security/deployment risk.
+Then apply the **Scaffolding Discount ($\gamma_{\text{scaffold}}$)**:
+$$S_{\text{effective}} = S_{\text{raw}} \times (1 - \gamma_{\text{scaffold}})$$
+Where:
+- $\gamma = 0.0$: Raw unsliced tasks / prompt input.
+- $\gamma = 0.35$: AST skeleton mapped via `orion.py scan map`.
+- $\gamma = 0.65$: Active Bento Action Card ($\le 2$ files locked per step, live AST symbol anchor, deterministic verification command).
+
+Select 2D Tier based on $S_{\text{effective}}$:
+- `BUDGET [Low Effort]`: $S_{\text{effective}} \le 1.0$ (1 file, 0 domain boundaries, fast-track).
+- `BUDGET [High Effort]`: $S_{\text{effective}} \le 2.5$ (active Bento card with $\gamma = 0.65$, local reasoning effort).
+- `STANDARD [Medium/High Effort]`: $2.5 < S_{\text{effective}} \le 5.0$ (2–5 files or 1 domain boundary).
+- `PREMIUM [High Effort]`: $S_{\text{effective}} > 5.0$ (>5 files, 2+ boundaries, raw genesis architecture, or Strike-3 circuit breaker).
 
 If the declared tier is lower than this fallback result, escalation is mandatory.
 
@@ -114,7 +122,7 @@ When an execution is performed by a **BUDGET** tier model, static *multitasking*
 
 1. **Three-File Rule:** The agent may manipulate at most 1 primary logic file (maximum 3 files total including accompanying test/scaffolding) per iteration.
 2. **Hard Pause:** After one iteration is completed, the agent must trigger an evaluation/lint/test for the changes.
-3. **No Heavy Batching:** Do not fire >3 `create_file` or `replace_string` *tool calls* in parallel if the task affects architectural logic. (Except for deterministic renaming refactors).
+3. **No Heavy Batching:** Do not fire >3 `write_file` or `edit_file` *tool calls* in parallel if the task affects architectural logic. (Except for deterministic renaming refactors).
 
 ## 3. Sequential Execution
 Divide the task into isolated compartments (Bento-Box):

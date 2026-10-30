@@ -62,7 +62,7 @@ class TestStackDetection(unittest.TestCase):
         deps = {"ccxt", "sqlalchemy", "pydantic", "optuna", "redis"}
         profile = _python_profile(deps, has_ui=False)
         self.assertEqual(profile["frontend_framework"], "Headless / CLI / Daemon")
-        self.assertEqual(profile["ui_framework"], "None (headless)")
+        self.assertEqual(profile["ui_framework"], "None (headless / CLI)")
         self.assertIn("SQLAlchemy", profile["backend_persistence"])
         self.assertIn("SQLite", profile["backend_persistence"])
         self.assertIn("Pydantic", profile["state_management"])

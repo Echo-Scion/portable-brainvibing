@@ -31,6 +31,13 @@ activation: model_decision
   - Never include AI chatbot attributions ("Generated with AI", "Prompted by user").
   - Never restate file names if `<scope>` already specifies them.
 
+## 1.5. Changelog Integrity & Public Neutrality
+`CHANGELOG.md` is a public, user-facing document adhering to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- **Public-Facing Perspective**: Write for external developers and end-users, describing observable features, CLI options, public APIs, performance metrics, and bug fixes.
+- **Strictly Exclude Internal Minutiae**: Do not document internal maintainer scripts (e.g. `bump_foundation.py`), local workspace paths, gitignored tooling, or internal LLM prompt engineering discussions.
+- **Zero AI Tells & Metaphorical Verbs**: Strictly avoid AI tell verbs (*absorb, supercharge, harness, empower, revolutionize, delve*). Use neutral engineering verbs (*add, fix, update, replace, remove, enforce*).
+- **Universal Standards**: Use standard sections (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`). Keep entries factual, concise, and neutral.
+
 ## 2. Branching Strategy & Lifecycle
 - `main`: Production-ready code (never commit directly).
 - `develop`: Integration branch for features.
@@ -105,10 +112,10 @@ If a trigger is present and no harness is used, the action must be blocked.
 
 ## 8. Zero-Error Tooling Execution (Anti-CLI-Crash & AST Precision)
 
-- **No Raw CLI Patching**: You are **STRICTLY FORBIDDEN** from modifying files via `run_command` with manual string replacements (e.g., `python -c`, `sed`, `awk`).
-- **Native IDE Tooling**: You MUST delegate file modifications to `replace_file_content` or `multi_replace_file_content` natively provided by the IDE.
-- **Scratch Buffer**: For complex non-editing scripts, you MUST write the code to `<appDataDir>/brain/<conversation-id>/scratch/` via `write_to_file` before executing it.
-- **AST Precision (Anti-Indentation Error)**: For Python or indentation-sensitive files, you MUST use `grep_search` with `MatchPerLine=true` to read the specific target lines before patching, ensuring that replacement spacing aligns perfectly with the AST.
+- **No Raw CLI Patching**: You are **STRICTLY FORBIDDEN** from modifying files via terminal/CLI commands with manual string replacements (e.g., `python -c`, `sed`, `awk`).
+- **Native IDE Tooling**: The Agent MUST delegate file modifications to native IDE file-editing tools (`edit_file`).
+- **Scratch Buffer**: For complex non-editing scripts, the Agent MUST write the code to `<appDataDir>/brain/<conversation-id>/scratch/` via native `write_file` before executing it.
+- **AST Precision (Anti-Indentation Error)**: For Python or indentation-sensitive files, the Agent MUST inspect the specific target lines via `read_file` or `rtk grep` before patching, ensuring that replacement spacing aligns perfectly with the AST.
 
 ## 9. Anti-Hardcode Path Rule (Portability Preservation)
 

@@ -42,6 +42,7 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
   - `project-migrate.md`: Brownfield & legacy onboarding.
   - `app-builder.md`: Surgical feature construction and Bento-Box UI design.
   - `feature-sunset.md`: Phased component deprecation and dead code purging.
+  - `session-bootstrap.md`: Cold-start session bootstrap, 4-pillar verification, and dynamic knowledge injection.
 
 ### 12.4. `brain-graph`
 - **Domain**: Knowledge graph indexing and local RAG operations.
@@ -69,7 +70,11 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 - **Domain**: Unified Quality Enforcement Hub, Pre-Completion Gatekeeper & QA Sentinel.
 - **Core Directives**: Enforces the Iron Evidence Law, coordinates test-driven development, runs regression audits, and guards pre-completion gates.
 - **Consolidated References**:
-  - `audit_vectors.md`: Consolidated Diagnostic Matrix (merges architecture, bloat, duplicate, fail-fast, logic, performance, and retry audits).
+  - `audit_vectors.md`: Consolidated 12-Vector Diagnostic Matrix (architecture, bloat, duplicate, fail-fast, logic, performance, retry, anti-cosplay, system IPC, AI/LLM security, memory safety, desktop/mobile IPC).
+  - `ai_llm_attacks.md`: Threat models for prompt injection, tool calling authority boundaries, RAG poisoning, MCP trust leaks, and exfiltration.
+  - `memory_safety_and_binary.md`: Native memory safety, buffer bounds, use-after-free, integer overflow allocations, and unsafe Rust/FFI invariants.
+  - `desktop_mobile_ipc.md`: Peer authentication credentials, deep-link CSRF, Named Pipe DACLs, and WebView JS bridge leaks.
+  - `report-schema.json`: Strict 3-branch JSON findings schema (`confirmed`, `needs_validation`, `rejected`).
   - `audit-ledger.md`: Multi-session audit state ledger.
   - `load_testing_tactics.md`: Stress testing patterns and concurrency boundaries.
   - `ui_testing_patterns.md`: Cross-framework UI interaction testing.

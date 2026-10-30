@@ -186,3 +186,22 @@ When a spoke project discovers bug patterns, resolves edge cases, or refines can
 ```bash
 python .agents/scripts/orion.py foundation push-upstream --source /path/to/spoke_project
 ```
+
+---
+
+### 27.3. Sovereign Surgical Upstream Upgrade (`orion upgrade`)
+
+When a spoke project needs to pull core engine and framework improvements from the Upstream Hub without clobbering local custom configuration, use the sovereign surgical upgrade engine:
+
+```bash
+# Preview changes safely without modifying disk
+python .agents/scripts/orion.py upgrade --check
+
+# Execute surgical upgrade from upstream git repository or local hub
+python .agents/scripts/orion.py upgrade --source https://github.com/Echo-Scion/portable-brainvibing.git
+```
+
+**Key Architectural Invariants**:
+1. **Sacred File Shield**: Strictly prevents any mutation to sovereign downstream assets (`context/**`, `.orion/**`, `.agents/working/`, local project canons, and custom rule additions).
+2. **Surgical BIOS Splicing**: Merges upstream guardrails into `AGENTS.md` and `GEMINI.md` while preserving custom `## PROJECT-SPECIFIC MANDATES` intact.
+3. **Atomic Two-Phase Rollback**: Stages files in memory and temporary buffers, runs `verify_agents`, and automatically rolls back if any gate fails (`Exit Code != 0`).

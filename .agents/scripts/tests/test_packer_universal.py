@@ -26,8 +26,11 @@ class TestUniversalPacker(unittest.TestCase):
         os.environ["ORION_OFFLINE_PACK"] = "1"
 
     def test_foundation_detection(self):
-        # Current repo root is the foundation root
-        self.assertTrue(is_foundation_root("."))
+        # Current repo root is the foundation root (if running in _foundation) or app workspace
+        if os.path.exists("src") or os.path.exists("lib"):
+            self.assertFalse(is_foundation_root("."))
+        else:
+            self.assertTrue(is_foundation_root("."))
         # tools/flutterin is an application subproject
         if os.path.exists("tools/flutterin"):
             self.assertFalse(is_foundation_root("tools/flutterin"))
@@ -897,6 +900,109 @@ class TestPackerF01ToF08(unittest.TestCase):
             self.assertIn("execAsync()", radar)
             self.assertIn("`catch {}` [SILENT]", radar)
             self.assertIn("services/runner.ts:L", radar)
+
+    def test_f09_polyglot_invariant_harvesting_and_vision_anti_vision(self):
+        """TEST-F09: Polyglot invariant harvesting, full VISION.md extraction, Rule 7, and .hermes isolation."""
+        import json
+        from utils.packer import export_audit_bundles, harvest_invariant_anchors
+        from core.dna import sequence_project_dna
+        with tempfile.TemporaryDirectory() as td:
+            src_dir = os.path.join(td, "src")
+            context_dir = os.path.join(td, "context")
+            hermes_dir = os.path.join(td, ".hermes")
+            agents_dir = os.path.join(td, ".agents")
+            os.makedirs(src_dir, exist_ok=True)
+            os.makedirs(context_dir, exist_ok=True)
+            os.makedirs(hermes_dir, exist_ok=True)
+            os.makedirs(agents_dir, exist_ok=True)
+
+            with open(os.path.join(td, "package.json"), "w", encoding="utf-8") as f:
+                f.write('{"name": "test-universal-invariants"}\n')
+
+            # 1. Polyglot in-code invariant anchors
+            with open(os.path.join(src_dir, "trade.py"), "w", encoding="utf-8") as f:
+                f.write(
+                    "def execute(is_live: bool):\n"
+                    "    if not is_live:\n"
+                    "        # INVARIANT [Optuna-Sim]: Early exit in paper mode prevents virtual state drift\n"
+                    "        return\n"
+                    "    print('Live trade')\n"
+                )
+
+            with open(os.path.join(src_dir, "process.ts"), "w", encoding="utf-8") as f:
+                f.write(
+                    "export function launch() {\n"
+                    "    // ARCH-DECISION [Win-IPC]: Native child_process spawn used instead of PM2\n"
+                    "    return true;\n"
+                    "}\n"
+                )
+
+            # 2. Hermes config that MUST be excluded from host app bundle
+            with open(os.path.join(hermes_dir, "hermes.yaml"), "w", encoding="utf-8") as f:
+                f.write("agent: hermes\nworkspace: isolated\n")
+
+            # 3. Full VISION.md with Core Essence, Invariants, and Anti-Vision
+            with open(os.path.join(context_dir, "VISION.md"), "w", encoding="utf-8") as f:
+                f.write(
+                    "# 🌟 FOUNDATIONAL VISION: TradeBot\n"
+                    "## 1. Core Essence\n"
+                    "Autonomous algorithmic trading platform with zero latency.\n"
+                    "## 2. Non-Negotiable Invariants\n"
+                    "1. Simulation-to-live mathematical parity verified by Optuna engine.\n"
+                    "## 3. Anti-Vision (What This App Is NOT & WILL NEVER BE)\n"
+                    "- ❌ **Not Enterprise ERP**: Never introduce PM2 daemons or multi-role queues.\n"
+                )
+
+            # 4. .agents/.dna.json with custom_invariants
+            with open(os.path.join(agents_dir, ".dna.json"), "w", encoding="utf-8") as f:
+                json.dump({
+                    "framework": "node",
+                    "language": "typescript",
+                    "custom_invariants": ["SQLite WAL single-writer concurrency must be isolated"]
+                }, f)
+
+            # Assert harvester finds anchors
+            anchors = harvest_invariant_anchors(td, ["src/trade.py", "src/process.ts"])
+            self.assertEqual(len(anchors), 2)
+            self.assertTrue(any("[Optuna-Sim]" in a for a in anchors))
+            self.assertTrue(any("[Win-IPC]" in a for a in anchors))
+
+            # Run bundle export
+            out_dir = os.path.join(td, "bundles")
+            bundles = export_audit_bundles(td, out_dir=out_dir, hybrid=True)
+
+            # Assert .hermes was NOT included
+            bundle_texts = {}
+            for b in bundles:
+                with open(b, "r", encoding="utf-8") as bf:
+                    bundle_texts[os.path.basename(b)] = bf.read()
+            merged_bundles = "\n".join(bundle_texts.values())
+            self.assertNotIn("agent: hermes", merged_bundles)
+            self.assertIn("Early exit in paper mode", merged_bundles)
+
+            # Assert Bundle 01 Pre-Audit Radar includes Invariants
+            b1_text = next((v for k, v in bundle_texts.items() if k.startswith("01_")), "")
+            self.assertIn("Declared Architectural Invariants", b1_text)
+
+            # Assert 00_GEMINI_WEB_AUDIT_PROMPT.txt has full invariants, anti-vision, and Rule 7
+            prompt_file = os.path.join(out_dir, "00_GEMINI_WEB_AUDIT_PROMPT.txt")
+            self.assertTrue(os.path.isfile(prompt_file))
+            with open(prompt_file, "r", encoding="utf-8") as pf:
+                prompt_text = pf.read()
+
+            self.assertIn("Negative Constraints, Conditional Returns & Invariant Immunity Law", prompt_text)
+            self.assertIn("Conditional Early-Return Guards", prompt_text)
+            self.assertIn("Simulation-to-live mathematical parity", prompt_text)
+            self.assertIn("Anti-Vision & Non-Goals", prompt_text)
+            self.assertIn("Not Enterprise ERP", prompt_text)
+            self.assertIn("IN-CODE ARCHITECTURAL ANCHORS", prompt_text)
+            self.assertIn("[Optuna-Sim]", prompt_text)
+
+            # Assert sequence_project_dna preserves custom + VISION.md invariants
+            dna = sequence_project_dna(td)
+            self.assertIsNotNone(dna)
+            self.assertTrue(any("SQLite WAL" in inv for inv in dna.invariants))
+            self.assertTrue(any("Simulation-to-live" in inv for inv in dna.invariants))
 
 
 class TestProjectDNALivingSystem(unittest.TestCase):

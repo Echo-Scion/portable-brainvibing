@@ -56,6 +56,16 @@ python .agents/scripts/orion.py harness promote
 If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
 > **TERMINATION GATE**: Execute `/auto-context` ONCE. Do not re-enter session-offload.md after `/auto-context` completes. After injection, proceed directly to Step 4 without re-evaluating steps 1-3.5.
 
+## 3.6. Public Changelog Ledger & DNA SemVer Hook
+If `CHANGELOG.md` exists in the project root:
+1. **Public-Facing Neutrality & Agnostic Language**: `CHANGELOG.md` is strictly for public consumers and developers, not an internal developer diary or prompt engineering log.
+   - **Exclude Internal Minutiae**: Never document internal maintainer tools (e.g. `bump_foundation.py`), local development scripts, gitignored files, or private workflow conversations.
+   - **Zero AI Fingerprints**: Strictly ban metaphorical AI tell verbs (*absorb, supercharge, empower, revolutionize, unleash, delve*). Use neutral verbs (*add, fix, update, remove*).
+   - **Observable Public Value**: Describe observable capabilities, public CLI commands, interfaces, and bugfixes.
+2. **Episodic Triage**: Extract completed session deliverables into `## [Unreleased]`. Consolidate changes into standard Keep a Changelog categories (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
+3. **DNA SemVer Radar Check**: Run `python .agents/scripts/orion.py dna semver` to evaluate architectural impact against the 5-Tier Strata with strict Anti-AI-Slop gates (Major/Minor quarantined against hallucinated churn; defaults to PATCH).
+4. **Release Milestone Stamping**: If concluding a milestone release, run `python .agents/scripts/orion.py dna bump --auto` to synthesize compact domain paragraphs and stamp `## [vX.Y.Z] - YYYY-MM-DD`.
+
 ## 3.8. Self-Reflection
 - **Mandatory Action**: Before ending the session, you MUST analyze any errors, failed executions, false assumptions, and cognitive biases that occurred during the session. Document these learnings in the session log so the system and user can evolve.
 

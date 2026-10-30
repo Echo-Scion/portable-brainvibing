@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrionSecurityAuditReportSchema",
+  "description": "Standardized 3-branch finding schema for .agents security audits",
+  "type": "object",
+  "required": ["version", "target_repository", "audit_date", "confirmed", "needs_validation", "rejected"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0.0"]
+    },
+    "target_repository": {
+      "type": "string"
+    },
+    "audit_date": {
+      "type": "string"
+    },
+    "confirmed": {
+      "type": "array",
+      "description": "Findings verified with complete source traces and reproduction proof",
+      "items": {
+        "type": "object",
+        "required": ["id", "vector_id", "title", "source_file", "line_range", "severity", "impact", "reproduction_proof", "remediation"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SEC-[0-9]{3,}$"
+          },
+          "vector_id": {
+            "type": "string",
+            "description": "Mapped vector from audit_vectors.md (e.g., VECTOR-10, ORION-LLM-01)"
+          },
+          "title": {
+            "type": "string"
+          },
+          "source_file": {
+            "type": "string"
+          },
+          "line_range": {
+            "type": "string",
+            "pattern": "^L[0-9]+(-L[0-9]+)?$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+          },
+          "impact": {
+            "type": "string"
+          },
+          "reproduction_proof": {
+            "type": "string"
+          },
+          "remediation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "needs_validation": {
+      "type": "array",
+      "description": "Candidate findings with unresolved hypotheses. STRICTLY FORBIDS severity ratings.",
+      "items": {
+        "type": "object",
+        "required": ["id", "vector_id", "title", "source_file", "unresolved_hypothesis", "validation_prerequisite"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CAND-[0-9]{3,}$"
+          },
+          "vector_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "source_file": {
+            "type": "string"
+          },
+          "unresolved_hypothesis": {
+            "type": "string"
+          },
+          "validation_prerequisite": {
+            "type": "string"
+          }
+        },
+        "not": {
+          "required": ["severity"]
+        },
+        "additionalProperties": false
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "description": "Candidate findings disproved by independent verification",
+      "items": {
+        "type": "object",
+        "required": ["id", "candidate_claim", "refutation_proof", "rejection_reason"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "candidate_claim": {
+            "type": "string"
+          },
+          "refutation_proof": {
+            "type": "string"
+          },
+          "rejection_reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
