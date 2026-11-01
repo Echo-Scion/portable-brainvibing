@@ -1,7 +1,7 @@
 ---
 description: Memory Hygiene Policy — smart compression eligibility rules protecting important [[knowledge]] from pruning.
 activation: triggered during orion compress and [[skills/session-offload/SKILL.md]]
-version: 0.0.3
+version: 0.0.4
 last_updated: 2026-06-30
 ---
 

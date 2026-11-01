@@ -16,12 +16,14 @@ if str(SCRIPTS_DIR / "commands") not in sys.path:
 
 
 def run_script(script, *args, cwd=None):
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
     return subprocess.run(
         [sys.executable, "-X", "utf8", str(script), *args],
         cwd=cwd,
         capture_output=True,
         text=True,
         encoding="utf-8",
+        creationflags=flags,
     )
 
 

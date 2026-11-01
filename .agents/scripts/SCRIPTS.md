@@ -28,6 +28,7 @@ python .agents/scripts/orion.py <command> [args...]
 | `contradict` | Detects and resolves colliding triplet predicates. | `commands/brain.py` |
 | `raw_ingest` | Ingests unstructured files in `context/raw/` into markdown wiki nodes. | `commands/brain.py` |
 | `diagnostics` | Evaluates RAG retrieval relevance, context grounding, and latency metrics. | `commands/rag.py` |
+| `constellation <action>` | Supervisory Multi-Project Knowledge Mesh & Second Brain (`status`, `sync`, `export`). | `commands/constellation.py` |
 
 ### 2. Quality Enforcement & Security Gatekeepers
 | Command | Purpose | Target Script |
@@ -88,6 +89,7 @@ python .agents/scripts/orion.py <command> [args...]
 | `dna-lint` | Direct JIT dependency linter verifying 5-Tier Directed Dependency Laws (`orion dna-lint <file_or_dir>`). | `commands/foundation.py` (via `core/dna.py`) |
 | `upgrade` / `foundation-upgrade` | Surgically upgrades framework assets from upstream hub without clobbering sovereign assets (`orion upgrade [--check\|--dry-run\|--source]`). | `commands/foundation.py` (via `core/upgrade_engine.py`) |
 | `pack` | Universal context packager & multi-platform AI audit exporter with auto-intent vibe coding (`orion pack [audit|arch|hybrid|pr|diff|security|stats|<url>]`). | `utils/packer.py` |
+| `worktree` | Declarative Git worktree seeder & workspace manager (`orion worktree <seed|add|list>`). Ports `.worktreeinclude` assets into isolated sub-agent workspaces. | `commands/worktree.py` (via `core/worktree.py`) |
 
 ---
 

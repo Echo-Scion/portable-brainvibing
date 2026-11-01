@@ -465,7 +465,8 @@ def _check_and_sync(base_agents_dir: str, base_dir: str) -> None:
                     cwd=base_dir,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=5
+                    timeout=5,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0,
                 )
             except Exception as _e:
                 _log_telemetry(_e, "auto_sync_compile")
@@ -558,7 +559,16 @@ def enforce_bento_and_tdd_gates(workspace_dir: str, model_name: str, context_dir
                 pass
 
         if cached_lines is None:
-            res = subprocess.run(["git", "status", "--porcelain"], cwd=workspace_dir, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3)
+            res = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=workspace_dir,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=3,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0,
+            )
             if res.returncode == 0:
                 cached_lines = res.stdout.splitlines()
                 try:
@@ -619,6 +629,24 @@ def enforce_bento_and_tdd_gates(workspace_dir: str, model_name: str, context_dir
                         )
                 except Exception as _fsm_err:
                     _log_telemetry(_fsm_err, "tdd_rollback")
+
+            # DNA Architecture Hard Gate (In-Flight Interception)
+            if prod_files:
+                try:
+                    from core.dna import lint_dependencies_path
+                    for pf in prod_files[:5]:
+                        full_pf = os.path.join(workspace_dir, pf)
+                        if os.path.isfile(full_pf):
+                            dna_viols = lint_dependencies_path(full_pf, root_dir=workspace_dir)
+                            if dna_viols:
+                                viol_desc = "; ".join(f"L{v['line']} ({v['from_tier']}->{v['to_tier']})" for v in dna_viols[:2])
+                                warnings.append(
+                                    f"DNA ARCHITECTURE HARD GATE VIOLATION: `{pf}` contains {len(dna_viols)} illegal cross-layer import(s) [{viol_desc}]. "
+                                    "Decouple illegal architectural dependencies before proceeding."
+                                )
+                                break
+                except Exception as _dna_gate_err:
+                    _log_telemetry(_dna_gate_err, "dna_in_flight_gate")
     except Exception as _e:
         _log_telemetry(_e, "bento_tdd_gates")
     return warnings
@@ -1221,7 +1249,8 @@ def main():
         )
     if project_dna_data and project_dna_data.get("layer_violations_count", 0) > 0:
         active_warnings.append(
-            f"⚠️ DNA ARCHITECTURE VIOLATIONS ({project_dna_data['layer_violations_count']}): Run 'python .agents/scripts/orion.py dna audit' to inspect."
+            f"🚨 DNA ARCHITECTURE HARD GATE VIOLATION ({project_dna_data['layer_violations_count']} violations, score {project_dna_data.get('dna_compliance_score', 0)}/100): "
+            f"Illegal cross-layer imports detected! Code completion BLOCKED. Run 'python .agents/scripts/orion.py dna audit' to locate and fix."
         )
     if obs_broken_probe:
         active_warnings.append(

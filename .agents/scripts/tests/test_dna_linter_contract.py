@@ -169,6 +169,43 @@ class AppBlacklistScreen extends StatelessWidget {
         tier3, _, _, _ = classify_file_to_tier("lib/features/auth/domain/models/user_token.dart", epigenetic_aliases=aliases)
         self.assertEqual(tier3, "1_contracts")
 
+    def test_verify_agents_dna_hard_gate_blocks_violations(self):
+        from unittest.mock import patch, MagicMock
+        from commands.verify_agents import check_project_dna_integrity, AuditResult
+
+        mock_dna = MagicMock()
+        mock_dna.file_tier_map = {"app.dart": "5_presentation"}
+        mock_dna.dna_compliance_score = 79
+        mock_dna.layer_violations = [{"file": "lib/app.dart", "line": 12, "source_tier": "5_presentation", "target_tier": "3_services"}]
+        mock_dna.chimera_files = ["lib/app.dart"]
+
+        res = AuditResult()
+        with patch("core.dna.sequence_project_dna", return_value=mock_dna):
+            check_project_dna_integrity(res, verbose=False)
+
+        dna_errors = [e for e in res.errors if e.get("category") == "DNA_HARD_GATE"]
+        self.assertGreaterEqual(len(dna_errors), 1)
+        messages = " ".join(e.get("message", "") for e in dna_errors)
+        self.assertIn("Architectural DNA violations detected", messages)
+        self.assertIn("Architectural chimera files detected", messages)
+        self.assertIn("below 90 threshold", messages)
+
+    def test_foundation_cmd_dna_audit_hard_gate_exits_code_1(self):
+        import argparse
+        from unittest.mock import patch, MagicMock
+        from commands.foundation import cmd_dna
+
+        mock_dna = MagicMock()
+        mock_dna.dna_compliance_score = 79
+        mock_dna.layer_violations = [{"file": "lib/screen.dart", "line": 5, "source_tier": "5_presentation", "target_tier": "3_services", "reason": "leak"}]
+        mock_dna.chimera_files = []
+
+        args = argparse.Namespace(dna_action="audit", target=".", strict=False)
+        with patch("core.dna.sequence_project_dna", return_value=mock_dna):
+            with self.assertRaises(SystemExit) as cm:
+                cmd_dna(args)
+            self.assertEqual(cm.exception.code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

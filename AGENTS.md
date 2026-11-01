@@ -1,13 +1,13 @@
 # Workspace Rules & Mandates: {{PROJECT_NAME}}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.3 - English First & Built-In Lessword) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.4 - English First & Built-In Lessword) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{{PROJECT_NAME}}`.
 
 ## 1. CORE GUARDRAILS (Always Active)
 
 These rules define the non-negotiable operational boundaries and core execution invariants for all autonomous turns.
 
-- **Evidence Mandate**: Do not claim success without proof. Require Exit Code 0, then verify stdout/stderr assertions, test counts, and state changes. Treat masked exceptions, skipped checks, and empty results as failures.
+- **Evidence Mandate**: Do not claim success without proof. Require Exit Code 0, then verify stdout/stderr assertions, test counts, and state changes. Treat masked exceptions, skipped checks, and empty results as failures. Functional test success (passing unit, component, or integration test suites across any stack) is necessary but INSUFFICIENT; DNA architectural audit (`python .agents/scripts/orion.py dna audit`) must pass with 0 violations and score >= 90 before declaring task completion.
 - **Circuit Breaker**: If a specific tool call or test fails 3 times consecutively, STOP calling tools. Output error analysis and wait for human intervention.
 - **No Raw CLI Patching**: Do not modify files with terminal string-replacement commands such as `python -c`, `sed`, or `awk`. Use an available native file-editing tool.
 - **Anti-Hardcode Path**: Do not write absolute paths or `file://` schemes into source files. Use relative paths or `[[wikilinks]]`. Use `file://` links only in chat responses.
@@ -185,7 +185,7 @@ Every implementation plan you create (`implementation_plan.md`) MUST include in 
    - **Bottom-Up Same-File Ordering**: Multiple edits within the same file MUST be ordered from highest line number to lowest line number.
 
 ---
-*Mandate Version: 0.0.3 (English First & Built-In Lessword)*
+*Mandate Version: 0.0.4 (English First & Built-In Lessword)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

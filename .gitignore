@@ -5,6 +5,8 @@
 /tools/
 /.venv/
 /venv/
+/constellation/
+/.worktrees/
 
 # 2. WHITELIST: Core Foundation Directories
 !/.agents/
@@ -21,7 +23,7 @@
 !/CODEOWNERS
 !/.env.example
 !/.all-contributorsrc
-!/.github/
+.github/
 
 .agents/.agents/
 **/.agents/.agents/**

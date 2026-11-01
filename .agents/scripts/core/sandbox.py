@@ -8,6 +8,8 @@ from pathlib import Path
 from contextlib import contextmanager
 from typing import Dict, Any, Tuple, Optional, Generator, Set
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 _SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
@@ -195,7 +197,7 @@ class SovereignSandbox:
             elif ext_lower in (".js", ".ts"):
                 node_bin = shutil.which("node") or shutil.which("node.exe")
                 if node_bin:
-                    perm_flag = "--permission" if "--permission" in subprocess.run([node_bin, "--help"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout else "--experimental-permission"
+                    perm_flag = "--permission" if "--permission" in subprocess.run([node_bin, "--help"], capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=_WINDOWLESS_FLAGS).stdout else "--experimental-permission"
                     cmd = [node_bin, perm_flag, f"--allow-fs-read={ws}", f"--allow-fs-write={ws}", file_name]
                 else:
                     return 126, "", "[SANDBOX BLOCKED] Node permission sandbox required for JS/TS execution (unjailed Bun execution refused)"
@@ -213,7 +215,8 @@ class SovereignSandbox:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    timeout=timeout
+                    timeout=timeout,
+                    creationflags=_WINDOWLESS_FLAGS,
                 )
                 return proc.returncode, proc.stdout, proc.stderr
             except subprocess.TimeoutExpired:

@@ -120,3 +120,28 @@ When editing existing prose to remove AI tells:
 4. **Universal Standard (Keep a Changelog)**:
    - Use canonical categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
    - Keep entries concise, factual, and devoid of marketing fluff or subjective grandstanding.
+
+---
+
+## 6. README Architecture & Anti-Redundancy Contract (SSOT Partitioning)
+
+A project's `README.md` is its front door. Redundant repetition across sections inflates cognitive load, creates maintenance drift, and dilutes signal. Every topic must have a **Single Source of Truth (SSOT)** within `README.md`.
+
+### Strict Section Partitioning Invariants:
+1. **Hero & Value Proposition**:
+   - Answers: *What is this? Who is it for? What problem does it solve in 1 sentence?*
+   - Strictly forbids duplicating CLI commands, configuration flags, or deep architectural breakdowns in the hero.
+2. **Subsystems & Core Capabilities (The "What & Why" SSOT)**:
+   - The authoritative home for architectural capabilities and problem-solution pairs.
+   - Each capability appears **exactly once**. Never restate the same architectural explanation in subsequent sections.
+3. **Runtime Architecture & Pillars (The "How It Works" SSOT)**:
+   - Focuses strictly on dependencies, language versions, execution tiers, and hardware fallbacks.
+   - Refers to capabilities by name or anchor link; never re-explains feature mechanics.
+4. **Quickstart & Workflows (The "How to Run" SSOT)**:
+   - Contains only reproducible execution steps, prerequisite checks, and setup instructions.
+   - Zero conceptual essays or feature sales pitches.
+5. **CLI Command Reference (The Syntax Cheat-Sheet)**:
+   - Contains syntax examples with terse, 1-line command annotations (`# ...`).
+   - Does not repeat problem statements or architectural rationale documented in the Subsystems section.
+6. **Cross-Section Referencing Mandate**:
+   - If a section needs to mention a topic already defined elsewhere in `README.md`, it MUST link to that section anchor (e.g. `[See Dual-Level GraphRAG](#-whats-inside-agents-the-6-core-features)`) instead of re-paraphrasing or writing duplicate prose.

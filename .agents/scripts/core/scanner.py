@@ -10,6 +10,8 @@ from collections import defaultdict
 from typing import Dict, List, Set, Tuple, Any, Optional
 import sqlite3
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 try:
     from core import log_telemetry as _log_telemetry
 except ImportError:
@@ -139,6 +141,12 @@ def dump_frontmatter(metadata: Dict[str, Any], body: str) -> str:
 
 def _should_traverse_dir(d: str, ignore_dirs: Set[str], include_agents_runtime: bool = False) -> bool:
     """Unified directory traversal predicate across all scanner commands."""
+    try:
+        from core.paths import should_traverse_dir, DEFAULT_IGNORE_DIRS
+        if d in DEFAULT_IGNORE_DIRS or d.lower() in DEFAULT_IGNORE_DIRS:
+            return False
+    except ImportError:
+        pass
     if d in ignore_dirs or d.lower() in ignore_dirs:
         return False
     if d.startswith("."):
@@ -167,7 +175,11 @@ def get_audit_targets(directory: str, extensions: List[str], exclude_dirs: List[
 
 def cmd_targets(args: argparse.Namespace) -> None:
     target_dir = getattr(args, 'dir', '.')
-    default_excludes = ["node_modules", "build", "dist", "coverage", ".git", "ios", "android", ".gemini", "__pycache__", "scratch", ".scratch", ".worktrees", ".orion"]
+    try:
+        from core.paths import DEFAULT_IGNORE_DIRS
+        default_excludes = list(DEFAULT_IGNORE_DIRS)
+    except ImportError:
+        default_excludes = ["node_modules", "build", "dist", "coverage", ".git", "ios", "android", ".gemini", "__pycache__", "scratch", ".scratch", ".worktrees", ".orion"]
     default_exts = [".py", ".dart", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".kt", ".java"]
     try:
         manifest_path = os.path.join(target_dir, ".agents", ".project_manifest.json")
@@ -1328,6 +1340,7 @@ def cmd_map(args: argparse.Namespace) -> None:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                creationflags=_WINDOWLESS_FLAGS,
             )
             changed_files = []
             if diff_proc.returncode == 0:
@@ -2334,6 +2347,94 @@ def cmd_security(args: argparse.Namespace) -> None:
         sys.exit(0)
 
 
+# === PROSE AUTHENTICITY AUDIT ===
+
+_PROSE_TIER1 = (
+    "delve", "tapestry", "testament", "pivotal", "beacon", "undeniably", "unwavering",
+    "paramount", "cornerstone", "synergy", "supercharge", "empower", "revolutionize", "unleash",
+)
+_PROSE_CLUSTERS = (
+    "navigating the complexities", "double-edged sword", "at the intersection of",
+    "play a vital role", "testament to the power of", "let's dive in", "i hope this helps",
+)
+_PROSE_BINARY = (
+    re.compile(r"\bnot because\b[^.\n]*,\s*but because\b", re.IGNORECASE),
+    re.compile(r"\bisn['\u2019]t the problem\b", re.IGNORECASE),
+    re.compile(r"\bthe (?:answer|question) isn['\u2019]t\b", re.IGNORECASE),
+    re.compile(r"\bisn['\u2019]t just about\b", re.IGNORECASE),
+    re.compile(r"\bnot only\b[^.\n]*\bbut also\b", re.IGNORECASE),
+)
+
+
+def audit_prose_text(text: str) -> List[Dict[str, Any]]:
+    """Return prose-authenticity findings for Markdown text. Code fences and inline code are skipped."""
+    findings: List[Dict[str, Any]] = []
+    in_fence = False
+    seen_sentences: Dict[str, int] = {}
+    tier1_re = re.compile(r"\b(" + "|".join(_PROSE_TIER1) + r")\b", re.IGNORECASE)
+    for lineno, raw in enumerate(text.splitlines(), 1):
+        if raw.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        line = re.sub(r"`[^`]*`", "", raw)
+        eval_line = re.sub(r"\(\*.*?\*\)", "", line)
+        eval_line = re.sub(r"\(e\.g\.[^)]*\)", "", eval_line, flags=re.IGNORECASE)
+        for m in tier1_re.finditer(eval_line):
+            findings.append({"line": lineno, "category": "AI_TELL", "message": f"Tier 1 AI vocabulary: '{m.group(1)}'"})
+        lowered = eval_line.lower()
+        for phrase in _PROSE_CLUSTERS:
+            if phrase in lowered:
+                findings.append({"line": lineno, "category": "AI_CLUSTER", "message": f"AI phrase cluster: '{phrase}'"})
+        for pat in _PROSE_BINARY:
+            if pat.search(eval_line):
+                findings.append({"line": lineno, "category": "BINARY_CONTRAST", "message": "Binary contrast reversal; state the assertion directly"})
+        if not line.lstrip().startswith(("|", "#", ">")):
+            for sentence in re.split(r"(?<=[.!?])\s+", re.sub(r"\[[^\]]*\]\([^)]*\)", "", line).strip()):
+                norm = re.sub(r"\W+", " ", sentence).strip().lower()
+                if len(norm) >= 60:
+                    if norm in seen_sentences:
+                        findings.append({"line": lineno, "category": "SSOT_DUPLICATE", "message": f"Sentence repeats line {seen_sentences[norm]}"})
+                    else:
+                        seen_sentences[norm] = lineno
+    return findings
+
+
+def audit_prose_paths(paths: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+    """Audit Markdown files/directories; missing paths are skipped."""
+    results: Dict[str, List[Dict[str, Any]]] = {}
+    files: List[str] = []
+    for p in paths:
+        if os.path.isfile(p):
+            files.append(p)
+        elif os.path.isdir(p):
+            for root, dirs, names in os.walk(p):
+                dirs[:] = [d for d in dirs if d not in {".git", "node_modules", ".orion", "scratch", ".scratch", ".worktrees"}]
+                files.extend(os.path.join(root, n) for n in names if n.endswith(".md"))
+    for f in files:
+        if os.path.basename(f) in ("prose-authenticity.md", "PROSE_AUTHENTICITY.md"):
+            continue
+        with open(f, "r", encoding="utf-8", errors="replace") as fh:
+            found = audit_prose_text(fh.read())
+        if found:
+            results[f.replace("\\", "/")] = found
+    return results
+
+
+def cmd_prose(args: argparse.Namespace) -> None:
+    results = audit_prose_paths(list(getattr(args, "paths", []) or []))
+    total = sum(len(v) for v in results.values())
+    if getattr(args, "json", False):
+        print(json.dumps({"findings": results, "total": total}, indent=2))
+    else:
+        for f, items in results.items():
+            for it in items:
+                print(f"[{it['category']}] {f}:{it['line']} {it['message']}")
+        print("[FAIL] Prose violations detected." if total else "[PASS] Prose authenticity verified: 0 findings.")
+    sys.exit(1 if total else 0)
+
+
 # === WORKER DELEGATION OVERLAP GATE ===
 
 def _resolve_local_1hop_closure(raw_paths: List[str], root_dir: str = ".") -> Set[str]:
@@ -2749,7 +2850,7 @@ def cmd_audit_validate(args: argparse.Namespace) -> None:
 
 def main() -> None:
     # Direct invocation support: python scanner.py <path> [--budget 1500]
-    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "delegate-check", "audit-validate", "audit_validate", "-h", "--help"}
+    known_subcmds = {"targets", "map", "repomap", "tokens", "security", "delegate-check", "audit-validate", "audit_validate", "prose", "-h", "--help"}
     if len(sys.argv) > 1 and sys.argv[1] not in known_subcmds:
         if sys.argv[1].startswith("-") and sys.argv[1] not in {"-h", "--help"}:
             sys.argv.insert(1, "repomap")
@@ -2804,6 +2905,11 @@ def main() -> None:
     parser_audit = subparsers.add_parser("audit-validate", aliases=["audit_validate"], help="Validate security audit findings against report-schema.json")
     parser_audit.add_argument("findings_file", help="Path to findings.json to validate")
 
+    # Prose Authenticity
+    parser_prose = subparsers.add_parser("prose", help="Audit Markdown against prose-authenticity rules")
+    parser_prose.add_argument("paths", nargs="*", default=["README.md", "docs", "CHANGELOG.md"], help="Markdown files or directories")
+    parser_prose.add_argument("--json", action="store_true", help="Output results in JSON format")
+
     for sub_p in (parser_targets, parser_map, parser_repomap, parser_tokens, parser_sec, parser_del):
         sub_p.add_argument("--dir", dest="dir_flag", help="Target directory or file override")
 
@@ -2827,6 +2933,8 @@ def main() -> None:
         cmd_delegate_check(parsed_args)
     elif parsed_args.command in ("audit-validate", "audit_validate"):
         cmd_audit_validate(parsed_args)
+    elif parsed_args.command == "prose":
+        cmd_prose(parsed_args)
     else:
         parser.print_help()
 

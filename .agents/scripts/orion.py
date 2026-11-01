@@ -4,6 +4,8 @@ import os
 import subprocess
 import time
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 # Ensure .agents/scripts is in sys.path
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPTS_DIR not in sys.path:
@@ -142,7 +144,11 @@ CMD_MAP = {
     "delegate-check": ["core", "scanner.py"],
     "delegate_check": ["core", "scanner.py"],
     "fast-track": ["commands", "state_machine.py"],
-    "fast_track": ["commands", "state_machine.py"]
+    "fast_track": ["commands", "state_machine.py"],
+    "constellation": ["commands", "constellation.py"],
+    "worktree": ["commands", "worktree.py"],
+    "push": ["commands", "foundation.py"],
+    "project": ["commands", "foundation.py"]
 }
 
 _ALIAS_NAMES = {
@@ -188,12 +194,12 @@ COMPACT_GROUP = {
 # Grouped help sections — order matters for display
 _HELP_GROUPS = {
     "Brain / Knowledge":   ["brain", "context", "ingest", "orion_ops", "raw_ingest", "consolidate",
-                            "contradict", "linkify", "memory", "graph", "gc"],
+                            "contradict", "linkify", "memory", "graph", "gc", "constellation"],
     "Scan / Audit":        ["scan", "verify", "security", "eval", "preflight",
                             "adversarial", "context-lint", "instruction-lint",
                             "matrix", "compile", "consequence"],
     "Compression Suite":   ["compact", "compress", "shrink", "distill"],
-    "Foundation / Deploy": ["setup", "foundation", "hydrate-vision", "dna", "evolve", "bun"],
+    "Foundation / Deploy": ["setup", "foundation", "hydrate-vision", "dna", "evolve", "bun", "push", "project"],
     "Runtime / Misc":      ["fsm", "bento", "reflexion", "harness", "rtk", "telemetry",
                             "sandbox", "events", "pack", "budget",
                             "compile_ast", "diagnostics", "validate-response",
@@ -250,7 +256,7 @@ def main():
         python_exec = sys.executable or "python"
         t0 = time.time()
         try:
-            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args, creationflags=_WINDOWLESS_FLAGS)
             t1 = time.time()
             try:
                 from core.db import SovereignTracer
@@ -318,7 +324,8 @@ def main():
         "shrink", "distill", "compact", "compactor", "diagnostics", "context", "ingest",
         "gc", "clean", "rtk", "rtk_proxy", "bun", "bun_runtime",
         "repomap", "telemetry", "trace", "events", "event_stream",
-        "delegate-check", "delegate_check", "fast-track", "fast_track"
+        "delegate-check", "delegate_check", "fast-track", "fast_track", "constellation",
+        "push", "project"
     }:
         forward_cmd = "delegate-check" if cmd == "delegate_check" else cmd
         args = [forward_cmd] + sys.argv[2:]
@@ -361,7 +368,7 @@ def main():
 
     if not in_process_success:
         try:
-            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args)
+            result = subprocess.run([python_exec, "-X", "utf8", "-B", target_script] + args, creationflags=_WINDOWLESS_FLAGS)
             exit_code = result.returncode
         except KeyboardInterrupt:
             sys.exit(130)

@@ -54,6 +54,14 @@ When dispatching 2–3 subagents concurrently, the Agent MUST structure subagent
    - Isolated partition file list
 This structure maximizes Cloud LLM prefix-cache hits across concurrent subagent executions.
 
+### Gate 4: Sub-Agent Workspace Warm-Up (`orion.py worktree seed`)
+When delegating tasks using isolated branch or worktree workspaces (`Workspace: 'branch'` or `Workspace: 'share'`), the new workspace starts cold (lacking gitignored `.env`, `.orion/working/context.json`, and tool configs).
+1. The Agent MUST execute worktree seeding before dispatching:
+   ```bash
+   python .agents/scripts/orion.py worktree seed <target_workspace_path>
+   ```
+2. The seeder ports all declared `.worktreeinclude` environment files instantly via reflink / hardlink, ensuring subagents never suffer from missing `.env` or missing context crashes.
+
 ---
 
 ## 3. Read-Only Subagent Archetypes (Single-Writer Principle)

@@ -8,6 +8,8 @@
 - **Domain Focus**: {{domain_overview}}
 - **Strategic Insights**: {{strategic_insights}}
 - **Unfair Advantage**: {{unfair_advantage}}
+- **Platform Superpower Exploited**: {{platform_superpower}}
+- **Anti-Reverse Engineering Strategy**: {{hardening_strategy}}
 
 ## 3. System Scope & Boundaries
 - **MVP Scope**: {{mvp_scope}}
@@ -18,4 +20,4 @@
 - **Primary Stack**: {{primary_stack}}
 - **Architectural Pattern**: {{arch_framework}}
 - **Persistence Layer**: {{backend_persistence}}
-- **Core Invariants**: Deterministic verification gates, zero-drift state management, and resource efficiency.
+- **Core Invariants**: Deterministic verification gates, zero-drift state management, resource efficiency, and defense-in-depth hardening.

@@ -15,6 +15,8 @@ When asked to create a project blueprint or strategy, you MUST output a `BLUEPRI
 - **Core Value Proposition**: [1 sentence]
 - **Target Audience**: [Specific demographic/niche]
 - **Monetization Model**: [e.g., Freemium, Usage-based API, One-time]
+- **Platform Superpower Exploited**: [Framework-native unfair advantage, e.g. Impeller 120Hz physics, SIMD/WASM compute, OS background daemons, edge streaming]
+- **Anti-Reverse Engineering Strategy**: [Hardening posture, e.g. AOT symbol splitting, R8 bytecode mangling, zero-trust hardware Keystore/BYOK, cert pinning]
 - **Minimum Viable Feature Set**:
   1. [Feature 1]
   2. [Feature 2]
@@ -31,14 +33,17 @@ When evaluating a new idea, you MUST output this scorecard, and append it to `co
 | **Market Saturation** | ? | Are there 100 competitors or is it a blue ocean? |
 | **Monetization Ease** | ? | Will users actually pay for this? |
 | **Solo-Dev Feasibility** | ? | Can one developer build this in < 1 month? |
+| **Platform Superpower Leverage** | ? | Does it exploit native runtime/platform superpowers over generic web wrappers? |
+| **Anti-Clone Hardening Posture** | ? | Can an AI vibe-coder clone this in 48 hours or is there binary/architecture defensibility? |
 
-If the total score < 25, you MUST recommend pivoting or reducing scope before writing any code.
+If the total score < 36, you MUST recommend pivoting or reducing scope before writing any code.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
 *If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*
 
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
+| **Platform Superpowers & Hardening** | .agents/skills/saas-strategist/references/platform-superpowers.md |
 | **SaaS Growth** | .agents/skills/saas-strategist/references/saas-growth.md |
 | **SaaS Viability** | .agents/skills/saas-strategist/references/saas-viability.md |
 | **Technical Content** | .agents/skills/saas-strategist/references/technical_content.md |

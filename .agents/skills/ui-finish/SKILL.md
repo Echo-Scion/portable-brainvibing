@@ -10,6 +10,8 @@ Enforces high-craft production UI paradigms (Linear, Raycast, Stripe) by rejecti
 
 ## 1. Reference Sitemap (Load On-Demand Only When Needed)
 - **Aesthetic Archetypes & Tokens**: [references/aesthetic_archetypes.md](references/aesthetic_archetypes.md)
+- **Canonical Component Taxonomy**: [references/component_taxonomy.md](references/component_taxonomy.md)
+- **Component Decision Matrix**: [references/component_decision_matrix.md](references/component_decision_matrix.md)
 - **Visual Craft Floor & Refusals**: [references/craft_floor.md](references/craft_floor.md)
 - **Component Recipes**: [references/component_recipes.md](references/component_recipes.md)
 - **Bento Macrostructures**: [references/bento_and_macrostructures.md](references/bento_and_macrostructures.md)

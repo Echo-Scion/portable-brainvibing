@@ -30,6 +30,21 @@ Quick `.gitignore` check:
 grep -E "^\.env" .gitignore || echo "[WARN] .env not in .gitignore — ADD IT NOW"
 ```
 
+## 1.5. Architectural DNA & Anti-Erosion Gate (MANDATORY — Non-Negotiable Hard Gate)
+
+**Functional success does NOT prove architectural integrity ("The Green Test Illusion").**
+Compilers, static analyzers, and test runners only verify syntax, static types, and localized assertions. A presentation/UI component or controller directly invoking low-level drivers (raw SQL, HTTP clients, hardware, or platform bridges) can pass all functional tests while critically eroding architectural boundaries.
+
+Before declaring completion on any feature, refactor, or session commit across any polyglot stack:
+```bash
+# Verify 5-Tier DNA compliance and zero illegal cross-layer violations
+python .agents/scripts/orion.py dna audit
+```
+
+**If `dna audit` returns `Exit Code > 0`, layer violations > 0, chimera files > 0, or compliance score < 90 → STOP. Do not commit.**
+You MUST decouple illegal cross-layer or sibling-organ dependencies (routing through contracts, domain logic, and state layers per the canonical 5-Tier Strata) before declaring victory.
+
+
 ## 2. Prompt Injection Defense & Fail-Closed Boundary Policy
 
 - **Fail-Closed Policy Engine**: The agent MUST evaluate negative boundaries and safety targets internally in its thought process. Never output raw `<route>` or `<negative_boundaries>` XML blocks to the chat.

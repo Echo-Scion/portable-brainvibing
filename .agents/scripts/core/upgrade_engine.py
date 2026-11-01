@@ -23,6 +23,8 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 
 class SplicerMarkerMissingError(Exception):
     """Raised when AGENTS.md or GEMINI.md lacks the required FOUNDATION MANDATES delimiter markers."""
@@ -37,26 +39,34 @@ class UpgradeVerificationError(Exception):
 class SacredFileShield:
     """Guards sovereign user-owned files against upstream clobbering."""
 
-    EXCLUDED_SCAN_DIRS: Set[str] = {
-        ".git",
-        ".orion",
-        ".scratch",
-        "scratch",
-        ".venv",
-        "venv",
-        "node_modules",
-        ".upgrade_stage",
-        ".backup_pre_upgrade",
-        "__pycache__",
-        ".idea",
-        ".vscode",
-    }
+    try:
+        from core.paths import DEFAULT_IGNORE_DIRS
+        EXCLUDED_SCAN_DIRS: Set[str] = set(DEFAULT_IGNORE_DIRS) | {
+            ".upgrade_stage",
+            ".backup_pre_upgrade",
+        }
+    except ImportError:
+        EXCLUDED_SCAN_DIRS: Set[str] = {
+            ".git",
+            ".orion",
+            ".scratch",
+            "scratch",
+            ".venv",
+            "venv",
+            "node_modules",
+            ".upgrade_stage",
+            ".backup_pre_upgrade",
+            "__pycache__",
+            ".idea",
+            ".vscode",
+        }
 
     # Exact paths relative to workspace root that upstream can NEVER overwrite
     SHIELDED_EXACT_ROOT: Set[str] = {
         "VERSION",
         "README.md",
         "CHANGELOG.md",
+        ".worktreeinclude",
         "package.json",
         "pubspec.yaml",
         "pyproject.toml",
@@ -425,6 +435,7 @@ class TransactionalUpgrader:
                             text=True,
                             encoding="utf-8",
                             errors="replace",
+                            creationflags=_WINDOWLESS_FLAGS,
                         )
                         if v_proc.returncode != 0:
                             raise UpgradeVerificationError(

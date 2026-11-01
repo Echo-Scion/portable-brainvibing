@@ -21,6 +21,8 @@ import secrets
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Set, Tuple, Union
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
@@ -248,7 +250,7 @@ def run_ast_grep_scan(target_path: str, rules_path: Optional[str] = None) -> Lis
     findings = []
     try:
         cmd = [sg_bin, "scan", "-r", rules_path, "--json", target_path]
-        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False, creationflags=_WINDOWLESS_FLAGS)
         if res.stdout:
             try:
                 items = json.loads(res.stdout)
@@ -1649,7 +1651,11 @@ class SecurityAuditor:
             target_dir = self.root_dir
 
         if exclude_dirs is None:
-            exclude_dirs = {'.git', '.orion', 'node_modules', '__pycache__', '.system_generated', 'scratch', '.scratch', '.worktrees', '.venv', 'venv', 'build', 'dist', 'teamwork', 'archive'}
+            try:
+                from core.paths import DEFAULT_IGNORE_DIRS
+                exclude_dirs = set(DEFAULT_IGNORE_DIRS)
+            except ImportError:
+                exclude_dirs = {'.git', '.orion', 'node_modules', '__pycache__', '.system_generated', 'scratch', '.scratch', '.worktrees', '.venv', 'venv', 'build', 'dist', 'teamwork', 'archive'}
 
         all_active: List[Dict[str, Any]] = []
         all_suppressed: List[Dict[str, Any]] = []

@@ -8,111 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.0.2
 
 - 
 
+## [0.0.4] - 2026-11-01
+
+### Added
+- **Orion Constellation Multi-Project Knowledge Mesh & Supervisory Vault (`core/spoke_mesh.py`, `commands/constellation.py`, `core/memory.py`)**:
+  - Added autonomous spoke star discovery (`discover_spokes`) across sibling developer repositories.
+  - Added metadata harvesting for DNA states, compliance scores, archetype profiles, and domain context files (`VISION.md`, `MEMORY.md`, `ARCHITECTURE.md`, `BLUEPRINT.md`).
+  - Added timestamp-based dirty cache checking (`.orion/working/constellation_cache.json`) to skip unedited repositories during periodic scans.
+  - Added `ConstellationVaultExporter` generating unified Obsidian vaults under `constellation/` with portfolio scorecards (`00_Hub/Overview.md`), namespaced notes (`[[Stars/<project>/<file>]]`), and technology concept hubs (`Taxonomies/<tech>.md`).
+  - Added unified CLI commands: `orion constellation status`, `orion constellation sync`, and `orion constellation export`.
+  - Added comprehensive test suite in `test_spoke_mesh_constellation.py` (4 unit tests).
+- **Universal Dynamic Polyglot Version Synchronizer (`core/dna.py`, `commands/foundation.py`)**:
+  - Replaced rigid, static manifest chain with `DynamicVersionScanner` and rich `VersionState` / `VersionSink` architecture.
+  - Dynamically discovers structured manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `build.gradle*`, `deno.json`, `composer.json`, `Makefile`, `CMakeLists.txt`, `Directory.Build.props`, `tauri.conf.json`, `app.json`, `plugin.json`, `VERSION`).
+  - Added discovery and atomic syncing for unconventional version files (`version.txt`, `version.json`, `version.yaml`) and `README.md` shields badges and version headers with dependency noise exclusion.
+  - Added dynamic mobile/Flutter build number auto-incrementing (`version: 1.0.0+1` -> `1.0.1+2` and Gradle `versionCode 1` -> `2`) with explicit `--build-number <N>` CLI override.
+  - Added source code constant discovery and atomic synchronization (`.version("...")`, `version: "..."`, `__version__ = "..."`, `const VERSION = "..."`).
+  - Added context roadmap phase milestone sync (`context/01_Product/ROADMAP.md`), foundation metadata sync (`.project_manifest.json`, `.dna.json`), and epigenetic custom sinks.
+  - Enforced strict uninitiated greenfield protection (`0.0.0`) preventing fabricated version files or artificial bumps.
+  - Added 16 comprehensive universal unit test suites in `test_dna_semver_universal.py`.
+- **Google Labs `design.md` DTCG Token Specification Interoperability (`.agents/templates/DESIGN.template.md`, `ui-finish`)**:
+  - Upgraded `DESIGN.template.md` to full parity with Google Labs `design.md` W3C DTCG YAML front matter tokens (`tokens.colors`, `tokens.typography`, `tokens.spacing`, `tokens.rounded`, `tokens.elevation`, `tokens.motion`, `tokens.breakpoints`).
+  - Added comprehensive standards for corner radii scale, 4-tier elevation surface layering, motion transitions with `@media (prefers-reduced-motion)`, iconography standards, and strict Do's & Don'ts agent behavioral constraints.
+- **Internal Workspace Asset Isolation (`.gitignore`)**:
+  - Explicitly isolated `/constellation/` and `/.worktrees/` in root `.gitignore`, ensuring internal supervisory star nodes and git worktrees are never committed to public repositories.
+- **Unified Project Push Pipeline & Git Pre-Push Hook (`commands/foundation.py`, `core/scanner.py`, `orion.py`)**:
+  - Added `orion push` and `orion project push` with 5-Gate pre-flight verification sequence (Security & Secret scan, Test Suite, Living DNA Architecture Audit, Documentary Knowledge Sync & Prose Authenticity, SemVer & Keep a Changelog sync).
+  - Added `orion project install-hooks` generating POSIX and MinGW compatible `.git/hooks/pre-push` with non-destructive backup (`pre-push.bak`).
+  - Added `orion scan prose` auditing Markdown files against AI tell vocabulary, phrase clusters, binary contrast reversals, and SSOT section duplication with example quote filtering.
+  - Added comprehensive test suite in `test_project_push.py` (12 unit tests).
+- **Automated Spoke Changelog Seeding & Template Propagation (`commands/foundation.py`, `session-offload`)**:
+  - Linked `CHANGELOG.template.md` to deployment seed files and added automatic seeding fallback to `/session-offload` Step 3.6.
+- **Anti-Split Stack Formula Master Canon & Unfair Architecture (`canons/ecosystems/flutter/`)**:
+  - Added master canon `flutter-anti-split-formula.md` codifying the 5 Pillars of Unfair Flutter (Impeller 120Hz GPU canvas, Rust FFI compute companion, split-domain WasmGC web, local-first Drift SQLite WAL sovereignty, and AOT binary hardening).
+  - Refactored `flutter-standards.md` to purge legacy split-stack assumptions (such as syncing between Next.js Web and Flutter Mobile) and mandate 120Hz Impeller framerates and zero-copy FFI memory pointers.
+  - Refactored `flutter-init.md` to scaffold `shaders/`, `native/`, and Drift SQLite WAL directories on turn 1.
+  - Updated `pubspec.md` micro-canon to blessed Drift, SQLite, and Rust FFI dependencies.
+- **Canonical Component Taxonomy & Design System Decision Matrix (`ui-finish`, `DESIGN.template.md`)**:
+  - Cataloged ~60 canonical UI primitives across 6 functional domains in `.agents/skills/ui-finish/references/component_taxonomy.md` with multi-platform parity across Web (HTML5/Radix/Tailwind), Flutter (M3), and Android (Jetpack Compose).
+  - Defined 4 contextual selection trees (Overlay triage, Data display triage, Form input triage, Navigation triage) and design system archetype pairings (Linear, Carbon, Polaris, Apple HIG) in `.agents/skills/ui-finish/references/component_decision_matrix.md`.
+  - Added Section 8.1 "Canonical Component Primitive Contract (Anti-Slop Alignment)" to `.agents/templates/DESIGN.template.md` to bind local project design tokens to verified canonical primitives.
+  - Added ad-hoc wrapper soup and modal overuse refusal patterns to `.agents/skills/ui-finish/references/craft_floor.md`.
+  - Attributed design system cataloging inspiration to [The Component Gallery](https://component.gallery/) (curated by Iain Bean) across documentation and reference headers.
+
 ## [0.0.3] - 2026-10-31
 
 ### Added
-- **Framework Upgrade Command (`orion upgrade`)**:
-  - Added `orion upgrade` (`foundation-upgrade`) with `--check`, `--dry-run`, `--source`, and `--force` options to update framework assets from upstream repositories.
-  - Added protection shield for user configuration, custom rules, local canons, and `.orion/` state during upgrades.
-  - Added automated mandate splicing to update core guardrails in `AGENTS.md` and `GEMINI.md` while preserving custom `## PROJECT-SPECIFIC MANDATES`.
-  - Added transactional staging with automated rollback on verification failure.
-- **Plain Engineering Language Guidelines (`lessword`, `AGENTS.md`, `GEMINI.md`)**:
-  - Added section 3.5 to `lessword` enforcing concise, active verbs (use, fix, check) per ASD-STE100 guidelines to eliminate archaic phrasing and fragmented sentences.
-  - Synchronized language guidelines across root instruction files and templates within size limits.
-- **Multi-Session Cold-Start Registry (`pre-agent-wake.py`)**:
-  - Added session-keyed registry to track cold-start states across concurrent chat sessions without state collisions.
-  - Added UTF-8 BOM decoding for non-blocking stdin pipes.
-- **Index Reference Verification (`verify_agents.py`)**:
-  - Added bidirectional verification ensuring documented tools and references in `AGENTS_INDEX.md` match existing repository files.
-- **12-Vector Security Suite & 3-Branch Findings Validator (`integrity-sentinel`, `audit_vectors.md`, `core/scanner.py`, `orion.py`)**:
-  - Added security audit modules covering AI boundary validation, native memory safety, and IPC security.
-  - Added dedicated runbooks: `ai_llm_attacks.md` (prompt injection, tool argument validation, RAG boundary security), `memory_safety_and_binary.md` (buffer bounds, use-after-free, integer overflow allocations), and `desktop_mobile_ipc.md` (peer authentication, deep-link validation, IPC access control).
-  - Expanded diagnostic vectors in `audit_vectors.md` from 9 to 12 categories.
-  - Added report schema validation (`orion.py scan audit-validate <json>`) with 3-branch classification (`confirmed`, `needs_validation`, `rejected`).
-- **Auto-Pipe Detection for Agent Wake Hooks (`pre-agent-wake.py`, `foundation.py`)**:
-  - Added automatic detection for stdin JSON payloads in `pre-agent-wake.py`, enabling hook mode without requiring explicit command-line flags.
-  - Synchronized hook definitions across Gemini, Claude Code, and Cursor environment templates.
-  - Added `SessionStart` event array to `.agents/hooks.json` and normalized `.gemini/settings.json`.
-- **Optional Isolated Accelerators (`performance-optimization.md`, `core/accelerators.py`)**:
-  - Added isolated accelerator support (`orjson`, `rapidfuzz`, `tree-sitter`) in user cache directory without modifying workspace dependencies.
-  - Added fallback paths to standard library modules when accelerators are absent.
-  - Added test suite `test_tier2_accelerators.py` covering standard and accelerated execution paths.
-- **Execution Tier Recommendations (`tier-execution-protocol.md`, `AGENTS.md`, `GEMINI.md`)**:
-  - Added model tier recommendations (`BUDGET`, `STANDARD`, `PREMIUM`) across turn responses and implementation plans.
-- **Scaffolding Optimization Metric (`core/capabilities.py`)**:
-  - Added dynamic task complexity scoring to route pre-analyzed tasks to cost-effective model tiers.
-- **Dynamic Symbol Boundary Resolution (`commands/bento_slicer.py`)**:
-  - Added AST symbol span resolution to dynamically locate modified function and class line ranges on disk before editing.
-- **Pre-Flight Syntax and Scope Validation (`commands/bento_slicer.py`)**:
-  - Added pre-flight AST syntax checks and file scope verification before running test gates.
-- **Task Failure Error Tracing (`commands/bento_slicer.py`)**:
-  - Added automatic capture of command failure traces and error context during task verification.
-- **Fast-Track Task Execution (`commands/state_machine.py`, `orion.py`)**:
-  - Added `fast-track` command for direct single-task execution without multi-stage planning overhead.
-- **Differential Code Mapping (`core/scanner.py`, `orion.py`)**:
-  - Added `--diff` flag to `orion scan map` to extract symbol skeletons only for modified or untracked files.
-- **Cognitive Scaffolding Test Suite (`.agents/scripts/tests/test_scaffolding_evolution.py`)**:
-  - Added 8 unit and contract tests verifying scaffolding scoring, hazard detection, live AST symbol resolution, and fast-track boundaries.
-- **Project Vision Hydration (`commands/foundation.py`, `orion.py`)**:
-  - Added `hydrate-vision` command to generate and update project vision documentation from local models or user input.
-  - Enforced draft isolation (`context/VISION.draft.md`) requiring explicit user confirmation before replacing existing vision files.
-  - Added zero-overwrite safety preserving existing custom `VISION.md` files unless `--force` is specified.
-- **Context Pillar Templates (`.agents/templates/`)**:
-  - Added `BLUEPRINT.template.md`, `ROADMAP.template.md`, and updated `STYLE_GUIDE.template.md` for project strategy and architecture structure.
-  - Indexed all templates in `.agents/templates/TEMPLATES.md`.
-- **Strict TDD Verification Suite (`.agents/scripts/tests/test_vision_hydration_and_fixes.py`)**:
-  - Added 6 unit tests validating template references, Git hook portability, CLI routing, draft isolation, and overwrite safety.
-- **Architectural Invariant Scanning (`utils/packer.py`)**:
-  - Added comment parser for invariant intent tags (`INVARIANT`, `ARCH-DECISION`, `OS-WORKAROUND`, `INTENTIONAL-BYPASS`) across supported languages.
-  - Integrated invariant discovery into audit specification bundles under declared architectural invariants.
-- **Early-Return and Constraint Analysis (`utils/packer.py`)**:
-  - Added explicit handling for conditional return guards and intentional bypasses in web audit specifications.
-- **Full Vision Guidance Extraction (`utils/packer.py`)**:
-  - Added extraction of core principles, invariants, and non-goals into audit specifications.
-- **Custom Invariant Preservation (`core/dna.py`)**:
-  - Added preservation of user-defined invariants during project DNA analysis.
-- **Code Authenticity Invariant Mandate (`templates/AGENTS.template.md`, `AGENTS.md`, `GEMINI.md`)**:
-  - Codified requirement that intentional bypasses and workarounds be documented with `INVARIANT [<TAG>]: <WHY>` annotations.
-- **Android Ecosystem Specifications (`.agents/canons/ecosystems/android/`)**:
-  - Added reference standards and tooling manifests for Kotlin, Jetpack Compose, XML layouts, and emulator management.
+- **Framework Upgrade & Upstream Deployment Engine (`orion upgrade`, `commands/foundation.py`)**: Added `orion upgrade` (`foundation-upgrade`) with `--check`, `--dry-run`, and `--source` flags for automated, transactional upstream syncing with rollback safety, user asset protection shields, and automated mandate splicing in `AGENTS.md` and `GEMINI.md`.
+- **Dynamic Path Resolver & Anti-Brittleness Architecture (`core/paths.py`, `commands/verify_agents.py`)**: Added unified `get_workspace_files()` leveraging `git ls-files` (<50ms execution), promoted pure standard library `GitIgnoreFilter`, added in-place `dirs[:]` traversal pruning, bounded in-memory text cache (`_TEXT_CACHE` LRU), and dynamic SQLite schema and framework discovery.
+- **12-Vector Defense-in-Depth Security Suite (`integrity-sentinel`, `audit_vectors.md`, `core/scanner.py`)**: Added dedicated runbooks for AI boundary validation (`ai_llm_attacks.md`), native memory safety (`memory_safety_and_binary.md`), and IPC access control (`desktop_mobile_ipc.md`) with 3-branch classification (`confirmed`, `needs_validation`, `rejected`).
+- **Cognitive Scaffolding & Dynamic AST Boundary Engine (`commands/bento_slicer.py`, `tier-execution-protocol.md`)**: Added live AST symbol span resolution, pre-flight syntax checks, task complexity scoring, execution tier recommendations (`BUDGET`, `STANDARD`, `PREMIUM`), and fast-track execution.
+- **Ecosystem Templates & Minor Tooling Enhancements**: Added templates for Blueprint and Roadmap strategy pillars (`.agents/templates/`), Android ecosystem standards (Kotlin, Compose, XML views), invariant comment annotations (`INVARIANT [<TAG>]: <WHY>`), non-blocking stdin hook auto-pipe detection, and isolated Tier-2 optional native accelerators (`orjson`, `rapidfuzz`).
 
 ### Changed
-- **Reconnaissance Rule Refinement (`tier-execution-protocol.md`)**:
-  - Allowed reading AST skeleton maps and inspecting active tasks or targeted functions (<= 100 lines) without triggering tier escalation.
-- **Task Delegation Hazard Verification (`core/scanner.py`)**:
-  - Added write-set and read-set conflict detection to prevent concurrent execution on shared files.
-- **Cross-Platform Shell & Line-Ending Invariants (`AGENTS.md`, `GEMINI.md`, `AGENTS.template.md`)**:
-  - Standardized `.gitattributes` (`* text=auto eol=lf`) and `core.autocrlf false` to prevent Windows CRLF byte-mismatch issues.
-  - Updated OS invariants to support both Windows PowerShell and POSIX/macOS environments.
-  - Synchronized JIT Routing Tables to 34 rows across instruction files.
-- **Agent Tooling Directory Quarantine (`utils/packer.py`)**:
-  - Added agent runtime metadata folders (`.hermes`) to default ignore lists, preventing agent metadata from entering project audit bundles.
-- **Stub Detection Refinement (`utils/packer.py`)**:
-  - Exempted code lines tagged with invariant anchors from stub smell warnings.
-- **Spoke Deployment Configuration Preservation (`commands/foundation.py`)**:
-  - Preserved existing `.dna.json` properties during spoke repository updates.
-- **Cross-Platform Git Hook Generation (`commands/foundation.py`)**:
-  - Used dynamic Python binary discovery (`command -v python3 || command -v python`) in generated hooks for Linux and macOS compatibility.
-- **Workspace Path Resolution in Verifier (`commands/verify_agents.py`)**:
-  - Added project root fallback and exempted reflection logs from ghost reference false positives.
-- **Observation Tracking Synchronization (`commands/compact.py`, `.security-baseline.json`)**:
-  - Added generation-based observation digest and updated security pattern baseline.
+- **Reconnaissance & Quarantine Refinements**: Refined reconnaissance thresholds to permit inspecting AST skeletons without tier escalation, added concurrency conflict detection to sub-agent delegation, and quarantined agent runtime directories from audit bundles.
+- **Cross-Platform & Portability Standards**: Standardized `.gitattributes` to LF line endings, unified PowerShell and POSIX invariants, and synchronized JIT routing tables across root instructions.
 
 ### Fixed
-- **Vision Document Brief Parsing (`utils/packer.py`)**:
-  - Resolved parsing truncation where brief extraction stopped after early section lines.
-- **Spoke Deployment Verification**:
-  - Verified clean synchronization across downstream target projects with test suites passing.
-- **Template Reference in Setup Pipeline (`commands/foundation.py`)**:
-  - Corrected template path reference for architecture scaffolds in `execute_setup_pipeline`.
-- **Template Variable Replacement (`commands/foundation.py`)**:
-  - Fixed variable substitution order to prevent single-brace syntax leaks in generated documentation.
-- **Framework Detection Accuracy (`commands/compact.py`)**:
-  - Checked `.project_manifest.json` before string matching to ensure accurate architectural tagging in summaries.
-- **Tool Reference Cleanup**:
-  - Removed outdated tool references across rule and skill documentation.
-- **Defensive Subprocess Encoding (`commands/foundation.py`)**:
-  - Added explicit UTF-8 text encoding to `orion_ops ingest` subprocess invocations.
+- **Parsing, Deployment & Encoding Hardening**: Resolved vision brief parsing truncation, fixed template variable substitution order, corrected setup scaffold paths, eliminated subprocess text encoding ambiguities across hooks, and addressed false positives in ghost reference checks.
 
 ## [0.0.2] - 2026-10-27
 
