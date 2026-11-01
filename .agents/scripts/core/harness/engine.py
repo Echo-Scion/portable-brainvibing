@@ -221,7 +221,7 @@ class HarnessEngine:
                 verify_err = ""
                 try:
                     import subprocess
-                    from core.paths import get_workspace_dir
+                    from core.paths import get_workspace_dir, WINDOWLESS_FLAGS
                     orion_bin = os.path.join(str(get_workspace_dir()), ".agents", "scripts", "orion.py")
                     if os.path.exists(orion_bin):
                         proc = subprocess.run(
@@ -231,7 +231,8 @@ class HarnessEngine:
                             encoding="utf-8",
                             errors="replace",
                             timeout=30,
-                            cwd=str(get_workspace_dir())
+                            cwd=str(get_workspace_dir()),
+                            creationflags=WINDOWLESS_FLAGS,
                         )
                         if proc.returncode != 0:
                             verify_ok = False

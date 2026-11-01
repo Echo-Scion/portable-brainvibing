@@ -1,0 +1,19 @@
+# .worktreeinclude
+# ==============================================================================
+# Declarative Whitelist for Git Worktrees & Isolated Sub-Agent Workspaces
+# Ported automatically into newly spawned worktrees (via 'orion.py worktree seed')
+# Format: standard .gitignore-style wildcards and paths.
+# ==============================================================================
+
+# Local Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# Agent & Orion Operational Memory
+.orion/working/context.json
+.agents/.project_manifest.json
+.agents/.foundation_path
+
+# Local Overrides & Tool Data
+local/

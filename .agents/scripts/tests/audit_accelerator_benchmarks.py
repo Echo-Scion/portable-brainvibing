@@ -18,7 +18,10 @@ import difflib
 import sqlite3
 import struct
 import tempfile
+import subprocess
 from typing import List, Dict, Any
+
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
 
 # Ensure scripts dir on sys.path
 _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -268,7 +271,7 @@ def benchmark_cold_start_redundancy():
     timings = []
     for _ in range(5):
         t0 = time.perf_counter()
-        subprocess.run(cmd_help, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        subprocess.run(cmd_help, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=_WINDOWLESS_FLAGS)
         timings.append((time.perf_counter() - t0) * 1000.0)
 
     avg_startup = sum(timings) / len(timings)

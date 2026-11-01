@@ -129,8 +129,8 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 
 ### 12.20. `ui-finish`
 - **Domain**: Premium visual aesthetics, restrained design, and UI state polish.
-- **Core Directives**: Linear/Raycast design aesthetics, empty state designs, loading skeletons, and design token contracts.
-- **Reference**: `.agents/skills/ui-finish/references/visual_engineering.md`.
+- **Core Directives**: Linear/Raycast design aesthetics, empty state designs, loading skeletons, canonical component taxonomy (~60 primitives), design system triage decision trees, and design token contracts.
+- **References**: `craft_floor.md`, `visual_engineering.md`, `component_taxonomy.md`, `component_decision_matrix.md`.
 
 ### 12.21. `worker-delegate`
 - **Domain**: Sub-agent task decomposition and asynchronous delegation.

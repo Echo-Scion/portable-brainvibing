@@ -22,6 +22,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict, List, Optional, Tuple, Set
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 try:
     from core.db import log_telemetry as _log_telemetry, atomic_write_text
 except ImportError:
@@ -138,6 +140,7 @@ def _binary_version(path: str) -> Optional[str]:
             errors="replace",
             timeout=3,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         if result.returncode == 0:
             return result.stdout.strip() or None
@@ -512,7 +515,7 @@ def detect_hardware() -> Dict[str, Any]:
                         break
         elif os.name == "nt":
             try:
-                res = subprocess.run(["wmic", "OS", "get", "TotalVisibleMemorySize", "/Value"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2)
+                res = subprocess.run(["wmic", "OS", "get", "TotalVisibleMemorySize", "/Value"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2, creationflags=_WINDOWLESS_FLAGS)
                 for line in res.stdout.splitlines():
                     if "TotalVisibleMemorySize=" in line:
                         val = line.split("=")[1].strip()
@@ -1314,6 +1317,7 @@ def run_rtk_proxy(args: List[str]) -> int:
                     errors='replace',
                     timeout=3,
                     shell=False,
+                    creationflags=_WINDOWLESS_FLAGS,
                 )
                 if proc.stdout and proc.stdout.strip():
                     try:
@@ -1406,6 +1410,7 @@ def run_rtk_proxy(args: List[str]) -> int:
             shell=False,
             stdin=subprocess.DEVNULL,
             timeout=180,
+            creationflags=_WINDOWLESS_FLAGS,
         )
 
         final_stdout = result.stdout
@@ -1509,7 +1514,7 @@ class BunRuntimeEngine:
             return True, self._version_cache
 
         try:
-            res = subprocess.run([self.bun_bin, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3)
+            res = subprocess.run([self.bun_bin, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3, creationflags=_WINDOWLESS_FLAGS)
             if res.returncode == 0:
                 self._version_cache = res.stdout.strip()
                 return True, self._version_cache
@@ -1537,7 +1542,8 @@ class BunRuntimeEngine:
                 text=True,
                 encoding='utf-8',
                 errors='replace',
-                timeout=timeout
+                timeout=timeout,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             return {
                 "status": "SUCCESS" if proc.returncode == 0 else "FAILED",
@@ -1582,7 +1588,7 @@ class BunRuntimeEngine:
 
         cmd = [self.bun_bin, "test", test_target]
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, creationflags=_WINDOWLESS_FLAGS)
             return {
                 "status": "PASS" if proc.returncode == 0 else "FAIL",
                 "exit_code": proc.returncode,

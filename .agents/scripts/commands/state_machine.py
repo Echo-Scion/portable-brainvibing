@@ -14,6 +14,8 @@ import subprocess
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Callable, Tuple
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 # Force utf-8
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     try:
@@ -246,11 +248,11 @@ class StateGraph:
 def get_git_tree_sha() -> Optional[str]:
     """Non-destructively gets current git commit or stash object SHA representing code state."""
     try:
-        res = subprocess.run(["git", "stash", "create"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5)
+        res = subprocess.run(["git", "stash", "create"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, creationflags=_WINDOWLESS_FLAGS)
         stash_sha = res.stdout.strip()
         if stash_sha:
             return stash_sha
-        res_head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3)
+        res_head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3, creationflags=_WINDOWLESS_FLAGS)
         if res_head.returncode == 0:
             return res_head.stdout.strip()
     except Exception as _e:
@@ -405,12 +407,12 @@ def cmd_rollback(session_id, step=None, restore_code=False):
                 if dirty_sha and dirty_sha != git_sha:
                     subprocess.run(
                         ["git", "stash", "store", "-m", f"pre-rollback-backup-{session_id}", dirty_sha],
-                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, shell=False
+                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, shell=False, creationflags=_WINDOWLESS_FLAGS
                     )
                     print(f"[FSM] Saved dirty working tree backup to stash ({dirty_sha[:8]}).")
                 ret = subprocess.run(
                     ["git", "checkout", git_sha, "--", "."],
-                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10, shell=False
+                    capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10, shell=False, creationflags=_WINDOWLESS_FLAGS
                 )
                 if ret.returncode == 0:
                     print(f"[FSM] Restored codebase files to snapshot {git_sha[:8]}.")

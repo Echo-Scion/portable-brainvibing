@@ -37,7 +37,8 @@ Centralized infrastructure utilities imported across the ecosystem:
 - **`core/db.py`**: Centralized SQLite3 connection manager and telemetry tracer. Mandates `PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;` across all database operations, and guards test runners (`unittest`/`pytest`) against writing telemetry into the production `.agents/OBSERVATIONS.md`.
 - **`core/memory.py`**: Virtual context manager and 3-tier Observational Memory engine. Manages dynamic token budgets (`max(3600, total // 2)`), ephemeral observation anchors (`[O1]`–`[On]`), zero-LLM generational rollover (`memory_generations` with millisecond-resolution `GEN-<count>-<ms>` IDs), `superseded_by` lineage, and on-demand anchor recall (`recall_anchor`).
 - **`core/capabilities.py`**: Single source of truth for the 4-Pillar capability matrix (Universal Local AI Coprocessor with multi-port auto-probe across Ollama, llama-server, LM Studio, and vLLM; RTK proxy stream filter; Bun static runtime engine) with 900s TTL cache in `.orion/working/capabilities.json`.
-- **`core/dna.py`**: Universal Project DNA sequencer classifying repository files across 5 architectural tiers (`contracts`, `domain`, `services`, `state`, `presentation`).
+- **`core/dna.py`**: Universal Project DNA sequencer classifying repository files across 5 architectural tiers (`contracts`, `domain`, `services`, `state`, `presentation`). Houses the Dynamic Polyglot Version Scanner (`DynamicVersionScanner`) detecting manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `build.gradle*`, `deno.json`, `composer.json`, `Makefile`, `CMakeLists.txt`), unconventional files (`version.txt`, `version.json`, `version.yaml`), `README.md` badges/headers, and atomic multi-sink synchronizer (`update_project_version`).
+- **`core/spoke_mesh.py`**: Constellation spoke star discovery, metadata harvesting, dirty cache tracking, and Obsidian portfolio vault exporter.
 - **`core/paths.py`**: Deterministic path resolution and persistence anchors across the repository.
 - **`core/security.py`**: Static AST security scanner utilizing CST rules to identify injection patterns, leaked credentials, and unsafe calls.
 - **`core/scanner.py`**: Scans for ghost tokens, generates PageRank-ordered structural AST code skeletons, computes per-extension token analytics, and isolates offensive audit targets.
@@ -55,7 +56,8 @@ Centralized infrastructure utilities imported across the ecosystem:
 ---
 
 ### 16.2. Cluster 1: Foundation & Deployment Engine
-- **`commands/foundation.py` (`orion.py setup`, `orion.py init`, `orion.py doctor`, `orion.py onboard`, `orion.py deploy`, `foundation sync-ai`, `foundation push-upstream`)**: Unified interactive setup, onboarding, and diagnostic wizard. Features hardware RAM/VRAM inspection, hardware-fit model recommendations (Ollama / llama-server), 4-pillar toolchain doctor checks, project scaffolding, and upstream synchronization.
+- **`commands/foundation.py` (`orion.py setup`, `orion.py init`, `orion.py doctor`, `orion.py onboard`, `orion.py deploy`, `orion.py upgrade`, `orion.py dna semver`, `orion.py dna bump`, `foundation sync-ai`, `foundation push-upstream`)**: Unified interactive setup, onboarding, diagnostic, and release engine. Features hardware RAM/VRAM inspection, hardware-fit model recommendations (Ollama / llama-server), 4-pillar toolchain doctor checks, project scaffolding, upstream synchronization, dynamic polyglot SemVer evaluation, and atomic multi-sink release bumping.
+- **`commands/constellation.py` (`orion.py constellation status`, `sync`, `export`)**: Supervisory Multi-Project Knowledge Mesh discovering sibling spoke projects, harvesting living DNA metadata, and projecting unified Obsidian second-brain vaults.
 
 ---
 
@@ -69,7 +71,7 @@ Centralized infrastructure utilities imported across the ecosystem:
 
 ### 16.4. Cluster 3: Quality Gates, Integrity & Security
 - **`commands/verify_agents.py` (`orion.py verify`, `preflight`, `adversarial`, `context-lint`, `instruction-lint`)**: Supreme ecosystem integrity gatekeeper. Combines 8-gate mechanical integrity, structural ceiling enforcement (`core_max_lines` frontmatter ratchet), pre-flight diagnostics, adversarial mutation testing (`--diff`, `--fail-fast` / `-x`), context naming lint, and instruction language lint.
-- **`core/security.py` (`orion.py scan security <file>`)**: Static AST security scanner utilizing CST rules to identify injection patterns, leaked credentials, and unsafe calls.
+- **`core/security.py` (`orion.py scan security <file>`)**: Executes AST vulnerability analysis, Trojan Source detection, and security baseline suppression.
 - **`core/sandbox.py` (`orion.py sandbox --code <code>`)**: AST-gated hermetic execution sandbox enforcing PEP 578 audit hooks to isolate untrusted scripts, intercept filesystem mutations, and block subprocess execution outside `_JAIL_ROOT`.
 
 ---

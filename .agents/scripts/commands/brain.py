@@ -43,6 +43,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 # Prevent Python from writing .pyc and __pycache__ inside .agents ecosystem
 sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
@@ -162,7 +164,7 @@ def detect_hardware():
     try:
         smi_bin = "nv" + "idia-smi"
         cmd = [smi_bin, '--query-gpu=name,memory.total', '--format=csv,noheader,nounits']
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=3, encoding='utf-8', errors='replace')
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=3, encoding='utf-8', errors='replace', creationflags=_WINDOWLESS_FLAGS)
         if res.returncode == 0 and res.stdout.strip():
             lines = res.stdout.strip().split('\n')
             total_mb = 0
@@ -3009,7 +3011,7 @@ def spawn_background_triplet_miner() -> bool:
             "shell": False,
         }
         if sys.platform == "win32":
-            kwargs["creationflags"] = 0x00000008 | 0x00000200
+            kwargs["creationflags"] = 0x00000008 | 0x00000200 | _WINDOWLESS_FLAGS
         else:
             kwargs["start_new_session"] = True
 
@@ -3072,6 +3074,12 @@ def run_local_triplet_miner_worker(sub_args=None) -> int:
                     full_path = os.path.join(WORKSPACE_DIR, source_rel)
 
                 if not os.path.exists(full_path):
+                    continue
+
+                try:
+                    if os.path.getsize(full_path) > 1_000_000:
+                        continue
+                except OSError:
                     continue
 
                 try:
@@ -3210,10 +3218,15 @@ def gc_main(argv=None):
 
     workspace_dir = WORKSPACE_DIR
 
+    try:
+        from core.paths import should_traverse_dir
+    except ImportError:
+        def should_traverse_dir(d: str, **kwargs) -> bool:
+            return not d.startswith(".") and d not in ("node_modules", ".dart_tool", "build", "dist", "target", "venv", ".venv")
+
     # 1. Sweep .orion_mut_bak files across workspace
     for root, dirs, files in os.walk(workspace_dir):
-        if any(ignored in root for ignored in [".git", "node_modules", ".dart_tool"]):
-            continue
+        dirs[:] = [d for d in dirs if should_traverse_dir(d, allow_agents=True)]
         for f in files:
             if f.endswith(".orion_mut_bak"):
                 p = os.path.join(root, f)

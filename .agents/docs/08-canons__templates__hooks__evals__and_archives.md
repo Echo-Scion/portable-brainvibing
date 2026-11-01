@@ -55,7 +55,8 @@ Standardized scaffolds for generating new assets and bootstrapping projects acro
 | `MEMORY.template.md` | State tracking | SaaS project status, active tasks, and session handoff |
 | `TASK_PLANNING.template.md` | Planning checklists | Implementation plans, execution checklists, and atomic Bento sub-tasks |
 | `STYLE_GUIDE.template.md` | Design tokens | Visual design system, color palettes, and typographic tokens |
-| `DESIGN.template.md` | Visual craft | Master 20+ design archetypes, color palettes, and locked visual tokens |
+| `DESIGN.template.md` | Visual craft | Google Labs design.md DTCG tokens, 12 aesthetic archetypes, motion, elevation, corner radii, and Do's/Don'ts matrix |
+| `CHANGELOG.template.md` | Versioning | Keep a Changelog seed with strict unreleased triage, public-facing neutrality, and zero AI fingerprints |
 | `ADR.template.md` | Architectural decisions | Architectural Decision Record standard (Status, Context, Decision, Consequences) |
 | `AI_ADAPTER.template.md` | Tool adapters | Lightweight adapters routing external IDEs to canonical AGENTS.md |
 | `CURSOR_RULE.template.mdc` | Cursor IDE | Native Cursor project rule adapter |

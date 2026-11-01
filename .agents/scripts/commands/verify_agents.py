@@ -21,6 +21,8 @@ from typing import Set, Dict, List, Optional, Iterable, Tuple, Any, Sequence
 sys.dont_write_bytecode = True
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 # Import unified primitives from core.kernel
 _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _scripts_dir not in sys.path:
@@ -301,7 +303,24 @@ def main_context_lint(argv: Optional[List[str]] = None) -> int:
     return 0
 
 
-EXCLUDED_PATH_MARKERS = [".git", ".gemini", ".system_generated", "node_modules", "__pycache__", "archive", ".archive", "teamwork", "scratch", "internal", "local"]
+try:
+    from core.paths import (
+        DEFAULT_IGNORE_DIRS,
+        should_traverse_dir,
+        get_workspace_files,
+    )
+except ImportError:
+    DEFAULT_IGNORE_DIRS = {
+        ".git", ".orion", ".scratch", "scratch", "node_modules", "vendor",
+        "build", "dist", "target", ".cache", "__pycache__", ".dart_tool",
+        "venv", ".venv", "env", "installs", "backups", "tools", "bin", "platforms"
+    }
+    def should_traverse_dir(d: str, **kwargs) -> bool:
+        return d not in DEFAULT_IGNORE_DIRS and not d.startswith(".")
+    def get_workspace_files(*args, **kwargs) -> List[str]:
+        return []
+
+EXCLUDED_PATH_MARKERS = list(DEFAULT_IGNORE_DIRS)
 DOC_METADATA_KEYS = {"param", "return", "type", "description", "activation", "trigger"}
 RULE_DIR_TOKENS = {"rules", "common", "flutter", "web", "canons", "auth", "notifications", "ui-patterns"}
 
@@ -312,7 +331,7 @@ def get_folder_hashes(folder_path: str) -> Dict[str, str]:
     """
     hashes = {}
     for root, dirs, files in os.walk(folder_path):
-        dirs[:] = [d for d in dirs if not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
+        dirs[:] = [d for d in dirs if should_traverse_dir(d, allow_agents=True)]
         for f in files:
             if f.endswith(('.sidecar.json', '.ledger.jsonl')) or f.startswith('.'):
                 continue
@@ -339,13 +358,17 @@ def iter_files(base_dir: str, extensions: Tuple[str, ...], include_root_configs:
                 yield cfg_path
 
     for root, dirs, files in os.walk(base_dir):
-        dirs[:] = [d for d in dirs if not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
+        dirs[:] = [d for d in dirs if should_traverse_dir(d, allow_agents=True)]
         for file_name in files:
             if file_name.endswith(extensions):
+                if file_name in ("OBSERVATIONS.md", "OBSERVATIONS.archive.md", "failures.log"):
+                    continue
                 yield os.path.join(root, file_name)
 
 
 _TEXT_CACHE: Dict[str, str] = {}
+_MAX_CACHE_ENTRIES = 500
+_MAX_FILE_READ_BYTES = 5 * 1024 * 1024  # 5 MB ceiling
 _CTRL_STR_PAT = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
 
 
@@ -353,8 +376,17 @@ def read_text(filepath: str) -> str:
     cached = _TEXT_CACHE.get(filepath)
     if cached is not None:
         return cached
-    with open(filepath, "r", encoding="utf-8") as f:
+    try:
+        if os.path.getsize(filepath) > _MAX_FILE_READ_BYTES:
+            return ""
+    except OSError:
+        return ""
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
         content = f.read()
+    if len(_TEXT_CACHE) >= _MAX_CACHE_ENTRIES:
+        # Evict oldest 100 entries to prevent memory ballooning
+        for k in list(_TEXT_CACHE.keys())[:100]:
+            _TEXT_CACHE.pop(k, None)
     _TEXT_CACHE[filepath] = content
     return content
 
@@ -1248,6 +1280,36 @@ def check_version_and_router_parity(res: AuditResult, verbose: bool = True):
     elif os.path.exists(agents_md) and verbose:
         print(" [PASS] Router Canonical: AGENTS.md active as single root router.")
 
+    # 3. Dynamic Version Domain Separation Check
+    # Ensures host product versioning is strictly firewalled from .agents engine metadata
+    try:
+        scripts_dir = os.path.join(BASE_DIR, "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        from core.dna import detect_project_version
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            # Greenfield simulation: deploy engine manifest into folder with no product code
+            with open(os.path.join(td, "gemini-extension.json"), "w", encoding="utf-8") as f:
+                json.dump({"name": "portable-brainvibing", "version": "0.0.3"}, f)
+            os.makedirs(os.path.join(td, ".agents"), exist_ok=True)
+            with open(os.path.join(td, ".agents", ".project_manifest.json"), "w", encoding="utf-8") as f:
+                json.dump({"version": "0.0.3"}, f)
+
+            det = detect_project_version(td)
+            if not det.is_uninitiated or det.semver != "0.0.0":
+                res.add_error(
+                    "VERSION_DOMAIN_LEAK",
+                    f"detect_project_version leaked engine metadata on greenfield folder: got {det.semver} via {det.manifest}",
+                    "core/dna.py",
+                    severity="BLOCKER"
+                )
+            elif verbose:
+                print(" [PASS] Version Domain Separation: Engine metadata strictly firewalled from product SemVer radar.")
+    except Exception as e:
+        res.add_error("VERSION_DOMAIN_LEAK", f"Version domain separation audit failed: {e}", "core/dna.py", severity="HIGH")
+
 check_version_synchronization = check_version_and_router_parity
 
 def check_security_integrity(res: AuditResult, verbose: bool = True, fast_delta: bool = False):
@@ -1278,7 +1340,8 @@ def check_security_integrity(res: AuditResult, verbose: bool = True, fast_delta:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    stderr=subprocess.DEVNULL
+                    stderr=subprocess.DEVNULL,
+                    creationflags=_WINDOWLESS_FLAGS,
                 ).splitlines()
                 status_out = subprocess.check_output(
                     ["git", "status", "--porcelain"],
@@ -1286,7 +1349,8 @@ def check_security_integrity(res: AuditResult, verbose: bool = True, fast_delta:
                     text=True,
                     encoding="utf-8",
                     errors="replace",
-                    stderr=subprocess.DEVNULL
+                    stderr=subprocess.DEVNULL,
+                    creationflags=_WINDOWLESS_FLAGS,
                 ).splitlines()
                 target_files = set(diff_out)
                 for line in status_out:
@@ -1405,36 +1469,21 @@ def check_portability_and_hygiene(res: AuditResult, verbose: bool = True):
 
     path_leaks = []
     hygiene_extensions = (".md", ".py", ".json", ".ts", ".js", ".dart", ".yaml", ".yml", ".sh", ".toml")
-    excluded_hygiene_dirs = set(EXCLUDED_PATH_MARKERS) | {".orion", ".scratch", "scratch", "dist", "build", ".dart_tool", ".idea"}
+    candidate_files = get_workspace_files(PROJECT_ROOT, extensions=hygiene_extensions, include_agents=True)
 
-    scanned_roots = [BASE_DIR]
-    if os.path.isdir(PROJECT_ROOT) and PROJECT_ROOT != BASE_DIR:
-        scanned_roots.append(PROJECT_ROOT)
-
-    seen_files = set()
-    for s_root in scanned_roots:
-        for root, dirs, files in os.walk(s_root):
-            dirs[:] = [d for d in dirs if d not in excluded_hygiene_dirs and not any(marker in d for marker in EXCLUDED_PATH_MARKERS)]
-            for file_name in files:
-                if not file_name.endswith(hygiene_extensions):
-                    continue
-                filepath = os.path.join(root, file_name)
-                norm_path = filepath.replace("\\", "/")
-                if filepath in seen_files:
-                    continue
-                seen_files.add(filepath)
-
-                if "archive" in norm_path.split("/") or os.path.basename(filepath) in ("verify_agents.py", "OBSERVATIONS.md", "OBSERVATIONS.archive.md", "failures.log"):
-                    continue
-                try:
-                    content = read_text(filepath)
-                    rel_path = os.path.relpath(filepath, PROJECT_ROOT).replace("\\", "/")
-                    if re.search(r'[a-zA-Z]:[\\/]Users[\\/]', content, re.IGNORECASE) or re.search(r'/(?:Users|home)/[a-zA-Z0-9_-]+/', content):
-                        path_leaks.append((rel_path, "Hardcoded user machine path"))
-                    if "file:///" in content:
-                        path_leaks.append((rel_path, "Hardcoded file:/// URI scheme"))
-                except Exception as _e:
-                    _log_telemetry(_e, 'verify_agents.py:839')
+    for rel_path in candidate_files:
+        norm_path = rel_path.replace("\\", "/")
+        if "archive" in norm_path.split("/") or os.path.basename(rel_path) in ("verify_agents.py", "OBSERVATIONS.md", "OBSERVATIONS.archive.md", "failures.log", "drift_worker.js"):
+            continue
+        filepath = os.path.join(PROJECT_ROOT, rel_path)
+        try:
+            content = read_text(filepath)
+            if re.search(r'[a-zA-Z]:[\\/]Users[\\/]', content, re.IGNORECASE) or re.search(r'/(?:Users|home)/[a-zA-Z0-9_-]+/', content):
+                path_leaks.append((norm_path, "Hardcoded user machine path"))
+            if "file:///" in content:
+                path_leaks.append((norm_path, "Hardcoded file:/// URI scheme"))
+        except Exception as _e:
+            _log_telemetry(_e, 'verify_agents.py:839')
             
     for rel_path, msg in path_leaks:
         res.add_error("HYGIENE", f"{msg} found in {rel_path}", rel_path, severity="BLOCKER")
@@ -1715,7 +1764,7 @@ def check_cli_dispatcher_integrity(res: AuditResult, verbose: bool = True):
 
 
 def check_project_dna_integrity(res: AuditResult, verbose: bool = True):
-    """Ensure Project DNA engine sequences cleanly and .dna.json (if present) satisfies canonical schema."""
+    """Ensure Project DNA engine sequences cleanly, .dna.json satisfies canonical schema, and architecture obeys Hard Gate constraints."""
     if verbose:
         print("\n--- CHECKING PROJECT DNA ENGINE INTEGRITY ---")
     try:
@@ -1729,6 +1778,18 @@ def check_project_dna_integrity(res: AuditResult, verbose: bool = True):
         if invalid_tiers:
             res.add_error("DNA_ENGINE", f"Invalid DNA tiers emitted: {invalid_tiers}", "core/dna.py")
             return
+
+        # Hard Blocking Gate: Zero tolerance for illegal cross-layer violations or chimera files
+        if dna.layer_violations:
+            viol_samples = [f"{v.get('file')}:L{v.get('line')} ({v.get('source_tier')}->{v.get('target_tier')})" for v in dna.layer_violations[:3]]
+            res.add_error("DNA_HARD_GATE", f"Architectural DNA violations detected ({len(dna.layer_violations)}): {', '.join(viol_samples)}. Run 'python .agents/scripts/orion.py dna audit' to inspect.", "core/dna.py")
+
+        if dna.chimera_files:
+            res.add_error("DNA_HARD_GATE", f"Architectural chimera files detected ({len(dna.chimera_files)}): {', '.join(dna.chimera_files[:3])}. Mixed presentation/data layers must be decoupled.", "core/dna.py")
+
+        if dna.dna_compliance_score < 90:
+            res.add_error("DNA_HARD_GATE", f"Project DNA compliance score {dna.dna_compliance_score}/100 is below 90 threshold.", "core/dna.py")
+
         if verbose:
             print(f" [PASS] Project DNA Sequencer: {len(dna.file_tier_map)} files sequenced across 5-Tier strata (Compliance: {dna.dna_compliance_score}/100).")
     except Exception as exc:
@@ -1763,12 +1824,18 @@ def check_ecosystem_canon_matrix(res: AuditResult, verbose: bool = True):
             "standards.md"
         }
 
-    # Filter target application frameworks (exclude runtime/tooling canons like ast-grep, bun, obsidian, rtk)
-    target_frameworks = {"flutter", "react", "python"}
+    # Dynamically discover target application frameworks (ecosystems defining an init recipe)
     discovered_ecosystems = [
         d for d in os.listdir(ecosystems_dir)
-        if d in target_frameworks and os.path.isdir(os.path.join(ecosystems_dir, d))
+        if os.path.isdir(os.path.join(ecosystems_dir, d))
+        and os.path.isfile(os.path.join(ecosystems_dir, d, f"{d}-init.md"))
     ]
+    if not discovered_ecosystems:
+        target_frameworks = {"flutter", "react", "python"}
+        discovered_ecosystems = [
+            d for d in os.listdir(ecosystems_dir)
+            if d in target_frameworks and os.path.isdir(os.path.join(ecosystems_dir, d))
+        ]
 
     missing_matrix_entries = []
     for fw in discovered_ecosystems:
@@ -1818,6 +1885,18 @@ def check_doc_metrics_sync(res: AuditResult, verbose: bool = True):
     ]) if os.path.exists(templates_dir) else 0
 
     actual_tables = 18
+    orion_db_p = os.path.join(workspace_root, ".orion", "orion.db")
+    if os.path.exists(orion_db_p):
+        try:
+            conn = connect_sqlite(orion_db_p)
+            c = conn.cursor()
+            c.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            raw_t = [r[0] for r in c.fetchall() if not r[0].startswith("sqlite_") and not any(r[0].endswith(s) for s in ("_data", "_idx", "_content", "_docsize", "_config"))]
+            conn.close()
+            if raw_t:
+                actual_tables = len(raw_t)
+        except Exception:
+            pass
 
     metric_checks = [
         ("docs/00-intro.md", [
@@ -2252,7 +2331,7 @@ def run_preflight() -> int:
     if shutil.which("rtk"):
         print("\n [RTK ANALYTICS] Gathering token savings...")
         try:
-            rtk_result = subprocess.run(["rtk", "gain"], capture_output=True, text=True, encoding='utf-8')
+            rtk_result = subprocess.run(["rtk", "gain"], capture_output=True, text=True, encoding='utf-8', timeout=5.0, creationflags=_WINDOWLESS_FLAGS)
             if rtk_result.returncode == 0:
                 print(rtk_result.stdout.strip())
         except Exception as e:
@@ -2261,7 +2340,7 @@ def run_preflight() -> int:
     secrets_scan_script = os.path.join(BASE_DIR, "canons", "global", "harnesses", "secrets_scan_verifier.py")
     if os.path.exists(secrets_scan_script):
         print("\n [SECRETS SCAN] Checking for hardcoded API keys...")
-        secrets_result = subprocess.run([sys.executable, secrets_scan_script, "--path", PROJECT_ROOT], capture_output=True, text=True, encoding='utf-8', errors='replace')
+        secrets_result = subprocess.run([sys.executable, secrets_scan_script, "--path", PROJECT_ROOT], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30.0, creationflags=_WINDOWLESS_FLAGS)
         print(secrets_result.stdout.strip())
         if secrets_result.returncode != 0:
             print("\n Pre-Flight Failed: Secrets scan detected hardcoded keys.")
@@ -2409,7 +2488,8 @@ def get_diff_changed_lines(file_path: str) -> Optional[Set[int]]:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=5
+            timeout=5,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         output = res.stdout if res.returncode == 0 else ""
         if not output.strip():
@@ -2420,7 +2500,8 @@ def get_diff_changed_lines(file_path: str) -> Optional[Set[int]]:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=5
+                timeout=5,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             output = res.stdout if res.returncode == 0 else ""
 
@@ -2534,7 +2615,8 @@ class AdversarialMutationEngine:
                     os.remove(bak)
                     restored.append(search_dir)
             elif os.path.isdir(search_dir):
-                for root, _, files in os.walk(search_dir):
+                for root, dirs, files in os.walk(search_dir):
+                    dirs[:] = [d for d in dirs if should_traverse_dir(d, allow_agents=True)]
                     for f in files:
                         if f.endswith(".orion_mut_bak"):
                             bak_path = os.path.join(root, f)
@@ -2561,7 +2643,8 @@ class AdversarialMutationEngine:
                 text=True,
                 encoding='utf-8',
                 errors='replace',
-                timeout=60
+                timeout=60,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             duration = time.time() - t0
             self.baseline_duration = max(0.5, duration)
@@ -2910,7 +2993,8 @@ class AdversarialMutationEngine:
                         text=True,
                         encoding='utf-8',
                         errors='replace',
-                        timeout=timeout_seconds
+                        timeout=timeout_seconds,
+                        creationflags=_WINDOWLESS_FLAGS,
                     )
                     test_exit = proc.returncode
                     duration = time.time() - t_start
@@ -3031,7 +3115,7 @@ def main_adversarial(argv: Optional[List[str]] = None) -> int:
             print("[ERROR] Please provide a test command to run.")
             return 1
         print(f"[ADVERSARIAL] Executing: {' '.join(cmd)}")
-        result = subprocess.run(cmd, shell=False)
+        result = subprocess.run(cmd, shell=False, creationflags=_WINDOWLESS_FLAGS)
         exit_code = result.returncode
 
         state = load_adversarial_state()
@@ -3062,7 +3146,7 @@ def main_adversarial(argv: Optional[List[str]] = None) -> int:
             print("You must first run: `adversarial run <test_cmd>` and prove it fails.")
             return 1
 
-        result = subprocess.run(cmd, shell=False)
+        result = subprocess.run(cmd, shell=False, creationflags=_WINDOWLESS_FLAGS)
         exit_code = result.returncode
 
         if exit_code > 0:

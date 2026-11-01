@@ -24,6 +24,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 _SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
@@ -981,6 +983,7 @@ def _run_verification_command(v_cmd: str, cwd: Path) -> Tuple[int, str, str]:
             encoding="utf-8",
             errors="replace",
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         if proc.stdout:
             combined_stdout.append(proc.stdout.strip())
@@ -1040,6 +1043,24 @@ def cmd_next(run_verify: bool = False) -> int:
                     )
                     return 2
 
+        # Pre-Flight DNA Architectural Guard
+        try:
+            from core.dna import lint_dependencies_path
+            target_path_full = ws / target_file_rel
+            if target_path_full.is_file():
+                dna_violations = lint_dependencies_path(str(target_path_full), root_dir=str(ws))
+                if dna_violations:
+                    viol_lines = "\n".join(f"  • L{v['line']} ({v['from_tier']} -> {v['to_tier']}): {v['reason']}" for v in dna_violations[:5])
+                    print(
+                        f"\n❌ [BENTO DNA GATE VIOLATION] Architectural dependency violation in {target_file_rel} (Exit Code 2).\n"
+                        f"Found {len(dna_violations)} illegal import(s):\n{viol_lines}\n"
+                        f"Task {current_task['task_id']} remains OPEN. Decouple cross-layer dependencies before advancing.",
+                        file=sys.stderr,
+                    )
+                    return 2
+        except Exception:
+            pass
+
         # Pre-Flight Scope Guard
         try:
             diff_proc = subprocess.run(
@@ -1049,6 +1070,7 @@ def cmd_next(run_verify: bool = False) -> int:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                creationflags=_WINDOWLESS_FLAGS,
             )
             if diff_proc.returncode == 0:
                 modified_files = [f.strip().replace("\\", "/") for f in diff_proc.stdout.splitlines() if f.strip()]

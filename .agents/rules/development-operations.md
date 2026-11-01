@@ -38,6 +38,12 @@ activation: model_decision
 - **Zero AI Tells & Metaphorical Verbs**: Strictly avoid AI tell verbs (*absorb, supercharge, harness, empower, revolutionize, delve*). Use neutral engineering verbs (*add, fix, update, replace, remove, enforce*).
 - **Universal Standards**: Use standard sections (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`). Keep entries factual, concise, and neutral.
 
+## 1.6. Engine vs Host Product Version Sovereignty Law
+The **Agentic Framework Engine** (`.agents`, `orion.py`, `gemini-extension.json`, `.dna.json`) and the **Host Product Application** (`package.json`, `pubspec.yaml`, `pyproject.toml`, `Cargo.toml`) reside in two strictly decoupled domains.
+- **Zero Framework Leakage**: Agents MUST NOT treat `.agents` framework version, `gemini-extension.json`, or `.project_manifest.json` as the host project's version.
+- **Greenfield Invariant**: An uninitiated project (lacking application manifests) is strictly `0.0.0 (Uninitiated / Greenfield)`. Agents MUST NOT synthesize a `VERSION` file or stamp a release header onto greenfield directories.
+- **Pre-Release Invariant**: In-development alpha/beta projects (`ROADMAP.md` phase milestones or 0 git release tags) MUST keep session deliverables under `## [Unreleased]`. Never stamp production release tags without explicit human command.
+
 ## 2. Branching Strategy & Lifecycle
 - `main`: Production-ready code (never commit directly).
 - `develop`: Integration branch for features.

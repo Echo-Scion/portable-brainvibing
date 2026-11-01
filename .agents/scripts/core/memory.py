@@ -1518,3 +1518,222 @@ class SecondBrainManager:
             (".agents/rules/security-guardrails.md", 0.10, "Immutable security guardrails"),
         ]
         return fallback_anchors
+
+
+# ==============================================================================
+# ORION CONSTELLATION MULTI-PROJECT VAULT EXPORTER
+# ==============================================================================
+
+class ConstellationVaultExporter:
+    """
+    Exports a multi-project Orion Constellation into an interactive Obsidian Vault.
+    Produces a unified supervisory workspace spanning all sibling repositories ('Stars').
+    Maintains:
+      - index.md (Constellation Hub entry point)
+      - 00_Hub/Overview.md (portfolio scorecard, DNA compliance, stack matrix)
+      - Stars/<project_name>/ (mirrored context notes with namespaced [[Stars/<project_name>/...]] wikilinks)
+      - Taxonomies/<stack>.md (concept hubs grouping projects by technology)
+    """
+
+    def __init__(self, output_dir: Optional[str] = None):
+        if output_dir is None:
+            output_dir = os.path.join(WORKSPACE_DIR, "constellation")
+        self.output_dir = os.path.abspath(output_dir)
+
+    def export_constellation(self, spokes: List[Any]) -> Dict[str, Any]:
+        out = self.output_dir
+        hub_dir = os.path.join(out, "00_Hub")
+        stars_dir = os.path.join(out, "Stars")
+        tax_dir = os.path.join(out, "Taxonomies")
+
+        os.makedirs(hub_dir, exist_ok=True)
+        os.makedirs(stars_dir, exist_ok=True)
+        os.makedirs(tax_dir, exist_ok=True)
+
+        written_files: List[str] = []
+        stack_groups: Dict[str, List[Any]] = defaultdict(list)
+
+        # 1. Export each Star's context files
+        for star in spokes:
+            s_name = getattr(star, "name", str(star))
+            s_stack = getattr(star, "stack", "Generic")
+            s_score = getattr(star, "dna_score", 0)
+            s_state = getattr(star, "dna_state", "UNKNOWN")
+            s_arch = getattr(star, "archetype", "Software Repository")
+            s_ctx_files = getattr(star, "context_files", {})
+            s_root = getattr(star, "root_path", "")
+
+            # Group for taxonomies
+            primary_tech = s_stack.split("/")[0].strip() if "/" in s_stack else s_stack
+            stack_groups[primary_tech].append(star)
+
+            star_dir = os.path.join(stars_dir, s_name)
+            os.makedirs(star_dir, exist_ok=True)
+
+            star_note_links = []
+
+            for rel_path, full_path in s_ctx_files.items():
+                if not os.path.isfile(full_path):
+                    continue
+                base_name = os.path.splitext(os.path.basename(rel_path))[0]
+                target_note_name = f"{base_name}.md"
+                target_note_path = os.path.join(star_dir, target_note_name)
+
+                try:
+                    with open(full_path, "r", encoding="utf-8", errors="replace") as sf:
+                        src_content = sf.read()
+
+                    header = (
+                        f"---\n"
+                        f"star: \"{s_name}\"\n"
+                        f"stack: \"{s_stack}\"\n"
+                        f"dna_score: {s_score}\n"
+                        f"dna_state: \"{s_state}\"\n"
+                        f"source_file: \"{rel_path}\"\n"
+                        f"---\n\n"
+                        f"> [[Stars/{s_name}/Overview|↶ Back to {s_name} Overview]] | "
+                        f"[[00_Hub/Overview|🌌 Constellation Portfolio]]\n\n"
+                    )
+
+                    with open(target_note_path, "w", encoding="utf-8") as tf:
+                        tf.write(header + src_content)
+
+                    written_files.append(target_note_path)
+                    star_note_links.append(f"- [[Stars/{s_name}/{base_name}|{base_name}]] (`{rel_path}`)")
+                except Exception as _fe:
+                    _log_telemetry(_fe, f"constellation:export_file:{s_name}:{rel_path}")
+
+            # Create Star Overview
+            overview_path = os.path.join(star_dir, "Overview.md")
+            overview_lines = [
+                f"# 🌟 Star Overview: {s_name}",
+                "",
+                f"> **Stack**: `{s_stack}` | **DNA State**: `{s_state}` | **Compliance**: `{s_score}/100`",
+                f"> **Archetype**: {s_arch}",
+                f"> **Root Location**: `{s_root}`",
+                "",
+                "## 🧭 Navigation",
+                f"- **Parent Constellation**: [[00_Hub/Overview|🌌 Constellation Portfolio]]",
+                f"- **Primary Tech Taxonomy**: [[Taxonomies/{primary_tech}|{primary_tech}]]",
+                "",
+                "## 📚 Domain Context Artifacts",
+            ]
+            if star_note_links:
+                overview_lines.extend(star_note_links)
+            else:
+                overview_lines.append("- *No context/ files discovered for this project.*")
+
+            try:
+                with open(overview_path, "w", encoding="utf-8") as of:
+                    of.write("\n".join(overview_lines) + "\n")
+                written_files.append(overview_path)
+            except Exception as _oe:
+                _log_telemetry(_oe, f"constellation:overview:{s_name}")
+
+        # 2. Build Taxonomies
+        for tech, members in sorted(stack_groups.items()):
+            safe_tech = re.sub(r'[^a-zA-Z0-9_-]', '_', tech).strip('_') or "Other"
+            tax_path = os.path.join(tax_dir, f"{safe_tech}.md")
+            tax_lines = [
+                f"# 🏷️ Technology Taxonomy: {tech}",
+                "",
+                f"> Found **{len(members)} star(s)** utilizing this technology stack.",
+                "",
+                "## 🌟 Associated Stars",
+            ]
+            for m in sorted(members, key=lambda x: getattr(x, "name", "")):
+                m_name = getattr(m, "name", "")
+                m_score = getattr(m, "dna_score", 0)
+                m_state = getattr(m, "dna_state", "UNKNOWN")
+                tax_lines.append(f"- [[Stars/{m_name}/Overview|{m_name}]] — DNA `{m_score}/100` (`{m_state}`)")
+
+            tax_lines.extend(["", "---", "[[00_Hub/Overview|↶ Back to Constellation Portfolio]]"])
+            try:
+                with open(tax_path, "w", encoding="utf-8") as tf:
+                    tf.write("\n".join(tax_lines) + "\n")
+                written_files.append(tax_path)
+            except Exception as _te:
+                _log_telemetry(_te, f"constellation:tax:{tech}")
+
+        # 3. Build 00_Hub/Overview.md
+        hub_overview_path = os.path.join(hub_dir, "Overview.md")
+        hub_lines = [
+            "# 🌌 Orion Constellation — Developer Workspace Portfolio",
+            "",
+            f"> Autonomous Supervisory Knowledge Mesh & Second Brain for `{len(spokes)}` active projects.",
+            "",
+            "## 📊 Portfolio Scorecard",
+            f"- **Total Discovered Stars**: `{len(spokes)}`",
+            f"- **High-Compliance Projects (Score >= 90)**: `{sum(1 for s in spokes if getattr(s, 'dna_score', 0) >= 90)}`",
+            f"- **Distinct Technology Stacks**: `{len(stack_groups)}`",
+            "",
+            "## 🌟 Active Stars Matrix",
+            "",
+            "| Star | Primary Stack | Archetype | DNA State | Score | Context Notes |",
+            "| :--- | :--- | :--- | :--- | :--- | :--- |",
+        ]
+        for s in sorted(spokes, key=lambda x: getattr(x, "name", "").lower()):
+            sn = getattr(s, "name", "")
+            st = getattr(s, "stack", "Generic")
+            sa = getattr(s, "archetype", "Software Repository")
+            ss = getattr(s, "dna_state", "UNKNOWN")
+            sc = getattr(s, "dna_score", 0)
+            ctx_cnt = len(getattr(s, "context_files", {}))
+            hub_lines.append(f"| [[Stars/{sn}/Overview|{sn}]] | `{st}` | {sa} | `{ss}` | **{sc}/100** | {ctx_cnt} file(s) |")
+
+        hub_lines.extend([
+            "",
+            "## 🏷️ Technology Taxonomies",
+        ])
+        for tech in sorted(stack_groups.keys()):
+            safe_tech = re.sub(r'[^a-zA-Z0-9_-]', '_', tech).strip('_') or "Other"
+            cnt = len(stack_groups[tech])
+            hub_lines.append(f"- [[Taxonomies/{safe_tech}|{tech}]] (`{cnt}` projects)")
+
+        try:
+            with open(hub_overview_path, "w", encoding="utf-8") as hf:
+                hf.write("\n".join(hub_lines) + "\n")
+            written_files.append(hub_overview_path)
+        except Exception as _he:
+            _log_telemetry(_he, "constellation:hub_overview")
+
+        # 4. Build Root index.md
+        index_path = os.path.join(out, "index.md")
+        index_content = (
+            "# 🌌 Orion Constellation Vault Index\n\n"
+            f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Total Projects: {len(spokes)}\n\n"
+            "## 🚀 Quick Navigation\n\n"
+            "- [[00_Hub/Overview|📊 Master Portfolio Overview & Scorecard]]\n\n"
+            "### 🌟 Star Projects\n\n"
+            + "\n".join(f"- [[Stars/{getattr(s, 'name', '')}/Overview|{getattr(s, 'name', '')}]] (`{getattr(s, 'stack', 'Generic')}`)" for s in spokes)
+            + "\n\n### 🏷️ Tech Stacks\n\n"
+            + "\n".join(f"- [[Taxonomies/{re.sub(r'[^a-zA-Z0-9_-]', '_', t).strip('_')}|{t}]]" for t in sorted(stack_groups.keys()))
+            + "\n"
+        )
+        try:
+            with open(index_path, "w", encoding="utf-8") as idxf:
+                idxf.write(index_content)
+            written_files.append(index_path)
+        except Exception as _ie:
+            _log_telemetry(_ie, "constellation:index")
+
+        # 5. Manifest
+        manifest_path = os.path.join(out, ".constellation_manifest.json")
+        try:
+            with open(manifest_path, "w", encoding="utf-8") as mf:
+                json.dump({
+                    "vault": out,
+                    "total_stars": len(spokes),
+                    "total_notes": len(written_files),
+                    "generated_at": datetime.now().isoformat()
+                }, mf, indent=2)
+        except Exception as _me:
+            _log_telemetry(_me, "constellation:manifest")
+
+        return {
+            "status": "SUCCESS",
+            "vault_dir": out,
+            "total_stars": len(spokes),
+            "total_notes": len(written_files)
+        }
+

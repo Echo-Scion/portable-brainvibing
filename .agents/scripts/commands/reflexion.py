@@ -29,6 +29,8 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple, Union, Set
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 try:
     from core.db import log_telemetry as _log_telemetry, atomic_write_text
 except ImportError:
@@ -1069,7 +1071,8 @@ class ReflexionLoop:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=timeout
+                timeout=timeout,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             combined = f"{res.stdout}\n{res.stderr}".strip() if res.stdout and res.stderr else (res.stdout or res.stderr or "").strip()
             return res.returncode, combined
@@ -1546,7 +1549,8 @@ def consolidate_session(transcript_path=None):
                 text=True,
                 timeout=5,
                 encoding='utf-8',
-                errors='replace'
+                errors='replace',
+                creationflags=_WINDOWLESS_FLAGS,
             )
             if status_res.returncode == 0 and status_res.stdout.strip():
                 git_diff_summary = status_res.stdout.strip()

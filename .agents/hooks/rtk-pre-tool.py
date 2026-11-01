@@ -51,13 +51,18 @@ def main() -> int:
         except Exception:
             stdin_data = None
 
+        popen_kwargs = {}
+        if sys.platform == "win32":
+            popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE if stdin_data else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=child_env,
-            cwd=workspace_root if os.path.isdir(workspace_root) else os.getcwd()
+            cwd=workspace_root if os.path.isdir(workspace_root) else os.getcwd(),
+            **popen_kwargs
         )
         stdout_bytes, stderr_bytes = proc.communicate(input=stdin_data)
 

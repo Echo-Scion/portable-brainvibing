@@ -928,15 +928,13 @@ def lint_dependencies_path(
 
     all_violations: List[Dict[str, Any]] = []
     if os.path.isdir(abs_target):
+        try:
+            from core.paths import should_traverse_dir
+        except ImportError:
+            def should_traverse_dir(d: str, **kwargs) -> bool:
+                return not d.startswith(".") and d not in ("node_modules", ".dart_tool", "build", "dist", "target", "venv", ".venv")
         for root, dirs, files in os.walk(abs_target):
-            dirs[:] = [
-                d for d in dirs
-                if not d.startswith(".")
-                and d not in (
-                    "node_modules", ".dart_tool", "build", "dist", "target", "__pycache__",
-                    "cache", "venv", "env", "site-packages", ".scratch", "scratch", ".orion", ".git"
-                )
-            ]
+            dirs[:] = [d for d in dirs if should_traverse_dir(d)]
             for f in files:
                 ext = os.path.splitext(f)[1].lower()
                 if ext in (".dart", ".ts", ".tsx", ".js", ".jsx", ".py"):
@@ -1189,19 +1187,16 @@ def sequence_project_dna(
     # 2. Collect scan files if not provided
     files = list(audit_files) if audit_files is not None else []
     if not files:
-        for r, dirs, filenames in os.walk(abs_root):
-            # prune noise
-            dirs[:] = [
-                d for d in dirs
-                if not d.startswith(".")
-                and d not in (
-                    "node_modules", "build", "dist", "target", "__pycache__", ".dart_tool",
-                    "cache", "venv", "env", "site-packages", ".scratch", "scratch", ".orion", ".git"
-                )
-            ]
-            for fn in filenames:
-                rel = os.path.relpath(os.path.join(r, fn), abs_root).replace("\\", "/")
-                files.append(rel)
+        try:
+            from core.paths import get_workspace_files
+            files = get_workspace_files(abs_root, include_agents=False)
+        except ImportError:
+            files = []
+            for r, dirs, filenames in os.walk(abs_root):
+                dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "build", "dist", "target", "venv", ".venv")]
+                for fn in filenames:
+                    rel = os.path.relpath(os.path.join(r, fn), abs_root).replace("\\", "/")
+                    files.append(rel)
 
     # 3. Detect Framework & Language
     stacks: List[str] = []
@@ -1903,71 +1898,1059 @@ def bump_semver_tuple(major: int, minor: int, patch: int, bump_type: str = "patc
         return major, minor, patch + 1
 
 
-def detect_project_version(root_dir: str = ".") -> Tuple[str, str]:
+@dataclass
+class VersionSink:
+    """Represents a discovered synchronization sink for polyglot project versioning."""
+    path: str               # Relative path from project root
+    sink_type: str          # "manifest", "source_constant", "mobile_build", "context_roadmap", "foundation_metadata", "custom"
+    current_literal: str    # Raw line or snippet holding the version
+    line_number: Optional[int] = None
+    confidence: float = 1.0
+
+
+@dataclass
+class VersionState:
+    """Rich semantic version state resolved dynamically across polyglot project sinks."""
+    raw: str                       # e.g. "1.0.0+1" or "0.0.1-alpha" or "0.0.0"
+    semver: str                    # "1.0.0" or "0.0.1" or "0.0.0"
+    major: int
+    minor: int
+    patch: int
+    prerelease: str = ""           # "alpha"
+    build_metadata: str = ""       # "1" or "build42"
+    build_number: Optional[int] = None  # 1
+    source_manifest: str = "VERSION"
+    is_uninitiated: bool = False
+    is_prerelease: bool = False
+    phase: str = ""
+    release_status: str = "Released"
+    discovered_sinks: List[VersionSink] = field(default_factory=list)
+
+
+class DetectedVersion(tuple):
     """
-    Universal polyglot version detector.
-    Scans in order:
-      1. Root VERSION file (plain text)
-      2. package.json ("version": "x.y.z")
-      3. pubspec.yaml (version: x.y.z+build or x.y.z)
-      4. pyproject.toml (version = "x.y.z")
-      5. Cargo.toml (version = "x.y.z")
-      6. pom.xml (<version>x.y.z</version>)
-      7. build.gradle / build.gradle.kts (version = 'x.y.z')
-      8. CHANGELOG.md (first ## [x.y.z])
-    Returns (version_string, manifest_relpath).
-    Defaults to ("0.1.0", "VERSION") if none found.
+    Subclass of 2-tuple (version_string, manifest_relpath) providing 100% backward
+    compatibility with unpacking:
+        curr_v, manifest_src = detect_project_version(root_dir)
+    while exposing rich VersionState attributes:
+        res.state, res.semver, res.build_number, res.sinks, etc.
     """
+    state: VersionState
+
+    def __new__(cls, version_str: str, manifest_relpath: str, state: Optional[VersionState] = None):
+        instance = super().__new__(cls, (version_str, manifest_relpath))
+        if state is None:
+            parsed = parse_semver(version_str)
+            maj, minr, pat, pre, bld = parsed if parsed else (0, 0, 0, "", "")
+            bld_num = int(bld) if bld.isdigit() else None
+            is_uninit = (version_str == "0.0.0" or manifest_relpath == "uninitiated")
+            state = VersionState(
+                raw=version_str,
+                semver=f"{maj}.{minr}.{pat}",
+                major=maj,
+                minor=minr,
+                patch=pat,
+                prerelease=pre,
+                build_metadata=bld,
+                build_number=bld_num,
+                source_manifest=manifest_relpath,
+                is_uninitiated=is_uninit,
+                release_status="Uninitiated" if is_uninit else "Released",
+            )
+        instance.state = state
+        return instance
+
+    @property
+    def version_str(self) -> str:
+        return self[0]
+
+    @property
+    def manifest_path(self) -> str:
+        return self[1]
+
+    @property
+    def manifest(self) -> str:
+        return self[1]
+
+    @property
+    def semver(self) -> str:
+        return self.state.semver
+
+    @property
+    def build_number(self) -> Optional[int]:
+        return self.state.build_number
+
+    @property
+    def prerelease(self) -> str:
+        return self.state.prerelease
+
+    @property
+    def is_uninitiated(self) -> bool:
+        return self.state.is_uninitiated
+
+    @property
+    def is_prerelease(self) -> bool:
+        return self.state.is_prerelease
+
+    @property
+    def phase(self) -> str:
+        return self.state.phase
+
+    @property
+    def release_status(self) -> str:
+        return self.state.release_status
+
+    @property
+    def sinks(self) -> List[VersionSink]:
+        return self.state.discovered_sinks
+
+
+class DynamicVersionScanner:
+    """
+    Dynamic Polyglot Version Scanner:
+    Discovers manifests, mobile build numbers, source code constants, strategy roadmaps,
+    and epigenetic custom sinks across any repository or framework topology.
+    """
+
+    EXCLUDE_DIRS = {
+        ".git", "node_modules", ".dart_tool", "dist", "build", ".orion",
+        ".agents", "target", "vendor", ".venv", "venv", "__pycache__", ".idea",
+        "audio_cache", "image_cache", "backups", "scratch"
+    }
+
+    # Sovereign Engine & Framework Disqualified Manifest Names / Identifiers
+    ENGINE_DISQUALIFIED_IDS = {
+        "portable-brainvibing",
+        "antigravity-foundation",
+        "gemini-extension",
+        "agents-engine",
+    }
+
+    ENGINE_METADATA_FILES = {
+        "gemini-extension.json",
+        ".dna.json",
+        ".project_manifest.json",
+        ".foundation_path",
+    }
+
+    SRC_DIRS = ("src", "lib", "bin", "app", "cli", "core", "packages", "apps", "services")
+    SRC_EXTS = (
+        ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".dart", ".py",
+        ".rs", ".go", ".kt", ".java", ".swift"
+    )
+
+    @classmethod
+    def is_engine_metadata(cls, manifest_relpath: str, data: Optional[Dict[str, Any]] = None) -> bool:
+        """Determines if a manifest belongs strictly to the AI engine rather than the host product."""
+        norm_path = manifest_relpath.replace("\\", "/").lower()
+        base_name = os.path.basename(norm_path)
+
+        if base_name in cls.ENGINE_METADATA_FILES:
+            return True
+        if norm_path.startswith((".agents/", ".orion/", "context/")):
+            return True
+
+        if data and isinstance(data, dict):
+            for key in ("id", "name", "package_name", "app_id"):
+                val = str(data.get(key, "")).lower()
+                if any(disq in val for disq in cls.ENGINE_DISQUALIFIED_IDS):
+                    return True
+        return False
+
+    @classmethod
+    def _collect_dir_manifests(cls, abs_dir: str, rel_prefix: str = "") -> List[Tuple[float, str, VersionState]]:
+        """Collects candidate version manifests within a directory."""
+        candidates: List[Tuple[float, str, VersionState]] = []
+        is_root = (rel_prefix == "")
+        penalty = 0.0 if is_root else 5.0
+
+        def _p(fname: str) -> str:
+            return os.path.join(rel_prefix, fname).replace("\\", "/") if rel_prefix else fname
+
+        # 1. Plain VERSION file (only if physically present on disk)
+        v_p = os.path.join(abs_dir, "VERSION")
+        if os.path.isfile(v_p):
+            try:
+                with open(v_p, "r", encoding="utf-8") as f:
+                    raw = f.read().strip()
+                parsed = parse_semver(raw)
+                if parsed:
+                    clean_raw = raw.lstrip("vV")
+                    bld_num = int(parsed[4]) if parsed[4].isdigit() else None
+                    st = VersionState(
+                        raw=clean_raw,
+                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                        major=parsed[0],
+                        minor=parsed[1],
+                        patch=parsed[2],
+                        prerelease=parsed[3],
+                        build_metadata=parsed[4],
+                        build_number=bld_num,
+                        source_manifest=_p("VERSION"),
+                    )
+                    candidates.append((85.0 - penalty, _p("VERSION"), st))
+            except OSError:
+                pass
+
+        # 2. pubspec.yaml / pubspec.yml (Flutter / Dart)
+        for pub_name in ("pubspec.yaml", "pubspec.yml"):
+            pub_path = os.path.join(abs_dir, pub_name)
+            if os.path.isfile(pub_path):
+                try:
+                    with open(pub_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            m = re.match(r"^version:\s*([0-9a-zA-Z.+_-]+)", line.strip())
+                            if m:
+                                raw_v = m.group(1).strip("'\"")
+                                parsed = parse_semver(raw_v)
+                                if parsed:
+                                    bld_num = int(parsed[4]) if parsed[4].isdigit() else None
+                                    st = VersionState(
+                                        raw=raw_v.lstrip("vV"),
+                                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                        major=parsed[0],
+                                        minor=parsed[1],
+                                        patch=parsed[2],
+                                        prerelease=parsed[3],
+                                        build_metadata=parsed[4],
+                                        build_number=bld_num,
+                                        source_manifest=_p(pub_name),
+                                    )
+                                    candidates.append((100.0 - penalty, _p(pub_name), st))
+                                    break
+                except OSError:
+                    pass
+
+        # 3. package.json (Node / Web / TS / Electron)
+        pkg_path = os.path.join(abs_dir, "package.json")
+        if os.path.isfile(pkg_path):
+            try:
+                with open(pkg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not cls.is_engine_metadata(_p("package.json"), data):
+                    v = data.get("version")
+                    if v and parse_semver(v):
+                        parsed = parse_semver(v)
+                        bld_num = int(parsed[4]) if parsed and parsed[4].isdigit() else None
+                        st = VersionState(
+                            raw=v.lstrip("vV"),
+                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}" if parsed else v.lstrip("vV"),
+                            major=parsed[0] if parsed else 0,
+                            minor=parsed[1] if parsed else 1,
+                            patch=parsed[2] if parsed else 0,
+                            prerelease=parsed[3] if parsed else "",
+                            build_metadata=parsed[4] if parsed else "",
+                            build_number=bld_num,
+                            source_manifest=_p("package.json"),
+                        )
+                        candidates.append((100.0 - penalty, _p("package.json"), st))
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        # 4. pyproject.toml (Python PEP 517/621)
+        pyproj_path = os.path.join(abs_dir, "pyproject.toml")
+        if os.path.isfile(pyproj_path):
+            try:
+                with open(pyproj_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        m = re.match(r'^\s*(?:version\s*=|project\.version\s*=)\s*["\']([^"\']+)["\']', line)
+                        if m:
+                            v = m.group(1)
+                            parsed = parse_semver(v)
+                            if parsed:
+                                st = VersionState(
+                                    raw=v.lstrip("vV"),
+                                    semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                    major=parsed[0],
+                                    minor=parsed[1],
+                                    patch=parsed[2],
+                                    prerelease=parsed[3],
+                                    build_metadata=parsed[4],
+                                    source_manifest=_p("pyproject.toml"),
+                                )
+                                candidates.append((100.0 - penalty, _p("pyproject.toml"), st))
+                                break
+            except OSError:
+                pass
+
+        # 5. Cargo.toml (Rust)
+        cargo_path = os.path.join(abs_dir, "Cargo.toml")
+        if os.path.isfile(cargo_path):
+            try:
+                with open(cargo_path, "r", encoding="utf-8") as f:
+                    in_pkg = False
+                    for line in f:
+                        sline = line.strip()
+                        if sline == "[package]":
+                            in_pkg = True
+                            continue
+                        elif sline.startswith("[") and in_pkg:
+                            in_pkg = False
+                        if in_pkg:
+                            m = re.match(r'^\s*version\s*=\s*["\']([^"\']+)["\']', sline)
+                            if m:
+                                v = m.group(1)
+                                parsed = parse_semver(v)
+                                if parsed:
+                                    st = VersionState(
+                                        raw=v.lstrip("vV"),
+                                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                        major=parsed[0],
+                                        minor=parsed[1],
+                                        patch=parsed[2],
+                                        prerelease=parsed[3],
+                                        build_metadata=parsed[4],
+                                        source_manifest=_p("Cargo.toml"),
+                                    )
+                                    candidates.append((100.0 - penalty, _p("Cargo.toml"), st))
+                                    break
+            except OSError:
+                pass
+
+        # 6. setup.py / setup.cfg (Python legacy)
+        for s_file in ("setup.py", "setup.cfg"):
+            sp = os.path.join(abs_dir, s_file)
+            if os.path.isfile(sp):
+                try:
+                    with open(sp, "r", encoding="utf-8") as f:
+                        m = re.search(r'version\s*=\s*["\']([^"\']+)["\']', f.read())
+                        if m:
+                            v = m.group(1)
+                            parsed = parse_semver(v)
+                            if parsed:
+                                st = VersionState(
+                                    raw=v.lstrip("vV"),
+                                    semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                    major=parsed[0],
+                                    minor=parsed[1],
+                                    patch=parsed[2],
+                                    prerelease=parsed[3],
+                                    build_metadata=parsed[4],
+                                    source_manifest=_p(s_file),
+                                )
+                                candidates.append((90.0 - penalty, _p(s_file), st))
+                except OSError:
+                    pass
+
+        # 7. pom.xml (Maven / Java)
+        pom_path = os.path.join(abs_dir, "pom.xml")
+        if os.path.isfile(pom_path):
+            try:
+                with open(pom_path, "r", encoding="utf-8") as f:
+                    m = re.search(r'<version>([0-9a-zA-Z.+_-]+)</version>', f.read())
+                    if m:
+                        v = m.group(1)
+                        parsed = parse_semver(v)
+                        if parsed:
+                            st = VersionState(
+                                raw=v.lstrip("vV"),
+                                semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                major=parsed[0],
+                                minor=parsed[1],
+                                patch=parsed[2],
+                                prerelease=parsed[3],
+                                build_metadata=parsed[4],
+                                source_manifest=_p("pom.xml"),
+                            )
+                            candidates.append((95.0 - penalty, _p("pom.xml"), st))
+            except OSError:
+                pass
+
+        # 8. Gradle build.gradle / build.gradle.kts (Android / JVM)
+        for g_rel in ("build.gradle.kts", "build.gradle", os.path.join("app", "build.gradle.kts"), os.path.join("app", "build.gradle")):
+            g_path = os.path.join(abs_dir, g_rel)
+            if os.path.isfile(g_path):
+                try:
+                    with open(g_path, "r", encoding="utf-8") as f:
+                        text = f.read()
+                    v_match = re.search(r'(?:versionName|version)\s*(?:=\s*)?["\']([^"\']+)["\']', text)
+                    c_match = re.search(r'versionCode\s*(?:=\s*)?(\d+)', text)
+                    if v_match:
+                        raw_v = v_match.group(1)
+                        parsed = parse_semver(raw_v)
+                        if parsed:
+                            bld_num = int(c_match.group(1)) if c_match else None
+                            st = VersionState(
+                                raw=raw_v.lstrip("vV"),
+                                semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                major=parsed[0],
+                                minor=parsed[1],
+                                patch=parsed[2],
+                                prerelease=parsed[3],
+                                build_metadata=parsed[4] or (str(bld_num) if bld_num else ""),
+                                build_number=bld_num,
+                                source_manifest=_p(g_rel),
+                            )
+                            candidates.append((90.0 - penalty, _p(g_rel), st))
+                except OSError:
+                    pass
+
+        # 9. tauri.conf.json & app.json (Tauri / Expo)
+        for conf_name, conf_w in (("tauri.conf.json", 88.0), (os.path.join("src-tauri", "tauri.conf.json"), 88.0), ("app.json", 85.0)):
+            cp = os.path.join(abs_dir, conf_name)
+            if os.path.isfile(cp):
+                try:
+                    with open(cp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    v = None
+                    if "version" in data and isinstance(data["version"], str):
+                        v = data["version"]
+                    elif "package" in data and isinstance(data["package"], dict) and "version" in data["package"]:
+                        v = data["package"]["version"]
+                    elif "expo" in data and isinstance(data["expo"], dict) and "version" in data["expo"]:
+                        v = data["expo"]["version"]
+                    if v and parse_semver(v):
+                        parsed = parse_semver(v)
+                        st = VersionState(
+                            raw=v.lstrip("vV"),
+                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}" if parsed else v.lstrip("vV"),
+                            major=parsed[0] if parsed else 0,
+                            minor=parsed[1] if parsed else 1,
+                            patch=parsed[2] if parsed else 0,
+                            prerelease=parsed[3] if parsed else "",
+                            build_metadata=parsed[4] if parsed else "",
+                            source_manifest=_p(conf_name),
+                        )
+                        candidates.append((conf_w - penalty, _p(conf_name), st))
+                except (OSError, json.JSONDecodeError):
+                    pass
+
+        # 10. plugin.json (Only if not engine metadata)
+        plugin_path = os.path.join(abs_dir, "plugin.json")
+        if os.path.isfile(plugin_path):
+            try:
+                with open(plugin_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not cls.is_engine_metadata(_p("plugin.json"), data):
+                    v = data.get("version")
+                    if v and parse_semver(v):
+                        parsed = parse_semver(v)
+                        st = VersionState(
+                            raw=v.lstrip("vV"),
+                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}" if parsed else v.lstrip("vV"),
+                            major=parsed[0] if parsed else 0,
+                            minor=parsed[1] if parsed else 1,
+                            patch=parsed[2] if parsed else 0,
+                            prerelease=parsed[3] if parsed else "",
+                            build_metadata=parsed[4] if parsed else "",
+                            source_manifest=_p("plugin.json"),
+                        )
+                        candidates.append((82.0 - penalty, _p("plugin.json"), st))
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        # 11. CHANGELOG.md (fallback)
+        ch_path = os.path.join(abs_dir, "CHANGELOG.md")
+        if os.path.isfile(ch_path):
+            try:
+                with open(ch_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        m = re.match(r'^##\s*\[([0-9a-zA-Z.+_-]+)\]', line.strip())
+                        if m:
+                            v = m.group(1)
+                            if v.lower() != "unreleased" and parse_semver(v):
+                                parsed = parse_semver(v)
+                                if parsed:
+                                    st = VersionState(
+                                        raw=v.lstrip("vV"),
+                                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                        major=parsed[0],
+                                        minor=parsed[1],
+                                        patch=parsed[2],
+                                        prerelease=parsed[3],
+                                        build_metadata=parsed[4],
+                                        source_manifest=_p("CHANGELOG.md"),
+                                    )
+                                    candidates.append((50.0 - penalty, _p("CHANGELOG.md"), st))
+                                    break
+            except OSError:
+                pass
+
+        # 12. Plain/Structured text and config files (version.txt, version.json, version.yaml)
+        for vf_name in ("version.txt", "VERSION.txt"):
+            vft_p = os.path.join(abs_dir, vf_name)
+            if os.path.isfile(vft_p):
+                try:
+                    with open(vft_p, "r", encoding="utf-8") as f:
+                        raw = f.readline().strip()
+                    parsed = parse_semver(raw)
+                    if parsed:
+                        clean_raw = raw.lstrip("vV")
+                        bld_num = int(parsed[4]) if parsed[4].isdigit() else None
+                        st = VersionState(
+                            raw=clean_raw,
+                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                            major=parsed[0],
+                            minor=parsed[1],
+                            patch=parsed[2],
+                            prerelease=parsed[3],
+                            build_metadata=parsed[4],
+                            build_number=bld_num,
+                            source_manifest=_p(vf_name),
+                        )
+                        candidates.append((85.0 - penalty, _p(vf_name), st))
+                except OSError:
+                    pass
+
+        v_json_p = os.path.join(abs_dir, "version.json")
+        if os.path.isfile(v_json_p):
+            try:
+                with open(v_json_p, "r", encoding="utf-8") as f:
+                    v_data = json.load(f)
+                v_val = v_data.get("version") or v_data.get("semver")
+                if v_val and isinstance(v_val, str) and parse_semver(v_val):
+                    parsed = parse_semver(v_val)
+                    st = VersionState(
+                        raw=v_val.lstrip("vV"),
+                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}" if parsed else v_val.lstrip("vV"),
+                        major=parsed[0] if parsed else 0,
+                        minor=parsed[1] if parsed else 1,
+                        patch=parsed[2] if parsed else 0,
+                        prerelease=parsed[3] if parsed else "",
+                        build_metadata=parsed[4] if parsed else "",
+                        source_manifest=_p("version.json"),
+                    )
+                    candidates.append((85.0 - penalty, _p("version.json"), st))
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        for vy_name in ("version.yaml", "version.yml"):
+            vy_p = os.path.join(abs_dir, vy_name)
+            if os.path.isfile(vy_p):
+                try:
+                    with open(vy_p, "r", encoding="utf-8") as f:
+                        for line in f:
+                            m = re.match(r'^\s*version:\s*["\']?([0-9a-zA-Z.+_-]+)["\']?', line)
+                            if m:
+                                v_val = m.group(1)
+                                parsed = parse_semver(v_val)
+                                if parsed:
+                                    st = VersionState(
+                                        raw=v_val.lstrip("vV"),
+                                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                        major=parsed[0],
+                                        minor=parsed[1],
+                                        patch=parsed[2],
+                                        prerelease=parsed[3],
+                                        build_metadata=parsed[4],
+                                        source_manifest=_p(vy_name),
+                                    )
+                                    candidates.append((85.0 - penalty, _p(vy_name), st))
+                                    break
+                except OSError:
+                    pass
+
+        # 13. Modern JS / Deno & PHP (deno.json, deno.jsonc, jsr.json, composer.json)
+        for d_name in ("deno.json", "deno.jsonc", "jsr.json"):
+            dp = os.path.join(abs_dir, d_name)
+            if os.path.isfile(dp):
+                try:
+                    with open(dp, "r", encoding="utf-8") as f:
+                        d_text = f.read()
+                    m = re.search(r'"version"\s*:\s*["\']([^"\']+)["\']', d_text)
+                    if m:
+                        v = m.group(1)
+                        parsed = parse_semver(v)
+                        if parsed:
+                            st = VersionState(
+                                raw=v.lstrip("vV"),
+                                semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                major=parsed[0],
+                                minor=parsed[1],
+                                patch=parsed[2],
+                                prerelease=parsed[3],
+                                build_metadata=parsed[4],
+                                source_manifest=_p(d_name),
+                            )
+                            candidates.append((95.0 - penalty, _p(d_name), st))
+                except OSError:
+                    pass
+
+        comp_p = os.path.join(abs_dir, "composer.json")
+        if os.path.isfile(comp_p):
+            try:
+                with open(comp_p, "r", encoding="utf-8") as f:
+                    c_data = json.load(f)
+                v = c_data.get("version")
+                if v and isinstance(v, str) and parse_semver(v):
+                    parsed = parse_semver(v)
+                    st = VersionState(
+                        raw=v.lstrip("vV"),
+                        semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}" if parsed else v.lstrip("vV"),
+                        major=parsed[0] if parsed else 0,
+                        minor=parsed[1] if parsed else 1,
+                        patch=parsed[2] if parsed else 0,
+                        prerelease=parsed[3] if parsed else "",
+                        build_metadata=parsed[4] if parsed else "",
+                        source_manifest=_p("composer.json"),
+                    )
+                    candidates.append((90.0 - penalty, _p("composer.json"), st))
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        # 14. Build manifests (Makefile, CMakeLists.txt, Directory.Build.props)
+        mf_p = os.path.join(abs_dir, "Makefile")
+        if os.path.isfile(mf_p):
+            try:
+                with open(mf_p, "r", encoding="utf-8") as f:
+                    for line in f:
+                        m = re.match(r'^\s*VERSION\s*[:?]?=\s*["\']?([0-9a-zA-Z.+_-]+)["\']?', line)
+                        if m:
+                            v = m.group(1)
+                            parsed = parse_semver(v)
+                            if parsed:
+                                st = VersionState(
+                                    raw=v.lstrip("vV"),
+                                    semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                    major=parsed[0],
+                                    minor=parsed[1],
+                                    patch=parsed[2],
+                                    prerelease=parsed[3],
+                                    build_metadata=parsed[4],
+                                    source_manifest=_p("Makefile"),
+                                )
+                                candidates.append((80.0 - penalty, _p("Makefile"), st))
+                                break
+            except OSError:
+                pass
+
+        cm_p = os.path.join(abs_dir, "CMakeLists.txt")
+        if os.path.isfile(cm_p):
+            try:
+                with open(cm_p, "r", encoding="utf-8") as f:
+                    cm_text = f.read()
+                m = re.search(r'project\s*\([^)]*VERSION\s+([0-9a-zA-Z.+_-]+)', cm_text, re.IGNORECASE) or \
+                    re.search(r'set\s*\(\s*(?:PROJECT_VERSION|[A-Za-z0-9_]+_VERSION)\s+["\']?([0-9a-zA-Z.+_-]+)["\']?\s*\)', cm_text)
+                if m:
+                    v = m.group(1)
+                    parsed = parse_semver(v)
+                    if parsed:
+                        st = VersionState(
+                            raw=v.lstrip("vV"),
+                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                            major=parsed[0],
+                            minor=parsed[1],
+                            patch=parsed[2],
+                            prerelease=parsed[3],
+                            build_metadata=parsed[4],
+                            source_manifest=_p("CMakeLists.txt"),
+                        )
+                        candidates.append((80.0 - penalty, _p("CMakeLists.txt"), st))
+            except OSError:
+                pass
+
+        for prop_name in ("Directory.Build.props",):
+            prop_p = os.path.join(abs_dir, prop_name)
+            if os.path.isfile(prop_p):
+                try:
+                    with open(prop_p, "r", encoding="utf-8") as f:
+                        m = re.search(r'<Version>([0-9a-zA-Z.+_-]+)</Version>', f.read())
+                        if m:
+                            v = m.group(1)
+                            parsed = parse_semver(v)
+                            if parsed:
+                                st = VersionState(
+                                    raw=v.lstrip("vV"),
+                                    semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                    major=parsed[0],
+                                    minor=parsed[1],
+                                    patch=parsed[2],
+                                    prerelease=parsed[3],
+                                    build_metadata=parsed[4],
+                                    source_manifest=_p(prop_name),
+                                )
+                                candidates.append((85.0 - penalty, _p(prop_name), st))
+                except OSError:
+                    pass
+
+        # 15. README.md fallback (shields badges or explicit project version lines)
+        if is_root:
+            for rm_name in ("README.md", "readme.md"):
+                rm_p = os.path.join(abs_dir, rm_name)
+                if os.path.isfile(rm_p):
+                    try:
+                        with open(rm_p, "r", encoding="utf-8", errors="replace") as f:
+                            for line in f:
+                                l_lower = line.lower()
+                                if any(dep in l_lower for dep in ("python", "node", "java", "flutter", "dart", "android", "rust", "go", "ubuntu", "sdk", "prerequisite", "requires")):
+                                    continue
+                                m_badge = re.search(r'img\.shields\.io/badge/(?:version|release|v)-v?([0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9._]+)?)', line)
+                                m_hdr = re.search(r'(?:\*\*|__)?(?:Project\s+)?Version:?(?:\*\*|__)?:?\s*[`"\'v]*([0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9._]+)?)', line, re.IGNORECASE)
+                                m = m_badge or m_hdr
+                                if m:
+                                    v = m.group(1)
+                                    parsed = parse_semver(v)
+                                    if parsed:
+                                        st = VersionState(
+                                            raw=v.lstrip("vV"),
+                                            semver=f"{parsed[0]}.{parsed[1]}.{parsed[2]}",
+                                            major=parsed[0],
+                                            minor=parsed[1],
+                                            patch=parsed[2],
+                                            prerelease=parsed[3],
+                                            build_metadata=parsed[4],
+                                            source_manifest=_p(rm_name),
+                                        )
+                                        candidates.append((45.0 - penalty, _p(rm_name), st))
+                                        break
+                    except OSError:
+                        pass
+
+        return candidates
+
+    @classmethod
+    def scan(cls, root_dir: str = ".") -> DetectedVersion:
+        abs_root = os.path.abspath(root_dir)
+        candidate_manifests: List[Tuple[float, str, VersionState]] = []
+
+        # 1. Collect manifests in root directory
+        candidate_manifests.extend(cls._collect_dir_manifests(abs_root, ""))
+
+        # 2. Collect manifests in 1st-level child subdirectories (monorepo / nested repo discovery)
+        try:
+            for entry in os.scandir(abs_root):
+                if entry.is_dir() and entry.name not in cls.EXCLUDE_DIRS and not entry.name.startswith("."):
+                    sub_manifests = cls._collect_dir_manifests(entry.path, entry.name)
+                    candidate_manifests.extend(sub_manifests)
+        except OSError:
+            pass
+
+        # 3. Resolve primary candidate
+        if candidate_manifests:
+            candidate_manifests.sort(key=lambda x: x[0], reverse=True)
+            primary_weight, primary_manifest, primary_state = candidate_manifests[0]
+            # Inherit build_number from any candidate manifest if primary doesn't have one
+            if primary_state.build_number is None:
+                for _, _, st in candidate_manifests:
+                    if st.build_number is not None:
+                        primary_state.build_number = st.build_number
+                        break
+        else:
+            primary_state = VersionState(
+                raw="0.0.0",
+                semver="0.0.0",
+                major=0,
+                minor=0,
+                patch=0,
+                prerelease="",
+                build_metadata="",
+                build_number=None,
+                source_manifest="uninitiated",
+                is_uninitiated=True,
+                release_status="Uninitiated",
+            )
+            primary_manifest = "uninitiated"
+
+        # 4. Check for Pre-Release & In-Development Phase in Strategic Context (ROADMAP.md)
+        for r_name in (
+            os.path.join("context", "01_Product", "ROADMAP.md"),
+            os.path.join("context", "ROADMAP.md"),
+            "ROADMAP.md",
+        ):
+            r_path = os.path.join(abs_root, r_name)
+            if os.path.isfile(r_path):
+                try:
+                    with open(r_path, "r", encoding="utf-8", errors="replace") as rf:
+                        for line in rf:
+                            m_phase = re.search(r'#+\s*(?:Now|Current|Active)?\s*\(?(v?\d+\.\d+\.\d+(?:-[a-zA-Z0-9._]+)?)(?:\s*-\s*([^)]+))?\)?', line)
+                            if m_phase:
+                                phase_tag = m_phase.group(1).lstrip("vV")
+                                parsed_phase = parse_semver(phase_tag)
+                                if parsed_phase and parsed_phase[3]:
+                                    primary_state.phase = f"v{phase_tag}"
+                                    primary_state.is_prerelease = True
+                                    primary_state.prerelease = parsed_phase[3]
+                                    primary_state.release_status = "In-Development (Unreleased)"
+                                    break
+                except OSError:
+                    pass
+                if primary_state.is_prerelease:
+                    break
+
+        # 5. Check if major >= 1 from boilerplate (e.g. flutter create 1.0.0+1) but git has 0 release tags
+        if not primary_state.is_uninitiated and not primary_state.is_prerelease and primary_state.major >= 1:
+            try:
+                flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+                proc = subprocess.run(["git", "tag"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
+                if proc.returncode == 0:
+                    tags = [t.strip().lstrip("vV") for t in proc.stdout.splitlines() if t.strip()]
+                    if not any(t == primary_state.semver or t.startswith(f"{primary_state.semver}-") for t in tags):
+                        primary_state.is_prerelease = True
+                        primary_state.release_status = "In-Development (Unreleased)"
+            except (OSError, subprocess.SubprocessError):
+                pass
+
+        # Discover all synchronizing sinks for this canonical version
+        canon_semver = primary_state.semver
+        canon_raw = primary_state.raw
+        sinks: List[VersionSink] = []
+
+        # (a) Add all candidate manifests as sinks
+        seen_paths: Set[str] = set()
+        for weight, m_rel, st in candidate_manifests:
+            if m_rel not in seen_paths:
+                sink_t = "mobile_build" if st.build_number is not None else "manifest"
+                sinks.append(VersionSink(
+                    path=m_rel,
+                    sink_type=sink_t,
+                    current_literal=st.raw,
+                    confidence=weight / 100.0,
+                ))
+                seen_paths.add(m_rel)
+
+        # (b) Scan Source Code Constants matching canon_semver
+        for s_dir in cls.SRC_DIRS:
+            dir_full = os.path.join(abs_root, s_dir)
+            if not os.path.isdir(dir_full):
+                continue
+            for root, dirs, files in os.walk(dir_full):
+                dirs[:] = [d for d in dirs if d not in cls.EXCLUDE_DIRS]
+                for file_name in files:
+                    if not file_name.endswith(cls.SRC_EXTS):
+                        continue
+                    file_full = os.path.join(root, file_name)
+                    rel_p = os.path.relpath(file_full, abs_root).replace("\\", "/")
+                    if rel_p in seen_paths:
+                        continue
+                    try:
+                        if os.path.getsize(file_full) > 500 * 1024:
+                            continue
+                        with open(file_full, "r", encoding="utf-8", errors="replace") as sf:
+                            for idx, line in enumerate(sf, start=1):
+                                if canon_semver not in line and canon_raw not in line:
+                                    continue
+                                # Check patterns: .version("x.y.z"), version: "x.y.z", __version__ = "x.y.z"
+                                if (
+                                    re.search(rf'\.version\(["\']{re.escape(canon_semver)}["\']\)', line) or
+                                    re.search(rf'version:\s*["\']{re.escape(canon_semver)}["\']', line) or
+                                    re.search(rf'(?:__version__|VERSION|APP_VERSION)\s*=\s*["\']{re.escape(canon_semver)}["\']', line) or
+                                    re.search(rf'const\s+VERSION\s*=\s*["\']{re.escape(canon_semver)}["\']', line)
+                                ):
+                                    sinks.append(VersionSink(
+                                        path=rel_p,
+                                        sink_type="source_constant",
+                                        current_literal=line.strip(),
+                                        line_number=idx,
+                                        confidence=0.95,
+                                    ))
+                                    seen_paths.add(rel_p)
+                                    break
+                    except OSError:
+                        pass
+
+        # (c) Scan Context Roadmap Sinks
+        for r_name in (
+            os.path.join("context", "01_Product", "ROADMAP.md"),
+            os.path.join("context", "ROADMAP.md"),
+            "ROADMAP.md",
+        ):
+            r_path = os.path.join(abs_root, r_name)
+            if os.path.isfile(r_path) and r_name.replace("\\", "/") not in seen_paths:
+                try:
+                    with open(r_path, "r", encoding="utf-8", errors="replace") as rf:
+                        for idx, line in enumerate(rf, start=1):
+                            if (
+                                re.search(rf'#+\s*(?:Now\s*)?\(?v?{re.escape(canon_semver)}', line, re.IGNORECASE) or
+                                re.search(rf'#+\s*v?{re.escape(canon_semver)}', line, re.IGNORECASE)
+                            ):
+                                sinks.append(VersionSink(
+                                    path=r_name.replace("\\", "/"),
+                                    sink_type="context_roadmap",
+                                    current_literal=line.strip(),
+                                    line_number=idx,
+                                    confidence=0.9,
+                                ))
+                                seen_paths.add(r_name.replace("\\", "/"))
+                                break
+                except OSError:
+                    pass
+
+        # (d) Scan Foundation Metadata
+        for f_meta in (".agents/.project_manifest.json", ".agents/.dna.json"):
+            f_path = os.path.join(abs_root, f_meta)
+            if os.path.isfile(f_path) and f_meta not in seen_paths:
+                try:
+                    with open(f_path, "r", encoding="utf-8") as mf:
+                        m_data = json.load(mf)
+                    if "version" in m_data:
+                        sinks.append(VersionSink(
+                            path=f_meta,
+                            sink_type="foundation_metadata",
+                            current_literal=str(m_data["version"]),
+                            confidence=0.85,
+                        ))
+                        seen_paths.add(f_meta)
+                except (OSError, json.JSONDecodeError):
+                    pass
+
+        # (e) Custom Epigenetic Sinks from .project_manifest.json
+        p_manifest_path = os.path.join(abs_root, ".agents", ".project_manifest.json")
+        if not os.path.isfile(p_manifest_path):
+            p_manifest_path = os.path.join(abs_root, ".project_manifest.json")
+        if os.path.isfile(p_manifest_path):
+            try:
+                with open(p_manifest_path, "r", encoding="utf-8") as pmf:
+                    pm_data = json.load(pmf)
+                custom_sinks = pm_data.get("versioning", {}).get("custom_sinks", [])
+                for cs in custom_sinks:
+                    cs_norm = cs.replace("\\", "/")
+                    if cs_norm not in seen_paths and os.path.isfile(os.path.join(abs_root, cs)):
+                        sinks.append(VersionSink(
+                            path=cs_norm,
+                            sink_type="custom",
+                            current_literal="",
+                            confidence=1.0,
+                        ))
+                        seen_paths.add(cs_norm)
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        # (f) Scan README Sinks (shields badges and markdown headers)
+        for readme_name in ("README.md", "readme.md"):
+            readme_path = os.path.join(abs_root, readme_name)
+            if os.path.isfile(readme_path) and readme_name not in seen_paths:
+                try:
+                    with open(readme_path, "r", encoding="utf-8", errors="replace") as rmf:
+                        readme_text = rmf.read()
+                    if canon_semver in readme_text:
+                        if (
+                            re.search(rf'img\.shields\.io/badge/(?:version|release|v)-v?{re.escape(canon_semver)}', readme_text) or
+                            re.search(rf'(?:\*\*|__)?(?:Project\s+)?Version:?(?:\*\*|__)?:?\s*[`"\'v]*{re.escape(canon_semver)}', readme_text, re.IGNORECASE)
+                        ):
+                            sinks.append(VersionSink(
+                                path=readme_name,
+                                sink_type="readme",
+                                current_literal=canon_semver,
+                                confidence=0.85,
+                            ))
+                            seen_paths.add(readme_name)
+                except OSError:
+                    pass
+
+        primary_state.discovered_sinks = sinks
+        return DetectedVersion(primary_state.raw, primary_state.source_manifest, primary_state)
+
+
+def detect_project_version(root_dir: str = ".") -> DetectedVersion:
+    """
+    Universal Polyglot Version Detector (Dynamic Semantic Resolution).
+    Scans candidate manifests, extracts build numbers, and returns a 2-tuple
+    subclass DetectedVersion(version_string, manifest_relpath) with rich .state.
+    """
+    return DynamicVersionScanner.scan(root_dir)
+
+
+def update_project_version(
+    root_dir: str = ".",
+    new_version: str = "0.1.0",
+    new_build_number: Optional[int] = None,
+    dry_run: bool = False,
+) -> List[str]:
+    """
+    Universal Dynamic Polyglot Version Synchronizer.
+    Atomically updates all discovered version sinks:
+      1. Plain root VERSION file
+      2. Structured manifests (package.json, plugin.json, pubspec.yaml, pyproject.toml, Cargo.toml, pom.xml, build.gradle*)
+      3. Mobile build numbers (pubspec.yaml +N, Gradle versionCode) auto-incremented or overridden
+      4. Source code constants (.version("..."), version: "...", __version__ = "...")
+      5. Context roadmap phase headers (context/01_Product/ROADMAP.md)
+      6. Foundation metadata (.agents/.project_manifest.json, .agents/.dna.json)
+      7. Epigenetic custom sinks declared in .project_manifest.json
+    Returns sorted list of modified relative paths.
+    """
+    clean_v = new_version.strip().lstrip("vV")
+    parsed_new = parse_semver(clean_v)
+    if parsed_new:
+        new_semver = f"{parsed_new[0]}.{parsed_new[1]}.{parsed_new[2]}"
+        explicit_bld = int(parsed_new[4]) if parsed_new[4].isdigit() else None
+    else:
+        new_semver = clean_v
+        explicit_bld = None
+
     abs_root = os.path.abspath(root_dir)
+    curr_detected = detect_project_version(abs_root)
+    curr_state = curr_detected.state
+    old_semver = curr_state.semver
+    old_build = curr_state.build_number
+
+    # Resolve target build number
+    if new_build_number is not None:
+        target_build_number = new_build_number
+    elif explicit_bld is not None:
+        target_build_number = explicit_bld
+    elif old_build is not None:
+        target_build_number = old_build + 1
+    else:
+        target_build_number = None
+
+    if curr_state.is_uninitiated:
+        # An uninitiated / greenfield project has no package manifest or VERSION file.
+        # We strictly do not fabricate a synthetic VERSION file on disk.
+        return []
+
+    updated_sinks: Set[str] = set()
 
     # 1. Plain root VERSION file
     ver_path = os.path.join(abs_root, "VERSION")
-    if os.path.isfile(ver_path):
-        try:
-            with open(ver_path, "r", encoding="utf-8") as f:
-                raw = f.read().strip()
-                if parse_semver(raw):
-                    return raw.lstrip("vV"), "VERSION"
-        except OSError:
-            pass
+    has_known_manifest = any(
+        s.sink_type in ("manifest", "mobile_build") for s in curr_state.discovered_sinks if s.path != "VERSION"
+    )
+    if os.path.isfile(ver_path) or (not has_known_manifest and not curr_state.is_uninitiated):
+        if not dry_run:
+            atomic_write_text(ver_path, f"{new_semver}\n")
+        updated_sinks.add("VERSION")
 
-    # 2. Node.js / Web / TypeScript package.json
-    pkg_path = os.path.join(abs_root, "package.json")
-    if os.path.isfile(pkg_path):
-        try:
-            with open(pkg_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                v = data.get("version")
-                if v and parse_semver(v):
-                    return v.lstrip("vV"), "package.json"
-        except (OSError, json.JSONDecodeError):
-            pass
+    # 2. JSON Manifests (package.json, plugin.json, tauri.conf.json, app.json)
+    for j_candidate in ("package.json", "plugin.json", "tauri.conf.json", os.path.join("src-tauri", "tauri.conf.json"), "app.json"):
+        j_path = os.path.join(abs_root, j_candidate)
+        if os.path.isfile(j_path):
+            try:
+                with open(j_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                subbed = re.sub(r'("version"\s*:\s*")([^"]+)(")', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(j_path, subbed)
+                    updated_sinks.add(j_candidate.replace("\\", "/"))
+            except OSError:
+                pass
 
-    # 3. Flutter / Dart pubspec.yaml
-    pub_path = os.path.join(abs_root, "pubspec.yaml")
-    if os.path.isfile(pub_path):
-        try:
-            with open(pub_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    m = re.match(r"^version:\s*([0-9a-zA-Z.+_-]+)", line.strip())
-                    if m:
-                        v = m.group(1).strip("'\"")
-                        if parse_semver(v):
-                            return v.lstrip("vV"), "pubspec.yaml"
-        except OSError:
-            pass
+    # 3. Flutter pubspec.yaml & pubspec.yml
+    for p_name in ("pubspec.yaml", "pubspec.yml"):
+        pub_path = os.path.join(abs_root, p_name)
+        if os.path.isfile(pub_path):
+            try:
+                with open(pub_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                def _pub_repl(m):
+                    old_v = m.group(1).strip("'\"")
+                    if target_build_number is not None:
+                        return f"version: {new_semver}+{target_build_number}"
+                    if "+" in old_v:
+                        b_part = old_v.split("+", 1)[1]
+                        if b_part.isdigit():
+                            return f"version: {new_semver}+{int(b_part) + 1}"
+                        return f"version: {new_semver}+{b_part}"
+                    return f"version: {new_semver}"
+                subbed = re.sub(r'^version:\s*([^\r\n]+)', _pub_repl, raw, flags=re.MULTILINE, count=1)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(pub_path, subbed)
+                    updated_sinks.add(p_name)
+            except OSError:
+                pass
 
     # 4. Python pyproject.toml
     pyproj_path = os.path.join(abs_root, "pyproject.toml")
     if os.path.isfile(pyproj_path):
         try:
             with open(pyproj_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    m = re.match(r'^\s*version\s*=\s*["\']([^"\']+)["\']', line)
-                    if m:
-                        v = m.group(1)
-                        if parse_semver(v):
-                            return v.lstrip("vV"), "pyproject.toml"
+                raw = f.read()
+            subbed = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+            if subbed != raw:
+                if not dry_run:
+                    atomic_write_text(pyproj_path, subbed)
+                updated_sinks.add("pyproject.toml")
         except OSError:
             pass
 
@@ -1976,149 +2959,245 @@ def detect_project_version(root_dir: str = ".") -> Tuple[str, str]:
     if os.path.isfile(cargo_path):
         try:
             with open(cargo_path, "r", encoding="utf-8") as f:
-                in_package = False
-                for line in f:
-                    sline = line.strip()
-                    if sline == "[package]":
-                        in_package = True
-                        continue
-                    elif sline.startswith("[") and in_package:
-                        in_package = False
-                    if in_package:
-                        m = re.match(r'^\s*version\s*=\s*["\']([^"\']+)["\']', sline)
-                        if m:
-                            v = m.group(1)
-                            if parse_semver(v):
-                                return v.lstrip("vV"), "Cargo.toml"
-        except OSError:
-            pass
-
-    # 6. Java / Maven pom.xml
-    pom_path = os.path.join(abs_root, "pom.xml")
-    if os.path.isfile(pom_path):
-        try:
-            with open(pom_path, "r", encoding="utf-8") as f:
-                m = re.search(r'<version>([0-9a-zA-Z.+_-]+)</version>', f.read())
-                if m:
-                    v = m.group(1)
-                    if parse_semver(v):
-                        return v.lstrip("vV"), "pom.xml"
-        except OSError:
-            pass
-
-    # 7. Gradle build.gradle / build.gradle.kts
-    for g_name in ("build.gradle.kts", "build.gradle"):
-        g_path = os.path.join(abs_root, g_name)
-        if os.path.isfile(g_path):
-            try:
-                with open(g_path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        m = re.match(r'^\s*(?:version\s*=\s*|version\s+)["\']([^"\']+)["\']', line.strip())
-                        if m:
-                            v = m.group(1)
-                            if parse_semver(v):
-                                return v.lstrip("vV"), g_name
-            except OSError:
-                pass
-
-    # 8. CHANGELOG.md (topmost release header)
-    ch_path = os.path.join(abs_root, "CHANGELOG.md")
-    if os.path.isfile(ch_path):
-        try:
-            with open(ch_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    m = re.match(r'^##\s*\[([0-9a-zA-Z.+_-]+)\]', line.strip())
-                    if m:
-                        v = m.group(1)
-                        if v.lower() != "unreleased" and parse_semver(v):
-                            return v.lstrip("vV"), "CHANGELOG.md"
-        except OSError:
-            pass
-
-    return "0.1.0", "VERSION"
-
-
-def update_project_version(root_dir: str = ".", new_version: str = "0.1.0") -> List[str]:
-    """
-    Updates the detected primary version manifest(s) with new_version using pure stdlib atomic writes.
-    Returns list of modified relative paths.
-    """
-    clean_v = new_version.strip().lstrip("vV")
-    abs_root = os.path.abspath(root_dir)
-    updated: List[str] = []
-
-    # 1. Update VERSION if it exists or if no other manifest exists
-    ver_path = os.path.join(abs_root, "VERSION")
-    has_known_manifest = any(
-        os.path.isfile(os.path.join(abs_root, m))
-        for m in ("package.json", "pubspec.yaml", "pyproject.toml", "Cargo.toml")
-    )
-    if os.path.isfile(ver_path) or not has_known_manifest:
-        atomic_write_text(ver_path, clean_v + "\n")
-        updated.append("VERSION")
-
-    # 2. Update package.json
-    pkg_path = os.path.join(abs_root, "package.json")
-    if os.path.isfile(pkg_path):
-        try:
-            with open(pkg_path, "r", encoding="utf-8") as f:
-                raw = f.read()
-            subbed = re.sub(r'("version"\s*:\s*")([^"]+)(")', rf'\g<1>{clean_v}\g<3>', raw, count=1)
-            if subbed != raw:
-                atomic_write_text(pkg_path, subbed)
-                updated.append("package.json")
-        except OSError:
-            pass
-
-    # 3. Update pubspec.yaml
-    pub_path = os.path.join(abs_root, "pubspec.yaml")
-    if os.path.isfile(pub_path):
-        try:
-            with open(pub_path, "r", encoding="utf-8") as f:
-                raw = f.read()
-            def _pub_repl(m):
-                old_v = m.group(1)
-                build_part = ""
-                if "+" in old_v:
-                    build_part = "+" + old_v.split("+", 1)[1]
-                return f"version: {clean_v}{build_part}"
-            subbed = re.sub(r'^version:\s*([^\r\n]+)', _pub_repl, raw, flags=re.MULTILINE, count=1)
-            if subbed != raw:
-                atomic_write_text(pub_path, subbed)
-                updated.append("pubspec.yaml")
-        except OSError:
-            pass
-
-    # 4. Update pyproject.toml
-    pyproj_path = os.path.join(abs_root, "pyproject.toml")
-    if os.path.isfile(pyproj_path):
-        try:
-            with open(pyproj_path, "r", encoding="utf-8") as f:
-                raw = f.read()
-            subbed = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{clean_v}\g<3>', raw, count=1)
-            if subbed != raw:
-                atomic_write_text(pyproj_path, subbed)
-                updated.append("pyproject.toml")
-        except OSError:
-            pass
-
-    # 5. Update Cargo.toml
-    cargo_path = os.path.join(abs_root, "Cargo.toml")
-    if os.path.isfile(cargo_path):
-        try:
-            with open(cargo_path, "r", encoding="utf-8") as f:
                 raw = f.read()
             parts = re.split(r'(\[package\])', raw, maxsplit=1)
             if len(parts) >= 3:
                 pkg_section = parts[2]
-                subbed_pkg = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{clean_v}\g<3>', pkg_section, count=1)
+                subbed_pkg = re.sub(r'(version\s*=\s*["\'])([^"\']+)(["\'])', rf'\g<1>{new_semver}\g<3>', pkg_section, count=1)
                 full_cargo = parts[0] + parts[1] + subbed_pkg
-                atomic_write_text(cargo_path, full_cargo)
-                updated.append("Cargo.toml")
+                if full_cargo != raw:
+                    if not dry_run:
+                        atomic_write_text(cargo_path, full_cargo)
+                    updated_sinks.add("Cargo.toml")
         except OSError:
             pass
 
-    return updated
+    # 6. Maven pom.xml
+    pom_path = os.path.join(abs_root, "pom.xml")
+    if os.path.isfile(pom_path):
+        try:
+            with open(pom_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'(<version>)([^<]+)(</version>)', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+            if subbed != raw:
+                if not dry_run:
+                    atomic_write_text(pom_path, subbed)
+                updated_sinks.add("pom.xml")
+        except OSError:
+            pass
+
+    # 7. Gradle build.gradle / build.gradle.kts (root and app/)
+    for g_rel in ("build.gradle.kts", "build.gradle", os.path.join("app", "build.gradle.kts"), os.path.join("app", "build.gradle")):
+        g_path = os.path.join(abs_root, g_rel)
+        if os.path.isfile(g_path):
+            try:
+                with open(g_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                subbed = raw
+                # Replace versionName
+                subbed = re.sub(r'(versionName\s*(?:=\s*)?["\'])([^"\']+)(["\'])', rf'\g<1>{new_semver}\g<3>', subbed)
+                # Replace versionCode if target_build_number is known or auto-increment
+                if target_build_number is not None:
+                    subbed = re.sub(r'(versionCode\s*(?:=\s*)?)(\d+)', rf'\g<1>{target_build_number}', subbed)
+                else:
+                    def _code_repl(cm):
+                        return f"{cm.group(1)}{int(cm.group(2)) + 1}"
+                    subbed = re.sub(r'(versionCode\s*(?:=\s*)?)(\d+)', _code_repl, subbed)
+                # Replace top-level version if present
+                subbed = re.sub(r'((?:^|\n)\s*version\s*(?:=\s*)?["\'])([^"\']+)(["\'])', rf'\g<1>{new_semver}\g<3>', subbed)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(g_path, subbed)
+                    updated_sinks.add(g_rel.replace("\\", "/"))
+            except OSError:
+                pass
+
+    # 8. Source Code Constants
+    for sink in curr_state.discovered_sinks:
+        if sink.sink_type == "source_constant":
+            s_full = os.path.join(abs_root, sink.path)
+            if os.path.isfile(s_full):
+                try:
+                    with open(s_full, "r", encoding="utf-8") as sf:
+                        raw = sf.read()
+                    subbed = raw
+                    # 1. .version("old")
+                    subbed = re.sub(rf'(\.version\(["\']){re.escape(old_semver)}(["\']\))', rf'\g<1>{new_semver}\g<2>', subbed)
+                    # 2. version: "old"
+                    subbed = re.sub(rf'(version:\s*["\']){re.escape(old_semver)}(["\'])', rf'\g<1>{new_semver}\g<2>', subbed)
+                    # 3. __version__ = "old", VERSION = "old", APP_VERSION = "old"
+                    subbed = re.sub(rf'((?:__version__|VERSION|APP_VERSION)\s*=\s*["\']){re.escape(old_semver)}(["\'])', rf'\g<1>{new_semver}\g<2>', subbed)
+                    # 4. const VERSION = "old"
+                    subbed = re.sub(rf'(const\s+VERSION\s*=\s*["\']){re.escape(old_semver)}(["\'])', rf'\g<1>{new_semver}\g<2>', subbed)
+                    if subbed != raw:
+                        if not dry_run:
+                            atomic_write_text(s_full, subbed)
+                        updated_sinks.add(sink.path)
+                except OSError:
+                    pass
+
+    # 9. Context Roadmap Sync (context/01_Product/ROADMAP.md, context/ROADMAP.md, ROADMAP.md)
+    for r_candidate in (
+        os.path.join("context", "01_Product", "ROADMAP.md"),
+        os.path.join("context", "ROADMAP.md"),
+        "ROADMAP.md",
+    ):
+        r_path = os.path.join(abs_root, r_candidate)
+        if os.path.isfile(r_path):
+            try:
+                with open(r_path, "r", encoding="utf-8") as rf:
+                    raw = rf.read()
+                # Replace milestone headings like "### Now (v1.0.0-alpha" -> "### Now (v1.0.1"
+                subbed = re.sub(
+                    rf'(#+\s*(?:Now\s*)?\(?v?){re.escape(old_semver)}(?:-[a-zA-Z0-9._]+)?',
+                    rf'\g<1>{new_semver}',
+                    raw
+                )
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(r_path, subbed)
+                    updated_sinks.add(r_candidate.replace("\\", "/"))
+            except OSError:
+                pass
+
+    # 10. Foundation Metadata Sync (.agents/.project_manifest.json, .agents/.dna.json)
+    for fm_rel in (".agents/.project_manifest.json", ".agents/.dna.json"):
+        fm_path = os.path.join(abs_root, fm_rel)
+        if os.path.isfile(fm_path):
+            try:
+                with open(fm_path, "r", encoding="utf-8") as fmf:
+                    raw = fmf.read()
+                subbed = re.sub(r'("version"\s*:\s*")([^"]+)(")', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(fm_path, subbed)
+                    updated_sinks.add(fm_rel)
+            except OSError:
+                pass
+
+    # 11. Custom Epigenetic Sinks declared in .project_manifest.json
+    for sink in curr_state.discovered_sinks:
+        if sink.sink_type == "custom":
+            c_full = os.path.join(abs_root, sink.path)
+            if os.path.isfile(c_full):
+                try:
+                    with open(c_full, "r", encoding="utf-8") as cf:
+                        raw = cf.read()
+                    if old_semver in raw:
+                        subbed = raw.replace(old_semver, new_semver)
+                        if not dry_run:
+                            atomic_write_text(c_full, subbed)
+                        updated_sinks.add(sink.path)
+                except OSError:
+                    pass
+
+    # 12. README Sinks (shields badges and markdown headers)
+    for rm_candidate in ("README.md", "readme.md"):
+        rm_path = os.path.join(abs_root, rm_candidate)
+        if os.path.isfile(rm_path):
+            try:
+                with open(rm_path, "r", encoding="utf-8") as rmf:
+                    raw = rmf.read()
+                subbed = raw
+                subbed = re.sub(
+                    rf'(img\.shields\.io/badge/(?:version|release|v)-v?){re.escape(old_semver)}(-[a-zA-Z0-9._]+)',
+                    rf'\g<1>{new_semver}\g<2>',
+                    subbed
+                )
+                subbed = re.sub(
+                    rf'((?:\*\*|__)?(?:Project\s+)?Version:?(?:\*\*|__)?:?\s*[`"\'v]*){re.escape(old_semver)}(?=[`"\'\s\n\r,]|$)',
+                    rf'\g<1>{new_semver}',
+                    subbed,
+                    flags=re.IGNORECASE
+                )
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(rm_path, subbed)
+                    updated_sinks.add(rm_candidate)
+            except OSError:
+                pass
+
+    # 13. Plain text / config files (version.txt, version.json, version.yaml)
+    for vt_name in ("version.txt", "VERSION.txt"):
+        vt_path = os.path.join(abs_root, vt_name)
+        if os.path.isfile(vt_path):
+            try:
+                if not dry_run:
+                    atomic_write_text(vt_path, f"{new_semver}\n")
+                updated_sinks.add(vt_name)
+            except OSError:
+                pass
+
+    for vj_name in ("version.json", "deno.json", "deno.jsonc", "jsr.json", "composer.json"):
+        vj_path = os.path.join(abs_root, vj_name)
+        if os.path.isfile(vj_path):
+            try:
+                with open(vj_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                subbed = re.sub(r'("version"\s*:\s*")([^"]+)(")', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(vj_path, subbed)
+                    updated_sinks.add(vj_name)
+            except OSError:
+                pass
+
+    for vy_name in ("version.yaml", "version.yml"):
+        vy_path = os.path.join(abs_root, vy_name)
+        if os.path.isfile(vy_path):
+            try:
+                with open(vy_path, "r", encoding="utf-8") as f:
+                    raw = f.read()
+                subbed = re.sub(r'(version:\s*["\']?)([^"\'\r\n]+)(["\']?)', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+                if subbed != raw:
+                    if not dry_run:
+                        atomic_write_text(vy_path, subbed)
+                    updated_sinks.add(vy_name)
+            except OSError:
+                pass
+
+    # 14. Makefile & CMakeLists.txt & Directory.Build.props
+    mf_path = os.path.join(abs_root, "Makefile")
+    if os.path.isfile(mf_path):
+        try:
+            with open(mf_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'(VERSION\s*[:?]?=\s*["\']?)([^"\'\r\n]+)(["\']?)', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+            if subbed != raw:
+                if not dry_run:
+                    atomic_write_text(mf_path, subbed)
+                updated_sinks.add("Makefile")
+        except OSError:
+            pass
+
+    cm_path = os.path.join(abs_root, "CMakeLists.txt")
+    if os.path.isfile(cm_path):
+        try:
+            with open(cm_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'(project\s*\([^)]*VERSION\s+)([0-9a-zA-Z.+_-]+)', rf'\g<1>{new_semver}', raw, flags=re.IGNORECASE)
+            subbed = re.sub(r'(set\s*\(\s*(?:PROJECT_VERSION|[A-Za-z0-9_]+_VERSION)\s+["\']?)([^"\'\s\)]+)(["\']?\s*\))', rf'\g<1>{new_semver}\g<3>', subbed)
+            if subbed != raw:
+                if not dry_run:
+                    atomic_write_text(cm_path, subbed)
+                updated_sinks.add("CMakeLists.txt")
+        except OSError:
+            pass
+
+    prop_path = os.path.join(abs_root, "Directory.Build.props")
+    if os.path.isfile(prop_path):
+        try:
+            with open(prop_path, "r", encoding="utf-8") as f:
+                raw = f.read()
+            subbed = re.sub(r'(<Version>)([^<]+)(</Version>)', rf'\g<1>{new_semver}\g<3>', raw, count=1)
+            if subbed != raw:
+                if not dry_run:
+                    atomic_write_text(prop_path, subbed)
+                updated_sinks.add("Directory.Build.props")
+        except OSError:
+            pass
+
+    return sorted(list(updated_sinks))
 
 
 def compact_changelog_entries(raw_content: str) -> str:
@@ -2253,7 +3332,8 @@ def evaluate_dna_semver(
     strict Anti-AI-Slop and Lessword thresholds.
     """
     abs_root = os.path.abspath(root_dir)
-    curr_v_str, manifest_src = detect_project_version(abs_root)
+    detected = detect_project_version(abs_root)
+    curr_v_str, manifest_src = detected[0], detected[1]
     parsed = parse_semver(curr_v_str)
     maj, minr, pat = (parsed[0], parsed[1], parsed[2]) if parsed else (0, 1, 0)
 
@@ -2261,13 +3341,14 @@ def evaluate_dna_semver(
     changed_files = list(file_list or [])
     if not changed_files:
         try:
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
             ref = since_ref or "HEAD"
             cmd = ["git", "diff", "--name-only", ref]
-            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc.returncode == 0 and proc.stdout.strip():
                 changed_files = [f.strip().replace("\\", "/") for f in proc.stdout.strip().splitlines() if f.strip()]
             else:
-                proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+                proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
                 if proc2.returncode == 0 and proc2.stdout.strip():
                     for line in proc2.stdout.splitlines():
                         parts = line.strip().split(None, 1)
@@ -2280,8 +3361,9 @@ def evaluate_dna_semver(
     msgs = list(commit_messages or [])
     if not msgs:
         try:
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
             cmd = ["git", "log", "-n", "10", "--pretty=format:%B---COMMIT_DELIM---"]
-            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc.returncode == 0 and proc.stdout.strip():
                 msgs = [m.strip() for m in proc.stdout.split("---COMMIT_DELIM---") if m.strip()]
         except (OSError, subprocess.SubprocessError):
@@ -2358,14 +3440,24 @@ def evaluate_dna_semver(
         reasons.append("Incremental development: routine endpoints, UI polish, bugfixes, refactorings, and test additions stay strictly PATCH (Anti-AI-Slop Invariant)")
 
     target_v = f"{next_maj}.{next_min}.{next_pat}"
+    target_build = (detected.build_number + 1) if detected.build_number is not None else None
 
     return {
         "current_version": curr_v_str,
         "manifest_source": manifest_src,
+        "semver": f"{maj}.{minr}.{pat}",
+        "build_number": detected.build_number,
+        "prerelease": detected.prerelease,
+        "is_uninitiated": detected.is_uninitiated,
+        "is_prerelease": detected.is_prerelease,
+        "phase": detected.phase,
+        "release_status": detected.release_status,
         "recommended_bump": bump,
         "target_version": target_v,
+        "target_build_number": target_build,
         "changed_files_count": len(changed_files),
         "tier_distribution": dict(tier_counts),
         "reasons": reasons,
         "file_tier_map": file_tier_map,
+        "discovered_sinks": [asdict(s) for s in detected.sinks],
     }

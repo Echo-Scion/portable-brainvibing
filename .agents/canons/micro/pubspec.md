@@ -9,8 +9,10 @@ When initializing a project or adding dependencies, **DO NOT rely on hardcoded l
 
 ## Core Blessed Dependencies
 - **State & Routing**: `flutter_riverpod`, `riverpod_annotation`, `go_router`, `freezed_annotation`, `json_annotation`
-- **Dev Tools**: `build_runner`, `riverpod_generator`, `custom_lint`, `freezed`, `json_serializable`
-- **Backend & Networking**: `supabase_flutter`, `http`, `shared_preferences`, `flutter_secure_storage`
-- **UI & Styling**: `cached_network_image`, `flutter_svg`, `google_fonts`, `lucide_icons_flutter`
+- **Dev Tools**: `build_runner`, `riverpod_generator`, `custom_lint`, `freezed`, `json_serializable`, `drift_dev`
+- **Local Sovereignty & Database**: `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `flutter_secure_storage`
+- **Systems & Native Bridge**: `flutter_rust_bridge`, `ffi` (for native Rust compute companion integration)
+- **Backend & Networking (Layer-2 Sync)**: `supabase_flutter`, `http`, `shared_preferences`
+- **UI, Shaders & Styling**: `cached_network_image`, `flutter_svg`, `google_fonts`, `lucide_icons_flutter`
 
 > **IMPORTANT**: Never hardcode versions from an agent memory prompt, as they will decay over time. Always resolve against the live environment.

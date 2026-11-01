@@ -1,7 +1,94 @@
+---
+name: "{{project_name}}"
+version: "1.0.0"
+description: "Design system specification, visual tokens, and constraints for {{project_name}}"
+tokens:
+  colors:
+    canvas: "{{canvas_hex}}"
+    surface: "{{surface_hex}}"
+    surface_border: "{{border_hex}}"
+    text_primary: "{{text_primary}}"
+    text_muted: "{{text_muted}}"
+    brand_accent: "{{accent_hex}}"
+    status_error: "#EF4444"
+    status_success: "#10B981"
+    status_warning: "#F59E0B"
+    status_info: "#3B82F6"
+  typography:
+    fonts:
+      display: "{{display_font}}"
+      body: "{{body_font}}"
+      mono: "{{mono_font}}"
+    sizes:
+      xs: "12px"
+      sm: "14px"
+      base: "16px"
+      lg: "18px"
+      xl: "20px"
+      "2xl": "24px"
+      "3xl": "30px"
+      "4xl": "36px"
+    weights:
+      normal: 400
+      medium: 500
+      semibold: 600
+      bold: 700
+    line_heights:
+      tight: 1.25
+      snug: 1.375
+      normal: 1.5
+      relaxed: 1.625
+  spacing:
+    "3xs": "2px"
+    "2xs": "4px"
+    xs: "8px"
+    sm: "12px"
+    md: "16px"
+    lg: "24px"
+    xl: "32px"
+    "2xl": "48px"
+    "3xl": "64px"
+    "4xl": "96px"
+    "5xl": "128px"
+  rounded:
+    none: "0px"
+    xs: "2px"
+    sm: "4px"
+    md: "8px"
+    lg: "12px"
+    xl: "16px"
+    "2xl": "24px"
+    full: "9999px"
+  elevation:
+    none: "none"
+    sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+    md: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)"
+    lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
+    xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
+  motion:
+    duration:
+      instant: "75ms"
+      fast: "150ms"
+      normal: "250ms"
+      deliberate: "400ms"
+    easing:
+      default: "cubic-bezier(0.4, 0, 0.2, 1)"
+      in: "cubic-bezier(0.4, 0, 1, 1)"
+      out: "cubic-bezier(0, 0, 0.2, 1)"
+      bounce: "cubic-bezier(0.34, 1.56, 0.64, 1)"
+  breakpoints:
+    sm: "640px"
+    md: "768px"
+    lg: "1024px"
+    xl: "1280px"
+    "2xl": "1536px"
+---
+
 # Design Direction: {{project_name}}
 
 > **Design Read & Soul**: This document supplies project-specific aesthetic direction, locked design tokens, and structural rules.
 > The AI agent treats this file as **immutable data to apply**, not speculative instructions to improvise.
+> Fully compliant with the [Google Labs DESIGN.md specification](https://github.com/google-labs-code/design.md).
 
 ---
 
@@ -44,7 +131,7 @@ Score planned output 1–5 across the 6 axes. Any score < 3 triggers revision pa
 
 ---
 
-## 3. 🎨 Color Palette Tokens (WCAG 2.x Compliant)
+## 3. 🎨 Color Palette & Contrast Hierarchy (WCAG 2.1 AA)
 
 *All text/background pairings must pass WCAG AA (4.5:1 for body, 3:1 for large display).*
 
@@ -54,17 +141,21 @@ tokens:
     canvas: "{{canvas_hex}}"        # Base background surface
     surface: "{{surface_hex}}"      # Elevated card / panel
     surface_border: "{{border_hex}}"# 1px structural separator
-    text_primary: "{{text_primary}}"# High-contrast reading copy
+    text_primary: "{{text_primary}}"# High-contrast reading copy (>= 4.5:1)
     text_muted: "{{text_muted}}"    # Secondary labels & captions (>= 4.5:1)
     brand_accent: "{{accent_hex}}"  # Interactive action (<= 5% viewport area)
     status_error: "#EF4444"
     status_success: "#10B981"
     status_warning: "#F59E0B"
+    status_info: "#3B82F6"
 ```
+
+- **Contrast Floor**: Body text must achieve $\ge 4.5:1$ against its background surface. Large text ($\ge 18\text{pt}$ or bold $\ge 14\text{pt}$) must achieve $\ge 3.0:1$.
+- **Accent Footprint Law**: `brand_accent` must occupy $\le 5\%$ of the total viewport area. Do not paint large card backgrounds with accent colors.
 
 ---
 
-## 4. 📐 Mathematical Spacing Scale (8pt Grid)
+## 4. 📐 Spacing Scale & 8pt Grid Cadence
 
 No arbitrary unscale pixels (`17px`, `23px`). All dimensions bind to this modular ladder:
 
@@ -84,7 +175,39 @@ No arbitrary unscale pixels (`17px`, `23px`). All dimensions bind to this modula
 
 ---
 
-## 5. 🔤 Typography & Measure Clamping
+## 5. 🔲 Shape & Corner Radii (`rounded`)
+
+Corner radii establish the physical language of components across the product:
+
+| Token | Dimension | Applied UI Roles | Rationale |
+| :--- | :--- | :--- | :--- |
+| `none` | `0px` | Data tables, code blocks, flat dividers, brutalist frames | Strict geometric precision |
+| `xs` | `2px` | Status badges, hairline indicators, micro-tags | Sharp, subtle softening |
+| `sm` | `4px` | Inputs, dropdown menu items, small tooltips, buttons | Compact interactive targets |
+| `md` | `8px` | Standard cards, panels, popover menus, dialog boxes | Default component container radius |
+| `lg` | `12px` | Large modal dialogs, elevated feature callouts | Distinct visual grouping |
+| `xl` | `16px` | App shells, floating bottom sheets, hero cards | Generous modern container bounds |
+| `full` | `9999px` | Avatars, pill tags, segmented switches, toggle pills | Fully circular or pill-shaped elements |
+
+---
+
+## 6. 🏛️ Elevation, Depth & Layer Hierarchy (`elevation`)
+
+Depth is expressed through layered surface tones and subtle elevation shadows:
+
+| Level | Surface Token | Shadow Token | Visual Role |
+| :--- | :--- | :--- | :--- |
+| **Level 0 (Canvas)** | `colors.canvas` | `elevation.none` | Base background layer; zero shadow |
+| **Level 1 (Card / Panel)** | `colors.surface` | `elevation.sm` | Content cards, data rows, sidebar columns |
+| **Level 2 (Popover / Flyout)** | `colors.surface` | `elevation.md` | Dropdown menus, tooltips, floating command bars |
+| **Level 3 (Modal / Sheet)** | `colors.surface` | `elevation.lg` | Centered modal dialogs, slide-in side sheets |
+| **Level 4 (Alert / Toast)** | `colors.surface` | `elevation.xl` | System alert overlays, floating notification toasts |
+
+- **Hairline Rule**: Shadows MUST be paired with a subtle `1px` border (`colors.surface_border`) on dark themes to guarantee layer separation.
+
+---
+
+## 7. 🔤 Typography & Measure Clamping
 
 - **Display Face**: `"{{display_font}}"`, sans-serif / serif (Always upright roman; no fake italic headers).
 - **Body Face**: `"{{body_font}}"`, sans-serif (16px base, line-height 1.5).
@@ -94,7 +217,43 @@ No arbitrary unscale pixels (`17px`, `23px`). All dimensions bind to this modula
 
 ---
 
-## 6. 🧱 The 8-State Interactive Contract
+## 8. ⚡ Motion, Transitions & Micro-Interactions (`motion`)
+
+Animations must feel snappy, physical, and restrained:
+
+| Intent | Duration | Easing Curve | Use Case |
+| :--- | :--- | :--- | :--- |
+| **Micro-feedback** | `75ms` (`instant`) | `easing.default` | Active click/press depression, toggle switch |
+| **Interactive State**| `150ms` (`fast`) | `easing.out` | Hover color/border shift, tooltip fade |
+| **Layout / Expansion**| `250ms` (`normal`) | `easing.default` | Accordion fold, dropdown expansion, tab slide |
+| **Modal / Dialog** | `250ms` (`normal`) | `easing.out` | Modal fade & scale-in (`scale(0.96) -> scale(1)`) |
+| **Deliberate Reveal** | `400ms` (`deliberate`) | `easing.out` | Page route transition, hero section entrance |
+
+- **Accessibility Mandate**: Respect user motion preferences:
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  ```
+
+---
+
+## 9. 🎯 Iconography Standards
+
+- **Standard Icon Pack**: Lucide Icons or Phosphor Icons (Pick one library, never mix multiple icon styles).
+- **Sizing Grid**:
+  - `16px` (`size-4`): Compact inline badges, input field adornments, table row actions.
+  - `20px` (`size-5`): Standard button icons, navigation list items, tab headers.
+  - `24px` (`size-6`): Hero feature highlights, empty state visual anchors, page titles.
+- **Stroke Uniformity**: Consistent `1.5px` stroke weight across all icons (or `2px` for bold/compact). Never mix thin and thick icons.
+- **Alignment**: Center icon optical bounds vertically with adjacent typography.
+
+---
+
+## 10. 🧱 The 8-State Interactive Contract
 
 Every interactive element (button, input, select, row) must provide explicit styling for all 8 states:
 
@@ -109,7 +268,7 @@ Every interactive element (button, input, select, row) must provide explicit sty
 
 ---
 
-## 7. 🎨 Palette Rotation Pool (Anti-Monoculture Sets)
+## 11. 🎨 Palette Rotation Pool (Anti-Monoculture Sets)
 
 To prevent repetitive warm beige/brass/espresso monoculture across consumer and craft briefs, rotate among these production-tested alternatives:
 
@@ -125,7 +284,7 @@ To prevent repetitive warm beige/brass/espresso monoculture across consumer and 
 
 ---
 
-## 8. 📦 Design System Selection Protocol
+## 12. 📦 Design System Selection Protocol
 
 Before authoring custom CSS or inventing ad-hoc component libraries, identify whether the surface demands an official enterprise design system:
 
@@ -140,9 +299,26 @@ Before authoring custom CSS or inventing ad-hoc component libraries, identify wh
 
 ---
 
-## 9. 👤 UX Flows & Voice
+## 13. 🚫 Do's and Don'ts (Agent Behavioral Constraint Matrix)
+
+Direct operational rules to prevent AI visual drift and template slop:
+
+| Domain | ✅ DO | ❌ DON'T |
+| :--- | :--- | :--- |
+| **Colors** | Use semantic token variables (`colors.surface`, `colors.brand_accent`). | Hardcode raw arbitrary hex codes (`#17293a`) in component markup. |
+| **Accent Footprint** | Restrict accent color to primary action buttons and focused states ($\le 5\%$). | Paint entire card backgrounds, table rows, or full-width headers with accent. |
+| **Typography** | Clamp all paragraph and article text containers between `45ch` and `75ch`. | Allow prose text to stretch edge-to-edge across wide 1440px+ viewports. |
+| **Numbers & Data** | Apply `font-variant-numeric: tabular-nums` to financial data, counters, and telemetry. | Use proportional figures that jitter or misalign in data tables. |
+| **Spacing** | Snap all layout paddings, gaps, and margins strictly to the 8pt modular grid. | Invent ad-hoc arbitrary values like `margin: 13px; padding: 27px;`. |
+| **Elevation** | Pair soft box-shadows with a `1px` structural hairline border on dark surfaces. | Use muddy, heavy black drop-shadows without surface border definition. |
+| **Shapes** | Use consistent corner radius tokens across identical component tiers (`rounded.md`). | Mix sharp 0px corners, 6px corners, and pill buttons on the same surface. |
+| **Motion** | Use fast `150ms–250ms` transitions with `cubic-bezier` easing curves. | Apply sluggish `>500ms` animations or bouncy gimmicks on routine UI clicks. |
+| **Icons** | Standardize on one icon library (Lucide or Phosphor) with uniform `1.5px` stroke. | Mix filled, outline, multi-color, and mismatched icon libraries on one page. |
+
+---
+
+## 14. 👤 UX Flows & Brand Voice
 
 - **User Persona**: `{{primary_persona}}`
 - **Key Navigation Patterns**: `{{nav_patterns}}` (e.g., Sidebar Master-Detail | Command Palette + Canvas | Stepped Wizard)
 - **Communication Style / Brand Voice**: `{{brand_voice}}` (e.g., Technical & terse | Friendly & conversational | Academic gravitas)
-

@@ -40,6 +40,8 @@ from datetime import datetime, timezone
 from collections import defaultdict, Counter
 from typing import List, Dict, Set, Tuple, Optional, Any, Union
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 try:
     from core.dna import sequence_project_dna, ProjectDNA, CANONICAL_5_TIERS, classify_file_to_tier
 except ImportError:
@@ -106,34 +108,40 @@ except (ImportError, OSError):
                         warnings.append(f"Detected {count} potential {name} secrets.")
                 return sanitized, warnings
 
-DEFAULT_IGNORE_DIRS = {
-    ".git", "node_modules", "__pycache__", ".venv", "venv", "target", "build",
-    "dist", ".dart_tool", ".gradle", ".idea", ".vscode", ".gemini", ".cursor",
-    ".claude", ".clinerules", ".hermes", "coverage", ".orion", "scratch", ".scratch",
-    ".worktrees", "temp", "tmp", ".turbo", ".next", ".cache", ".pytest_cache",
-    ".mypy_cache", "vendor", ".svelte-kit", ".nuxt", "out", "Pods", "DerivedData",
-    "CMakeFiles", "obj", ".bundle", "bower_components"
-}
-
-AGENT_TOOLING_DIRS = {
-    ".agents", ".orion", ".gemini", ".claude", ".cursor", ".opencode", ".hermes",
-    ".antigravity-plugin", ".claude-plugin", ".cursor-plugin", ".codex-plugin",
-    ".devin-plugin", ".copilot-plugin", ".kimi-plugin", ".hermes-plugin",
-    ".muse-plugin", ".droid-plugin", ".grok-plugin", ".pi-plugin",
-    ".qwen-plugin", ".minimax-plugin", ".mimo-plugin"
-}
-
-AGENT_ROOT_FILES = {
-    "agents.md", "gemini.md", "claude.md", "minimax.md", "mimo.md",
-    "learnings.md", "gemini-extension.json", "deploy_me.md", "agent_identity.md"
-}
-
-DEFAULT_IGNORE_FILENAMES = {
-    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "pubspec.lock",
-    "cargo.lock", "poetry.lock", "composer.lock", "gemfile.lock", "pipfile.lock",
-    "bun.lockb", "bun.lock", "uv.lock", "gradle.lockfile", "podfile.lock",
-    ".ds_store", "thumbs.db", "desktop.ini"
-}
+try:
+    from core.paths import (
+        DEFAULT_IGNORE_DIRS,
+        DEFAULT_IGNORE_FILENAMES,
+        AGENT_TOOLING_DIRS,
+        AGENT_ROOT_FILES,
+        is_agent_tooling_path,
+        GitIgnoreFilter as CoreGitIgnoreFilter,
+        should_traverse_dir,
+        get_workspace_files,
+    )
+except ImportError:
+    try:
+        from .paths import (
+            DEFAULT_IGNORE_DIRS,
+            DEFAULT_IGNORE_FILENAMES,
+            AGENT_TOOLING_DIRS,
+            AGENT_ROOT_FILES,
+            is_agent_tooling_path,
+            GitIgnoreFilter as CoreGitIgnoreFilter,
+            should_traverse_dir,
+            get_workspace_files,
+        )
+    except (ImportError, ValueError):
+        from paths import (
+            DEFAULT_IGNORE_DIRS,
+            DEFAULT_IGNORE_FILENAMES,
+            AGENT_TOOLING_DIRS,
+            AGENT_ROOT_FILES,
+            is_agent_tooling_path,
+            GitIgnoreFilter as CoreGitIgnoreFilter,
+            should_traverse_dir,
+            get_workspace_files,
+        )
 
 DEFAULT_TEXT_EXTENSIONS = {
     ".py", ".dart", ".kt", ".kts", ".java", ".rs", ".ts", ".tsx", ".js", ".jsx",
@@ -332,145 +340,15 @@ def should_exclude_agent_tooling(root_dir: str, target_dir: Optional[str] = None
     return True
 
 
-def is_agent_tooling_path(rel_path: str, root_dir: Optional[str] = None) -> bool:
-    """Checks if a relative path belongs to AI agent tooling rather than the host application."""
-    norm = rel_path.replace("\\", "/").strip("/")
-    if not norm:
-        return False
-    parts = norm.split("/")
-    first_seg = parts[0]
-    if first_seg in AGENT_TOOLING_DIRS or first_seg.endswith("-plugin"):
-        return True
-    if len(parts) == 1:
-        f_low = first_seg.lower()
-        if f_low == "agents.md":
-            return False
-        if f_low == "gemini.md":
-            if root_dir and os.path.isfile(os.path.join(root_dir, "AGENTS.md")):
-                return True
-            return False
-        if f_low in AGENT_ROOT_FILES:
-            return True
-    if parts[-1].lower() in AGENT_ROOT_FILES:
-        return True
-    if norm.startswith(".github/copilot"):
-        return True
-    return False
-
-
-class GitIgnoreFilter:
+class GitIgnoreFilter(CoreGitIgnoreFilter):
     """Hierarchical gitignore matcher supporting nested monorepo .gitignore files, negations, and wildcards."""
 
     def __init__(self, root_dir: str, exclude_agent_tooling: bool = True):
-        self.root_dir = os.path.abspath(root_dir)
-        self.exclude_agent_tooling = exclude_agent_tooling
-        self.rules: List[Tuple[str, re.Pattern, bool, bool]] = []
-        self._loaded_dirs: Set[str] = set()
-        self._load_gitignore_for_dir("")
-
-    def _load_gitignore_for_dir(self, rel_dir: str) -> None:
-        if rel_dir in self._loaded_dirs:
-            return
-        self._loaded_dirs.add(rel_dir)
-        gi_path = os.path.join(self.root_dir, rel_dir, ".gitignore") if rel_dir else os.path.join(self.root_dir, ".gitignore")
-        if not os.path.isfile(gi_path):
-            return
-        try:
-            content = read_text_safe(gi_path)
-            for line in content.splitlines():
-                self.add_rule(line, base_rel_dir=rel_dir)
-        except Exception as _e:
-            _log_telemetry(_e, f"packer.py:load_gitignore:{rel_dir}")
-
-    def add_rule(self, line: str, base_rel_dir: str = "") -> None:
-        raw = line.strip()
-        if not raw or raw.startswith("#"):
-            return
-        is_neg = raw.startswith("!")
-        if is_neg:
-            raw = raw[1:].strip()
-        is_dir_only = raw.endswith("/")
-        if is_dir_only:
-            raw = raw.rstrip("/")
-        is_anchored = raw.startswith("/") or ("/" in raw)
-        clean_pat = raw.lstrip("/")
-        if clean_pat:
-            compiled = self._git_glob_to_regex(clean_pat, is_anchored)
-            self.rules.append((base_rel_dir.replace("\\", "/").strip("/"), compiled, is_neg, is_dir_only))
-
-    @staticmethod
-    def _git_glob_to_regex(pat: str, is_anchored: bool) -> re.Pattern:
-        out = ["^" if is_anchored else "(?:^|/)"]
-        i, n = 0, len(pat)
-        while i < n:
-            if pat[i] == "\\" and i + 1 < n:
-                out.append(re.escape(pat[i + 1]))
-                i += 2
-            elif pat[i:i + 3] == "**/":
-                out.append("(?:.+/)?")
-                i += 3
-            elif pat[i:i + 2] == "**":
-                out.append(".*")
-                i += 2
-            elif pat[i] == "*":
-                out.append("[^/]*")
-                i += 1
-            elif pat[i] == "?":
-                out.append("[^/]")
-                i += 1
-            elif pat[i] == "[":
-                j = pat.find("]", i + 1)
-                if j != -1:
-                    inner = pat[i + 1:j]
-                    if inner.startswith("!"):
-                        inner = "^" + inner[1:]
-                    out.append(f"[{inner}]")
-                    i = j + 1
-                else:
-                    out.append(r"\[")
-                    i += 1
-            else:
-                out.append(re.escape(pat[i]))
-                i += 1
-        out.append("(?:$|/)")
-        return re.compile("".join(out))
-
-    def is_ignored(self, rel_path: str, is_dir: bool = False) -> bool:
-        norm = rel_path.replace("\\", "/").strip("/")
-        if not norm or norm == ".":
-            return False
-        if self.exclude_agent_tooling and is_agent_tooling_path(norm, self.root_dir):
-            return True
-
-        parts = norm.split("/")
-        check_parts = parts if is_dir else parts[:-1]
-        if any(p in DEFAULT_IGNORE_DIRS for p in check_parts):
-            return True
-        if not is_dir and (parts[-1].lower() in DEFAULT_IGNORE_FILENAMES or is_minified_or_asset(norm)):
-            return True
-
-        accum = ""
-        for part in parts[:-1]:
-            accum = f"{accum}/{part}" if accum else part
-            self._load_gitignore_for_dir(accum)
-
-        ignored = False
-        for base_dir, regex, is_neg, dir_only in self.rules:
-            if base_dir:
-                if not (norm == base_dir or norm.startswith(base_dir + "/")):
-                    continue
-                sub_path = norm[len(base_dir):].lstrip("/")
-            else:
-                sub_path = norm
-            if not sub_path:
-                continue
-            m = regex.search(sub_path)
-            if m:
-                if dir_only and not is_dir:
-                    if m.end() == len(sub_path) and "/" not in sub_path[m.start():]:
-                        continue
-                ignored = not is_neg
-        return ignored
+        super().__init__(
+            root_dir=root_dir,
+            exclude_agent_tooling=exclude_agent_tooling,
+            asset_filter_fn=is_minified_or_asset,
+        )
 
 
 def generate_ascii_tree(
@@ -567,6 +445,7 @@ def collect_git_diff_files(
             encoding="utf-8",
             errors="replace",
             check=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         if res.returncode == 0:
             lines = [l.strip().replace("\\", "/") for l in res.stdout.splitlines() if l.strip()]
@@ -585,6 +464,7 @@ def clone_remote_repo(url: str, dest_dir: str, depth: int = 1) -> bool:
             capture_output=True,
             text=True,
             encoding="utf-8",
+            creationflags=_WINDOWLESS_FLAGS,
         )
         return True
     except Exception as _e:
@@ -3765,7 +3645,7 @@ def main() -> None:
             repo_name = repo_name[:-4]
         print(f"[GIT CLONE] Shallow cloning remote repository {remote_repo_url} into temporary workspace...")
         try:
-            subprocess.run(["git", "clone", "--depth", "1", remote_repo_url, target_root], check=True, capture_output=True, text=True, encoding="utf-8")
+            subprocess.run(["git", "clone", "--depth", "1", remote_repo_url, target_root], check=True, capture_output=True, text=True, encoding="utf-8", creationflags=_WINDOWLESS_FLAGS)
             print(f"[GIT CLONE] Successfully cloned {repo_name} (depth: 1). Packaging repository...")
         except (subprocess.CalledProcessError, OSError) as e:
             sys.stderr.write(f"[GIT ERROR] Failed to shallow clone {remote_repo_url}: {e}\n")

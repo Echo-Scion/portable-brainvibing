@@ -52,6 +52,8 @@ These patterns represent lazy model defaults. Refuse them unless explicitly dema
 3. **Eyebrow Inflation**: Forbid kicker/eyebrow labels above every single heading. The heading must carry its own authority.
 4. **Numbered Sequence Markers**: Forbid artificial `01 / 02 / 03` prefixes on feature cards unless presenting a chronological step-by-step pipeline.
 5. **Reflex Modals**: Reject dialogs for tasks that need neither interruption nor protected focus. Prefer inline expansion or drawer panels.
+6. **Ad-Hoc Wrapper Soup**: Reject inventing custom generic `<div>` cards for structured tabular data or object properties. Use canonical `Data Table` or `Description List` primitives instead.
+7. **Modal Overuse**: Reject spawning modal dialogs for secondary editing tasks that can be performed in a slide-out `Sheet / Side Drawer` or inline.
 
 ### Surface Refusals:
 1. **Gradient Text**: Reject rainbow/purple-to-cyan gradient text. Typographic authority stems from scale, weight, and contrast.

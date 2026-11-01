@@ -2,7 +2,7 @@
 activation: model_decision
 description: Decision trees for performance optimization, token usage, and Bolt-level speed enforcement.
 
-version: 0.0.3
+version: 0.0.4
 last_updated: 2026-05-20
 ---
 

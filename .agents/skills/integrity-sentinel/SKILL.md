@@ -20,7 +20,8 @@ Do not "adopt a persona." You are an algorithmic QA engine and quality enforceme
 2. **RUN**: Execute the FULL command via `run_command` (fresh, complete).
 3. **READ**: Inspect full output, verify exit code (`Exit Code 0`), and count failure markers.
 4. **VERIFY (State-Delta Proof & Consequence Tiers)**: Does output explicitly confirm the expected mechanical state AND concrete consequence across at least two tiers (Tier 1 Signal, Tier 2 State/Network/Route, Tier 3 DOM)? Exit Code 0 alone is a False Green if output has zero mutations, unverified payloads, unconsumed responses, shallow string-only assertions (Vector 8), or silent skips.
-5. **ONLY THEN**: Make the completion claim to the user.
+5. **DNA ARCHITECTURAL GATE (Anti-Green-Test-Illusion)**: Passing functional tests (unit, component, contract, or E2E) only proves behavioral assertions, not architectural boundary integrity. You MUST run `python .agents/scripts/orion.py dna audit`. If layer violations > 0, chimera files > 0, or compliance score < 90, completion is BLOCKED.
+6. **ONLY THEN**: Make the completion claim to the user.
 
 ## Audit Findings Delivery Contract
 When delivering audit findings, report each defect with high signal and zero cosmetic filler:

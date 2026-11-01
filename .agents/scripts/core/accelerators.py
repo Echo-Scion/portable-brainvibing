@@ -12,6 +12,8 @@ import subprocess
 import importlib.util
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 # Flag indicating whether site-packages has been dynamically attached to sys.path
 _BOOTSTRAPPED: bool = False
 _SITE_PACKAGES_PATH: Optional[str] = None
@@ -224,6 +226,7 @@ def run_ephemeral_bunx(package: str, args: Optional[List[str]] = None, timeout: 
             errors="replace",
             timeout=timeout,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         return {
             "status": "SUCCESS" if proc.returncode == 0 else "FAILED",
@@ -284,6 +287,7 @@ def run_ephemeral_ast_grep(pattern: str, lang: str, target: str, timeout: float 
             errors="replace",
             timeout=timeout,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         # In ast-grep: 0 = matches found, 1 = zero matches found, >1 = syntax/runtime error
         status = "SUCCESS" if proc.returncode in (0, 1) else "FAILED"
@@ -556,6 +560,7 @@ def create_atomic_checkpoint(cwd: Optional[str] = None) -> Dict[str, str]:
                 errors="replace",
                 timeout=5.0,
                 shell=False,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 return {"engine": "jj", "snapshot_id": proc.stdout.strip()}
@@ -573,6 +578,7 @@ def create_atomic_checkpoint(cwd: Optional[str] = None) -> Dict[str, str]:
             errors="replace",
             timeout=5.0,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         snap = proc_git.stdout.strip()
         if not snap:
@@ -585,6 +591,7 @@ def create_atomic_checkpoint(cwd: Optional[str] = None) -> Dict[str, str]:
                 errors="replace",
                 timeout=5.0,
                 shell=False,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             snap = proc_head.stdout.strip()
         return {"engine": "git-stash-object", "snapshot_id": snap}
@@ -613,6 +620,7 @@ def run_ephemeral_difft(target_or_args: Optional[List[str]] = None, timeout: flo
                 timeout=timeout,
                 env=env,
                 shell=False,
+                creationflags=_WINDOWLESS_FLAGS,
             )
             if proc.returncode in (0, 1):
                 return {
@@ -636,6 +644,7 @@ def run_ephemeral_difft(target_or_args: Optional[List[str]] = None, timeout: flo
             errors="replace",
             timeout=timeout,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         return {
             "status": "DEGRADED_FALLBACK",
@@ -767,24 +776,24 @@ def install_high_value_accelerators(python_bin: Optional[str] = None) -> Tuple[b
         if uv_bin:
             if not os.path.isfile(target_py):
                 cmd_venv = [uv_bin, "venv", target_venv, "--python", python_executable]
-                res_venv = subprocess.run(cmd_venv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, shell=False)
+                res_venv = subprocess.run(cmd_venv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, shell=False, creationflags=_WINDOWLESS_FLAGS)
                 if res_venv.returncode != 0:
                     return False, f"uv venv failed: {res_venv.stderr.strip()}"
 
             cmd_install = [uv_bin, "pip", "install", "--python", target_py] + wheel_packages
-            res_install = subprocess.run(cmd_install, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, shell=False)
+            res_install = subprocess.run(cmd_install, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, shell=False, creationflags=_WINDOWLESS_FLAGS)
             if res_install.returncode != 0:
                 return False, f"uv pip install failed: {res_install.stderr.strip()}"
             return True, f"Successfully installed Tier 2 accelerators via uv into {target_venv}"
         else:
             if not os.path.isfile(target_py):
                 cmd_venv = [python_executable, "-m", "venv", target_venv]
-                res_venv = subprocess.run(cmd_venv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, shell=False)
+                res_venv = subprocess.run(cmd_venv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, shell=False, creationflags=_WINDOWLESS_FLAGS)
                 if res_venv.returncode != 0:
                     return False, f"python -m venv failed: {res_venv.stderr.strip()}"
 
             cmd_install = [target_py, "-m", "pip", "install", "--upgrade"] + wheel_packages
-            res_install = subprocess.run(cmd_install, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=150, shell=False)
+            res_install = subprocess.run(cmd_install, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=150, shell=False, creationflags=_WINDOWLESS_FLAGS)
             if res_install.returncode != 0:
                 return False, f"pip install failed: {res_install.stderr.strip()}"
             return True, f"Successfully installed Tier 2 accelerators via pip into {target_venv}"

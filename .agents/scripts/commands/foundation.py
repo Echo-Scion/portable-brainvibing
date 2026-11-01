@@ -9,6 +9,8 @@ import hashlib
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
+_WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
 try:
     from core.db import log_telemetry as _log_telemetry, atomic_write_text
 except ImportError:
@@ -831,6 +833,8 @@ def smart_merge_config(template_content, target_path, project_name, fmt, dry_run
 EVOLVABLE_FOLDERS = ["skills", "rules", "canons", "templates", "scripts", "evals", "docs", "hooks"]
 ROOT_SYNC_FILES = ["DEPLOY_ME.md", "AGENTS_INDEX.md", "hooks.json", ".security-baseline.json"]
 SEED_FILES = [
+    "CHANGELOG.md",
+    ".worktreeinclude",
     "context/VISION.md",
     "context/00_Strategy/BLUEPRINT.md",
     "context/00_Strategy/MEMORY.md",
@@ -841,6 +845,8 @@ SEED_FILES = [
     "context/README.md"
 ]
 SEED_FILE_MAP = {
+    "CHANGELOG.md": ".agents/templates/CHANGELOG.template.md",
+    ".worktreeinclude": ".agents/templates/worktreeinclude.template",
     "context/VISION.md": ".agents/templates/VISION.template.md",
     "context/00_Strategy/BLUEPRINT.md": ".agents/templates/BLUEPRINT.template.md",
     "context/00_Strategy/MEMORY.md": ".agents/templates/MEMORY.template.md",
@@ -1139,7 +1145,7 @@ def cmd_deploy(args):
         if os.path.exists(orion_script):
             try:
                 # 1. Initialize empty Graph Database (enforcing cross-platform UTF-8)
-                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "init"], cwd=target_dir, check=True)
+                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "init"], cwd=target_dir, check=True, creationflags=_WINDOWLESS_FLAGS)
                 
                 # 2. Scaffold Base Context Directory to prevent amnesia
                 context_dir = os.path.join(target_dir, "context")
@@ -1175,7 +1181,7 @@ def cmd_deploy(args):
 
                 # 3. Auto-Hydrate Graph with Rules, Skills, and Context (enforcing cross-platform UTF-8)
                 print("  -> Auto-Hydrating Rules & Context into Brain Graph...")
-                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "ingest", ".agents/rules", ".agents/skills", "context", "README.md"], cwd=target_dir, check=True)
+                subprocess.run([sys.executable, "-X", "utf8", orion_script, "orion_ops", "ingest", ".agents/rules", ".agents/skills", "context", "README.md"], cwd=target_dir, check=True, creationflags=_WINDOWLESS_FLAGS)
                 
             except Exception as e:
                 print(f"    [WARNING] Failed to initialize Orion Brain Graph: {e}")
@@ -1523,7 +1529,8 @@ def cmd_upstream(args):
                 cwd=project_root,
                 text=True,
                 encoding="utf-8",
-                errors="replace"
+                errors="replace",
+                creationflags=_WINDOWLESS_FLAGS
             )
             for line in out.splitlines():
                 line = line.strip().replace("\\", "/")
@@ -1701,7 +1708,7 @@ def cmd_upstream(args):
         try:
             import subprocess
             ver_cmd = [sys.executable, os.path.join(foundation_agents, "scripts", "orion.py"), "verify"]
-            res = subprocess.run(ver_cmd, cwd=hub_root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+            res = subprocess.run(ver_cmd, cwd=hub_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=_WINDOWLESS_FLAGS)
             if res.returncode == 0:
                 print("  ✅ [PASS] Foundation Hub verification succeeded.")
             else:
@@ -2395,6 +2402,7 @@ def _run_orion_subcommand(orion_py: str, sub_args: list, cwd: str, timeout: int 
             errors="replace",
             timeout=timeout,
             shell=False,
+            creationflags=_WINDOWLESS_FLAGS,
         )
         out = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
         return proc.returncode == 0, out.strip()
@@ -2457,6 +2465,7 @@ def execute_setup_pipeline(
                             errors="replace",
                             timeout=180,
                             shell=False,
+                            creationflags=_WINDOWLESS_FLAGS,
                         )
                         steps_log.append({
                             "step": f"install:{dep}",
@@ -2472,7 +2481,7 @@ def execute_setup_pipeline(
                 emb_cmd = ["ollama", "pull", rec["recommended_embedding_model"]]
                 print(f"  [⏳] Pulling embedding model: {' '.join(emb_cmd)} ...")
                 try:
-                    res = subprocess.run(emb_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300, shell=False)
+                    res = subprocess.run(emb_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300, shell=False, creationflags=_WINDOWLESS_FLAGS)
                     steps_log.append({"step": "pull_embedding", "ok": res.returncode == 0, "detail": rec["recommended_embedding_model"]})
                 except Exception as _pe:
                     steps_log.append({"step": "pull_embedding", "ok": False, "detail": str(_pe)})
@@ -2482,7 +2491,7 @@ def execute_setup_pipeline(
                 gen_cmd = ["ollama", "pull", rec["recommended_generative_model"]]
                 print(f"  [⏳] Pulling hardware-recommended model: {' '.join(gen_cmd)} ...")
                 try:
-                    res = subprocess.run(gen_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600, shell=False)
+                    res = subprocess.run(gen_cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600, shell=False, creationflags=_WINDOWLESS_FLAGS)
                     steps_log.append({"step": "pull_generative", "ok": res.returncode == 0, "detail": rec["recommended_generative_model"]})
                 except Exception as _ge:
                     steps_log.append({"step": "pull_generative", "ok": False, "detail": str(_ge)})
@@ -2567,6 +2576,7 @@ def execute_setup_pipeline(
                     encoding="utf-8",
                     errors="replace",
                     timeout=15,
+                    creationflags=_WINDOWLESS_FLAGS,
                 )
             except Exception as _we:
                 _log_telemetry(_we, "setup:wake_hook")
@@ -2698,7 +2708,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.3)     ║")
+    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.4)     ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")
@@ -2968,7 +2978,7 @@ def cmd_dna(args: argparse.Namespace) -> None:
         dna = sequence_project_dna(abs_target, allow_foundation=True)
         if not dna:
             print(f"[DNA ERROR] Failed to sequence Project DNA for target '{os.path.basename(abs_target)}'.")
-            return
+            sys.exit(1)
         print(f"\n🛡️  DNA ARCHITECTURAL INTEGRITY AUDIT: {os.path.basename(abs_target)}")
         print(f"  • Compliance Score: {dna.dna_compliance_score}/100")
         if dna.layer_violations:
@@ -2985,11 +2995,23 @@ def cmd_dna(args: argparse.Namespace) -> None:
         else:
             print(f"  • ✅ Zero Chimera Files Detected")
 
-        if dna.dna_compliance_score < 70:
-            print(f"\n[AUDIT FAILED] Compliance score {dna.dna_compliance_score} is below 70 threshold.")
+        strict = getattr(args, "strict", False)
+        threshold = 100 if strict else 90
+        is_failing = bool(dna.layer_violations) or bool(dna.chimera_files) or (dna.dna_compliance_score < threshold)
+
+        if is_failing:
+            reasons = []
+            if dna.layer_violations:
+                reasons.append(f"{len(dna.layer_violations)} layer violation(s)")
+            if dna.chimera_files:
+                reasons.append(f"{len(dna.chimera_files)} chimera file(s)")
+            if dna.dna_compliance_score < threshold:
+                reasons.append(f"compliance score {dna.dna_compliance_score}/100 below {threshold}")
+            print(f"\n❌ [AUDIT FAILED] Architectural DNA integrity violated: {', '.join(reasons)}.")
+            print("Run 'python .agents/scripts/orion.py dna lint' or decouple illegal cross-layer imports before committing.\n")
             sys.exit(1)
         else:
-            print(f"\n[AUDIT PASSED] Architecture complies with 5-Tier DNA standards.\n")
+            print(f"\n✅ [AUDIT PASSED] Architecture complies with 5-Tier DNA standards (Score: {dna.dna_compliance_score}/100).\n")
 
     elif action == "lint":
         file_arg = getattr(args, "file", None)
@@ -3060,16 +3082,32 @@ def cmd_dna(args: argparse.Namespace) -> None:
             return
         print(f"\n🧬 DNA SEMVER RADAR: {os.path.basename(abs_target)}")
         print("------------------------------------------------------------")
-        print(f"  • Current Version   : v{res['current_version']} (via {res['manifest_source']})")
-        print(f"  • Recommended Bump  : {res['recommended_bump']} -> v{res['target_version']}")
-        print(f"  • Modified Files    : {res['changed_files_count']}")
-        if res.get("tier_distribution"):
-            tiers_summary = ", ".join(f"{k}: {v}" for k, v in res['tier_distribution'].items())
-            print(f"  • DNA Strata Touched: {tiers_summary}")
-        if res.get("reasons"):
-            print("  • Justification (Anti-AI-Slop Gate):")
-            for r in res["reasons"]:
-                print(f"    - {r}")
+        if res.get("manifest_source") == "uninitiated" or res.get("is_uninitiated"):
+            print(f"  • Current Version   : 0.0.0 (Uninitiated — Greenfield project, no package manifest)")
+            print(f"  • Project State     : Greenfield (Pre-release / Unversioned)")
+            print(f"  • Recommended Action: Initialize package manifest (package.json, pubspec.yaml, pyproject.toml) before release tagging")
+        else:
+            phase_suffix = f" [Phase: {res['phase']}]" if res.get("phase") else ""
+            print(f"  • Current Version   : v{res['current_version']} (via {res['manifest_source']}){phase_suffix}")
+            if res.get("build_number") is not None:
+                print(f"  • Build Number      : {res['build_number']} (Auto-increments to {res.get('target_build_number')})")
+            if res.get("is_prerelease"):
+                print(f"  • Release Status    : IN-DEVELOPMENT ({res.get('release_status', 'Unreleased')})")
+            print(f"  • Recommended Bump  : {res['recommended_bump']} -> v{res['target_version']}")
+            print(f"  • Modified Files    : {res['changed_files_count']}")
+            if res.get("tier_distribution"):
+                tiers_summary = ", ".join(f"{k}: {v}" for k, v in res['tier_distribution'].items())
+                print(f"  • DNA Strata Touched: {tiers_summary}")
+            if res.get("discovered_sinks"):
+                print(f"  • Discovered Sinks  : {len(res['discovered_sinks'])} synchronizer(s)")
+                for s in res["discovered_sinks"][:6]:
+                    print(f"    - [{s['sink_type']}] {s['path']}")
+                if len(res["discovered_sinks"]) > 6:
+                    print(f"    ... and {len(res['discovered_sinks']) - 6} more")
+            if res.get("reasons"):
+                print("  • Justification (Anti-AI-Slop Gate):")
+                for r in res["reasons"]:
+                    print(f"    - {r}")
         print()
 
     elif action == "bump":
@@ -3083,11 +3121,30 @@ def cmd_dna(args: argparse.Namespace) -> None:
         )
         bump_type = getattr(args, "bump_type", "auto") or "auto"
         dry_run = getattr(args, "dry_run", False)
+        build_number_arg = getattr(args, "build_number", None)
 
-        curr_v, manifest_src = detect_project_version(abs_target)
+        curr_det = detect_project_version(abs_target)
+        if curr_det.is_uninitiated:
+            print(f"\n⚠️  CANNOT BUMP UNINITIATED PROJECT: {os.path.basename(abs_target)}")
+            print("  • Project has no manifest (package.json, pubspec.yaml, pyproject.toml, etc.).")
+            print("  • Current Version is 0.0.0 (Uninitiated / Greenfield).")
+            print("  • Action required: Initialize a package manifest before performing release bumps.\n")
+            return
+
+        is_prerelease = curr_det.is_prerelease
+        force_release = getattr(args, "release", False) or getattr(args, "force", False)
+        if is_prerelease and not force_release and bump_type == "auto":
+            print(f"\n⚠️  PRE-RELEASE / IN-DEVELOPMENT PROJECT: {os.path.basename(abs_target)}")
+            print(f"  • Current Phase    : {curr_det.phase or 'Pre-release'} ({curr_det.release_status})")
+            print("  • Ongoing changes should remain under '## [Unreleased]' until a milestone is finalized.")
+            print("  • To finalize and stamp a release, provide --force or explicit bump level (patch|minor|major).\n")
+            return
+
+        curr_v, manifest_src = curr_det[0], curr_det[1]
         if bump_type == "auto":
             eval_res = evaluate_dna_semver(abs_target, since_ref=getattr(args, "since", None))
             target_v = eval_res["target_version"]
+            target_bld = eval_res.get("target_build_number")
             bump_choice = eval_res["recommended_bump"]
             reasons = eval_res.get("reasons", [])
         else:
@@ -3096,25 +3153,39 @@ def cmd_dna(args: argparse.Namespace) -> None:
             maj, minr, pat = (parsed[0], parsed[1], parsed[2]) if parsed else (0, 1, 0)
             n_maj, n_min, n_pat = bump_semver_tuple(maj, minr, pat, bump_type)
             target_v = f"{n_maj}.{n_min}.{n_pat}"
+            old_bld = int(parsed[4]) if parsed and parsed[4].isdigit() else None
+            target_bld = (old_bld + 1) if old_bld is not None else None
             reasons = [f"Explicit human override: {bump_choice}"]
 
+        if build_number_arg is not None:
+            target_bld = build_number_arg
+
+        bld_label = f"+{target_bld}" if target_bld is not None else ""
         print(f"\n🚀 PROJECT DNA RELEASE BUMP: {os.path.basename(abs_target)}")
         print("------------------------------------------------------------")
         print(f"  • Current Version  : v{curr_v} (Manifest: {manifest_src})")
-        print(f"  • Release Bump     : {bump_choice} -> v{target_v} (Dry Run: {dry_run})")
+        print(f"  • Release Bump     : {bump_choice} -> v{target_v}{bld_label} (Dry Run: {dry_run})")
         for r in reasons:
             print(f"  • Rationale        : {r}")
 
         if dry_run:
-            print("\n[DRY RUN] No files modified.\n")
+            preview_manifests = update_project_version(
+                abs_target, target_v, new_build_number=target_bld, dry_run=True
+            )
+            print(f"\n[DRY RUN] Discovered {len(preview_manifests)} sink(s) that would be updated:")
+            for m in preview_manifests:
+                print(f"  • [Preview] {m}")
+            print("\n[DRY RUN] Zero files written to disk.\n")
             return
 
-        updated_manifests = update_project_version(abs_target, target_v)
+        updated_manifests = update_project_version(
+            abs_target, target_v, new_build_number=target_bld, dry_run=False
+        )
         stamped_changelog = stamp_changelog_release(abs_target, target_v, compact=True)
 
-        print(f"\n✅ Release v{target_v} Applied Successfully:")
+        print(f"\n✅ Release v{target_v}{bld_label} Applied Successfully across {len(updated_manifests)} sink(s):")
         for m in updated_manifests:
-            print(f"  • Updated Manifest : {m}")
+            print(f"  • Synchronized : {m}")
         if stamped_changelog:
             print(f"  • Updated Changelog: CHANGELOG.md (## [{target_v}] stamped via Lessword compactor)")
         else:
@@ -3229,7 +3300,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
 
     base_url = "http://127.0.0.1:11434"
     try:
-        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.3"})
+        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.4"})
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             models = [m.get("name") for m in data.get("models", []) if m.get("name")]
@@ -3255,7 +3326,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
         req = urllib.request.Request(
             f"{base_url}/api/generate",
             data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.3"}
+            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.4"}
         )
         with urllib.request.urlopen(req, timeout=10.0) as resp:
             res_data = json.loads(resp.read().decode("utf-8"))
@@ -3385,6 +3456,7 @@ def hydrate_vision(
                     encoding="utf-8",
                     timeout=30,
                     shell=False,
+                    creationflags=_WINDOWLESS_FLAGS,
                 )
             except Exception as _ie:
                 _log_telemetry(_ie, "hydrate_vision:ingest")
@@ -3562,6 +3634,141 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def _detect_test_command(root: str) -> Optional[List[str]]:
+    """Return the test argv for the project's stack, or None when no runner is detected."""
+    def has(name: str) -> bool:
+        return os.path.exists(os.path.join(root, name))
+    if has("package.json"):
+        try:
+            with open(os.path.join(root, "package.json"), encoding="utf-8") as f:
+                if "test" in (json.load(f).get("scripts") or {}):
+                    return ["npm", "test"]
+        except (OSError, ValueError):
+            return None
+    if has("pubspec.yaml"):
+        return ["flutter", "test"]
+    if has("Cargo.toml"):
+        return ["cargo", "test"]
+    if has("go.mod"):
+        return ["go", "test", "./..."]
+    if has("pytest.ini") or has("pyproject.toml") or has("tests"):
+        return [sys.executable, "-m", "pytest", "-q"]
+    return None
+
+
+def _check_changelog_unreleased(root: str) -> Tuple[bool, str]:
+    """Gate 5 helper: CHANGELOG.md must exist and have non-empty entries under [Unreleased]."""
+    path = os.path.join(root, "CHANGELOG.md")
+    if not os.path.exists(path):
+        return False, "CHANGELOG.md not found"
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    m = re.search(r"^##\s*\[Unreleased\][^\n]*\n(.*?)(?=^##\s|\Z)", text, re.MULTILINE | re.DOTALL)
+    if not m:
+        return False, "CHANGELOG.md has no '## [Unreleased]' section"
+    if not re.search(r"^\s*[-*]\s+\S", m.group(1), re.MULTILINE):
+        return False, "'## [Unreleased]' has no entries"
+    return True, "ok"
+
+
+def cmd_project_push(args) -> bool:
+    """Run 5 pre-push gates, then `git push`. Returns True only when every gate passes."""
+    root = os.path.abspath(getattr(args, "target", "."))
+    dry_run = getattr(args, "dry_run", False)
+    hook_mode = getattr(args, "pre_push_hook", False)
+    orion = os.path.join(root, ".agents", "scripts", "orion.py")
+    if not os.path.exists(orion):
+        orion = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "orion.py"))
+
+    def run(argv: List[str]) -> int:
+        return subprocess.run(argv, cwd=root, creationflags=_WINDOWLESS_FLAGS).returncode
+
+    def orion_cmd(*a: str) -> List[str]:
+        return [sys.executable, "-X", "utf8", orion, *a]
+
+    print("========================================")
+    print(" PROJECT PUSH: PRE-FLIGHT GATES")
+    print("========================================")
+
+    gates: List[Tuple[str, Any]] = [
+        ("Gate 1: Security & secrets", lambda: run(orion_cmd("scan", "security", root))),
+    ]
+    if getattr(args, "skip_tests", False):
+        gates.append(("Gate 2: Tests (skipped by flag)", lambda: 0))
+    else:
+        test_cmd = _detect_test_command(root)
+        if test_cmd is None:
+            print("[INFO] Gate 2: no test runner detected; skipping.")
+            gates.append(("Gate 2: Tests (no runner detected)", lambda: 0))
+        else:
+            gates.append(("Gate 2: Tests", lambda: run(test_cmd)))
+    gates.append(("Gate 3: DNA architecture audit", lambda: run(orion_cmd("dna", "audit", "--target", root, "--strict"))))
+    prose_paths = [p for p in ("README.md", "docs", "CHANGELOG.md") if os.path.exists(os.path.join(root, p))]
+    gates.append(("Gate 4: Prose authenticity", lambda: run(orion_cmd("scan", "prose", *prose_paths)) if prose_paths else 0))
+
+    def semver_gate() -> int:
+        ok, msg = _check_changelog_unreleased(root)
+        if not ok:
+            print(f"[FAIL] {msg}", file=sys.stderr)
+            return 1
+        return run(orion_cmd("dna", "semver", "--target", root))
+    gates.append(("Gate 5: SemVer & changelog", semver_gate))
+
+    for name, gate in gates:
+        print(f"\n--- {name} ---")
+        if gate() != 0:
+            print(f"[ABORT] {name} failed. Push blocked.", file=sys.stderr)
+            return False
+
+    if hook_mode:
+        print("\n[PASS] All gates passed; handing off to git.")
+        return True
+
+    branch = getattr(args, "branch", None)
+    if not branch:
+        res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=root, capture_output=True, text=True, encoding="utf-8")
+        branch = res.stdout.strip()
+        if res.returncode != 0 or not branch:
+            print("[ERROR] Cannot resolve current git branch.", file=sys.stderr)
+            return False
+    remote = getattr(args, "remote", "origin")
+    if dry_run:
+        print(f"\n[PASS] Dry run: all gates passed. Would run: git push {remote} {branch}")
+        return True
+    print(f"\n[PASS] All gates passed. Running: git push {remote} {branch}")
+    return run(["git", "push", remote, branch]) == 0
+
+
+def cmd_project_install_hooks(args) -> bool:
+    """Install .git/hooks/pre-push that runs the push gates. Existing hooks are backed up."""
+    root = os.path.abspath(getattr(args, "target", "."))
+    hooks_dir = os.path.join(root, ".git", "hooks")
+    if not os.path.isdir(hooks_dir):
+        print(f"[ERROR] Not a git repository (missing {hooks_dir}).", file=sys.stderr)
+        return False
+    hook_path = os.path.join(hooks_dir, "pre-push")
+    marker = "# orion-pre-push-gate"
+    if os.path.exists(hook_path):
+        with open(hook_path, encoding="utf-8", errors="replace") as f:
+            if marker in f.read():
+                print("[OK] pre-push hook already installed.")
+                return True
+        shutil.copy2(hook_path, hook_path + ".bak")
+        print(f"[INFO] Existing hook backed up to {hook_path}.bak")
+    script = (
+        "#!/bin/sh\n"
+        f"{marker}\n"
+        'ROOT="$(git rev-parse --show-toplevel)"\n'
+        'PY="$(command -v python3 || command -v python)"\n'
+        'exec "$PY" -X utf8 "$ROOT/.agents/scripts/orion.py" push --pre-push-hook --target "$ROOT"\n'
+    )
+    with open(hook_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(script)
+    os.chmod(hook_path, 0o755)
+    print(f"[PASS] Installed {hook_path}")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Foundation Package & Deployment Manager")
     subparsers = parser.add_subparsers(dest="command")
@@ -3602,6 +3809,20 @@ def main():
     parser_upstream.add_argument("--git-diff", action="store_true", help="Only sync files modified in the latest git commit")
     parser_upstream.add_argument("--verify", action="store_true", help="Run full verification audit on foundation hub after sync")
     
+    # Project Push (gated push of the host project to its git remote)
+    def _add_push_args(p):
+        p.add_argument("--target", default=".", help="Project root directory (default: current directory)")
+        p.add_argument("--remote", default="origin", help="Git remote (default: origin)")
+        p.add_argument("--branch", default=None, help="Branch to push (default: current branch)")
+        p.add_argument("--dry-run", action="store_true", help="Run all gates without pushing")
+        p.add_argument("--pre-push-hook", action="store_true", help="Run gates only; let git perform the push")
+        p.add_argument("--skip-tests", action="store_true", help="Skip Gate 2 (test suite)")
+    parser_push = subparsers.add_parser("push", help="Gated project push: security, tests, DNA, prose, SemVer/changelog, then git push")
+    _add_push_args(parser_push)
+    parser_project = subparsers.add_parser("project", help="Project-level git workflow (push, install-hooks)")
+    parser_project.add_argument("project_action", choices=["push", "install-hooks"])
+    _add_push_args(parser_project)
+
     # Sync AI
     parser_syncai = subparsers.add_parser("sync-ai", help="Sync AI brand configs to local templates")
     parser_syncai.add_argument("--target", required=True, help="Target project root directory")
@@ -3619,6 +3840,9 @@ def main():
     parser_dna.add_argument("--dry-run", action="store_true", help="Simulate action without writing files")
     parser_dna.add_argument("--bump-type", choices=["auto", "major", "minor", "patch"], default="auto", help="Version bump type (default: auto via DNA)")
     parser_dna.add_argument("--since", default=None, help="Git ref or tag to compare against (default: auto)")
+    parser_dna.add_argument("--build-number", type=int, default=None, help="Explicit mobile/platform build number override (default: auto-increment)")
+    parser_dna.add_argument("--force", action="store_true", help="Force release bump even on uninitiated or pre-release projects")
+    parser_dna.add_argument("--release", action="store_true", help="Promote in-development pre-release phase to official release")
     parser_dna.add_argument("--json", action="store_true", help="Output SemVer analysis as JSON")
 
     parser_dnalint = subparsers.add_parser("dna-lint", help="Direct JIT dependency linter for 5-Tier Directed Dependency Laws")
@@ -3662,6 +3886,12 @@ def main():
         cmd_evolve(args)
     elif args.command == "push-upstream":
         cmd_upstream(args)
+    elif args.command == "push":
+        sys.exit(0 if cmd_project_push(args) else 1)
+    elif args.command == "project":
+        if args.project_action == "install-hooks":
+            sys.exit(0 if cmd_project_install_hooks(args) else 1)
+        sys.exit(0 if cmd_project_push(args) else 1)
     elif args.command == "sync-ai":
         cmd_sync_ai(args)
     elif args.command == "dna":
