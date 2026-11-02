@@ -1,6 +1,6 @@
 {
-  "gemini": {"template": "AGENTS.template.md", "target_path": "GEMINI.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
-  "claude": {"template": "AGENTS.template.md", "target_path": "CLAUDE.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "gemini": {"template": "AI_ADAPTER.template.md", "target_path": "GEMINI.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
+  "claude": {"template": "AI_ADAPTER.template.md", "target_path": "CLAUDE.md", "target_dir": "", "format": "markdown", "merge_strategy": "marker"},
   "cursor": {"template": "CURSOR_RULE.template.mdc", "target_path": ".cursor/rules/portable-brainvibing.mdc", "target_dir": ".cursor/rules", "format": "mdc", "merge_strategy": "marker"},
   "copilot": {"template": "AGENTS.template.md", "target_path": ".github/copilot-instructions.md", "target_dir": ".github", "format": "markdown", "merge_strategy": "marker"},
   "windsurf": {"template": "AI_ADAPTER.template.md", "target_path": ".windsurf/rules/portable-brainvibing.md", "target_dir": ".windsurf/rules", "format": "markdown", "merge_strategy": "marker"},

@@ -1,7 +1,7 @@
 ---
 description: Memory Hygiene Policy — smart compression eligibility rules protecting important [[knowledge]] from pruning.
 activation: triggered during orion compress and [[skills/session-offload/SKILL.md]]
-version: 0.0.4
+version: 0.0.5
 last_updated: 2026-06-30
 ---
 
@@ -40,7 +40,7 @@ A [[knowledge]] node (page or source) is eligible for compression **ONLY** if AL
 ## Monitoring
 Run `python .agents/scripts/orion.py compress --dry-run` to see what WOULD be compressed without actually doing it.
 
-## Omni-Buffer Synchronization Protocol
+## Session Context Cache (context.json) Protocol
 
 1. **Buffer Mechanics**: In Antigravity IDE, `hooks.json` automatically updates `.orion/working/context.json` via `pre-agent-wake.py` before agent invocation. Fallback: `python .agents/hooks/pre-agent-wake.py --active-file "<path>"`.
 2. **Tier-Aware Reads**: For STANDARD and PREMIUM tasks, if `.orion/working/context.json` exists, read it to extract `active_file`, `recent_errors`, and evolution flags.

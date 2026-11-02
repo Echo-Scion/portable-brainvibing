@@ -20,7 +20,7 @@ These are mandatory guardrails to prevent AI from making typical Large Language 
 * **Silent Fail Detection (Grep Gate):** Run `grep -rn "catch" .` or `grep -rn "except Exception" .`. Manually inspect each result. If a block returns a blind fallback without raising an alert/logger, treat as CRITICAL VULNERABILITY and rewrite to `logger.error(...)` and `raise`.
 * **Pipeline by Pipeline (Vertical Slice):** Do NOT audit layer-by-layer or leaf-to-root. You MUST audit full feature pipelines per phase (e.g., Route -> Controller -> Service -> Repo) to validate cross-layer interface contracts contextually.
 * **The Hallucination Gap:** Write assertions for every mathematical boundary. Do not accept generated logic without a mathematical proof/test case.
-* **The Ouroboros Effect (Darwinian Failures):** Introduce an invariant check in loops (e.g., `assert iterations < MAX_LIMIT`) to mechanically prevent infinite optimization corners.
+* **Infinite Loop Guard (Self-Triggering Cycles):** Introduce an invariant check in loops (e.g., `assert iterations < MAX_LIMIT`) to mechanically prevent infinite optimization corners.
 * **Blast Radius (Dependency Check):** After every fix, run `git grep "<modified_function_name>"` to find dependent files. You MUST run the tests for at least two dependent files to verify system stability.
 * **Anti-State Blindness (Concurrency):** Run data race detectors (e.g., Go race detector, or Python concurrent futures tests) against async logic.
 

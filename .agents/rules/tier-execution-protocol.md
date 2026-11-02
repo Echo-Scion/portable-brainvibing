@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.4
+version: 0.0.5
 last_updated: 2026-09-26
 ---
 
@@ -24,7 +24,7 @@ last_updated: 2026-09-26
 
 ---
 
-## 1. The Elastic Neuro-Symbolic Continuum (Mechanical + Local SLM + 2D Cloud Ecosystem)
+## 1. Tiered Execution Routing (Local Scripts, Local AI & Cloud Models)
 
 `.agents` dynamically pairs **Tier 0 Mechanical Pre-Digestion** (`scanner.py`, `db.py`, `consequence_verifier.py`) with whatever Local SLM ($0\text{B}$ offline, $1.5\text{B}$, $3\text{B}$, $7\text{B}$, $14\text{B}$, $30\text{B}+$) and Cloud 2D Model Matrix (`Tier × Effort`) are available:
 
@@ -87,6 +87,16 @@ To preserve the main thread's token context during long sessions, use subagents 
 - **20% Overlap Gate**: Never delegate tasks with $\ge 20\%$ shared context or interdependent code modifications to subagents. Validate before delegating using `python .agents/scripts/orion.py delegate-check <task1> <task2>`. If Exit Code 1 (`MERGE_TO_SINGLE_AGENT`), use single-agent sequential execution (`implementation_plan.md`) to maintain KV-cache prefix locality and prevent split-brain state drift. Delegate strictly to **Context-Isolating Scouts** (scanning raw logs, docs, or test outputs with $<10\%$ context overlap).
 - **Lessword Rule**: When delegating to subagents (e.g., `research` or `self`), ALWAYS instruct them to return their final output in the compressed **Lessword Format** (terse, no fluff). 
 - **Why**: Subagent tool results are injected into the main context verbatim. A 2k token prose response eats 2k tokens of main budget. A lessword response cuts this by ~60%, allowing the main session to last longer.
+
+### Subagent Reviewer Quota Guard (Multi-Reviewer & Model Down-Tiering)
+To prevent cloud quota exhaustion from spawning multiple subagents on `PREMIUM` models:
+1. **Complexity-Governed Reviewer Count**: The number of parallel subagent reviewers dispatched is strictly bounded by $S_{\text{effective}}$:
+   - **$S_{\text{effective}} \le 2.5$ (`BUDGET`)**: **0 subagents.** The Main Agent conducts the 7-check plan verification (`plan-checklist.md`) in-thread. Spawning subagents is forbidden.
+   - **$2.5 < S_{\text{effective}} \le 5.0$ (`STANDARD`)**: At most **1–2 Isolated Reviewers** (`simplicity-reuse` and `implementation-readiness`).
+   - **$S_{\text{effective}} > 5.0$ (`PREMIUM`)**: Up to **5 Isolated Reviewers** (`simplicity-reuse`, `comprehension`, `system-risks`, `implementation-readiness`, `layer-boundaries`), dispatched in sequential batches of $\le 3$ concurrent.
+2. **Mandatory Model Down-Tiering (`Model: 'flash'`)**:
+   - When the Main Agent operates on `PREMIUM` (Gemini Thinking / Claude Opus), it **MUST** invoke read-only Isolated Reviewers using `Model: 'flash'` (BUDGET [High Effort]) rather than inheriting `PREMIUM`.
+   - *Rationale*: Isolated Reviewers operate on pre-digested AST maps with Scaffolding Discount ($\gamma = 0.65 \implies S_{\text{eff}} \le 2.5$). Running 3–5 subagents on `PREMIUM` burns through user rate limits in a single turn. Down-tiering to `flash` cuts token expenditure by ~80% while reserving `PREMIUM` for high-level main-thread synthesis.
 ## 7. Deterministic Tier Fallback & Scaffolding Discount (Anti-Subjectivity)
 When classification is ambiguous, compute the raw complexity score:
 $$S_{\text{raw}} = (1.0 \cdot N_{\text{files}}) + (2.0 \cdot N_{\text{domains}}) + C_{\text{risk}}$$

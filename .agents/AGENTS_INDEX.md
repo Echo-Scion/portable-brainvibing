@@ -37,7 +37,7 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **lessword**: `.agents/skills/lessword/SKILL.md` (Ultra-compressed communication & memory compression)
 - **meta-agent-admin**: `.agents/skills/meta-agent-admin/SKILL.md` (Ecosystem evolution, standards & knowledge sync)
 - **palette**: `.agents/skills/palette/SKILL.md` (Accessibility, A11y, Micro-interactions)
-- **project-architect**: `.agents/skills/project-architect/SKILL.md` (System Architecture, Blueprints, PRDs)
+- **project-architect**: `.agents/skills/project-architect/SKILL.md` (System Architecture, 5-Stage Blueprint Review Pipeline, Blueprints, PRDs)
 - **project-operator**: `.agents/skills/project-operator/SKILL.md` (Deployments, Release cycles, DevOps)
 - **saas-strategist**: `.agents/skills/saas-strategist/SKILL.md` (Business Strategy, Growth, Idea Viability)
 - **self-evolve**: `.agents/skills/self-evolve/SKILL.md` (Agent self-learning loop & temporal pulse)

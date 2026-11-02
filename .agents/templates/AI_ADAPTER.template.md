@@ -1,9 +1,8 @@
 # Portable Brainvibing Agent Adapter
 
-Use repository-root `AGENTS.md` as canonical project instructions.
+@AGENTS.md
 
-When a task matches a specialized workflow, load the relevant skill from
-`.agents/skills/<name>/SKILL.md`. Treat `.agents/rules/` as detailed policy
-references and `.agents/scripts/` as deterministic verification tooling.
+Read and strictly follow repository-root `AGENTS.md` as canonical project instructions.
+Load specialized workflows from `.agents/skills/<name>/SKILL.md` when relevant.
+Use `.agents/scripts/` for deterministic verification.
 
-Do not duplicate or rewrite `AGENTS.md` contents in this adapter.

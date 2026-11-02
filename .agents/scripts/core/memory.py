@@ -1535,12 +1535,13 @@ class ConstellationVaultExporter:
       - Taxonomies/<stack>.md (concept hubs grouping projects by technology)
     """
 
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, output_dir: Optional[str] = None, db_path: Optional[str] = None):
         if output_dir is None:
             output_dir = os.path.join(WORKSPACE_DIR, "constellation")
         self.output_dir = os.path.abspath(output_dir)
+        self.db_path = str(db_path or DB_PATH)
 
-    def export_constellation(self, spokes: List[Any]) -> Dict[str, Any]:
+    def export_constellation(self, spokes: List[Any], include_graph: bool = True) -> Dict[str, Any]:
         out = self.output_dir
         hub_dir = os.path.join(out, "00_Hub")
         stars_dir = os.path.join(out, "Stars")
@@ -1552,6 +1553,19 @@ class ConstellationVaultExporter:
 
         written_files: List[str] = []
         stack_groups: Dict[str, List[Any]] = defaultdict(list)
+
+        # 0. Export Deep Knowledge Graph if requested and DB exists
+        graph_res = None
+        graph_notes = 0
+        if include_graph and os.path.exists(self.db_path):
+            graph_dir = os.path.join(out, "01_Knowledge_Graph")
+            try:
+                g_exporter = ObsidianVaultExporter(db_path=self.db_path)
+                graph_res = g_exporter.export_vault(output_dir=graph_dir)
+                if graph_res.get("status") == "SUCCESS":
+                    graph_notes = int(graph_res.get("total_notes", 0))
+            except Exception as _ge:
+                _log_telemetry(_ge, "constellation:export_graph")
 
         # 1. Export each Star's context files
         for star in spokes:
@@ -1604,6 +1618,7 @@ class ConstellationVaultExporter:
                     _log_telemetry(_fe, f"constellation:export_file:{s_name}:{rel_path}")
 
             # Create Star Overview
+            safe_star_stem = _safe_stem(s_name)
             overview_path = os.path.join(star_dir, "Overview.md")
             overview_lines = [
                 f"# 🌟 Star Overview: {s_name}",
@@ -1615,6 +1630,7 @@ class ConstellationVaultExporter:
                 "## 🧭 Navigation",
                 f"- **Parent Constellation**: [[00_Hub/Overview|🌌 Constellation Portfolio]]",
                 f"- **Primary Tech Taxonomy**: [[Taxonomies/{primary_tech}|{primary_tech}]]",
+                f"- **Knowledge Graph Node**: [[01_Knowledge_Graph/nodes/{safe_star_stem}|{s_name} in Brain Mesh]]",
                 "",
                 "## 📚 Domain Context Artifacts",
             ]
@@ -1638,6 +1654,7 @@ class ConstellationVaultExporter:
                 f"# 🏷️ Technology Taxonomy: {tech}",
                 "",
                 f"> Found **{len(members)} star(s)** utilizing this technology stack.",
+                f"> **Brain Mesh Entity**: [[01_Knowledge_Graph/nodes/{safe_tech}|{tech} in Brain Mesh]]",
                 "",
                 "## 🌟 Associated Stars",
             ]
@@ -1690,6 +1707,17 @@ class ConstellationVaultExporter:
             cnt = len(stack_groups[tech])
             hub_lines.append(f"- [[Taxonomies/{safe_tech}|{tech}]] (`{cnt}` projects)")
 
+        if graph_res and graph_res.get("status") == "SUCCESS":
+            hub_lines.extend([
+                "",
+                "## 🧠 Orion Knowledge Graph (Triplets & Communities)",
+                f"- **Total Entities**: `{graph_res.get('nodes_exported', 0)}`",
+                f"- **Louvain Communities**: `{graph_res.get('communities_exported', 0)}`",
+                f"- **Deep Brain Notes**: `{graph_notes}`",
+                "- **Interactive Graph Explorer**: [[01_Knowledge_Graph/index|Explore Graph Entities]]",
+                "- **Centrality Report & God Nodes**: [[01_Knowledge_Graph/GRAPH_REPORT|View Centrality Report]]",
+            ])
+
         try:
             with open(hub_overview_path, "w", encoding="utf-8") as hf:
                 hf.write("\n".join(hub_lines) + "\n")
@@ -1699,12 +1727,21 @@ class ConstellationVaultExporter:
 
         # 4. Build Root index.md
         index_path = os.path.join(out, "index.md")
+        graph_nav = ""
+        if graph_res and graph_res.get("status") == "SUCCESS":
+            graph_nav = (
+                "\n### 🧠 Orion Deep Knowledge Graph\n\n"
+                "- [[01_Knowledge_Graph/index|🕸️ Interactive Graph Explorer (Entities & Communities)]]\n"
+                "- [[01_Knowledge_Graph/GRAPH_REPORT|📊 God Nodes & Centrality Report]]\n"
+            )
+
         index_content = (
             "# 🌌 Orion Constellation Vault Index\n\n"
             f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Total Projects: {len(spokes)}\n\n"
             "## 🚀 Quick Navigation\n\n"
-            "- [[00_Hub/Overview|📊 Master Portfolio Overview & Scorecard]]\n\n"
-            "### 🌟 Star Projects\n\n"
+            "- [[00_Hub/Overview|📊 Master Portfolio Overview & Scorecard]]\n"
+            + graph_nav
+            + "\n### 🌟 Star Projects\n\n"
             + "\n".join(f"- [[Stars/{getattr(s, 'name', '')}/Overview|{getattr(s, 'name', '')}]] (`{getattr(s, 'stack', 'Generic')}`)" for s in spokes)
             + "\n\n### 🏷️ Tech Stacks\n\n"
             + "\n".join(f"- [[Taxonomies/{re.sub(r'[^a-zA-Z0-9_-]', '_', t).strip('_')}|{t}]]" for t in sorted(stack_groups.keys()))
@@ -1724,7 +1761,10 @@ class ConstellationVaultExporter:
                 json.dump({
                     "vault": out,
                     "total_stars": len(spokes),
-                    "total_notes": len(written_files),
+                    "total_notes": len(written_files) + graph_notes,
+                    "macro_notes": len(written_files),
+                    "graph_notes": graph_notes,
+                    "graph_exported": bool(graph_res and graph_res.get("status") == "SUCCESS"),
                     "generated_at": datetime.now().isoformat()
                 }, mf, indent=2)
         except Exception as _me:
@@ -1734,6 +1774,9 @@ class ConstellationVaultExporter:
             "status": "SUCCESS",
             "vault_dir": out,
             "total_stars": len(spokes),
-            "total_notes": len(written_files)
+            "total_notes": len(written_files) + graph_notes,
+            "macro_notes": len(written_files),
+            "graph_notes": graph_notes,
+            "graph_exported": bool(graph_res and graph_res.get("status") == "SUCCESS"),
         }
 

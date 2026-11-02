@@ -52,18 +52,37 @@ if getattr(sys.stdout, 'encoding', None) and sys.stdout.encoding.lower() != 'utf
         pass
 
 
-AI_CONFIGS = {
-    "gemini": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md", "canonical": "agents"},
-    # VS Code/Copilot natively discovers project-root AGENTS.md. Keep it as
-    # the single canonical global instruction file instead of duplicating it
-    # under .github/copilot-instructions.md.
-    "copilot": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md", "canonical": "agents"},
-    "cursor": {"template": "CURSOR_RULE.template.mdc", "target_dir": ".cursor/rules", "target_path": "portable-brainvibing.mdc", "format": "mdc"},
-    "windsurf": {"template": "AI_ADAPTER.template.md", "target_dir": ".windsurf/rules", "target_path": "portable-brainvibing.md", "format": "md"},
-    "cline": {"template": "AI_ADAPTER.template.md", "target_dir": ".clinerules", "target_path": "portable-brainvibing.md", "format": "md", "legacy_target_path": ".clinerules"},
-    "claude": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md", "canonical": "agents"},
-    "agents": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md"}
-}
+def _load_ai_configs(foundation_dir=None):
+    """Load AI brand configurations dynamically from .agents/canons/global/ai_brands.json."""
+    default_configs = {
+        "gemini": {"template": "AI_ADAPTER.template.md", "target_dir": "", "target_path": "GEMINI.md", "format": "md"},
+        "claude": {"template": "AI_ADAPTER.template.md", "target_dir": "", "target_path": "CLAUDE.md", "format": "md"},
+        "cursor": {"template": "CURSOR_RULE.template.mdc", "target_dir": ".cursor/rules", "target_path": "portable-brainvibing.mdc", "format": "mdc"},
+        "windsurf": {"template": "AI_ADAPTER.template.md", "target_dir": ".windsurf/rules", "target_path": "portable-brainvibing.md", "format": "md"},
+        "cline": {"template": "AI_ADAPTER.template.md", "target_dir": ".clinerules", "target_path": "portable-brainvibing.md", "format": "md", "legacy_target_path": ".clinerules"},
+        "copilot": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md", "canonical": "agents"},
+        "agents": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md"}
+    }
+    if not foundation_dir:
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        foundation_dir = os.path.abspath(os.path.join(this_dir, "..", ".."))
+
+    brands_json = os.path.join(foundation_dir, ".agents", "canons", "global", "ai_brands.json")
+    if not os.path.isfile(brands_json):
+        brands_json = os.path.join(foundation_dir, "canons", "global", "ai_brands.json")
+
+    if os.path.isfile(brands_json):
+        try:
+            with open(brands_json, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
+            pass
+    return default_configs
+
+
+AI_CONFIGS = _load_ai_configs()
 
 def get_ecosystem_config(foundation_dir, framework):
     if not framework:
@@ -1757,20 +1776,18 @@ def sync_ai_configs(
     # Determine which AIs to sync
     is_foundation_root = os.path.abspath(target_root) == os.path.abspath(foundation_path)
     if selected_ais is None:
-        if is_foundation_root:
-            selected_ais = ["gemini"]
-            print(f" Syncing active foundation platforms: {', '.join(selected_ais)}")
+        deployed = load_deployed_ais(target_root)
+        if deployed:
+            selected_ais = deployed
+            print(f" Syncing deployed AIs: {', '.join(selected_ais)}")
         else:
-            # Try to load from tracking file
-            deployed = load_deployed_ais(target_root)
-            if deployed:
-                selected_ais = deployed
-                print(f" Syncing deployed AIs: {', '.join(selected_ais)}")
-            else:
-                # Smart-detect active AIs from project filesystem
-                selected_ais = detect_active_ais(target_root)
-                print(f" Smart-detected active AIs: {', '.join(selected_ais)}")
-    
+            # Smart-detect active AIs from project filesystem
+            selected_ais = detect_active_ais(target_root)
+            print(f" Smart-detected active AIs: {', '.join(selected_ais)}")
+
+    if "agents" not in selected_ais and any(a in ("gemini", "claude", "copilot") for a in selected_ais):
+        selected_ais.insert(0, "agents")
+
     # Get project name
     project_name = os.path.basename(os.path.abspath(target_root))
     
@@ -2537,10 +2554,20 @@ def execute_setup_pipeline(
         "03_Tech/ARCHITECTURE.md": "PROJECT_SCAFFOLD.template.md",
     }
     proj_name = os.path.basename(abs_target)
+
+    try:
+        from core.upgrade_engine import splice_foundation_blocks, detect_lifecycle_mode
+    except ImportError:
+        try:
+            from .core.upgrade_engine import splice_foundation_blocks, detect_lifecycle_mode
+        except ImportError:
+            splice_foundation_blocks = None
+            detect_lifecycle_mode = None
+
     for rel_pillar, tpl_name in pillars_map.items():
         pillar_full = os.path.join(context_dir, rel_pillar)
+        tpl_path = os.path.join(templates_dir, tpl_name)
         if not os.path.isfile(pillar_full):
-            tpl_path = os.path.join(templates_dir, tpl_name)
             content = f"# {os.path.splitext(os.path.basename(rel_pillar))[0]} — {proj_name}\n"
             if os.path.isfile(tpl_path):
                 try:
@@ -2549,6 +2576,17 @@ def execute_setup_pipeline(
                 except Exception:
                     pass
             atomic_write_text(pillar_full, content)
+        else:
+            if os.path.isfile(tpl_path) and splice_foundation_blocks:
+                try:
+                    with open(pillar_full, "r", encoding="utf-8") as pf:
+                        existing_p = pf.read()
+                    with open(tpl_path, "r", encoding="utf-8") as tf:
+                        tpl_p = tf.read().replace("{{PROJECT_NAME}}", proj_name).replace("{project_name}", proj_name)
+                    spliced_p, _ = splice_foundation_blocks(existing_p, tpl_p, fallback_append=True)
+                    atomic_write_text(pillar_full, spliced_p)
+                except Exception:
+                    pass
 
     # Re-resolve orion_py at target
     target_orion_py = os.path.join(abs_target, ".agents", "scripts", "orion.py")
@@ -2612,8 +2650,37 @@ def execute_setup_pipeline(
     if should_deploy_design:
         design_dest = os.path.join(abs_target, "DESIGN.md")
         design_tpl = os.path.join(templates_dir, "DESIGN.template.md")
-        if not os.path.exists(design_dest):
-            if os.path.isfile(design_tpl):
+
+        try:
+            from core.design_harvester import harvest_tokens, flatten_catalogs
+        except ImportError:
+            try:
+                from .core.design_harvester import harvest_tokens, flatten_catalogs
+            except ImportError:
+                harvest_tokens = None
+                flatten_catalogs = None
+
+        mode = detect_lifecycle_mode(abs_target, "DESIGN.md") if detect_lifecycle_mode else "GREENFIELD"
+
+        if mode == "UPGRADE":
+            if os.path.exists(design_dest) and os.path.exists(design_tpl) and splice_foundation_blocks:
+                try:
+                    with open(design_dest, "r", encoding="utf-8") as f:
+                        existing_text = f.read()
+                    with open(design_tpl, "r", encoding="utf-8") as f:
+                        tpl_text = f.read().replace("{project_name}", proj_name)
+                    spliced, _ = splice_foundation_blocks(existing_text, tpl_text, fallback_append=True)
+                    atomic_write_text(design_dest, spliced)
+                    steps_log.append({"step": "design-md", "ok": True, "detail": "Surgically upgraded DESIGN.md (preserved custom blocks)"})
+                except Exception as de:
+                    steps_log.append({"step": "design-md", "ok": False, "detail": str(de)})
+            else:
+                steps_log.append({"step": "design-md", "ok": True, "detail": "DESIGN.md already exists (preserved)"})
+
+        elif mode == "BROWNFIELD":
+            tokens = harvest_tokens(abs_target) if harvest_tokens else {}
+            chosen_archetype = tokens.get("detected_archetype", "dark-industrial")
+            if os.path.exists(design_tpl):
                 try:
                     with open(design_tpl, "r", encoding="utf-8") as f:
                         tpl_text = f.read()
@@ -2623,21 +2690,46 @@ def execute_setup_pipeline(
                         with open(manifest_path_cand, "r", encoding="utf-8") as mf:
                             manifest_data = json.load(mf)
                     resolved_design = resolve_template_string(tpl_text, manifest_data, proj_name)
-                    atomic_write_text(design_dest, resolved_design)
-                    steps_log.append({"step": "design-md", "ok": True, "detail": "Created DESIGN.md from template"})
+                    for tk, tv in tokens.items():
+                        if isinstance(tv, str):
+                            resolved_design = resolved_design.replace("{{" + tk + "}}", tv)
+                    if flatten_catalogs:
+                        flattened_design = flatten_catalogs(resolved_design, chosen_archetype)
+                    else:
+                        flattened_design = resolved_design
+                    atomic_write_text(design_dest, flattened_design)
+                    steps_log.append({"step": "design-md", "ok": True, "detail": f"Harvested tokens & flattened DESIGN.md ({chosen_archetype})"})
                 except Exception as de:
                     steps_log.append({"step": "design-md", "ok": False, "detail": str(de)})
             else:
-                default_design = (
-                    f"# 🎨 DESIGN SYSTEM CONTRACT — {proj_name}\n\n"
-                    "- **Color Balance**: 60% Canvas (`#0D0F12`), 30% Surface (`#16191E`), 10% Accent (`#3B82F6`)\n"
-                    "- **Contrast Floor**: WCAG 2.1 AA (>= 4.5:1 normal text, >= 3.0:1 UI components)\n"
-                    "- **Spacing Grid**: 8pt modular cadence (4/8/12/16/24/32/48/64px)\n"
-                )
+                default_design = f"# 🎨 DESIGN SYSTEM CONTRACT — {proj_name}\n"
                 atomic_write_text(design_dest, default_design)
                 steps_log.append({"step": "design-md", "ok": True, "detail": "Created baseline DESIGN.md"})
-        else:
-            steps_log.append({"step": "design-md", "ok": True, "detail": "DESIGN.md already exists (preserved)"})
+
+        else:  # GREENFIELD
+            if os.path.exists(design_tpl):
+                try:
+                    with open(design_tpl, "r", encoding="utf-8") as f:
+                        tpl_text = f.read()
+                    manifest_path_cand = os.path.join(abs_target, ".agents", ".project_manifest.json")
+                    manifest_data = {}
+                    if os.path.isfile(manifest_path_cand):
+                        with open(manifest_path_cand, "r", encoding="utf-8") as mf:
+                            manifest_data = json.load(mf)
+                    resolved_design = resolve_template_string(tpl_text, manifest_data, proj_name)
+                    resolved_design = re.sub(
+                        r"-\s*\*\*Selected Archetype\*\*:\s*`.*?`",
+                        "- **Selected Archetype**: `status: DRAFT (catalog active)`",
+                        resolved_design
+                    )
+                    atomic_write_text(design_dest, resolved_design)
+                    steps_log.append({"step": "design-md", "ok": True, "detail": "Seeded DESIGN.md in DRAFT status with archetype catalog menu"})
+                except Exception as de:
+                    steps_log.append({"step": "design-md", "ok": False, "detail": str(de)})
+            else:
+                default_design = f"# 🎨 DESIGN SYSTEM CONTRACT — {proj_name}\n"
+                atomic_write_text(design_dest, default_design)
+                steps_log.append({"step": "design-md", "ok": True, "detail": "Created baseline DESIGN.md"})
     elif "all" in enabled_features:
         steps_log.append({"step": "design-md", "ok": True, "detail": "Skipped DESIGN.md (headless CLI/backend project detected)"})
 
@@ -2708,7 +2800,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.4)     ║")
+    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.5)     ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")
@@ -2918,6 +3010,71 @@ def cmd_setup(args: argparse.Namespace) -> None:
         print("  • View Architecture : Check '.orion/working/brain/00-Overview.md' and God Nodes")
     print("  • Doctor Diagnostic : python .agents/scripts/orion.py doctor\n")
 
+
+def cmd_design(args: argparse.Namespace) -> None:
+    action = getattr(args, "design_action", "select") or "select"
+    target_dir = getattr(args, "target", ".") or "."
+    abs_target = os.path.abspath(target_dir)
+
+    try:
+        from core.design_harvester import harvest_tokens, infer_archetype_heuristic, build_ai_infer_prompt, flatten_catalogs
+    except ImportError:
+        try:
+            from .core.design_harvester import harvest_tokens, infer_archetype_heuristic, build_ai_infer_prompt, flatten_catalogs
+        except ImportError:
+            scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from core.design_harvester import harvest_tokens, infer_archetype_heuristic, build_ai_infer_prompt, flatten_catalogs
+
+    design_dest = os.path.join(abs_target, "DESIGN.md")
+    templates_dir = os.path.join(abs_target, ".agents", "templates")
+    if not os.path.isdir(templates_dir):
+        script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        templates_dir = os.path.join(script_dir, "templates")
+
+    if action == "select":
+        archetype = getattr(args, "archetype", "dark-industrial") or "dark-industrial"
+        palette = getattr(args, "palette", None)
+        stack = getattr(args, "stack", None)
+
+        if os.path.isfile(design_dest):
+            with open(design_dest, "r", encoding="utf-8") as f:
+                content = f.read()
+        else:
+            tpl_path = os.path.join(templates_dir, "DESIGN.template.md")
+            if os.path.isfile(tpl_path):
+                with open(tpl_path, "r", encoding="utf-8") as tf:
+                    content = tf.read().replace("{project_name}", os.path.basename(abs_target))
+            else:
+                content = f"# Design Direction: {os.path.basename(abs_target)}\n"
+
+        flattened = flatten_catalogs(content, archetype, palette=palette, stack=stack)
+        flattened = re.sub(
+            r"-\s*\*\*Selected Archetype\*\*:\s*`.*?`",
+            f"- **Selected Archetype**: `{archetype} (status: LOCKED)`",
+            flattened
+        )
+        atomic_write_text(design_dest, flattened)
+        print(f"\n🎨 [DESIGN CONTRACT] Archetype locked to '{archetype}' and catalog flattened in DESIGN.md.")
+
+    elif action == "infer":
+        tokens = harvest_tokens(abs_target)
+        if getattr(args, "prompt", False):
+            prompt = build_ai_infer_prompt(tokens, project_summary=os.path.basename(abs_target))
+            print(f"\n--- AI INFER PROMPT PAYLOAD ---\n{prompt}\n")
+        else:
+            inferred = tokens.get("detected_archetype", "dark-industrial")
+            print(f"\n🎨 [DESIGN HARVESTER] Visual Token Analysis: {os.path.basename(abs_target)}")
+            print(f"  • Canvas Background: {tokens.get('canvas_hex')}")
+            print(f"  • Surface Layer    : {tokens.get('surface_hex')}")
+            print(f"  • Accent Brand     : {tokens.get('accent_hex')}")
+            print(f"  • Raw Colors Found : {', '.join(tokens.get('raw_colors_found', [])) or 'None'}")
+            print(f"  • Raw Fonts Found  : {', '.join(tokens.get('raw_fonts_found', [])) or 'None'}")
+            print(f"  • Inferred Archetype: {inferred}")
+            print(f"  • Lock with        : python .agents/scripts/orion.py design select {inferred}\n")
+
+
 def cmd_dna(args: argparse.Namespace) -> None:
     action = getattr(args, "dna_action", "sequence") or "sequence"
     target_dir = getattr(args, "target", ".") or "."
@@ -3094,7 +3251,18 @@ def cmd_dna(args: argparse.Namespace) -> None:
             if res.get("is_prerelease"):
                 print(f"  • Release Status    : IN-DEVELOPMENT ({res.get('release_status', 'Unreleased')})")
             print(f"  • Recommended Bump  : {res['recommended_bump']} -> v{res['target_version']}")
+            if res.get("baseline_ref"):
+                print(f"  • Baseline Release  : {res['baseline_ref']}")
             print(f"  • Modified Files    : {res['changed_files_count']}")
+            unrel_commits = res.get("unreleased_commits") or []
+            if unrel_commits:
+                print(f"  • Unreleased Commits: {len(unrel_commits)} (since {res.get('baseline_ref', 'last release')})")
+                for uc in unrel_commits[:10]:
+                    print(f"    - {uc}")
+                if len(unrel_commits) > 10:
+                    print(f"    ... and {len(unrel_commits) - 10} more")
+            if (unrel_commits or res.get("changed_files_count", 0) > 0) and not res.get("changelog_updated"):
+                print("  • ⚠️ Changelog Notice: Unreleased changes detected without CHANGELOG.md update in current delta.")
             if res.get("tier_distribution"):
                 tiers_summary = ", ".join(f"{k}: {v}" for k, v in res['tier_distribution'].items())
                 print(f"  • DNA Strata Touched: {tiers_summary}")
@@ -3300,7 +3468,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
 
     base_url = "http://127.0.0.1:11434"
     try:
-        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.4"})
+        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.5"})
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             models = [m.get("name") for m in data.get("models", []) if m.get("name")]
@@ -3326,7 +3494,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
         req = urllib.request.Request(
             f"{base_url}/api/generate",
             data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.4"}
+            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.5"}
         )
         with urllib.request.urlopen(req, timeout=10.0) as resp:
             res_data = json.loads(resp.read().decode("utf-8"))
@@ -3874,6 +4042,15 @@ def main():
     parser_upgrade.add_argument("--force", action="store_true", help="Force upgrade even if versions match")
     parser_upgrade.add_argument("--no-verify", action="store_true", help="Skip running post-upgrade verify_agents gate")
 
+    # Design Manager
+    parser_design = subparsers.add_parser("design", help="Design system & token contract manager (select, infer)")
+    parser_design.add_argument("design_action", choices=["select", "infer"], nargs="?", default="select", help="Action: select archetype/palette or infer tokens")
+    parser_design.add_argument("archetype", nargs="?", default="dark-industrial", help="Target design archetype (e.g., dark-industrial, swiss-editorial, neo-brutalist)")
+    parser_design.add_argument("--palette", default=None, help="Target palette set (e.g., cold-luxury, deep-forest, terracotta-and-slate)")
+    parser_design.add_argument("--stack", default=None, help="Design system stack (e.g., fluent, carbon, polaris, primer, radix, tailwind)")
+    parser_design.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
+    parser_design.add_argument("--prompt", action="store_true", help="Output LLM prompt payload for AI agent visual inference")
+
     args = parser.parse_args()
     
     if args.command in ("setup", "init", "onboard", "doctor"):
@@ -3896,6 +4073,8 @@ def main():
         cmd_sync_ai(args)
     elif args.command == "dna":
         cmd_dna(args)
+    elif args.command == "design":
+        cmd_design(args)
     elif args.command in ("upgrade", "foundation-upgrade"):
         cmd_upgrade(args)
     elif args.command == "dna-lint":

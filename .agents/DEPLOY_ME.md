@@ -28,7 +28,7 @@ Summarize the JSON findings to the user in a concise block and ask **one interac
 2. **If `missing_laptop_deps` is non-empty**: Mention which optional laptop tools are missing and ask if they want to auto-install them (`--install-deps`).
 3. **If Ollama models are missing or sub-optimal**: Suggest pulling the hardware-recommended model (`--pull-models` or `ollama pull <model>`).
 4. **Showcase the 6 Optional Orion Power-Features** and ask which ones they want to enable alongside the core deployment:
-   - `1. graph-db` *(Recommended)*: Orion Local SQLite WAL GraphRAG & Omni-Buffer (`context.json`)
+   - `1. graph-db` *(Recommended)*: Orion Local SQLite WAL GraphRAG & Session Context Cache (`context.json`)
    - `2. second-brain` *(Recommended)*: Orion 4-Note Architecture & PageRank God-Nodes Briefing (`.orion/working/brain/`)
    - `3. vault`: Orion Interactive Obsidian Knowledge Vault (`.orion/export/vault/`)
    - `4. design-md`: `DESIGN.md` Visual & Aesthetic Token System Contract (60:30:10 & WCAG 2.1 AA)
@@ -112,7 +112,7 @@ For the active AI platform, create its manifest in the target project root point
 ```json
 {
   "name": "portable-brainvibing",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
   "skills": ".agents/skills"
 }
@@ -133,7 +133,7 @@ If the platform supports automated session hooks:
 - **Cursor**: Create `.cursor/hooks.json` with `{"version": 1, "hooks": {"sessionStart": [{"command": "python .agents/hooks/pre-agent-wake.py --hook"}]}}`.
 - **Pure Shell**: Call `.agents/hooks/run-hook.cmd` (Windows) or `.agents/hooks/run-hook.sh` (macOS/Linux) on session start.
 
-#### Step 4: Seed Omni-Buffer & Context
+#### Step 4: Seed Session Context Cache (`context.json`)
 Ensure `.orion/working/context.json` exists in target project to prevent amnesia:
 ```json
 {
@@ -210,5 +210,5 @@ when unavailable.
 
 ---
 > [!NOTE]
-> **Version**: 0.0.4 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
+> **Version**: 0.0.5 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
 > All 18 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.

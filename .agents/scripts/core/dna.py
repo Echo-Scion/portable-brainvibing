@@ -3244,8 +3244,9 @@ def compact_changelog_entries(raw_content: str) -> str:
     def _condense(items: List[str]) -> str:
         phrases: List[str] = []
         for it in items:
-            p = re.sub(r"^(?:Added|Changed|Implemented|Created|Updated|Fixed|Resolved|Supported)\s+", "", it, flags=re.IGNORECASE).strip()
-            p = p.rstrip(".")
+            p = re.sub(r"\s*\((?:`?[a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9*]+`?(?:,\s*)?)+\)", "", it)
+            p = re.sub(r"^(?:Added|Changed|Implemented|Created|Updated|Fixed|Resolved|Supported)\s+", "", p, flags=re.IGNORECASE).strip()
+            p = p.rstrip(".:")
             if p and p not in phrases:
                 phrases.append(p)
         if not phrases:
@@ -3337,23 +3338,65 @@ def evaluate_dna_semver(
     parsed = parse_semver(curr_v_str)
     maj, minr, pat = (parsed[0], parsed[1], parsed[2]) if parsed else (0, 1, 0)
 
-    # 1. Collect modified files
+    # 1. Resolve baseline release ref and collect modified files + unreleased commits
     changed_files = list(file_list or [])
+    baseline_ref: Optional[str] = since_ref
+    unreleased_commits: List[str] = []
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+
+    if not baseline_ref and curr_v_str and curr_v_str != "0.0.0":
+        for candidate_tag in (f"v{curr_v_str}", curr_v_str):
+            try:
+                tag_proc = subprocess.run(
+                    ["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{candidate_tag}"],
+                    cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags
+                )
+                if tag_proc.returncode == 0 and tag_proc.stdout.strip():
+                    baseline_ref = candidate_tag
+                    break
+            except (OSError, subprocess.SubprocessError):
+                pass
+
     if not changed_files:
+        file_set: List[str] = []
         try:
-            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
-            ref = since_ref or "HEAD"
+            ref = baseline_ref or "HEAD"
             cmd = ["git", "diff", "--name-only", ref]
             proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc.returncode == 0 and proc.stdout.strip():
-                changed_files = [f.strip().replace("\\", "/") for f in proc.stdout.strip().splitlines() if f.strip()]
-            else:
-                proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
-                if proc2.returncode == 0 and proc2.stdout.strip():
-                    for line in proc2.stdout.splitlines():
-                        parts = line.strip().split(None, 1)
-                        if len(parts) >= 2:
-                            changed_files.append(parts[1].strip().replace("\\", "/"))
+                for f in proc.stdout.strip().splitlines():
+                    norm_f = f.strip().replace("\\", "/")
+                    if norm_f and norm_f not in file_set:
+                        file_set.append(norm_f)
+
+            proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
+            if proc2.returncode == 0 and proc2.stdout.strip():
+                for line in proc2.stdout.splitlines():
+                    parts = line.strip().split(None, 1)
+                    if len(parts) >= 2:
+                        norm_f = parts[1].strip().replace("\\", "/")
+                        if norm_f and norm_f not in file_set:
+                            file_set.append(norm_f)
+        except (OSError, subprocess.SubprocessError):
+            pass
+        changed_files = file_set
+
+    if baseline_ref:
+        try:
+            log_proc = subprocess.run(
+                ["git", "log", f"{baseline_ref}..HEAD", "--oneline"],
+                cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags
+            )
+            if log_proc.returncode == 0 and log_proc.stdout.strip():
+                release_marker = f"v{curr_v_str}".lower()
+                for line in log_proc.stdout.strip().splitlines():
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                    low_line = clean_line.lower()
+                    if f"release): sync foundation {release_marker}" in low_line or f"release): portable-brainvibing {release_marker}" in low_line:
+                        continue
+                    unreleased_commits.append(clean_line)
         except (OSError, subprocess.SubprocessError):
             pass
 
@@ -3361,8 +3404,8 @@ def evaluate_dna_semver(
     msgs = list(commit_messages or [])
     if not msgs:
         try:
-            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
-            cmd = ["git", "log", "-n", "10", "--pretty=format:%B---COMMIT_DELIM---"]
+            log_range = [f"{baseline_ref}..HEAD"] if baseline_ref else ["-n", "10"]
+            cmd = ["git", "log", *log_range, "--pretty=format:%B---COMMIT_DELIM---"]
             proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc.returncode == 0 and proc.stdout.strip():
                 msgs = [m.strip() for m in proc.stdout.split("---COMMIT_DELIM---") if m.strip()]
@@ -3441,6 +3484,7 @@ def evaluate_dna_semver(
 
     target_v = f"{next_maj}.{next_min}.{next_pat}"
     target_build = (detected.build_number + 1) if detected.build_number is not None else None
+    changelog_updated = any(f.lower().endswith("changelog.md") for f in changed_files)
 
     return {
         "current_version": curr_v_str,
@@ -3455,6 +3499,9 @@ def evaluate_dna_semver(
         "recommended_bump": bump,
         "target_version": target_v,
         "target_build_number": target_build,
+        "baseline_ref": baseline_ref,
+        "unreleased_commits": unreleased_commits,
+        "changelog_updated": changelog_updated,
         "changed_files_count": len(changed_files),
         "tier_distribution": dict(tier_counts),
         "reasons": reasons,

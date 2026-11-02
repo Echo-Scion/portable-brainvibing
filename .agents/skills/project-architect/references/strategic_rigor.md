@@ -1,15 +1,42 @@
-# Strategic PM Rigor
-> [!IMPORTANT]
-> Ruthless interrogation of the "Why" before the "How".
+# Strategic PM Rigor & Genesis Interrogation Matrix
 
-## Critical Validations
-- **Problem First**: NEVER accept a solution (feature request) without uncovering the underlying "problem".
-- **Success Metrics (KPIs)**: Every feature MUST have success metrics. If it cannot be measured, it MUST NOT be built.
-- **Ruthless MVP Pruning**: Cut "nice-to-haves" into V2. Focus only on the "Painkiller" features, not "Vitamins".
-- **North Star Alignment**: Every feature must align with the target persona's core needs.
+> **Core Law**: Ruthless interrogation of the "Why" and "What Breaks" before designing the "How". All feature concepts and RFC proposals must survive the viability gate before entering architectural synthesis.
 
-## Interrogation Checklist
-1. What is the specific pain point?
-2. Who exactly is the user?
-3. What is the "Wow Moment" for this feature?
-4. What happens if we *don't* build this?
+---
+
+## 1. The 8 Core Viability Questions (Proposal Gate)
+
+Before writing any architectural blueprint (`context/00_Strategy/BLUEPRINT.md`) or technical specification (`context/03_Tech/ARCHITECTURE.md`), the proposer must confirm all 8 viability questions are answered without jargon or ambiguity:
+
+1. **Core Objective**: What specific problem or capability is being attempted? (Written in plain English with zero marketing buzzwords).
+2. **Current State & Limitations**: How is this handled today in the codebase, and where does existing practice fail or hit ceilings?
+3. **Core Technical Mechanism**: What is fundamentally new in this approach, and why will it succeed within the 4 Pillars without mandatory external bloat?
+4. **Target Impact**: Who or what subsystem consumes this, and what measurable difference does it make to system throughput, developer speed, or user delight?
+5. **Attack Surface & Risks**: What are the high-consequence failure modes, and what is the strategic payoff if mitigated?
+6. **Resource & Token Economics**: What will this cost in local compute, memory footprint, database query volume, or cloud LLM token budget?
+7. **Delivery Horizon**: What is the topological phase breakdown from foundational primitives to leaf presentation?
+8. **Binary Verification Exams**: What are the intermediate test assertions and final deterministic commands (`Exit Code 0`) that objectively prove completion?
+
+---
+
+## 2. The 6 Pre-Blueprint Stress-Test Lenses
+
+When exploring raw feature hypotheses, interrogate the concept across 6 specialized lenses to expose unstated assumptions:
+
+| Stress-Test Lens | Core Focus | Critical Interrogation |
+| :--- | :--- | :--- |
+| **1. Contrarian MVC / YAGNI** | Simplicity & Code Minimization | *Why does this feature need to exist? Can existing codebase utilities, stdlib primitives, or native CLI companions solve 90% of this without new abstractions?* |
+| **2. Token & Resource Economics** | Scaling & Budget Ceilings | *What is the peak QPS, memory footprint, SQLite query load, or LLM token budget? Will this hit context window or token limits at scale?* |
+| **3. DX & Developer Ergonomics** | Cognitive Load & Usability | *Is the API/CLI contract intuitive? Does it adhere to ecosystem conventions? Are error messages actionable, or does it add developer friction?* |
+| **4. State Migration & Rollback** | Rollout Safety & Version Skew | *How do existing serialized models, SQLite tables, or configs migrate? Does this break backwards compatibility? How is safe rollback handled mid-migration?* |
+| **5. Telemetry & 3 AM Observability** | Operational Visibility | *Are operations traceable via structured events? Can an oncall engineer diagnose a failure in production at 3 AM using local logs and telemetry?* |
+| **6. Long-Term Tech Debt** | Architectural Longevity | *Does this introduce tightly coupled state machines or leaky abstractions that will be painful to maintain across 2+ years of evolution?* |
+
+---
+
+## 3. Anti-Glazing & Truth Invariants
+
+- **Critique First**: Even when an architectural concept is strong, lead with what is missing, risky, or over-complicated before affirming merits.
+- **Banned Flattery Adjectives**: Strictly eliminate validating adjectives (*brilliant, great, smart, spot-on, perfect, excellent*) when evaluating proposals.
+- **Banned Apologies**: Never emit polite apologies (*I apologize, I am sorry*); state corrected technical logic or trade-offs directly.
+- **Earned Agreement**: Agree only when the concept has survived rigorous, objective interrogation against the 8 Core Viability Questions.

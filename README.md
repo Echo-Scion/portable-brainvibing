@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.4-blue.svg?style=flat-square" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.5-blue.svg?style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/core-Python%203.10%2B%20Stdlib-brightgreen.svg?style=flat-square" alt="Core"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/database-SQLite3%20WAL-informational.svg?style=flat-square" alt="Database"></a>
@@ -19,15 +19,15 @@
   <a href="https://github.com/Echo-Scion"><img src="https://img.shields.io/badge/author-Echo--Scion-purple.svg?style=flat-square" alt="Author"></a>
 </p>
 
-> ⚠️ **Warning**: Being tested only on personal workflows; this project is currently in active development and has not yet been used to build any production project.
+> ⚠️ **Status**: Active research and development project; currently tested on personal developer workflows and not yet recommended for production environments.
 >
-> 🛑 **Notice**: 100% AI-generated slop, side project for personal use. AI-audited with Gemini 4 Argon. Sources/origins are unknown; if any rights are offended, please remind me and it will be removed/addressed promptly.
+> 💡 **Notice**: Co-developed through human-AI pair programming and audited with automated verification gates and multi-model reviews (Gemini 4 Argon). If any rights or attribution concerns arise, please reach out and they will be addressed promptly.
 
 <p align="center">
   <a href="#-quickstart"><b>Quickstart</b></a> •
-  <a href="#-whats-inside-agents-the-6-core-features"><b>Core Features</b></a> •
+  <a href="#-whats-inside-agents-the-8-core-features"><b>Core Features</b></a> •
   <a href="#-the-four-anchored-pillars"><b>4 Pillars</b></a> •
-  <a href="#-essential-cli-commands-orionpy"><b>CLI Commands</b></a> •
+  <a href="#-unified-command--agent-prompt-reference"><b>CLI & Prompts</b></a> •
   <a href="CHANGELOG.md"><b>Changelog</b></a>
 </p>
 
@@ -47,39 +47,49 @@
 
 ---
 
-<a id="-whats-inside-agents-the-6-core-features"></a>
-## 🛠️ What's Inside `.agents` (The 6 Core Subsystems)
+<a id="-whats-inside-agents-the-8-core-features"></a>
+## 🛠️ What's Inside `.agents` (The 8 Core Subsystems)
 
-Every subsystem addresses a specific failure mode of standard AI coding through a single zero-dependency CLI entry point: `python .agents/scripts/orion.py <command>`.
+Every subsystem addresses a systemic failure mode of autonomous AI coding through a single zero-dependency CLI entry point: `python .agents/scripts/orion.py <command>`.
 
-### 1. 🧠 Hybrid Memory & GraphRAG (`brain.py`, `rag.py`)
-* **Problem**: AI agents forget context between sessions or hallucinate from outdated architectural decisions.
-* **How it Works**: Combines SQLite3 FTS5 lexical search, local vector embeddings, and entity relationship graphs without cloud dependencies. Automatically filters out superseded historical decisions, exports an Obsidian second-brain vault, and discovers multi-project star repositories via Constellation.
+### 1. 🧠 Cognitive Memory & Local GraphRAG (`brain.py`, `rag.py`)
+* **Problem**: AI agents suffer from episodic amnesia across sessions, hallucinate from superseded architectural decisions, lose contextual continuity as chat history is truncated, and risk leaking sensitive intellectual property when forced to use third-party cloud vector databases.
+* **How it Works**: Implements a zero-cloud, 100% local Dual-Level GraphRAG engine combining SQLite3 WAL FTS5 BM25 lexical search, vector similarity, and pure-Python Louvain community clustering. Raw session turns compress into anchored observations (`[O1]`) that roll over into generational memory (`memory_generations`) with Shannon surprisal filtering and `superseded_by` anti-flashback tracking.
 * 📖 *Deep Dive: [.agents/docs/03-local_rag_brain.md](.agents/docs/03-local_rag_brain.md)*
 
-### 2. 🍱 Bento Task Slicer (`bento_slicer.py`)
-* **Problem**: Models easily lose track of complex multi-file plans, skip intermediate edits, or hallucinate line numbers.
-* **How it Works**: Slices implementation plans into atomic, single-step cards (`ACTIVE_TASK.md`) ordered by architectural dependency. Re-anchors line numbers on disk and mechanically verifies file mutations before advancing.
+### 2. 🌌 Multi-Project Portfolio Mesh (`commands/constellation.py`, `core/spoke_mesh.py`)
+* **Problem**: Developers and teams manage multiple interconnected projects, services, or micro-repositories, but AI assistants operate in isolated repository silos—unaware of shared data models, upstream API contracts, or living architectural health across the broader portfolio.
+* **How it Works**: Automatically discovers sibling project repositories across a workspace portfolio (the `Constellation` spoke mesh). Tracks individual project health scorecards, validates cross-project architectural boundaries, syncs shared standards without coupling git trees, and projects a unified second-brain knowledge mesh into interoperable Obsidian vaults.
+* 📖 *Deep Dive: [.agents/docs/03-local_rag_brain.md](.agents/docs/03-local_rag_brain.md)*
+
+### 3. 🧭 Master BIOS, JIT Router & Communication Protocols (`AGENTS.md`, `rules/`, `lessword`)
+* **Problem**: Massive static system prompts trigger "Lost in the Middle" attention degradation, models waste 60%–80% of their output tokens on polite filler and bureaucratic hedging, and behavior diverges wildly across fragmented AI IDEs (Antigravity, Cursor, Claude Code, VS Code).
+* **How it Works**: Anchors autonomous behavior in a single Master BIOS (`AGENTS.md`) with a 33-row Just-In-Time (JIT) knowledge router that loads targeted procedural runbooks on Turn 1 and deploys lightweight pointer adapters (`GEMINI.md`, `CLAUDE.md`) across 19 supported AI coding hosts. Enforces the Lessword communication protocol (ASD-STE100 concise engineering English cutting token bloat by ~75%) and mandates a deterministic 4-line Response Footer with explicit model tier recommendations.
+* 📖 *Deep Dive: [.agents/docs/04-rule_library___rules.md](.agents/docs/04-rule_library___rules.md)*
+
+### 4. 🧬 Living Architectural DNA & Dynamic SemVer (`core/dna.py`)
+* **Problem**: Multi-tier architectures degrade over time through illegal cross-layer imports (e.g. presentation directly querying databases), brownfield codebases resist rigid framework directory renames, and version numbers drift inconsistently across manifests, build codes, badges, and documentation.
+* **How it Works**: Continuously classifies repository files into 5 canonical architectural tiers (`contracts`, `domain`, `services`, `state`, `presentation`), blocking upward layer leaks and non-destructively mapping brownfield directory layouts via Epigenetic Aliases. Dynamically calculates polyglot SemVer impact from git diff AST strata and atomically bumps release manifests (`package.json`, `pubspec.yaml`, `Cargo.toml`, Gradle, badges, roadmaps).
+* 📖 *Deep Dive: [.agents/docs/02-system_architecture.md](.agents/docs/02-system_architecture.md)*
+
+### 5. 📐 Pre-Implementation Blueprint Rigor (`project-architect`, `integrity-sentinel`)
+* **Problem**: Autonomous agents jump straight into writing code before verifying viability, leading to broken assumptions, missing schema contracts, undetected race conditions, and silent regression loops.
+* **How it Works**: Enforces pre-implementation rigor through 8 Core Viability Questions, an interactive spec-alignment interview (`/grill-me`), a 5-Stage Blueprint Review Pipeline, isolated reviewer subagents, and automated Spec-to-Code Drift detection that verifies parity between planned contracts and actual AST implementations.
+* 📖 *Deep Dive: [.agents/docs/02-system_architecture.md](.agents/docs/02-system_architecture.md)*
+
+### 6. 🍱 Sequential Execution Harness & Bento Task Slicer (`bento_slicer.py`)
+* **Problem**: Frontier and budget models lose track of complex multi-file implementation plans, hallucinate outdated line numbers, skip intermediate edits, or corrupt files during large unstructured code generations.
+* **How it Works**: Decomposes large plans into atomic, single-step Bento Action Cards (`ACTIVE_TASK.md`) sorted by topological blast-radius ($T_0 \to T_5$) and bottom-up file position. Recalibrates live disk line spans before every modification and enforces a Post-Condition Disk Mutation Gate (`Exit Code 2` on skips) before advancing.
 * 📖 *Deep Dive: [.agents/docs/06-workflow___sop.md](.agents/docs/06-workflow___sop.md)*
 
-### 3. 🔍 AST Code Intelligence & Quality Gates (`scanner.py`, `verify_agents.py`)
-* **Problem**: Reading large files in full burns token context, while unverified changes introduce security flaws and regressions.
-* **How it Works**: Extracts PageRank-ranked AST skeletons so models read only relevant symbol spans. Runs delta-scoped mutation tests on git diffs and enforces an 8-gate mechanical integrity audit.
+### 7. 🛡️ Exoskeleton Safety & AST Quality Sentinels (`capabilities.py`, `sandbox.py`, `scanner.py`, `verify_agents.py`)
+* **Problem**: Agents get trapped in runaway tool-failure loops, silently mask errors with empty catch blocks, read full bloated files that burn context budgets, and allow hidden credentials or Trojan Unicode to slip into production commits.
+* **How it Works**: Enforces a 3-strike `PreToolUse` circuit breaker, a PEP 578 syscall-jailed Python sandbox, and `@mechanical_catch` exception boundaries. Hollows code into PageRank-ranked AST skeletons (`scan map`), runs a Consequence Verifier checking real DOM/widget, database, network, and layout mutations alongside delta-scoped git-diff mutation tests and an 8-gate mechanical repository audit (`orion.py verify`).
 * 📖 *Deep Dive: [.agents/docs/07-python_scripts___scripts.md](.agents/docs/07-python_scripts___scripts.md)*
 
-### 4. 📦 Universal Project DNA & Polyglot Versioning (`core/dna.py`, `utils/packer.py`)
-* **Problem**: Large codebases exceed web context windows, and versioning drifts between manifests, code, and documentation.
-* **How it Works**: Partitions polyglot codebases into balanced Markdown bundles for web LLM audits. Dynamically synchronizes SemVer across manifests (`package.json`, `pubspec.yaml`, `Cargo.toml`, etc.), unconventional files (`version.txt`, `Makefile`), and README badges (`orion dna bump`), while purifying AI writing tells.
-* 📖 *Deep Dive: [.agents/docs/02-system_architecture.md](.agents/docs/02-system_architecture.md)*
-
-### 5. 🛡️ State Recovery & Latency-Optimized Hooks (`state_machine.py`, `capabilities.py`)
-* **Problem**: IDE restarts wipe in-progress context, failing tool loops waste tokens, and constant state rewrites invalidate prompt caches.
-* **How it Works**: Preserves editor context across restarts with a 5-minute hash gate protecting LLM prompt-cache hits. Intercepts failing tool loops with a 3-strike circuit breaker and provides Git-bound checkpoints for instant rollback.
-* 📖 *Deep Dive: [.agents/docs/02-system_architecture.md](.agents/docs/02-system_architecture.md)*
-
-### 6. 🧬 Habit Observation, Canons & Design Standards (`reflexion.py`, `ui-finish`)
-* **Problem**: Agents repeat identical mistakes across sessions and produce generic, robotic UI layouts.
-* **How it Works**: Captures runtime friction into an observation ledger, automatically escalating repeat mistakes into Tier-0 mechanical barriers. Provides production framework canons (Flutter, React, Python) paired with Google Labs `design.md` W3C DTCG design tokens and canonical UI component taxonomies.
+### 8. 🌱 Habit Evolution, Production Canons & Design Craft Floor (`reflexion.py`, `core/harness/`, `ui-finish`)
+* **Problem**: Coding models repeat the exact same mistakes across sessions, recurring manual developer workflows go unautomated, generated UIs suffer from generic AI slop and inconsistent spacing, and teams lack verified framework architecture patterns.
+* **How it Works**: Intercepts runtime friction into an Observation Ledger, automatically escalating repeat violations into Tier-0 mechanical barriers, while mining recurring CLI sequences into automated workflows. Governs skill lifecycle through an in-tree Sovereign Skill Harness with 14-gate admission promotion. Provides production framework canons (Flutter 120Hz Impeller, React, Python) paired with W3C DTCG design tokens (`DESIGN.md`), 60+ canonical UI primitives, and automated WCAG 2.1 AA aesthetics evaluation (`audit_aesthetics.py`).
 * 📖 *Deep Dive: [.agents/docs/09-darwinian_evolution_lifecycle.md](.agents/docs/09-darwinian_evolution_lifecycle.md)*
 
 ---
@@ -182,51 +192,41 @@ python .agents/scripts/orion.py foundation push-upstream --project <project_path
 
 ---
 
-<a id="-essential-cli-commands-orionpy"></a>
-## 💻 Essential CLI Commands (`orion.py`)
+<a id="-unified-command--agent-prompt-reference"></a>
+## 💻 Unified Command & Agent Prompt Reference
 
-```bash
-# --- Bento Task Slicer (Sequential Execution Harness for Budget/Standard Models) ---
-python .agents/scripts/orion.py bento init plan.md          # Slice plan into topological tasks & emit ACTIVE_TASK.md
-python .agents/scripts/orion.py bento next --verify         # Verify disk patch + run gate + advance to next task
-python .agents/scripts/orion.py bento status                # Inspect task progress across T0-T5 strata
+You can either run commands directly via the unified `orion.py` CLI or copy-paste natural language prompts directly into your AI coding assistant (Antigravity, Claude Code, Cursor, Copilot, Gemini CLI):
 
-# --- Code Intelligence & Context Mapping ---
-python .agents/scripts/orion.py scan map src/               # Extract [Lstart-Lend] AST skeletons
-python .agents/scripts/orion.py repomap --budget 1500        # PageRank-ranked core symbols within token budget
-python .agents/scripts/orion.py scan tokens                 # Audit largest token-consuming files
-
-# --- Knowledge Graph, Hybrid RAG, Constellation & Observational Memory ---
-python .agents/scripts/orion.py brain sync "auth token flow" # Hybrid FTS5 + Vector + 1-Hop + Louvain RAG
-python .agents/scripts/orion.py brain recall O1             # Expand raw recall turns behind anchor [O1]
-python .agents/scripts/orion.py brain rollover              # Trigger zero-LLM generational memory rollover
-python .agents/scripts/orion.py graph path UserAuth TokenStore # Shortest BFS dependency path between entities
-python .agents/scripts/orion.py brain export-vault          # Export Obsidian Vault to .orion/export/vault/
-python .agents/scripts/orion.py constellation status        # Discover sibling spoke projects & living DNA scorecards
-python .agents/scripts/orion.py constellation sync          # Export supervisory multi-project knowledge mesh to constellation/
-
-# --- Habit Observation & Self-Evolution ---
-python .agents/scripts/orion.py observe "fix" --target rules # Record friction or pattern in OBSERVATIONS.md
-python .agents/scripts/orion.py resolve 12 --status actioned # Resolve & archive completed observation #12
-python .agents/scripts/orion.py consolidate session         # Run Temporal Pulse session synthesis & habit mining
-
-# --- Quality, Security & Architecture Gates ---
-python .agents/scripts/orion.py verify                      # Run 8-gate mechanical, ceiling & portability audit
-python .agents/scripts/orion.py dna audit                   # Audit 5-tier architecture compliance & layer leaks
-python .agents/scripts/orion.py scan security .             # AST vulnerability, secret & Trojan Unicode scan
-python .agents/scripts/orion.py adversarial mutate <f> --diff # Delta-scoped AST mutation testing on git diff
-python .agents/scripts/orion.py eval --dir src/             # Audit UI tokens, 8pt grid & prose anti-slop
-
-# --- Universal Project DNA SemVer & Context Packaging ---
-python .agents/scripts/orion.py dna semver                  # Dynamic polyglot SemVer impact radar (5-Tier strata)
-python .agents/scripts/orion.py dna bump --auto             # Atomic release bump across manifests, build codes & sinks
-python .agents/scripts/orion.py pack [arch|hybrid|full|pr]  # Export codebase into <=10 balanced Markdown bundles
-
-# --- Foundation Hub-and-Spoke & Upstream Upgrade ---
-python .agents/scripts/orion.py upgrade --check            # Preview upstream engine updates without writing to disk
-python .agents/scripts/orion.py upgrade                    # Surgically update framework while shielding sovereign state
-python .agents/scripts/orion.py deploy --target <dir>      # Deploy complete foundation to target repository
-```
+| Domain / Intent | Say This in Chat (AI Prompt) | CLI Command (`orion.py`) |
+| :--- | :--- | :--- |
+| **New Project Setup** | `"Setup .agents for this new project and start in draft mode"` | `python .agents/scripts/orion.py setup --inspect` |
+| **Brownfield Onboarding** | `"Scan my existing codebase, harvest our theme tokens, and setup .agents"` | `python .agents/scripts/orion.py setup` |
+| **Health & 4 Pillars Audit** | `"Check .agents health, active pillars, and environment status"` | `python .agents/scripts/orion.py doctor` |
+| **Mechanical Repository Audit** | `"Run the 8-gate mechanical, ceiling, and portability audit"` | `python .agents/scripts/orion.py verify` |
+| **Project DNA Architecture Audit** | `"Audit our project DNA to verify 5-tier architecture layer boundaries"` | `python .agents/scripts/orion.py dna audit` |
+| **Dynamic Polyglot SemVer** | `"Calculate SemVer impact across 5-tier strata and bump manifests"` | `python .agents/scripts/orion.py dna bump --auto` |
+| **Bento Task Slicing** | `"Slice implementation plan into topological tasks and emit active card"` | `python .agents/scripts/orion.py bento init plan.md` |
+| **Bento Step & Gate Verification** | `"Verify disk mutation, run verification gate, and step to next task"` | `python .agents/scripts/orion.py bento next --verify` |
+| **AST Skeleton & Line Mapping** | `"Extract AST skeletons and symbol line spans to inspect without paging"` | `python .agents/scripts/orion.py scan map src/` |
+| **PageRank Repo Map** | `"Generate PageRank-ranked core symbols within a 1500-token budget"` | `python .agents/scripts/orion.py repomap --budget 1500` |
+| **Token Consumption Audit** | `"Audit repository files to find the largest token-consuming files"` | `python .agents/scripts/orion.py scan tokens` |
+| **Cognitive Memory & RAG Search** | `"Sync memory knowledge graph for auth token flow using hybrid RAG"` | `python .agents/scripts/orion.py brain sync "auth token flow"` |
+| **Expand Anchor Recall** | `"Expand raw recall turns behind memory anchor O1"` | `python .agents/scripts/orion.py brain recall O1` |
+| **Generational Memory Rollover** | `"Trigger zero-LLM generational memory rollover with Shannon surprisal"` | `python .agents/scripts/orion.py brain rollover` |
+| **Obsidian Vault Export** | `"Export our local second-brain knowledge graph to Obsidian vault format"` | `python .agents/scripts/orion.py brain export-vault` |
+| **Portfolio Mesh Discovery** | `"Discover sibling repositories across the portfolio and audit scorecards"` | `python .agents/scripts/orion.py constellation status` |
+| **Portfolio Knowledge Sync** | `"Export cross-project portfolio knowledge mesh across sibling repositories"` | `python .agents/scripts/orion.py constellation sync` |
+| **Habit & Friction Observation** | `"Record developer friction or recurring bug pattern in observations"` | `python .agents/scripts/orion.py observe "fix" --target rules` |
+| **Temporal Session Synthesis** | `"Run Temporal Pulse session synthesis and mine recurring habits"` | `python .agents/scripts/orion.py consolidate session` |
+| **Design Archetype Selection** | `"Lock our design archetype to Dark Industrial and flatten DESIGN.md"` | `python .agents/scripts/orion.py design select dark-industrial` |
+| **Design Token Harvesting** | `"Harvest theme tokens from our code and tell me the inferred archetype"` | `python .agents/scripts/orion.py design infer` |
+| **UI Aesthetics & Anti-Slop Audit** | `"Audit UI tokens, 8pt spatial grid, and prose anti-slop rules"` | `python .agents/scripts/orion.py eval --dir src/` |
+| **AST Security & Secret Scan** | `"Scan codebase for AST vulnerabilities, secrets, and Trojan Unicode"` | `python .agents/scripts/orion.py scan security .` |
+| **Delta Mutation Testing** | `"Run delta-scoped AST mutation testing against our recent git diff"` | `python .agents/scripts/orion.py adversarial mutate <f> --diff` |
+| **Context Bundling for Web Audits** | `"Pack codebase into at most 10 balanced Markdown bundles for web review"` | `python .agents/scripts/orion.py pack [arch|hybrid|full|pr]` |
+| **AI Host Adapters Sync** | `"Generate thin GEMINI.md and CLAUDE.md adapters linked to AGENTS.md"` | `python .agents/scripts/orion.py sync-ai --target . --ai gemini,claude` |
+| **Safe Upstream Upgrade** | `"Surgically upgrade .agents from upstream while shielding sovereign state"` | `python .agents/scripts/orion.py upgrade` |
+| **Deploy to Downstream Spoke** | `"Deploy complete foundation engine to downstream target repository"` | `python .agents/scripts/orion.py deploy --target <dir>` |
 
 ---
 

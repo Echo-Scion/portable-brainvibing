@@ -34,20 +34,21 @@ In the `.agents` ecosystem, procedural workflows are organized according to the 
 5. **`feature-sunset` (`/feature-sunset`)**: Phased Deprecation & Sunset. Dual-write transition → Telemetry deprecation notice → Systematic dead code removal.
 
 ### 14.2. Verification & Quality Sentinel SOPs
-6. **`audit-vectors` (`/integrity-sentinel`)**: Consolidated Diagnostic Matrix. Executes structured scans across Architecture, Bloat, Duplication, Fail-Fast, Logic, Performance, and Retry behaviors.
-7. **`strict-tdd` (`/strict-tdd`)**: Strict Test-Driven Development Loop. Enforces RED-GREEN-REFACTOR cycle with mechanical rollback (`git stash`) if implementation precedes failing tests (`Exit Code > 0`).
-8. **`systematic-debugging` (`/systematic-debugging`)**: 4-Phase Root Cause Protocol. Investigation → Pattern Analysis → Hypothesis Testing → Surgical Fix with 3-attempt circuit breaker.
-9. **`code-review` (`/code-review`)**: Adversarial PR Review. OWASP checks, mutation audits, temporal edge-case simulation, and Lessword formatting (`🔴 bug:`, `🟡 risk:`, `🔵 nit:`, `❓ q:`).
-10. **`audit-ledger` (`/audit-ledger`)**: Multi-Session Audit Ledger. Manages persistent tracking of findings and remediations across extended refactoring initiatives.
+6. **`audit-vectors` (`/integrity-sentinel`)**: Consolidated Diagnostic Matrix. Executes structured scans across Architecture, Bloat, Duplication, Fail-Fast, Logic, Performance, Retry behaviors, and Spec-to-Code Drift.
+7. **`blueprint-review` (`/project-architect`)**: 5-Stage Blueprint Review Pipeline. Enforces Simplicity & Reuse (Stage 1), Paraphrase-First Comprehension (Stage 2), System Risks Probe (Stage 3), Post-Review Bloat Check (Stage 4), and Zero-Decision Gate (Stage 5) with Isolated Reviewers.
+8. **`strict-tdd` (`/strict-tdd`)**: Strict Test-Driven Development Loop. Enforces RED-GREEN-REFACTOR cycle with mechanical rollback (`git stash`) if implementation precedes failing tests (`Exit Code > 0`).
+9. **`systematic-debugging` (`/systematic-debugging`)**: 4-Phase Root Cause Protocol. Investigation → Pattern Analysis → Hypothesis Testing → Surgical Fix with 3-attempt circuit breaker.
+10. **`code-review` (`/code-review`)**: Adversarial PR Review. OWASP checks, mutation audits, temporal edge-case simulation, evidence-based finding triage (CONTEST, ESCALATE, PROPOSE FIX, DECLINE), and Lessword formatting (`🔴 bug:`, `🟡 risk:`, `🔵 nit:`, `❓ q:`).
+11. **`audit-ledger` (`/audit-ledger`)**: Multi-Session Audit Ledger. Manages persistent tracking of findings and remediations across extended refactoring initiatives.
 
 ### 14.3. Knowledge & Cognitive Memory SOPs
-11. **`auto-context` (`/auto-context`)**: Conversational Business Rule Extraction. Captures user design feedback and architectural decisions, updating the 25-File Golden Ratio Context Registry (never modifying `context/VISION.md`).
-12. **`knowledge-extraction` (`/knowledge-extraction`)**: Semantic Graph Triplet Extraction. Parses code syntax, extracts 3–5 structural triplets `(Subject, Predicate, Object)`, and inserts them into `orion.db`.
-13. **`orion-ops` (`/orion-ops`)**: Local Knowledge Base Administration. Initializes `.orion/`, rebuilds FTS5 indexes, validates database schemas, and runs graph maintenance.
+12. **`auto-context` (`/auto-context`)**: Conversational Business Rule Extraction. Captures user design feedback and architectural decisions, updating the 25-File Golden Ratio Context Registry (never modifying `context/VISION.md`).
+13. **`knowledge-extraction` (`/knowledge-extraction`)**: Semantic Graph Triplet Extraction. Parses code syntax, extracts 3–5 structural triplets `(Subject, Predicate, Object)`, and inserts them into `orion.db`.
+14. **`orion-ops` (`/orion-ops`)**: Local Knowledge Base Administration. Initializes `.orion/`, rebuilds FTS5 indexes, validates database schemas, and runs graph maintenance.
 
 ### 14.4. Operations, Evolution & Session SOPs
-14. **`prod-deploy` (`/prod-deploy`)**: Production Deployment Readiness. Pre-flight verification of environment variables, minification, secrets scanning, and rollback procedures.
-15. **`self-evolve` (`/self-evolve`)**: Deterministic Self-Learning Loop. Error extraction → Append to `LEARNINGS.md` → Darwinian A/B evaluation → Promotion to permanent rules.
-16. **`session-offload` (`/session-offload`)**: Clean Session Shutdown. Temporary file eviction, gated auto-commits, episodic journal writing, and handoff persistence (`handoff.md`).
-17. **`temporal-pulse` (`/temporal-pulse`)**: Activity-Based Temporal Synthesis. Evaluates memory consolidation across Session Pulses, Milestone Syntheses (every 5 sessions), and Epoch Consolidations (every 4 milestones).
-18. **`lessword-compress` (`/lessword`)**: Deterministic Context & Memory Compression. Token reduction protocol, AST skeletal hollowing, and Shannon Surprisal filtering for LLM context optimization.
+15. **`prod-deploy` (`/prod-deploy`)**: Production Deployment Readiness. Pre-flight verification of environment variables, minification, secrets scanning, and rollback procedures.
+16. **`self-evolve` (`/self-evolve`)**: Deterministic Self-Learning Loop. Error extraction → Append to `LEARNINGS.md` → Darwinian A/B evaluation → Promotion to permanent rules.
+17. **`session-offload` (`/session-offload`)**: Clean Session Shutdown. Temporary file eviction, gated auto-commits, episodic journal writing, and handoff persistence (`handoff.md`).
+18. **`temporal-pulse` (`/temporal-pulse`)**: Activity-Based Temporal Synthesis. Evaluates memory consolidation across Session Pulses, Milestone Syntheses (every 5 sessions), and Epoch Consolidations (every 4 milestones).
+19. **`lessword-compress` (`/lessword`)**: Deterministic Context & Memory Compression. Token reduction protocol, AST skeletal hollowing, and Shannon Surprisal filtering for LLM context optimization.

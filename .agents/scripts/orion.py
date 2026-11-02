@@ -70,6 +70,7 @@ CMD_MAP = {
     "dna": ["commands", "foundation.py"],
     "dna-lint": ["commands", "foundation.py"],
     "evolve": ["commands", "foundation.py"],
+    "design": ["commands", "foundation.py"],
     "scan": ["core", "scanner.py"],
     "scanner": ["core", "scanner.py"],
     "compress": ["commands", "brain.py"],
@@ -313,7 +314,7 @@ def main():
 
     # Foundation, state machine, verify_agents, evals, brain, db, and reflexion subcommands are passed explicitly
     if cmd in {
-        "setup", "init", "onboard", "doctor", "dna", "dna-lint", "evolve",
+        "setup", "init", "onboard", "doctor", "dna", "dna-lint", "evolve", "design",
         "deploy", "push-upstream", "sync-ai", "hydrate-vision", "hydrate_vision", "upgrade", "foundation-upgrade", "budget", "track_budget", "amnesia", "rule_eviction",
         "consolidate", "linkify", "record", "reflect", "reflexion", "observe", "observations", "resolve", "habits", "state_graph",
         "preflight", "preflight_check", "context-lint", "context_naming_lint",

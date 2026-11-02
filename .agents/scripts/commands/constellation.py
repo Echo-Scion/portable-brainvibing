@@ -75,7 +75,7 @@ def cmd_status(search_root: Optional[str] = None) -> int:
     return 0
 
 
-def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None) -> int:
+def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None, include_graph: bool = True) -> int:
     """Exports the Constellation multi-project Obsidian Vault."""
     spokes = discover_spokes(search_root=search_root)
     ws = get_workspace_dir()
@@ -83,7 +83,7 @@ def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None)
 
     print(f"\n🌌 Exporting Orion Constellation Vault to: {os.path.abspath(target_out)}")
     exporter = ConstellationVaultExporter(output_dir=target_out)
-    res = exporter.export_constellation(spokes)
+    res = exporter.export_constellation(spokes, include_graph=include_graph)
 
     if res.get("status") == "SUCCESS":
         # Update cache
@@ -99,6 +99,8 @@ def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None)
         print(f"[SUCCESS] Orion Constellation Vault exported successfully.")
         print(f"  - Total Stars : {res['total_stars']}")
         print(f"  - Total Notes : {res['total_notes']}")
+        if res.get("graph_exported"):
+            print(f"  - Graph Notes : {res.get('graph_notes', 0)} (in 01_Knowledge_Graph/)")
         print(f"  - Vault Path  : {res['vault_dir']}")
         return 0
     else:
@@ -106,7 +108,7 @@ def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None)
         return 1
 
 
-def cmd_sync(search_root: Optional[str] = None) -> int:
+def cmd_sync(search_root: Optional[str] = None, include_graph: bool = True) -> int:
     """Syncs all star context notes and ingests cross-project graph triplets into orion.db."""
     spokes = discover_spokes(search_root=search_root)
     ws = get_workspace_dir()
@@ -144,7 +146,7 @@ def cmd_sync(search_root: Optional[str] = None) -> int:
         _log_telemetry(_ge, "constellation:sync_triplets")
 
     # Also refresh vault export
-    cmd_export(search_root=search_root)
+    cmd_export(search_root=search_root, include_graph=include_graph)
     return 0
 
 
@@ -165,18 +167,20 @@ def main(args: Optional[List[str]] = None) -> int:
     p_export = subparsers.add_parser("export", help="Export unified Obsidian vault spanning all stars")
     p_export.add_argument("--out", default=None, help="Target directory for constellation vault")
     p_export.add_argument("--search-root", default=None, help="Custom search directory for sibling projects")
+    p_export.add_argument("--no-graph", action="store_true", help="Skip deep SQLite knowledge graph export")
 
     p_sync = subparsers.add_parser("sync", help="Synchronize cross-project graph and refresh vault")
     p_sync.add_argument("--search-root", default=None, help="Custom search directory for sibling projects")
+    p_sync.add_argument("--no-graph", action="store_true", help="Skip deep SQLite knowledge graph export")
 
     parsed = parser.parse_args(args)
 
     if parsed.subcommand == "status":
         return cmd_status(search_root=parsed.search_root)
     elif parsed.subcommand == "export":
-        return cmd_export(out_dir=parsed.out, search_root=parsed.search_root)
+        return cmd_export(out_dir=parsed.out, search_root=parsed.search_root, include_graph=not getattr(parsed, "no_graph", False))
     elif parsed.subcommand == "sync":
-        return cmd_sync(search_root=parsed.search_root)
+        return cmd_sync(search_root=parsed.search_root, include_graph=not getattr(parsed, "no_graph", False))
     else:
         # Default action: status
         return cmd_status()
