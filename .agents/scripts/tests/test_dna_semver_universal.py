@@ -510,6 +510,48 @@ class TestDNASemVerUniversal(unittest.TestCase):
             with open(make_path, "r", encoding="utf-8") as f:
                 self.assertIn("VERSION := 0.9.1", f.read())
 
+    def test_evaluate_dna_semver_detects_unreleased_commits_since_tag(self):
+        """Verifies evaluate_dna_semver auto-detects baseline release tag vX.Y.Z and collects all commits in vX.Y.Z..HEAD."""
+        import subprocess
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
+        with tempfile.TemporaryDirectory() as td:
+            def run_git(args):
+                subprocess.run(["git", *args], cwd=td, check=True, capture_output=True, text=True, encoding="utf-8", creationflags=flags)
+
+            run_git(["init"])
+            run_git(["config", "user.name", "Test User"])
+            run_git(["config", "user.email", "test@example.com"])
+
+            with open(os.path.join(td, "VERSION"), "w", encoding="utf-8") as f:
+                f.write("0.0.4\n")
+            with open(os.path.join(td, "CHANGELOG.md"), "w", encoding="utf-8") as f:
+                f.write("# Changelog\n\n## [Unreleased]\n\n## [0.0.4] - 2026-11-01\n- Initial\n")
+            run_git(["add", "-A"])
+            run_git(["commit", "-m", "chore(release): sync foundation v0.0.4"])
+            run_git(["tag", "v0.0.4"])
+
+            # Commit 1 after v0.0.4
+            os.makedirs(os.path.join(td, "src"), exist_ok=True)
+            with open(os.path.join(td, "src", "adapter.py"), "w", encoding="utf-8") as f:
+                f.write("x = 1\n")
+            run_git(["add", "-A"])
+            run_git(["commit", "-m", "feat(ai-adapter): unify canonical AGENTS.md"])
+
+            # Commit 2 after v0.0.4
+            with open(os.path.join(td, "src", "harvester.py"), "w", encoding="utf-8") as f:
+                f.write("y = 2\n")
+            run_git(["add", "-A"])
+            run_git(["commit", "-m", "feat(design): add brownfield token harvester"])
+
+            res = evaluate_dna_semver(td)
+            self.assertEqual(res["baseline_ref"], "v0.0.4")
+            self.assertEqual(res["changed_files_count"], 2)
+            self.assertEqual(len(res["unreleased_commits"]), 2)
+            self.assertFalse(res["changelog_updated"])
+            joined_commits = "\n".join(res["unreleased_commits"])
+            self.assertIn("feat(ai-adapter): unify canonical AGENTS.md", joined_commits)
+            self.assertIn("feat(design): add brownfield token harvester", joined_commits)
+
 
 if __name__ == "__main__":
     unittest.main()

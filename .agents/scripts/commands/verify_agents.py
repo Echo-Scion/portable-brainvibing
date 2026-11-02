@@ -556,6 +556,12 @@ def check_links(res: AuditResult, verbose: bool = True):
     all_rules: Set[str] = set([])
     all_rule_stems: Set[str] = set([])
     TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+    workspace_root = os.path.dirname(BASE_DIR)
+    for root_md in ["AGENTS.md", "GEMINI.md", "CLAUDE.md", "README.md", "DEPLOY_ME.md"]:
+        if os.path.exists(os.path.join(workspace_root, root_md)):
+            all_rules.add(root_md)
+            all_rules.add(root_md[:-3])
+
     for d in [RULES_DIR, CANONS_DIR, TEMPLATES_DIR]:
         if os.path.exists(d):
             root_prefix = os.path.basename(d)
@@ -1211,12 +1217,17 @@ def check_version_and_router_parity(res: AuditResult, verbose: bool = True):
         ("CHANGELOG.md", re.compile(rf'##\s*\[{re.escape(expected_ver)}\]'), f"Release header for [{expected_ver}] in CHANGELOG.md"),
         ("README.md", re.compile(rf'badge/version-v{re.escape(expected_ver)}-blue'), f"Version badge v{expected_ver} in README.md"),
         ("AGENTS.md", re.compile(rf'Mandate Version:\s*{re.escape(expected_ver)}'), f"Mandate Version: {expected_ver} in AGENTS.md"),
-        ("GEMINI.md", re.compile(rf'Mandate Version:\s*{re.escape(expected_ver)}'), f"Mandate Version: {expected_ver} in GEMINI.md"),
         (os.path.join(".agents", "templates", "AGENTS.template.md"), re.compile(rf'Mandate Version:\s*{re.escape(expected_ver)}'), f"Mandate Version: {expected_ver} in AGENTS.template.md"),
         (os.path.join(".agents", "docs", "00-intro.md"), re.compile(rf'v{re.escape(expected_ver)}'), f"v{expected_ver} in docs/00-intro.md"),
         (os.path.join(".agents", "DEPLOY_ME.md"), re.compile(rf'Version\*\*:\s*{re.escape(expected_ver)}'), f"Version: {expected_ver} in DEPLOY_ME.md"),
         (os.path.join("context", "AGENT_IDENTITY.md"), re.compile(rf'Foundation\s+v{re.escape(expected_ver)}'), f"Foundation v{expected_ver} in AGENT_IDENTITY.md")
     ]
+
+    gemini_path = os.path.join(workspace_root, "GEMINI.md")
+    if os.path.exists(gemini_path):
+        g_text = read_text(gemini_path)
+        if "@AGENTS.md" not in g_text and "AGENTS.md" not in g_text:
+            version_targets.append(("GEMINI.md", re.compile(rf'Mandate Version:\s*{re.escape(expected_ver)}'), f"Mandate Version: {expected_ver} in GEMINI.md"))
 
     mismatches = []
     for rel_path, pat, desc in version_targets:
@@ -1261,20 +1272,24 @@ def check_version_and_router_parity(res: AuditResult, verbose: bool = True):
             a_txt = read_text(agents_md)
             g_txt = read_text(gemini_md)
             
-            def extract_jit_rows(txt: str) -> List[str]:
-                m = re.search(r'## 4\. JIT.*?\| :--- \|\n(.*?)\n## 5\.', txt, re.DOTALL)
-                if not m:
-                    return []
-                return [line.strip() for line in m.group(1).strip().splitlines() if line.strip().startswith('|')]
+            if "@AGENTS.md" in g_txt or ("AGENTS.md" in g_txt and "## 4. JIT" not in g_txt):
+                if verbose:
+                    print(" [PASS] Router Parity: GEMINI.md is a verified thin adapter delegating to canonical AGENTS.md.")
+            else:
+                def extract_jit_rows(txt: str) -> List[str]:
+                    m = re.search(r'## 4\. JIT.*?\| :--- \|\n(.*?)\n## 5\.', txt, re.DOTALL)
+                    if not m:
+                        return []
+                    return [line.strip() for line in m.group(1).strip().splitlines() if line.strip().startswith('|')]
 
-            a_rows = extract_jit_rows(a_txt)
-            g_rows = extract_jit_rows(g_txt)
+                a_rows = extract_jit_rows(a_txt)
+                g_rows = extract_jit_rows(g_txt)
 
-            if not a_rows or not g_rows or a_rows != g_rows:
-                res.add_error("ROUTER_DRIFT", "JIT Routing table in AGENTS.md and GEMINI.md are out of sync", "AGENTS.md / GEMINI.md", severity="HIGH")
-                if verbose: print(" [FAIL] JIT Routing table in AGENTS.md and GEMINI.md are out of sync.")
-            elif verbose:
-                print(f" [PASS] Router Parity: JIT Routing tables in AGENTS.md and GEMINI.md are 100% synchronized ({len(a_rows)} rows).")
+                if not a_rows or not g_rows or a_rows != g_rows:
+                    res.add_error("ROUTER_DRIFT", "JIT Routing table in AGENTS.md and GEMINI.md are out of sync", "AGENTS.md / GEMINI.md", severity="HIGH")
+                    if verbose: print(" [FAIL] JIT Routing table in AGENTS.md and GEMINI.md are out of sync.")
+                elif verbose:
+                    print(f" [PASS] Router Parity: JIT Routing tables in AGENTS.md and GEMINI.md are 100% synchronized ({len(a_rows)} rows).")
         except Exception as e:
             res.add_error("IO", f"Could not read router tables for parity check: {e}")
     elif os.path.exists(agents_md) and verbose:

@@ -36,6 +36,103 @@ class UpgradeVerificationError(Exception):
     pass
 
 
+FOUNDATION_BLOCK_RE = re.compile(
+    r"<!--\s*START FOUNDATION:(?P<id>[\w-]+)\s*-->.*?<!--\s*END FOUNDATION:(?P=id)\s*-->",
+    re.DOTALL | re.IGNORECASE,
+)
+
+SOURCE_MANIFEST_FILES: Set[str] = {
+    "pubspec.yaml",
+    "package.json",
+    "pyproject.toml",
+    "Cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "mix.exs",
+    "setup.py",
+    "CMakeLists.txt",
+    "Makefile",
+}
+
+
+def detect_lifecycle_mode(target_dir: str, artifact_relpath: str) -> str:
+    """Return 'UPGRADE' | 'BROWNFIELD' | 'GREENFIELD'.
+
+    - UPGRADE: The specified artifact file already exists in target_dir.
+    - BROWNFIELD: The artifact is missing, but target_dir has a source manifest file.
+    - GREENFIELD: Target_dir has no artifact and no source manifest.
+    """
+    target = Path(target_dir).resolve()
+    artifact_path = target / artifact_relpath
+    if artifact_path.exists():
+        return "UPGRADE"
+
+    # Check for any source manifest in target_dir
+    for m in SOURCE_MANIFEST_FILES:
+        if (target / m).is_file():
+            return "BROWNFIELD"
+
+    # Check immediate children if target_dir is a workspace root
+    if target.is_dir():
+        try:
+            for entry in target.iterdir():
+                if entry.is_file() and entry.name in SOURCE_MANIFEST_FILES:
+                    return "BROWNFIELD"
+        except OSError:
+            pass
+
+    return "GREENFIELD"
+
+
+def splice_foundation_blocks(existing: str, template: str, fallback_append: bool = True) -> Tuple[str, List[str]]:
+    """Replace foundation blocks in existing content with template versions.
+
+    If existing contains matching block markers, those blocks are replaced in-place.
+    If existing contains NO block markers and fallback_append is True, the template's
+    foundation blocks are safely appended under a '## Foundation Contract' header.
+    Returns (spliced_content, list_of_replaced_or_appended_block_ids).
+    """
+    template_blocks: Dict[str, str] = {}
+    for match in FOUNDATION_BLOCK_RE.finditer(template):
+        b_id = match.group("id")
+        template_blocks[b_id] = match.group(0)
+
+    if not template_blocks:
+        return existing, []
+
+    replaced_ids: List[str] = []
+    result_text = existing
+
+    existing_block_ids = set()
+    for match in FOUNDATION_BLOCK_RE.finditer(existing):
+        existing_block_ids.add(match.group("id"))
+
+    if existing_block_ids:
+        for b_id, b_text in template_blocks.items():
+            pattern = re.compile(
+                r"<!--\s*START FOUNDATION:" + re.escape(b_id) + r"\s*-->.*?<!--\s*END FOUNDATION:" + re.escape(b_id) + r"\s*-->",
+                re.DOTALL | re.IGNORECASE,
+            )
+            if pattern.search(result_text):
+                result_text = pattern.sub(lambda _: b_text, result_text, count=1)
+                replaced_ids.append(b_id)
+            elif fallback_append:
+                result_text = result_text.rstrip() + f"\n\n{b_text}\n"
+                replaced_ids.append(b_id)
+        return result_text, replaced_ids
+
+    if fallback_append:
+        blocks_combined = "\n\n".join(template_blocks.values())
+        append_header = "\n\n## 🏛️ Foundation Architectural Contract\n\n"
+        result_text = result_text.rstrip() + append_header + blocks_combined + "\n"
+        replaced_ids = list(template_blocks.keys())
+
+    return result_text, replaced_ids
+
+
+
 class SacredFileShield:
     """Guards sovereign user-owned files against upstream clobbering."""
 

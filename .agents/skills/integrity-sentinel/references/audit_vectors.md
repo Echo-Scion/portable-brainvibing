@@ -110,25 +110,31 @@ This document consolidates the 12 primary static and semantic audit vectors into
 
 ---
 
-## Vector 8: Spec-to-Code Parity & Anti-Cosplay Gate (LLM Scaffold Detection)
-*Goal: Detect fake implementations, regex-as-AST cosplay, ungrounded spec claims, and shallow tests.*
+## Vector 8: Blueprint-to-AST Parity & Anti-Cosplay Gate (LLM Scaffold Detection)
+*Goal: Detect fake implementations, regex-as-AST cosplay, ungrounded spec claims, shallow tests, and divergence from `context/` architecture.*
 
 ### Inspection Rubric:
-1. **Dependency Truth Check**:
+1. **Dependency & Symbol Truth Check**:
    - Inspect project manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`).
-   - Verify every library or parser claimed in `ARCHITECTURE.md`, `BLUEPRINT.md`, or `README.md` is actually installed and actively imported in `src/`.
-   - Never accept documentation claims or `epistemic_status: AST_VERIFIED` tags at face value without source code verification.
-2. **Parser Authenticity Check**:
+   - Verify every library or parser claimed in `ARCHITECTURE.md`, `BLUEPRINT.md`, or `README.md` is actually installed and actively imported in source files.
+   - Cross-check symbols against `context/03_Tech/` master and facet registries. Flag missing functions, endpoints, or un-implemented models as reportable parity drift.
+2. **Model & Schema Parity**:
+   - Compare data models and DTOs in code against `context/03_Tech/DATABASE_AND_STORAGE.md` and `API_AND_CONTRACTS.md`.
+   - Flag incomplete dataclasses, structs, or protos missing fields declared in the architectural contract.
+3. **Anti-Cosplay & Logic Shortcut Detection**:
    - Inspect files named `*Parser*`, `*Converter*`, `*Analyzer*`, `*Reader*`, or `*Reconstructor*`.
-   - Verify whether modules parse syntax using legitimate AST parsers, compiler interfaces, or robust state machines rather than brittle single-line regex `.match()` heuristics.
-3. **Exhaustive IR / AST Switch Check**:
-   - Compare union type contracts (e.g. `WidgetType` in `types.ts` or AST Node variants) against `switch (node.type)` in the code generator.
+   - Verify modules parse syntax using legitimate AST parsers, compiler interfaces, or robust state machines rather than brittle regex `.match()` heuristics.
+   - Detect hardcoded constants or dummy fallback strings where dynamic business logic was designed.
+4. **Exhaustive IR / AST Switch Check**:
+   - Compare union type contracts (e.g. `WidgetType` in `types.ts` or AST Node variants) against `switch (node.type)` in code generators.
    - Every defined union variant MUST emit a real widget/code structure rather than falling through to dummy stubs (`SizedBox.shrink()`, empty comments, or unhandled no-ops).
-4. **Pipeline End-to-End Trace**:
-   - Trace extraction and decompilation outputs (e.g. `.ipa`, `.dex`, `jadx`, `arsc`, `sqlite`).
-   - Verify that extracted assets and sources are consumed and transformed by subsequent pipeline steps rather than dropped into dead-end directories.
-5. **Shallow Test Detection**:
+5. **Pipeline End-to-End Trace**:
+   - Trace extraction outputs (e.g. `.ipa`, `.dex`, `jadx`, `arsc`, `sqlite`).
+   - Verify extracted assets and sources are consumed and transformed by subsequent pipeline steps rather than dropped into dead-end directories.
+6. **Shallow Test Detection**:
    - Reject unit tests that assert code generator or transpiler outputs using only shallow substring checks (`assert.ok(code.includes(...))`) without syntax, AST, or target compiler validation.
+7. **Zero-Noise Delta Reporting**:
+   - When auditing parity against `context/`, report ONLY detected discrepancies. If source code matches the architectural contract completely, output: `"Zero parity drift."`
 
 ---
 

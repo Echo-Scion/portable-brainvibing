@@ -2,179 +2,6 @@
 
 > Raw signals: corrections, tool failures, mechanical catches, verify fails, rule violations.
 
-## Observation 132: Tool failure in orion:resolve (Exit Code 2)
-- **id**: 132
-- **fingerprint**: 75f23c25f60f
-- **status**: open
-- **kind**: violation
-- **target**: orion:resolve
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **count**: 4
-- **evidence**: Args: {'args': ['resolve', '128', 'Resolved by adding upgrade to explicit subcommand forwarding in orion.py'], 'exit_code': 2} | Args: {'args': ['resolve', '129', 'Resolved by importing Path in cmd_upgrade'], 'exit_code': 2} | Args: {'args': ['resolve', '130', 'Resolved by adding explicit encoding to subprocess.run'], 'exit_code': 2} | Args: {'args': ['resolve', '131', 'Resolved by implementing safe dir removal without shutil.rmtree'], 'exit_code': 2}
-- **created**: 2026-10-31T02:46:20.310590
-
-## Observation 133: Verify gate failure: LINK - Broken backticked file reference: `rules/core-guardrails.md`
-- **id**: 133
-- **fingerprint**: 52dd191506a4
-- **status**: open
-- **kind**: violation
-- **target**: skills\internal\references\knowledge-sync.md:32
-- **rule_id**: VERIFY_GATE_LINK
-- **siblings_checked**: true
-- **scope**: project
-- **count**: 5
-- **evidence**: Broken backticked file reference: `rules/core-guardrails.md`
-- **created**: 2026-10-31T03:58:21.001144
-
-## Observation 134: Verify gate failure: GHOST - Ghost path reference: `rules/core-guardrails.md`
-- **id**: 134
-- **fingerprint**: fbf10a9a71df
-- **status**: open
-- **kind**: violation
-- **target**: skills\internal\references\knowledge-sync.md:32
-- **rule_id**: VERIFY_GATE_GHOST
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Ghost path reference: `rules/core-guardrails.md`
-- **created**: 2026-10-31T03:58:21.010378
-
-## Observation 135: Verify gate failure: SECURITY - AST_DANGEROUS_IMPORT: Import of high-risk module: 'ctypes' (
-- **id**: 135
-- **fingerprint**: 819e4d24b6d9
-- **status**: open
-- **kind**: violation
-- **target**: .agents/hooks/rtk-pre-tool.py
-- **rule_id**: VERIFY_GATE_SECURITY
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: AST_DANGEROUS_IMPORT: Import of high-risk module: 'ctypes' (line 19)
-- **created**: 2026-10-31T17:02:01.721193
-
-## Observation 136: Tool failure in orion:sync-ai (Exit Code 2)
-- **id**: 136
-- **fingerprint**: c66efc7fcf17
-- **status**: open
-- **kind**: violation
-- **target**: orion:sync-ai
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Args: {'args': ['sync-ai'], 'exit_code': 2}
-- **created**: 2026-10-31T22:05:55.115084
-
-## Observation 137: DNA compliance score regression (100 -> 64)
-- **id**: 137
-- **fingerprint**: 779314f4c4b2
-- **status**: open
-- **kind**: improve
-- **target**: core/dna.py
-- **rule_id**: DNA_COMPLIANCE_REGRESSION
-- **siblings_checked**: true
-- **scope**: project
-- **count**: 3
-- **evidence**: Latest snapshot score 64 lower than previous 100
-- **created**: 2026-11-01T16:21:50.048959
-
-## Observation 138: Tool failure in orion:brain (Exit Code 1)
-- **id**: 138
-- **fingerprint**: ac8b27d94c6b
-- **status**: open
-- **kind**: violation
-- **target**: orion:brain
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Args: {'args': ['handoff', 'resolve', '--help'], 'exit_code': 1}
-- **created**: 2026-11-01T16:54:45.788484
-
-## Observation 139: Tool failure in orion:observe (Exit Code 2)
-- **id**: 139
-- **fingerprint**: 4f263a81642c
-- **status**: open
-- **kind**: violation
-- **target**: orion:observe
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Args: {'args': ['observe', 'status'], 'exit_code': 2}
-- **created**: 2026-11-01T16:56:46.241593
-
-## Observation 140: Verify gate failure: HYGIENE - Hardcoded user machine path found in CHANGELOG.md
-- **id**: 140
-- **fingerprint**: 67c9e54f1536
-- **status**: open
-- **kind**: violation
-- **target**: CHANGELOG.md
-- **rule_id**: VERIFY_GATE_HYGIENE
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Hardcoded user machine path found in CHANGELOG.md
-- **created**: 2026-11-01T17:25:48.589584
-
-## Observation 141: Tool failure in orion:verify (Exit Code 1)
-- **id**: 141
-- **fingerprint**: 9768e55d0d77
-- **status**: open
-- **kind**: violation
-- **target**: orion:verify
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Args: {'args': [], 'exit_code': 1}
-- **created**: 2026-11-01T17:25:48.633011
-
-## Observation 142: Propose skill for frequent action sequence: read_file -> replace_file_content -> run_shell_command
-- **id**: 142
-- **fingerprint**: f48507d408c3
-- **status**: open
-- **kind**: habit
-- **target**: skills
-- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Action sequence [read_file -> replace_file_content -> run_shell_command] repeated 3 times
-- **created**: 2026-11-01T18:39:48.384805
-
-## Observation 143: Tool failure in orion:scan (Exit Code 1)
-- **id**: 143
-- **fingerprint**: 9c40799095d4
-- **status**: open
-- **kind**: violation
-- **target**: orion:scan
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **count**: 3
-- **evidence**: Args: {'args': ['security', 'C:\\Users\\USER\\AndroidStudioProjects\\_foundation'], 'exit_code': 1} | Args: {'args': ['prose', 'README.md'], 'exit_code': 1} | Args: {'args': ['prose', 'README.md', 'CHANGELOG.md'], 'exit_code': 1}
-- **created**: 2026-11-01T19:15:37.358293
-
-## Observation 144: Tool failure in orion:push (Exit Code 1)
-- **id**: 144
-- **fingerprint**: 6f603408238c
-- **status**: open
-- **kind**: violation
-- **target**: orion:push
-- **rule_id**: TOOL_EXIT_NONZERO
-- **siblings_checked**: true
-- **scope**: project
-- **evidence**: Args: {'args': ['push', '--dry-run', '--skip-tests'], 'exit_code': 1}
-- **created**: 2026-11-01T19:15:37.613745
-
-## Observation 145: Verify gate failure: HYGIENE - subprocess.run() text mode missing explicit encoding='utf-8'
-- **id**: 145
-- **fingerprint**: 8790cc2fd2a5
-- **status**: open
-- **kind**: violation
-- **target**: scripts/commands/foundation.py
-- **rule_id**: VERIFY_GATE_HYGIENE
-- **siblings_checked**: true
-- **scope**: project
-- **count**: 2
-- **evidence**: subprocess.run() text mode missing explicit encoding='utf-8' (scripts/commands/foundation.py:3729)
-- **created**: 2026-11-01T19:15:47.240763
-
 ## Observation 146: Verify gate failure: HYGIENE - open() text mode missing explicit encoding='utf-8' (scripts/
 - **id**: 146
 - **fingerprint**: c5cc46fbfa26
@@ -197,6 +24,116 @@
 - **rule_id**: TOOL_EXIT_NONZERO
 - **siblings_checked**: true
 - **scope**: project
-- **count**: 2
+- **count**: 4
 - **evidence**: Args: {'args': [], 'exit_code': 1}
 - **created**: 2026-11-01T19:15:47.310626
+
+## Observation 148: Verify gate failure: LINK - Broken rule reference: @AGENTS.md
+- **id**: 148
+- **fingerprint**: 26c7bd62450e
+- **status**: open
+- **kind**: violation
+- **target**: ..\GEMINI.md:3
+- **rule_id**: VERIFY_GATE_LINK
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Broken rule reference: @AGENTS.md
+- **created**: 2026-11-02T16:29:52.754303
+
+## Observation 149: Verify gate failure: LINK - Broken backticked file reference: `references/goldfish-perso
+- **id**: 149
+- **fingerprint**: 22394da04434
+- **status**: open
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md:87
+- **rule_id**: VERIFY_GATE_LINK
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Broken backticked file reference: `references/goldfish-personas.md`
+- **created**: 2026-11-02T17:28:19.609627
+
+## Observation 150: Verify gate failure: GHOST - Ghost skill reference: references/goldfish-personas.md
+- **id**: 150
+- **fingerprint**: 47b18a86191a
+- **status**: open
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/goldfish-personas.md
+- **created**: 2026-11-02T17:28:19.625184
+
+## Observation 151: Verify gate failure: GHOST - Ghost skill reference: references/spec-drift.md
+- **id**: 151
+- **fingerprint**: 5babb86c81cc
+- **status**: open
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/spec-drift.md
+- **created**: 2026-11-02T17:28:19.644335
+
+## Observation 152: Verify gate failure: PROTOCOL - Exceeds Antigravity 24,000-byte per-file rule limit (24122 b
+- **id**: 152
+- **fingerprint**: d1771bfc37ff
+- **status**: open
+- **kind**: violation
+- **target**: AGENTS.md
+- **rule_id**: VERIFY_GATE_PROTOCOL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Exceeds Antigravity 24,000-byte per-file rule limit (24122 bytes)
+- **created**: 2026-11-02T17:28:19.658477
+
+## Observation 153: DNA compliance score regression (100 -> 64)
+- **id**: 153
+- **fingerprint**: 779314f4c4b2
+- **status**: open
+- **kind**: improve
+- **target**: core/dna.py
+- **rule_id**: DNA_COMPLIANCE_REGRESSION
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Latest snapshot score 64 lower than previous 100
+- **created**: 2026-11-02T19:10:21.155785
+
+## Observation 154: Propose skill for frequent action sequence: read_file -> replace_file_content -> run_shell_command
+- **id**: 154
+- **fingerprint**: f48507d408c3
+- **status**: open
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [read_file -> replace_file_content -> run_shell_command] repeated 3 times
+- **created**: 2026-11-02T19:10:21.513522
+
+## Observation 155: Verify gate failure: GHOST - Invalid orion CLI subcommand: 'design'
+- **id**: 155
+- **fingerprint**: 0bc2142dbb9f
+- **status**: open
+- **kind**: violation
+- **target**: ..\README.md:82
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Invalid orion CLI subcommand: 'design'
+- **created**: 2026-11-02T19:47:13.506914
+
+## Observation 156: Verify gate failure: GHOST - Ghost script reference: foo.py
+- **id**: 156
+- **fingerprint**: 9bfa2b2774e1
+- **status**: open
+- **kind**: violation
+- **target**: templates\CHANGELOG.template.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost script reference: foo.py
+- **created**: 2026-11-02T21:21:00.627400

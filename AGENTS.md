@@ -1,7 +1,7 @@
 # Workspace Rules & Mandates: {{PROJECT_NAME}}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.4 - English First & Built-In Lessword) -->
-> **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{{PROJECT_NAME}}`.
+<!-- START FOUNDATION MANDATES (Version: 0.0.5 - English First & Built-In Lessword) -->
+> **CRITICAL HABITAT NOTICE:** Master BIOS & Active Router. Defines operational constraints and Auto-Pilot knowledge routing for `{{PROJECT_NAME}}`.
 
 ## 1. CORE GUARDRAILS (Always Active)
 
@@ -86,7 +86,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks.
 | **Legacy Migration, Brownfield, Onboard Existing, Migrate Project** | `.agents/skills/app-lifecycle/references/project-migrate.md` |
 | **Feature Scaffold, App Builder, New Model, Repository, Screen, End-to-End Feature Creation** | `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-feature-recipe.md` & `.agents/skills/app-lifecycle/references/app-builder.md` |
 | **Business Strategy, Growth, Idea Viability, Planning** | `.agents/skills/saas-strategist/SKILL.md` |
-| **System Architecture, Database Schema, Blueprint, Backend Logic, Node.js, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
+| **System Architecture, Database Schema, Blueprint, Spec, RFC, Design Review, Backend Logic, API, Server, Cache** | `.agents/skills/project-architect/SKILL.md` |
 | **Frontend UI, Layout, Aesthetics, Visual Craft, Animations, Code Comment Hygiene** | `.agents/skills/ui-finish/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-ui-patterns.md` |
 | **Security Audit, QA, Testing, Bugs, Validation (App Code)** | `.agents/skills/integrity-sentinel/SKILL.md` & `.agents/canons/ecosystems/{{FRAMEWORK}}/{{FRAMEWORK}}-tests.md` |
 | **Data Immutability, State Management, Transformers** | `.agents/skills/data-logic/SKILL.md` |
@@ -113,6 +113,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks.
 | **Audit Vectors, Deep Diagnostic Matrix, Logic/Fail-Fast/Bloat/DRY** | `.agents/skills/integrity-sentinel/references/audit_vectors.md` |
 | **Business Rule Extraction, Conversational Context** | `.agents/skills/session-offload/references/auto-context.md` |
 | **Knowledge Extraction, Graph Triplet Ingestion** | `.agents/skills/brain-graph/references/knowledge-extraction.md` |
+| **Spec Drift, Documentation Drift, Blueprint-to-AST Parity** | `.agents/skills/integrity-sentinel/references/audit_vectors.md` |
 | **Documentation, Copywriting, Readme, PR Description, Anti-Slop, Prose** | `.agents/rules/prose-authenticity.md` |
 
 *Note: Once you load the file, you MUST physically execute any scripts or commands it asks you to run via your CLI/terminal tool. If a referenced canon file is missing (ghost routing), skip it and rely on generic protocols.*
@@ -185,17 +186,16 @@ Every implementation plan you create (`implementation_plan.md`) MUST include in 
    - **Bottom-Up Same-File Ordering**: Multiple edits within the same file MUST be ordered from highest line number to lowest line number.
 
 ---
-*Mandate Version: 0.0.4 (English First & Built-In Lessword)*
+*Mandate Version: 0.0.5 (English First & Built-In Lessword)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES
-<!-- Add your custom project rules here. They will be preserved during foundation updates. -->
 
 ### Cross-Platform Shell & Execution Invariants
 - **Windows / PowerShell Invariants**:
-  - *No Complex Inline Python (`python -c`)*: On Windows PowerShell, avoid complex inline `python -c` snippets with quotes or regex. Use temporary scratch files (`write_file`) or native file tools to prevent PowerShell quote stripping and bracket parsing syntax errors.
-  - *Mandatory UTF-8 Mode (`python -X utf8`)*: Terminal commands running Python on Windows must include `-X utf8` (or ensure `PYTHONUTF8=1`) to prevent CP-1252 `UnicodeEncodeError` when dealing with UTF-8 documents or emojis.
-  - *CRLF / LF Exact Matching in `edit_file`*: Windows files checked out with Git may use CRLF (`\r\n`). Antigravity's `edit_file` requires exact byte-for-byte matching. When multi-line edits fail with "Target was not found", inspect file line endings. Normalize workspace files to LF via `.gitattributes` (`* text=auto eol=lf`) or supply matching newline sequences.
+  - *No Complex Inline Python (`python -c`)*: Avoid inline `python -c` snippets with quotes/regex. Use temporary scratch files or native file tools to prevent PowerShell quote stripping and syntax errors.
+  - *Mandatory UTF-8 Mode (`python -X utf8`)*: Terminal commands running Python on Windows must include `-X utf8` (or `PYTHONUTF8=1`) to prevent CP-1252 `UnicodeEncodeError`.
+  - *CRLF / LF Exact Matching in `edit_file`*: Windows Git checkouts may use CRLF. Antigravity's `edit_file` requires exact byte matching. When edits fail with "Target was not found", normalize files to LF via `.gitattributes` (`* text=auto eol=lf`).
   - *Explicit RTK Prefixing*: When running terminal commands in PowerShell subshells, prefix verbose inspection commands explicitly with `rtk` (e.g. `rtk git status`, `rtk git diff`, `rtk grep`) rather than assuming automated hook interception.
   - *PowerShell Command Separators*: Never use `&&` in Windows PowerShell 5.1; use `;` or dispatch commands separately.
 - **POSIX / Linux / macOS (bash/zsh) Invariants**:

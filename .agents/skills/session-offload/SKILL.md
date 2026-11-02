@@ -17,8 +17,28 @@ Scan and delete temporary files. Run these exact commands:
 python .agents/scripts/orion.py gc
 ```
 
+## 1.5. Auto-Context Sync (Conversational Extraction)
+If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
+> **TERMINATION GATE**: Execute `/auto-context` ONCE. Do not re-enter session-offload.md after `/auto-context` completes. After injection, proceed directly to Step 1.6.
+
+## 1.6. Public Changelog Ledger & DNA SemVer Hook (Full Session & Unreleased Audit)
+If `CHANGELOG.md` does not exist in the project root, copy `.agents/templates/CHANGELOG.template.md` to seed the initial Keep a Changelog structure with `## [Unreleased]`. If `CHANGELOG.md` already exists, preserve its existing structure and historical entries completely—never overwrite or re-initialize it.
+
+Once `CHANGELOG.md` is present, audit the **entire unreleased delta since the last release tag (`v<VERSION>..HEAD` + uncommitted working tree)** BEFORE committing:
+1. **Run DNA SemVer Radar**: Execute `python .agents/scripts/orion.py dna semver` to inspect all `Unreleased Commits` and `Modified Files` since the baseline release tag (`v<VERSION>`), not just the single last task.
+2. **Outcome-Focused & Zero Internal Leaks**: `CHANGELOG.md` MUST serve external users and developers, never an internal engineering diary.
+   - **Outcome Over Process**: State the resulting capability or fix, never internal review stages, development workflows, or implementation steps.
+   - **Zero Internal Symbols or Paths**: Never include internal source paths (`core/...`, `commands/...`), function/class/variable names, flags, comment markers, or test suite filenames.
+   - **Concise Flat Bullets**: Write 1 flat bullet per deliverable ($\le 20$ words). Never group nested sub-bullets under module headers.
+   - **Zero AI Fingerprints**: Ban metaphorical AI verbs (*absorb, supercharge, empower, revolutionize, unleash, delve*). Use plain verbs (*add, fix, update, remove*).
+3. **Episodic Triage (Strict Unreleased Invariant)**: Ensure **every** public deliverable across all commits and working-tree changes in this session (`v<VERSION>..HEAD`) is recorded under `## [Unreleased]` across standard Keep a Changelog categories (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
+4. **Release Milestone Stamping (Explicit User Release Gate Only)**:
+   - **DO NOT** execute `dna bump` on routine session offloads or in-development projects. Routine offloads MUST leave all deliverables in `## [Unreleased]`.
+   - **DO NOT** stamp a fake `1.0.0` or bump version numbers on uninitiated greenfield projects (`0.0.0`) or active pre-release alpha/beta branches.
+   - **ONLY** run `python .agents/scripts/orion.py dna bump --auto` (or `--release`) when the user has explicitly requested to conclude a tagged production release milestone.
+
 ## 2. Worktree Cleanup & Commit (Gated Auto-Commit)
-If you have uncommitted changes and the project is a git repository, you MUST pass 4 gates before committing them:
+If you have uncommitted changes (including updated `CHANGELOG.md` and `context/` files) and the project is a git repository, you MUST pass 4 gates before committing them:
 
 1. **Logic Gate**: Run the test suite (e.g. `npm test` or `flutter test`). You MUST NOT commit if `Exit Code > 0`.
 2. **Architecture Gate (DNA Hard Gate)**: Run `python .agents/scripts/orion.py dna audit`. Block commit if layer violations > 0, chimera files > 0, or score < 90.
@@ -56,25 +76,6 @@ Drain the staging intent queue so any self-learned skills, umbrellas, or rule pa
 python .agents/scripts/orion.py harness promote
 ```
 
-## 3.5. Auto-Context Sync (Conversational Extraction)
-If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
-> **TERMINATION GATE**: Execute `/auto-context` ONCE. Do not re-enter session-offload.md after `/auto-context` completes. After injection, proceed directly to Step 4 without re-evaluating steps 1-3.5.
-
-## 3.6. Public Changelog Ledger & DNA SemVer Hook
-If `CHANGELOG.md` does not exist in the project root, copy `.agents/templates/CHANGELOG.template.md` (or run `python -c "import shutil; shutil.copy2('.agents/templates/CHANGELOG.template.md', 'CHANGELOG.md')"` if available) to seed the initial Keep a Changelog structure with `## [Unreleased]`. If `CHANGELOG.md` already exists, preserve its existing structure and historical entries completely—never overwrite or re-initialize it.
-
-Once `CHANGELOG.md` is present:
-1. **Public-Facing Neutrality & Agnostic Language**: `CHANGELOG.md` is strictly for public consumers and developers, not an internal developer diary or prompt engineering log.
-   - **Exclude Internal Minutiae**: Never document internal maintainer tools (e.g. `bump_foundation.py`), local development scripts, gitignored files, or private workflow conversations.
-   - **Zero AI Fingerprints**: Strictly ban metaphorical AI tell verbs (*absorb, supercharge, empower, revolutionize, unleash, delve*). Use neutral verbs (*add, fix, update, remove*).
-   - **Observable Public Value**: Describe observable capabilities, public CLI commands, interfaces, and bugfixes.
-2. **Episodic Triage (Strict Unreleased Invariant)**: Extract completed session deliverables into `## [Unreleased]` (e.g. `## [Unreleased]` or `## [Unreleased] (v1.0.0-alpha - In Development)` for pre-release phases). Consolidate changes into standard Keep a Changelog categories (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
-3. **DNA SemVer Radar Check**: Run `python .agents/scripts/orion.py dna semver` to evaluate architectural impact against the 5-Tier Strata with strict Anti-AI-Slop gates (Major/Minor quarantined against hallucinated churn; defaults to PATCH). If the project is uninitiated (`0.0.0`) or in-development pre-release, respect its status.
-4. **Release Milestone Stamping (Explicit User Release Gate Only)**:
-   - **DO NOT** execute `dna bump` on routine session offloads or in-development projects. Routine offloads MUST leave all deliverables in `## [Unreleased]`.
-   - **DO NOT** stamp a fake `1.0.0` or bump version numbers on uninitiated greenfield projects (`0.0.0`) or active pre-release alpha/beta branches.
-   - **ONLY** run `python .agents/scripts/orion.py dna bump --auto` (or `--release`) when the user has explicitly requested to conclude a tagged production release milestone.
-
 ## 3.8. Self-Reflection
 - **Mandatory Action**: Before ending the session, you MUST analyze any errors, failed executions, false assumptions, and cognitive biases that occurred during the session. Document these learnings in the session log so the system and user can evolve.
 
@@ -108,7 +109,7 @@ You MUST explicitly use the `write_to_file` tool to save the exact markdown bloc
 - **Pending Migrations**: [Any unapplied SQL changes?]
 
 ## 3. Context Offloading Entry
-- **Git Commit Changes**: [MANDATORY: Execute `git log -1 --stat` or `git diff --name-status HEAD~1 HEAD` to extract the actual files modified in the last commit. Provide the summary here.]
+- **Git Commit Changes**: [MANDATORY: Execute `python .agents/scripts/orion.py dna semver` or `git log v<CURRENT_VERSION>..HEAD --oneline` to extract all commits and modified files across the session/release cycle, not just `HEAD~1`.]
 - **Session Notes**: [Summary of technical decisions or business logic changes made during the session.]
 
 ## 4.6. Metrik Cost & Token Savings (MANDATORY)

@@ -1,5 +1,6 @@
 # Product Roadmap & Milestones: {{project_name}}
 
+<!-- START FOUNDATION:roadmap-phases -->
 ## 🎯 Strategic Milestones
 
 ### Phase 1: Genesis & Core MVP (Active)
@@ -16,8 +17,11 @@
 - [ ] Expand capability matrix and third-party platform integrations.
 - [ ] Establish automated telemetry, logging, and health observability.
 - [ ] Documentation, operational playbooks, and deployment packaging.
+<!-- END FOUNDATION:roadmap-phases -->
 
+<!-- START FOUNDATION:roadmap-horizons -->
 ## 🗺️ Execution Horizons
 - **Now (Sprint Focus)**: MVP core domain logic, contracts, and verification gates.
 - **Next (Upcoming)**: End-to-end integration flows and error boundary handling.
 - **Later (Backlog)**: Advanced optimization, plugin extensions, and scaling.
+<!-- END FOUNDATION:roadmap-horizons -->

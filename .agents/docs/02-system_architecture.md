@@ -127,9 +127,9 @@ Every delivered response terminates with a standardized footer that advises the 
 
 ---
 
-## Chapter 3: Cache-Aware Omni-Buffer & Execution State Synchronization
+## Chapter 3: Session Context Cache (context.json) & Execution State Synchronization
 
-### 3.1. The Cache-Aware Omni-Buffer (`.orion/working/context.json`)
+### 3.1. The Session Context Cache (`.orion/working/context.json`, formerly Omni-Buffer)
 The pre-invocation hook (`hooks/pre-agent-wake.py`) evaluates editor state, active Bento tasks, and observation digests before the agent processes a turn:
 ```json
 {
@@ -288,6 +288,6 @@ To eliminate silent failures and mutable fallback corruption across the Python e
 Every workspace is continuously sequenced by `core/dna.py` (`orion.py dna scan|verify|discover|trend`) and persisted in `.agents/.dna.json`:
 1. **6-Strata Architectural Classification**: Classifies every source file into one of 6 canonical tiers: `0_pillars_and_manifests`, `1_contracts_and_schemas`, `2_domain_and_models`, `3_services_and_repositories`, `4_state_and_controllers`, `5_presentation_and_ui`, and `6_tests_and_evals` (plus `other_unclassified`).
 2. **Genomic Lifecycle State (`BORN` vs `MUTATING`)**: New workspaces start in `BORN` state (discovery mode) and transition to `MUTATING` once the architectural baseline is locked.
-3. **Brownfield Epigenetic Aliasing (`epigenetic_aliases`)**: Rather than forcing existing brownfield repositories to rename directories to match rigid framework templates, `orion.py dna discover` inspects actual directory trees and binds project-specific folder names (e.g., `adapters/`, `handlers/`, `screens/`) to canonical strata in `.dna.json`.
+3. **Non-Destructive Folder Mapping (`epigenetic_aliases`)**: Rather than forcing existing brownfield repositories to rename directories to match rigid framework templates, `orion.py dna discover` inspects actual directory trees and binds project-specific folder names (e.g., `adapters/`, `handlers/`, `screens/`) to canonical strata in `.dna.json`.
 4. **Directional Import Layer Enforcement**: Static AST/regex import analysis verifies that lower-level strata (`1_contracts_and_schemas`, `2_domain_and_models`) never import upward from `5_presentation_and_ui`.
 5. **DNA Compliance Score (`0`–`100`) & Trend Telemetry**: Computes a composite health score penalized only by real structural violations (`unclassified_ratio`, upward layer violations, and files exceeding line ceilings) and records historical snapshots in `.orion/dna_history.jsonl`.

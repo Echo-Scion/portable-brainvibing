@@ -3,6 +3,7 @@
 ## Foundation Architecture
 # Technical Architecture: {{project_name}}
 
+<!-- START FOUNDATION:architecture-core -->
 ## 🏗️ Core Stack
 <!-- <arch-stack> -->
 - **Languages**: {{primary_languages}}
@@ -25,6 +26,7 @@
 ## 🛠️ Tooling
 - **CI/CD**: {{ci_cd_provider}}
 - **Testing Standard**: {{testing_philosophy}}
+<!-- END FOUNDATION:architecture-core -->
 
 ## Blueprint Core
 # BLUEPRINT Template
@@ -75,7 +77,7 @@
 **MVP Scope (Lite)**:
 {{mvp_scope}}
 
-**Peak Scope (Aether)**:
+**Long-Term Scope (Full Vision)**:
 {{peak_scope}}
 
 **Industry Standards & Recommendations (Proactive Deepening)**: 

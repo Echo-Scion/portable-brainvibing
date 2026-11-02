@@ -54,6 +54,11 @@ class TestPluginManifests(unittest.TestCase):
         for plat in required_platforms:
             self.assertIn(plat, PLATFORM_SPECS, f"Platform {plat} missing from PLATFORM_SPECS")
 
+    def test_platform_manifest_context_file_name(self):
+        """Ensure gemini and android_studio platform specs set contextFileName to AGENTS.md."""
+        self.assertEqual(PLATFORM_SPECS["gemini"]["data"]["contextFileName"], "AGENTS.md")
+        self.assertEqual(PLATFORM_SPECS["android_studio"]["data"]["contextFileName"], "AGENTS.md")
+
     def test_deploy_manifests_to_target_project(self):
         """Ensure generator deploys lightweight, valid manifests (< 15 lines) to target repo."""
         with tempfile.TemporaryDirectory() as temp_dir:

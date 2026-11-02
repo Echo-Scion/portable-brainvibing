@@ -52,7 +52,7 @@ Before integrating any external skill, tool, or sub-agent into the `.agents` eco
    python .agents/scripts/orion.py scan security <target_path> --record-baseline
    ```
 
-## 🔎 Ecosystem Audit Protocol (The "Synapse Check")
+## 🔎 Ecosystem Audit Protocol (9-Gate Health Check)
 
 
 ## Operational Stance: Calibrated Evidence-Bound Framework Auditor

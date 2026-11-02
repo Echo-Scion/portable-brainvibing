@@ -1,5 +1,5 @@
 # AI Brain: Main Encyclopedia of the `.agents` & `.orion` Ecosystem
-# (Portable Brainvibing Infrastructure v0.0.4)
+# (Portable Brainvibing Infrastructure v0.0.5)
 
 > **Complete Technical Encyclopedia.** Every architectural pillar, deterministic guardrail, local RAG component, script cluster, and operational skill is documented with technical precision and exact code examples.
 
@@ -45,7 +45,7 @@ Rather than relying on ad-hoc prompts or bloated external frameworks, `.agents` 
 - **Master BIOS & 33-Row JIT Knowledge Router (`AGENTS.md`)**: Dynamic Just-In-Time (JIT) skill and canon dispatch that loads only domain-relevant runbooks on demand, preventing prompt saturation and "Lost in the Middle" attention decay across 19 supported AI IDEs and CLIs.
 - **Dual-Level GraphRAG & 3-Tier Observational Memory (`orion.db`)**: Combines SQLite3 WAL FTS5 Porter BM25 lexical search, packed `float32` vector embeddings, 1-hop entity-relation traversal, and pure-Python Louvain modularity community clustering. Raw session turns (`recall_turns`) compress into anchored observations (`[O1]`–`[On]`) and roll over into `memory_generations` via zero-LLM Shannon Surprisal scoring with `superseded_by` anti-flashback filtering.
 - **Sovereign Skill Harness & Code-As-Harness (`core/harness/`)**: In-tree implementation of the *Agent = Model + Execution Harness* architecture. Governs skill staging (`staging.py`), 14-gate admission promotion (`admission.py`), opportunity-relative lifecycle archival (`lifecycle.py`), prefix cluster curation (`curator.py`), quantum tool telemetry (`capture.py`), and programmatic synthesis of `is_legal_action` verification scripts (`engine.py`).
-- **Living Architectural DNA & Epigenetic Linter (`core/dna.py`)**: Sequences any repository into 6 architectural strata ($T_0 \to T_5$), discovers brownfield folder naming conventions via Epigenetic Aliases without forcing directory renames, and audits directional import violations to compute a deterministic `dna_compliance_score` (0–100).
+- **Living Architectural DNA & Non-Destructive Mapping (`core/dna.py`)**: Sequences any repository into 6 architectural strata ($T_0 \to T_5$), maps brownfield folder naming conventions non-destructively via Epigenetic Aliases without forcing directory renames, and audits directional import violations to compute a deterministic `dna_compliance_score` (0–100).
 - **Zero-Escape Bento Task Slicer (`commands/bento_slicer.py`)**: Decomposes multi-file implementation plans into single atomic task sheets (`.orion/working/ACTIVE_TASK.md`) sorted by topological blast-radius ($T_0 \to T_5$) and bottom-up line order. Recalibrates live disk line spans, auto-aligns indentation deltas, and enforces a Post-Condition Disk Mutation Gate (`Exit Code 2` on no-op skips).
 - **Cache-Aware Crash-Proof State Machine (`pre-agent-wake.py`, `state_machine.py`)**: Separates static editor context (`context.json`, guarded by a 5-minute SHA-256 structural hash gate to preserve LLM KV prompt caches) from transactional workflow execution (`execution_state.json` with Git-bound tree checkpoints for atomic code rollback).
 - **Centaur Exoskeleton & Fail-Closed Interception (`capabilities.py`, `sandbox.py`, `db.py`)**: Enforces a 3-strike `PreToolUse` circuit breaker (`Exit Code 3`), a PEP 578 syscall-jailed Python sandbox (`Exit Code 126`), and `@mechanical_catch` post-condition decorators that trap silent semantic failures and deep-copy mutable fallbacks.
@@ -79,13 +79,13 @@ Rather than relying on ad-hoc prompts or bloated external frameworks, `.agents` 
 | Volume | Title | Core Focus & Audited Subsystems |
 |:---|:---|:---|
 | [Volume I](01-theoretical_foundation.md) | Theoretical Foundation | 8 root LLM failure modes, deterministic mitigations, and 4-Tier Hybrid Cognition |
-| [Volume II](02-system_architecture.md) | System Architecture | Master BIOS, Omni-Buffer, Living DNA (`dna.py`), Bento Slicer, Exoskeleton & Packer |
+| [Volume II](02-system_architecture.md) | System Architecture | Master BIOS, Session Context Cache (`context.json`), Living DNA (`dna.py`), Bento Slicer, Exoskeleton & Packer |
 | [Volume III](03-local_rag_brain.md) | Local RAG Brain (`.orion/`) | Complete 21-table SQLite3 WAL schema, Dual-Level Louvain GraphRAG & Generational Rollover |
 | [Volume IV](04-rule_library___rules.md) | Rule Library (`rules/`) | Complete catalog of 13 behavioral laws, precedence hierarchy, and AST security rules |
 | [Volume V](05-skill___persona___skills.md) | Skill & Persona (`skills/`) | 3-Tier Progressive Disclosure, 21 public domain skills (+1 internal), and 51 references |
 | [Volume VI](06-workflow___sop.md) | Procedural Playbooks & SOPs | Full Lifecycle State Machine (Phases 0–6) and 18 canonical operating procedures |
 | [Volume VII](07-python_scripts___scripts.md) | Execution Engine (`scripts/`) | Complete module-by-module reference for `core/`, `core/harness/`, `commands/`, `verify_agents` 8 Gates & 26 Test Suites |
 | [Volume VIII](08-canons__templates__hooks__evals__and_archives.md) | Canons, Templates, Hooks & Evals | 48 Canons, Code-As-Harness verifiers, 19 Templates, Hooks, and 3 Evaluation Engines (`evals/`) |
-| [Volume IX](09-darwinian_evolution_lifecycle.md) | Darwinian Evolution & Harness | Sovereign Skill Harness (`core/harness/`), 14 Admission Gates, Observation Ledger, Barrier Escalation & Reflexion Auto-Heal |
+| [Volume IX](09-darwinian_evolution_lifecycle.md) | Automated Self-Learning Lifecycle & Harness | Skill Quarantine, 14 Admission Gates, Observation Ledger, Barrier Escalation & Reflexion Auto-Heal |
 | [Volume X](10-deployment_flow_to_new_projects.md) | Spoke Deployment Flow | 19-Platform IDE Manifest Matrix, Dependency-Aware Stack Resolver, Non-Interactive Setup & Bidirectional Sync |
 | [Volume XI](11-complete_glossary.md) | Complete Glossary | Canonical engineering definitions for all mechanisms, algorithms, and contracts |

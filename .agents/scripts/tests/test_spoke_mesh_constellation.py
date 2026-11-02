@@ -4,6 +4,7 @@ Unit Tests for Orion Constellation Spoke Mesh and Multi-Project Discovery.
 
 import json
 import os
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -164,6 +165,69 @@ class TestSpokeMeshConstellation(unittest.TestCase):
         self.assertIn("[[Stars/echont/Overview|echont]]", hub_text)
         self.assertIn("[[Stars/flutterin/Overview|flutterin]]", hub_text)
         self.assertIn("100/100", hub_text)
+
+    def test_constellation_vault_export_with_integrated_graph(self):
+        star1_ctx = self.workspace_root / "echont_vision.md"
+        star1_ctx.write_text("# Echont North Star\n", encoding="utf-8")
+
+        stars = [
+            SpokeStar(
+                name="echont",
+                root_path=str(self.workspace_root / "echont"),
+                stack="Flutter / Dart",
+                dna_state="LIVING",
+                dna_score=100,
+                context_files={"VISION.md": str(star1_ctx)},
+            )
+        ]
+
+        db_path = self.workspace_root / "test_orion.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.executescript("""
+            CREATE TABLE nodes (
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                name TEXT,
+                source_path TEXT
+            );
+            CREATE TABLE edges (
+                source_id TEXT,
+                target_id TEXT,
+                relation TEXT,
+                confidence REAL DEFAULT 1.0
+            );
+            INSERT INTO nodes VALUES ('n1', 'Concept', 'Architecture Invariant', 'context/03_Tech/ARCHITECTURE.md');
+            INSERT INTO nodes VALUES ('n2', 'Concept', 'echont', 'context/VISION.md');
+            INSERT INTO edges VALUES ('n1', 'n2', 'REFERENCES', 1.0);
+        """)
+        conn.commit()
+        conn.close()
+
+        vault_out = self.workspace_root / "test_vault_integrated"
+        exporter = ConstellationVaultExporter(output_dir=str(vault_out), db_path=str(db_path))
+        res = exporter.export_constellation(stars, include_graph=True)
+
+        self.assertEqual(res["status"], "SUCCESS")
+        self.assertTrue(res.get("graph_exported"))
+        self.assertGreater(res.get("graph_notes", 0), 0)
+
+        # Check integrated subfolder
+        graph_dir = vault_out / "01_Knowledge_Graph"
+        self.assertTrue(graph_dir.is_dir())
+        self.assertTrue((graph_dir / "index.md").is_file())
+        self.assertTrue((graph_dir / "GRAPH_REPORT.md").is_file())
+        self.assertTrue((graph_dir / "nodes").is_dir())
+
+        # Check cross-links
+        hub_text = (vault_out / "00_Hub" / "Overview.md").read_text(encoding="utf-8")
+        self.assertIn("[[01_Knowledge_Graph/index|Explore Graph Entities]]", hub_text)
+        self.assertIn("[[01_Knowledge_Graph/GRAPH_REPORT|View Centrality Report]]", hub_text)
+
+        star_text = (vault_out / "Stars" / "echont" / "Overview.md").read_text(encoding="utf-8")
+        self.assertIn("[[01_Knowledge_Graph/nodes/echont|echont in Brain Mesh]]", star_text)
+
+        index_text = (vault_out / "index.md").read_text(encoding="utf-8")
+        self.assertIn("[[01_Knowledge_Graph/index", index_text)
 
 
 if __name__ == "__main__":

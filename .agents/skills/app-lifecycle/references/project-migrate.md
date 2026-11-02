@@ -46,7 +46,7 @@ Extract a lightweight skeleton of the existing codebase to provide cheap token c
 - **Command**: Run `python .agents/scripts/orion.py scan map`
 - **Output**: Generates an architectural skeleton without incurring massive token costs for full-file reads.
 
-## Phase 1.5: Project DNA Epigenetic Mutation Protocol (`orion.py dna mutate`)
+## Phase 1.5: Non-Destructive Folder Mapping Protocol (`--mode epigenetic`)
 When deploying `.agents` mid-flight into an existing repository or reverse-engineered codebase, you do NOT need to forcefully rewrite all directory structures immediately. The engine uses **Epigenetic Mutation**:
 
 1. **Step 1: Epigenetic Mutation (Zero-Disruption / Recommended)**:

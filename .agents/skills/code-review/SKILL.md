@@ -66,6 +66,15 @@ Generate a clear report using the strict Lessword format. NEVER approve code tha
   - `❓ q:` — genuine question regarding domain requirements
 - **Constraints:** Keep exact line numbers, use exact symbol names in backticks, provide a concrete fix (not "consider refactoring"), drop hedging ("I think", "maybe").
 
+### 5.1. Finding Triage & Evidence Rule
+When resolving or triaging review findings, classify each finding into exactly one category:
+- **`CONTEST`**: The critique is inaccurate or relies on a misunderstanding of codebase architecture.
+  - *Iron Evidence Rule*: The contest MUST cite checkable evidence in code or documentation (an exact file path and symbol signature, or an explicit decision recorded in `context/`). Stating *"this was intentional"* is NOT evidence. If you cannot cite checkable evidence, you CANNOT contest.
+- **`ESCALATE`**: The critique is inaccurate, but the evidence is unwritten (verbal team decision, uncommitted spec). State that fact; do NOT fix code blindly. Hand off to the human partner.
+- **`PROPOSE FIX`**: The critique is valid. Define the exact drop-in replacement block or structural refactor.
+- **`DECLINE`**: The finding is a `🔵 nit` not worth the churn or complexity increase. Record it; do not patch code.
+- *Anti-Bias Rule*: Do not contest a comprehension gap. If a fresh reader could not follow the flow, the documentation or code is missing context.
+
 ## 6. Adversarial Verification Protocol (Environment-Aware)
 1. **Write Reproduction Test**: Author a unit or integration test exposing the bug or edge case (e.g., socket drop, malformed input).
 2. **Execute Exploit / Red State**:

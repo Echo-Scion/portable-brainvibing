@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {project_name}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.4 - English First & Built-In Lessword) -->
+<!-- START FOUNDATION MANDATES (Version: 0.0.5 - English First & Built-In Lessword) -->
 > **CRITICAL HABITAT NOTICE:** This file is the Master BIOS. It acts as an Active Router. It defines the absolute operational constraints and the Auto-Pilot knowledge routing for all agents operating within `{project_name}`.
 
 ## 1. CORE GUARDRAILS (Always Active)
@@ -185,7 +185,7 @@ Every implementation plan you create (`implementation_plan.md`) MUST include in 
    - **Bottom-Up Same-File Ordering**: Multiple edits within the same file MUST be ordered from highest line number to lowest line number.
 
 ---
-*Mandate Version: 0.0.4 (English First & Built-In Lessword)*
+*Mandate Version: 0.0.5 (English First & Built-In Lessword)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

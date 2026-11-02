@@ -91,12 +91,19 @@ The Subagent MUST NOT write or edit files in the workspace. All file mutations b
   ```
 - **Execution**: The Main Agent reviews the patch specification and applies edits using native file-editing tools.
 
-### Archetype 3: `reviewer` (Adversarial Security & Logic Auditor)
-- **Role**: Audits diffs or disjoint codebase partitions against `.agents/skills/integrity-sentinel/references/audit_vectors.md`.
+### Archetype 3: `reviewer` (Isolated Reviewer)
+- **Role**: Stateless, read-only auditor evaluating diffs, technical blueprints (`context/00_Strategy/BLUEPRINT.md`), or architectural proposals (`context/03_Tech/ARCHITECTURE.md`) across 5 focused lenses:
+  1. `simplicity-reuse`: High-altitude simplicity, YAGNI, anti-weeds, and codebase reuse.
+  2. `comprehension`: Synthesizes what this proposes and how the existing system works; failure to synthesize = Blocker.
+  3. `system-risks`: Probes scaling bottlenecks, unbacked assertions, and failure modes across the Triad.
+  4. `implementation-readiness`: Enforces the Stage 5 Zero-Decision Check (zero design decisions left to implementers).
+  5. `layer-boundaries`: Audits 5-tier layer boundaries and unidirectional dependency direction.
+- **Quota-Safe Down-Tiering Mandate**: When the Main Agent runs on a `PREMIUM` model (e.g. Gemini Thinking / Claude Opus), it MUST invoke read-only Isolated Reviewers using `Model: 'flash'` (BUDGET [High Effort]). Isolated Reviewers operate on pre-digested AST maps with Scaffolding Discount ($\gamma = 0.65$), preventing high-cost quota exhaustion while reserving the premium model for main-thread synthesis.
 - **Output Contract**:
   ```
   path:line: <emoji> <severity>: <problem>. <fix>.
   totals: N🔴 N🟡 N🔵 N❓
+  Scout Status: completed | not_run
   ```
 
 ---
@@ -124,7 +131,7 @@ The Agent MUST write delegation task specifications to `.agents/working/delegati
 
 ---
 
-## 5. Result Collection & Omni-Buffer Auto-Ingestion
+## 5. Result Collection & Session Context Cache Ingestion
 
 The Subagent MUST write its final output to `.agents/working/delegations/result-{task_id}.md`.
 Every result file MUST include a fenced ```` ```jsonl ```` Context Delta block:
@@ -145,7 +152,7 @@ Every result file MUST include a fenced ```` ```jsonl ```` Context Delta block:
 [Structured tables, patch specifications, or audit notes]
 ```
 
-### Automatic Omni-Buffer Ingestion
+### Automatic Session Context Cache Ingestion
 The `pre-agent-wake.py` hook automatically scans `.agents/working/delegations/result-*.md` and extracts all Context Delta records into `context_payload["delegation_deltas"]` inside `.orion/working/context.json`. The Main Agent consumes these surgical recipes with $<5\%$ context footprint without re-reading raw files.
 
 ---
@@ -156,7 +163,9 @@ The `pre-agent-wake.py` hook automatically scans `.agents/working/delegations/re
 - ❌ The Agent MUST NOT delegate code modification (`write_file`, `edit_file`) to subagents.
 - ❌ The Subagent MUST NOT execute git worktree mutations for routine delegations.
 - ❌ The Agent MUST NOT read worker output from raw stdout streams; the Agent MUST read `.agents/working/delegations/result-{task_id}.md`.
-- ❌ The Agent MUST NOT spawn more than 3 subagents concurrently.
+- ❌ The Agent MUST NOT spawn more than 3 subagents concurrently. Always dispatch swarms in sequential batches of $\le 3$.
+- ❌ The Agent MUST NOT count a failed, timed-out, or unresponsive subagent reviewer as having "zero findings". If retry fails, its status MUST be recorded as `not run`.
+- ❌ The Agent MUST NOT invoke Isolated Reviewers on `PREMIUM` models; pass `Model: 'flash'` for all read-only review delegations to preserve cloud quota.
 
 ---
 

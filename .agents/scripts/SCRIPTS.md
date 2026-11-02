@@ -88,6 +88,7 @@ python .agents/scripts/orion.py <command> [args...]
 | `dna` | Universal Living Project DNA sequencer, brownfield epigenetic mutation & architectural violation auditor (`orion dna <sequence|mutate|audit|lint>`). | `commands/foundation.py` (via `core/dna.py`) |
 | `dna-lint` | Direct JIT dependency linter verifying 5-Tier Directed Dependency Laws (`orion dna-lint <file_or_dir>`). | `commands/foundation.py` (via `core/dna.py`) |
 | `upgrade` / `foundation-upgrade` | Surgically upgrades framework assets from upstream hub without clobbering sovereign assets (`orion upgrade [--check\|--dry-run\|--source]`). | `commands/foundation.py` (via `core/upgrade_engine.py`) |
+| `design <select\|infer>` | Design contract manager: harvests brownfield UI tokens, infers archetypes heuristically or via AI prompt, and flattens `DESIGN.md` catalog tables (`orion design select <archetype>`). | `commands/foundation.py` (via `core/design_harvester.py`) |
 | `pack` | Universal context packager & multi-platform AI audit exporter with auto-intent vibe coding (`orion pack [audit|arch|hybrid|pr|diff|security|stats|<url>]`). | `utils/packer.py` |
 | `worktree` | Declarative Git worktree seeder & workspace manager (`orion worktree <seed|add|list>`). Ports `.worktreeinclude` assets into isolated sub-agent workspaces. | `commands/worktree.py` (via `core/worktree.py`) |
 
