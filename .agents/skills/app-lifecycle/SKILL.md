@@ -13,6 +13,7 @@ This is the standard engineering pipeline. It operates as a **State Machine**, n
 | Operational Task | Target Skill / Playbook | Core Mechanism |
 | :--- | :--- | :--- |
 | **Session Cold-Start / Bootstrap** | .agents/skills/app-lifecycle/references/session-bootstrap.md | Orientation, 4-pillar doctor check, handoff resumption |
+| **Feature Discovery & Requirements Intake** | .agents/skills/feature-discovery/SKILL.md | Socratic elicitation, Goldfish zero-trust inquiry, 1-question rule |
 | **New Project / Scaffolding** | .agents/skills/app-lifecycle/references/project-init.md | Requirements intake, context/ scaffold, DESIGN.md generation |
 | **Legacy Migration / Brownfield** | .agents/skills/app-lifecycle/references/project-migrate.md | Onboard existing project, inventory, architecture extraction |
 | **Feature Construction (Surgical)** | .agents/skills/app-lifecycle/references/app-builder.md | Shape Spec, UI layout, logic models, Thompson sampling loop |

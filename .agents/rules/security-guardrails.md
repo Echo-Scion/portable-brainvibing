@@ -27,15 +27,15 @@ Secrets that MUST never appear in source:
 
 Quick `.gitignore` check:
 ```bash
-grep -E "^\.env" .gitignore || echo "[WARN] .env not in .gitignore — ADD IT NOW"
+python .agents/scripts/orion.py scan security .
 ```
 
-## 1.5. Architectural DNA & Anti-Erosion Gate (MANDATORY — Non-Negotiable Hard Gate)
+## 1.5. Architectural DNA & Anti-Erosion Gate (Feature & Architecture Commits)
 
 **Functional success does NOT prove architectural integrity ("The Green Test Illusion").**
 Compilers, static analyzers, and test runners only verify syntax, static types, and localized assertions. A presentation/UI component or controller directly invoking low-level drivers (raw SQL, HTTP clients, hardware, or platform bridges) can pass all functional tests while critically eroding architectural boundaries.
 
-Before declaring completion on any feature, refactor, or session commit across any polyglot stack:
+Before declaring completion on application features, structural refactors, or release commits:
 ```bash
 # Verify 5-Tier DNA compliance and zero illegal cross-layer violations
 python .agents/scripts/orion.py dna audit
@@ -111,6 +111,16 @@ Target: {file/table/resource}
 Irreversible: YES
 Proceed? Use IDE Artifact RequestFeedback to confirm.
 ```
+
+## 5.5. Supply-Chain & Zero-Trust Execution Guard
+
+Automated hook-level enforcement intercepts agent `run_command` before execution to prevent supply-chain poisoning and destructive actions:
+
+- **GUARD-PKG-404**: Block packages absent from official registries (npm, PyPI, pub.dev, crates.io). Precludes AI slopsquatting hallucinations.
+- **GUARD-PKG-NEW**: Block newly registered packages (<14 days old). Mitigates zero-day typosquatting and slop registration windows.
+- **GUARD-RCE-01**: Block remote scripts piped directly into shell interpreters (`curl|sh`, `wget|bash`, `iwr|iex`, `irm|iex`).
+- **GUARD-DEL-01**: Block destructive recursive deletions targeting root, user home, or drive roots (`rm -rf /`, `Remove-Item C:\ -Recurse`).
+- **GUARD-LOCK-01**: Warn and advise hermetic installation when lockfiles exist (`npm ci`, `pnpm --frozen-lockfile`, `yarn --immutable`, `dart pub get --enforce-lockfile`).
 
 ## 6. Persistent Learning (Post-Mortem Protocol)
 

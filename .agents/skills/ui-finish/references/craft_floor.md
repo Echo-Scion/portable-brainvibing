@@ -8,11 +8,24 @@ A pinned brief or committed visual world overrides anything here; habitual defau
 
 Run these checks together in batched inspection passes:
 
-- **Contrast Ratios (WCAG AA Strict)**:
-  - Body copy & placeholder text: $\ge 4.5:1$ against background.
-  - Large display text ($\ge 18\text{pt}$ or bold $\ge 14\text{pt}$): $\ge 3:1$.
-  - Interactive controls, focus rings, icons: $\ge 3:1$.
+- **Perceptual Color Science (`OKLCH`) & 5-Token Semantics**:
+  - Palettes must be calibrated in perceptually uniform color space (`oklch(L C H)`), ensuring that shifting Hue preserves identical perceived Lightness ($L$) and Chroma ($C$) without the Abney effect or HSL blue/yellow lightness distortion.
+  - Enforce the 5-role semantic token system (`--bg`, `--text`, `--primary`, `--secondary`, `--accent`) following the `60:30:10` balance. Total color tokens in any interface must not exceed 12 tokens.
+- **Contrast Ratios (WCAG AA & APCA $L_c$ Dual Standard)**:
+  - *WCAG 2.1 AA*: Body copy & placeholder $\ge 4.5:1$; Large display ($\ge 18\text{pt}$ or bold $\ge 14\text{pt}$) $\ge 3:1$; Controls & focus rings $\ge 3:1$.
+  - *APCA ($L_c$)*: Preferred body text $|L_c| \ge 75$; Content text $|L_c| \ge 60$; Large headings and essential interactive UI $|L_c| \ge 45$.
   - *Colored Surfaces*: Tint secondary text using foreground/surface hue; never generic washed-out gray `#6b7280`.
+- **Dark Mode Optics & Anti-Halation**:
+  - *Anti-Inversion*: Never mechanically invert Light Mode tokens.
+  - *Anti-Halation*: Forbid pure `#000000` canvas paired with `#FFFFFF` text ($21:1$ contrast triggers astigmatism halation/optical bleed). Canvas uses layered obsidian/charcoal (`#0D0F12`, `#111318` or `oklch(0.15 0.02 H)`), with softened white text (`#EAEAFB`).
+  - *Desaturation*: Desaturate high-chroma accent colors by $15\%\text{–}25\%$ when switching from light to dark mode to prevent visual vibration.
+  - *Luminance Elevation Law*: Because dark surfaces cannot display dark drop shadows, surface depth MUST increase in lightness as elevation rises:
+    $$\text{Luminance}(\text{Base Canvas}) < \text{Luminance}(\text{Card / Sidebar}) < \text{Luminance}(\text{Modal / Popover})$$
+- **Directional Lighting & Anti-Banding Materiality**:
+  - Consistent light source at $135^\circ$ (top-left):
+    - *Extruded elements (buttons, raised cards)*: Crisp top-left highlight border/inner-shadow + bottom-right drop shadow.
+    - *Recessed elements (inputs, wells, code blocks)*: Top-left inner shadow + bottom-right subtle highlight rim.
+  - On large blurs (`blur(60px+)`) or dark radial gradients, overlay an ultra-low opacity ($0.03\text{–}0.05$) SVG `<feTurbulence type="fractalNoise">` grain texture to eliminate digital 8-bit color banding.
 - **Depth & Elevation**:
   - Shadows MUST carry an intentional vertical offset (`y: 2px..16px`) and soft proportional blur (`blur: 4px..32px`).
   - *Refusal*: Zero-offset colored glowing halos (`box-shadow: 0 0 15px rgba(...)`) are cheap decoration, not depth.
@@ -91,11 +104,14 @@ Run this checklist before delivering any frontend emit. Every condition must be 
 ### 1. Visual Integrity & Palettes
 - [ ] **No Default Hero Gradients**: Zero purple-to-blue or cyan-to-magenta linear gradients across heroes, buttons, or text.
 - [ ] **No Pure Black Base**: Canvas uses layered obsidian/charcoal (`#0D0F12`, `#111318`) with surface tint, never raw `#000000`.
+- [ ] **Perceptual Contrast Verified**: Body copy passes APCA $|L_c| \ge 75$ and WCAG AA $\ge 4.5:1$; dark mode avoids astigmatism halation contrast (>18.5:1 on black).
+- [ ] **Luminance Elevation Enforced**: Dark surfaces follow $\text{Base} < \text{Card} < \text{Modal}$ luminance ladder.
 - [ ] **Accent Footprint Clamped**: Primary brand accent covers <= 5% of any viewport (used for focus rings, status, primary CTAs; never whole section backgrounds).
 - [ ] **No Fake Device Frames**: Zero drawn macOS traffic-light dots or browser search bars embedded in web views.
 - [ ] **Icon Discipline**: Single icon library (e.g. Lucide), zero emoji glyphs (✨, 🚀, ⚡) used as feature icons.
 
 ### 2. Structural & Layout Craft
+- [ ] **Signature Soul Component**: At least 1 domain-authentic signature control present (e.g. visual timeline scrubber, tactile physical metaphor, contextual drawer).
 - [ ] **Asymmetric Variance**: Zero uniform 3-card equal-width grids (`grid-cols-3` without breakpoint spans). Use 2×2, 70/30, or masonry spans.
 - [ ] **Off-Axis Hero Alignment**: Eyebrow label or CTA button sits off-axis from the headline (margin-aligned or numeral-anchored, never 100% centered-everything).
 - [ ] **No Card-in-Card Nesting**: Cards sit cleanly on canvas or section surfaces without nested outer boxes.

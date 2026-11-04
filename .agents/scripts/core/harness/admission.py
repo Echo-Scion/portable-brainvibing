@@ -32,6 +32,103 @@ ABS_PATH_RE = re.compile(r"(?:/home/|/Users/|/root/)[^\s`)\]]+|[A-Za-z]:\\[^\s`)
 PLACEHOLDER_RE = re.compile(r"\b(TODO|FIXME|XXX):|<(?:TODO|FIXME|XXX|TBD|PLACEHOLDER|REPLACE[_ ]?ME|INSERT[_ ]?HERE|FILL[_ ]?IN)>")
 TRIGGER_CUE_RE = re.compile(r"(?i)\bwhen\b|[\"'][^\"']+[\"']|`[^`]+`")
 
+LEARNED_START_MARKER = "<!-- LEARNED_START -->"
+LEARNED_END_MARKER = "<!-- LEARNED_END -->"
+JUDGE_PROTECTED_FILES = {
+    "verify_agents.py", "security.py", "admission.py", "staging.py",
+    "commands/verify_agents.py", "core/security.py", "core/harness/admission.py"
+}
+
+
+def compute_intent_fingerprint(intent: StagedIntent) -> str:
+    seed = f"{intent.name}:{intent.action}:{intent.old_string or ''}:{intent.new_string or intent.body or ''}:{intent.evidence or ''}"
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:12]
+
+
+def apply_learned_block_ops(
+    live_text: str,
+    ops: List[Dict[str, str]],
+    max_ops: int = 3
+) -> Tuple[Optional[str], List[Dict[str, Any]], List[str]]:
+    """
+    Applies bounded add/replace/delete operations strictly within LEARNED_START / LEARNED_END markers.
+    Returns (new_text_or_None, applied_ops, unmatched_errors).
+    """
+    if LEARNED_START_MARKER not in live_text or LEARNED_END_MARKER not in live_text:
+        # If markers don't exist yet, insert them right before any JIT reference table or EOF
+        if "## 📚 Mandatory Knowledge Routing" in live_text:
+            parts = live_text.split("## 📚 Mandatory Knowledge Routing", 1)
+            live_text = f"{parts[0].rstrip()}\n\n## 💡 Continuous Learnings\n{LEARNED_START_MARKER}\n{LEARNED_END_MARKER}\n\n## 📚 Mandatory Knowledge Routing{parts[1]}"
+        elif "## Knowledge Routing" in live_text:
+            parts = live_text.split("## Knowledge Routing", 1)
+            live_text = f"{parts[0].rstrip()}\n\n## 💡 Continuous Learnings\n{LEARNED_START_MARKER}\n{LEARNED_END_MARKER}\n\n## Knowledge Routing{parts[1]}"
+        else:
+            live_text = f"{live_text.rstrip()}\n\n## 💡 Continuous Learnings\n{LEARNED_START_MARKER}\n{LEARNED_END_MARKER}\n"
+
+    prefix, rest = live_text.split(LEARNED_START_MARKER, 1)
+    learned_content, suffix = rest.split(LEARNED_END_MARKER, 1)
+
+    applied = []
+    unmatched = []
+
+    if len(ops) > max_ops:
+        return None, [], [f"Ops count {len(ops)} exceeds maximum learning rate budget {max_ops}"]
+
+    curr_lines = [l for l in learned_content.splitlines() if l.strip()]
+
+    for op_item in ops:
+        op = op_item.get("op", "").lower()
+        anchor = op_item.get("anchor", "").strip()
+        content = op_item.get("content", "").strip()
+
+        if op == "add":
+            if not content:
+                unmatched.append("add operation has empty content")
+                continue
+            bullet = content if content.startswith("- ") else f"- {content}"
+            if bullet in curr_lines:
+                unmatched.append(f"bullet already present: {bullet[:50]}")
+                continue
+            curr_lines.append(bullet)
+            applied.append({"op": "add", "content": bullet})
+
+        elif op == "delete":
+            if not anchor:
+                unmatched.append("delete operation requires anchor")
+                continue
+            matches = [i for i, l in enumerate(curr_lines) if anchor.lower() in l.lower()]
+            if len(matches) == 0:
+                unmatched.append(f"delete anchor not found: {anchor[:50]}")
+            elif len(matches) > 1:
+                unmatched.append(f"delete anchor matches {len(matches)} times (must be unique): {anchor[:50]}")
+            else:
+                removed = curr_lines.pop(matches[0])
+                applied.append({"op": "delete", "anchor": anchor, "removed": removed})
+
+        elif op == "replace":
+            if not anchor or not content:
+                unmatched.append("replace operation requires both anchor and content")
+                continue
+            matches = [i for i, l in enumerate(curr_lines) if anchor.lower() in l.lower()]
+            if len(matches) == 0:
+                unmatched.append(f"replace anchor not found: {anchor[:50]}")
+            elif len(matches) > 1:
+                unmatched.append(f"replace anchor matches {len(matches)} times (must be unique): {anchor[:50]}")
+            else:
+                bullet = content if content.startswith("- ") else f"- {content}"
+                old_line = curr_lines[matches[0]]
+                curr_lines[matches[0]] = bullet
+                applied.append({"op": "replace", "anchor": anchor, "replaced": old_line, "with": bullet})
+        else:
+            unmatched.append(f"unknown op: {op}")
+
+    if unmatched:
+        return None, applied, unmatched
+
+    new_learned_body = "\n" + "\n".join(curr_lines) + "\n" if curr_lines else "\n"
+    new_full_text = f"{prefix}{LEARNED_START_MARKER}{new_learned_body}{LEARNED_END_MARKER}{suffix}"
+    return new_full_text, applied, []
+
 
 def _atomic_append_jsonl(path: str, entry: Dict[str, Any]) -> None:
     line = json.dumps(entry) + "\n"
@@ -81,7 +178,32 @@ class SovereignPromoter:
         level = intent.level
         body = intent.body or ""
 
-        # --- CLASS 0: Foundation Skill Immunity & Collision Guard ---
+        # --- CLASS 0: Foundation Skill Immunity, Judge Protection & Collision Guard ---
+        # 0.1 Judge & Harness Infrastructure Immutability Guard
+        all_touched_paths = []
+        if intent.path:
+            all_touched_paths.append(intent.path)
+        if intent.files:
+            all_touched_paths.extend(intent.files.keys())
+        for tp in all_touched_paths:
+            base_tp = os.path.basename(tp)
+            clean_tp = tp.replace("\\", "/")
+            if base_tp in JUDGE_PROTECTED_FILES or any(clean_tp.endswith(jf) for jf in JUDGE_PROTECTED_FILES):
+                findings.append(AdmissionFinding("safety", f"Cannot mutate evaluation judge or harness core: {tp} (Judge Immutability Lock)", "HARNESS-JDG-01"))
+
+        # 0.2 Rejected Fingerprint Barrier
+        try:
+            from core.paths import get_workspace_dir
+            rej_path = os.path.join(str(get_workspace_dir()), ".orion", "harness", "rejected_fingerprints.json")
+            if os.path.exists(rej_path):
+                with open(rej_path, "r", encoding="utf-8") as rf:
+                    rej_fps = json.load(rf)
+                current_fp = compute_intent_fingerprint(intent)
+                if current_fp in rej_fps:
+                    findings.append(AdmissionFinding("provenance", f"Proposal blocked: identical proposal previously rejected (fingerprint: {current_fp})", "HARNESS-REJ-01"))
+        except Exception as _e_rej:
+            _log_telemetry(_e_rej, "admission:check_rejected_fp")
+
         target_skill_dir = Path(self.skills_dir) / name
         target_skill_md = target_skill_dir / "SKILL.md"
         target_sidecar = target_skill_dir / ".sidecar.json"
@@ -107,7 +229,25 @@ class SovereignPromoter:
                         or "source_class: class_2_autonomous_sandbox" in fm_text
                     )
                     if not is_autonomous:
-                        findings.append(AdmissionFinding("safety", f"Cannot mutate core foundation skill: {name} (Class 0 Immunity)", "HARNESS-IMM-01"))
+                        # Allow bounded patch strictly within <!-- LEARNED --> block
+                        is_learned_block_patch = False
+                        if action == "patch":
+                            if intent.ops:
+                                is_learned_block_patch = True
+                            elif intent.old_string and intent.old_string.strip():
+                                if LEARNED_START_MARKER in existing_text and LEARNED_END_MARKER in existing_text:
+                                    _, rest = existing_text.split(LEARNED_START_MARKER, 1)
+                                    learned_part, _ = rest.split(LEARNED_END_MARKER, 1)
+                                    if intent.old_string in learned_part:
+                                        is_learned_block_patch = True
+
+                        if not is_learned_block_patch:
+                            findings.append(AdmissionFinding("safety", f"Cannot mutate core foundation skill: {name} (Class 0 Immunity)", "HARNESS-IMM-01"))
+                        elif intent.ops:
+                            _, _, unmatched_errors = apply_learned_block_ops(existing_text, intent.ops)
+                            if unmatched_errors:
+                                for err in unmatched_errors:
+                                    findings.append(AdmissionFinding("accuracy", f"Learned block op failed: {err}", "HARNESS-ANC-01"))
                 except Exception as _e_imm:
                     # Fail closed on read/parse error
                     findings.append(AdmissionFinding("safety", f"Class 0 Immunity check failed to read {name}: {_e_imm}", "HARNESS-IMM-01"))
@@ -299,14 +439,20 @@ class SovereignPromoter:
             with open(skill_md_path, "r", encoding="utf-8") as f:
                 live_text = f.read()
 
-            if not intent.old_string or intent.old_string not in live_text:
-                return False, "Target old_string not found in SKILL.md"
+            applied_ops_info = []
+            if intent.ops:
+                new_text, applied_ops_info, unmatched = apply_learned_block_ops(live_text, intent.ops)
+                if unmatched or new_text is None:
+                    return False, f"Learned block ops failed: {', '.join(unmatched)}"
+            else:
+                if not intent.old_string or intent.old_string not in live_text:
+                    return False, "Target old_string not found in SKILL.md"
 
-            count = live_text.count(intent.old_string)
-            if count > 1:
-                return False, f"old_string matches {count} times (must match uniquely)"
+                count = live_text.count(intent.old_string)
+                if count > 1:
+                    return False, f"old_string matches {count} times (must match uniquely)"
 
-            new_text = live_text.replace(intent.old_string, intent.new_string or "")
+                new_text = live_text.replace(intent.old_string, intent.new_string or "")
 
             tmp_md = f"{skill_md_path}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}"
             with open(tmp_md, "w", encoding="utf-8") as f:
@@ -331,12 +477,18 @@ class SovereignPromoter:
                 except Exception as _e:
                     _log_telemetry(_e, "admission:update_sidecar")
 
-            # Append ledger
+            # Append ledger (with status: keep and fingerprint)
+            line_delta = len(new_text.splitlines()) - len(live_text.splitlines())
             ledger_entry = {
                 "action": "patch",
+                "status": "keep",
                 "reason": intent.reason,
-                "evidence": f"references/{ev_filename}"
+                "evidence": f"references/{ev_filename}",
+                "line_delta": line_delta,
+                "fingerprint": compute_intent_fingerprint(intent)
             }
+            if applied_ops_info:
+                ledger_entry["ops_applied"] = applied_ops_info
             _atomic_append_jsonl(ledger_path, ledger_entry)
 
             return True, f"Patched skill {intent.name}"

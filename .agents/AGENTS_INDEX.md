@@ -29,12 +29,12 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **api-contract**: `.agents/skills/api-contract/SKILL.md` (API Schemas, Zod, Request Validation)
 - **app-lifecycle**: `.agents/skills/app-lifecycle/SKILL.md` (Full lifecycle state machine, project init, app builder, sunset)
 - **brain-graph**: `.agents/skills/brain-graph/SKILL.md` (Brain Graph, Orion, Knowledge base & triplet extraction)
+- **feature-discovery**: `.agents/skills/feature-discovery/SKILL.md` (Socratic Feature Discovery & Zero-Trust Requirements Elicitation)
 - **code-review**: `.agents/skills/code-review/SKILL.md` (Source code quality & security review)
-- **cost-optimizer**: `.agents/skills/cost-optimizer/SKILL.md` (Cloud/LLM token budgeting & tiered routing)
+- **cost-optimizer**: `.agents/skills/cost-optimizer/SKILL.md` (Cloud/LLM token budgeting, Lessword compression & tiered routing)
 - **data-logic**: `.agents/skills/data-logic/SKILL.md` (Data Immutability, State Management, Transformers)
 - **frontend-experience**: `.agents/skills/frontend-experience/SKILL.md` (Debugging, Errors, Runtime Issues & UX audit)
 - **integrity-sentinel**: `.agents/skills/integrity-sentinel/SKILL.md` (Security audits, QA, audit ledger, pre-completion gates)
-- **lessword**: `.agents/skills/lessword/SKILL.md` (Ultra-compressed communication & memory compression)
 - **meta-agent-admin**: `.agents/skills/meta-agent-admin/SKILL.md` (Ecosystem evolution, standards & knowledge sync)
 - **palette**: `.agents/skills/palette/SKILL.md` (Accessibility, A11y, Micro-interactions)
 - **project-architect**: `.agents/skills/project-architect/SKILL.md` (System Architecture, 5-Stage Blueprint Review Pipeline, Blueprints, PRDs)
@@ -65,15 +65,17 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **component-decision-matrix**: `.agents/skills/ui-finish/references/component_decision_matrix.md` (Contextual heuristic trees for overlay triage, data display, and input selection)
 - **component-recipes**: `.agents/skills/ui-finish/references/component_recipes.md` (Design-token aligned component implementations)
 - **component-taxonomy**: `.agents/skills/ui-finish/references/component_taxonomy.md` (Catalog of ~60 canonical component primitives, anatomy, and ARIA contracts)
+- **condition-based-waiting**: `.agents/skills/systematic-debugging/references/condition-based-waiting.md` (Condition polling to eliminate flaky test sleeps)
 - **consequence-verification**: `.agents/skills/integrity-sentinel/references/consequence_verification.md` (Consequence-driven runtime assertion, False Green test prevention, and deterministic user flow replay)
 - **context-manager**: `.agents/skills/meta-agent-admin/references/context-manager.md` (Context window token budgets and compaction)
 - **continuous-execution**: `.agents/skills/worker-delegate/references/continuous_execution.md` (Autonomous sub-agent continuous execution & non-blocking rulings)
 - **craft-floor**: `.agents/skills/ui-finish/references/craft_floor.md` (The 12 visual craft floor rules & category default refusals)
+- **defense-in-depth**: `.agents/skills/systematic-debugging/references/defense-in-depth.md` (4-layer post-fix validation)
 - **desktop-mobile-ipc**: `.agents/skills/integrity-sentinel/references/desktop_mobile_ipc.md` (Native peer authentication rejection, deep-link CSRF, Named Pipe DACLs, WebView JS bridge security)
 - **feature-sunset**: `.agents/skills/app-lifecycle/references/feature-sunset.md` (Phased feature deprecation & dead code purge)
 - **knowledge**: `.agents/skills/meta-agent-admin/references/knowledge.md` (Knowledge ingestion loop and citation tracing)
 - **knowledge-extraction**: `.agents/skills/brain-graph/references/knowledge-extraction.md` (Graph triplet extraction from raw code)
-- **lessword-compress**: `.agents/skills/lessword/references/lessword-compress.md` (Token reduction for memory files)
+- **lessword-compress**: `.agents/skills/cost-optimizer/references/lessword-compress.md` (Token reduction for memory files)
 - **load-testing-tactics**: `.agents/skills/integrity-sentinel/references/load_testing_tactics.md` (Concurrency, latency, and load profiles)
 - **loop-design-patterns**: `.agents/skills/meta-agent-admin/references/loop_design_patterns.md` (Autonomous agent loop designs)
 - **lucide-tokens**: `.agents/skills/ui-finish/references/lucide_tokens.md` (Iconography metrics & Lucide token contracts)
@@ -116,10 +118,11 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **audit-and-test**: `.agents/skills/integrity-sentinel/SKILL.md`
 - **audit-ledger**: `.agents/skills/integrity-sentinel/references/audit-ledger.md`
 - **auto-context**: `.agents/skills/session-offload/references/auto-context.md`
+- **feature-discovery**: `.agents/skills/feature-discovery/SKILL.md`
 - **code-review**: `.agents/skills/code-review/SKILL.md`
 - **feature-sunset**: `.agents/skills/app-lifecycle/references/feature-sunset.md`
 - **knowledge-extraction**: `.agents/skills/brain-graph/references/knowledge-extraction.md`
-- **lessword-compress**: `.agents/skills/lessword/references/lessword-compress.md`
+- **lessword-compress**: `.agents/skills/cost-optimizer/references/lessword-compress.md`
 - **orion-ops**: `.agents/skills/brain-graph/SKILL.md`
 - **prod-deploy**: `.agents/skills/project-operator/references/prod-deploy.md`
 - **project-init**: `.agents/skills/app-lifecycle/references/project-init.md`

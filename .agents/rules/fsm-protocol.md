@@ -21,17 +21,19 @@ python .agents/scripts/orion.py fsm task_end <task_id> <success|failed>
 python .agents/scripts/orion.py fsm status
 ```
 
-## Protocol Steps
+## Execution Modes & Protocol Steps
 
-1. **When Starting Execution**:
-   - Immediately after the User approves your Implementation Plan, you MUST call `fsm init <session_id>` and `fsm transition EXECUTING`.
-2. **When Delegating to Sub-Agents**:
-   - BEFORE delegating a task to a worker/sub-agent (or kicking off a long-running command), you MUST call `fsm task_start <task_id>`.
-   - AFTER the sub-agent returns its result, you MUST call `fsm task_end <task_id> <success|failed>`.
-3. **When Verifying**:
-   - Before running tests, call `fsm transition VERIFYING`.
-4. **When Done**:
-   - Before calling `/session-offload`, call `fsm transition DONE` to clear the state and signal successful completion.
+### 1. Interactive IDE Mode (Default)
+In interactive environments (Antigravity IDE), execution state is maintained natively via Markdown artifacts (`task.md`, `implementation_plan.md`), subagent message channels, and reactive wakeups.
+- Agents are **exempt** from calling repetitive CLI transitions (`fsm init`, `transition EXECUTING`, `task_start`) in routine interactive turns.
+- Use native task checkmarks and implementation plans instead of burning CLI roundtrips.
+
+### 2. Headless Daemon & CI Mode (Autonomous Pipelines)
+When operating in autonomous background daemons, cron tasks, or headless CI/CD scripts without an interactive IDE:
+1. **Starting Execution**: Call `fsm init <session_id>` and `fsm transition EXECUTING`.
+2. **Sub-Agent Delegation**: Call `fsm task_start <task_id>` before and `fsm task_end <task_id> <status>` after.
+3. **Verifying**: Call `fsm transition VERIFYING` before running automated test gates.
+4. **Done**: Call `fsm transition DONE` before session offload.
 
 ## Crash Recovery & Rollback Safety
 - **Resumption**: If you wake up and find a `recovery_instruction` in your context payload indicating you were interrupted during `EXECUTING`, **DO NOT** restart the task. Check `fsm status` and resume the specific tasks that were running.

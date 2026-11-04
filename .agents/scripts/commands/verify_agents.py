@@ -1701,7 +1701,7 @@ def check_command_parity(res: AuditResult, verbose: bool = True):
                     if skill_parent == "internal":
                         continue
                     for rf in r_files:
-                        if rf.endswith(".md"):
+                        if rf.endswith(".md") and not rf.startswith("evidence-"):
                             rel_ref = os.path.relpath(os.path.join(r_root, rf), os.path.dirname(BASE_DIR)).replace("\\", "/")
                             if rel_ref not in index_content and rf not in index_content:
                                 unindexed_refs.append(rel_ref)

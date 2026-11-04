@@ -78,7 +78,7 @@ To prevent context bloat, agents do not preload all rules. When a prompt matches
 | **Cost Analysis, Token Budget, LLM Costs** | `python .agents/scripts/orion.py scan tokens` (Run it!) & `.agents/skills/cost-optimizer/SKILL.md` |
 | **meta-agent-admin, /meta-agent-admin, Audit .agents, Ecosystem Audit, Foundation Review, Template Health, System Mod, Rules** | `.agents/AGENTS_INDEX.md` & `.agents/skills/meta-agent-admin/SKILL.md` |
 | **Code Review, PR Review (App Code)** | `.agents/skills/code-review/SKILL.md` |
-| **Token Reduction, Compression, Lessword Mode** | `.agents/skills/lessword/SKILL.md` & `.agents/skills/lessword/references/lessword-compress.md` |
+| **Token Reduction, Compression, Lessword Mode** | `.agents/skills/cost-optimizer/SKILL.md` & `.agents/skills/cost-optimizer/references/lessword-compress.md` |
 | **Accessibility, A11y, Micro-interactions, Web UX** | `.agents/skills/palette/SKILL.md` |
 | **Session End, Handoff, Context Eviction** | `.agents/skills/session-offload/SKILL.md` |
 | **Test-Driven Development (TDD), Writing Tests** | `.agents/skills/strict-tdd/SKILL.md` |

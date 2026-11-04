@@ -52,12 +52,35 @@ Ideal for fintech, luxury consumer products, AI infrastructure, and cryptographi
 
 ---
 
-## 5. Token Implementation Matrix
+## 5. Tactile Spatial / Lit Material (Translucent Layered Chrome & Directional Lighting)
 
-| Token Class | Minimalist / Linear | Neobrutalist | Warm Tactile | Cold Luxury |
-| :--- | :--- | :--- | :--- | :--- |
-| **Border Width** | `border` (1px) | `border-2` (2px) | `border` (1px) | `border` (1px) |
-| **Corner Radius** | `rounded-md` (6px) | `rounded-none` (0px) | `rounded-2xl` (16px) | `rounded-xl` (12px) |
-| **Shadow** | Subtle / None | `shadow-[4px_4px_0px_#000]` | `shadow-sm` / diffuse | Ambient soft |
-| **Font Pairing** | Geist Sans + Mono | Space Grotesk + Mono | Plus Jakarta + Serif | Satoshi + Neutral |
-| **Action Motion** | 150ms ease-out | Immediate jump-in | 300ms gentle spring | 200ms smooth fade |
+Ideal for creative desktop apps, audio/video tools, next-gen browsers, and spatial interfaces with high personality.
+
+- **Palette (OKLCH 5-Token Perceptual System)**:
+  - `--bg`: `oklch(0.14 0.02 260)` (Tinted obsidian dark surface, avoids pure `#000000`).
+  - `--text`: `oklch(0.94 0.01 260)` (Softened contrast, APCA $|L_c| \ge 82$, zero halation).
+  - `--primary`: `oklch(0.68 0.16 250)` (Vibrant electric violet/blue accent, desaturated $15\%$ in dark mode).
+  - `--secondary`: `oklch(0.24 0.03 260)` (Layered elevated panel surface).
+  - `--accent`: `oklch(0.78 0.14 70)` (Warm tactile indicator / active status dot).
+- **Materiality & Coherent Glass**:
+  - Focus-driven opacity hierarchy: Active window/pane at `85%` opacity, inactive pane at `75%` with `backdrop-filter: blur(16px)`.
+  - Anti-banding: SVG `<feTurbulence type="fractalNoise">` grain texture (opacity `0.04`) layered over large blur surfaces.
+- **Directional Light ($135^\circ$)**:
+  - Buttons have dual inner-shadows (`box-shadow: inset 1px 1px 1px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.5)`).
+  - Recessed inputs have top-left inner shadow (`box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4)`).
+- **Typography**: Expressive geometric or humanist sans (Plus Jakarta Sans, Syne, Geist) with mono tabular numbers (`JetBrains Mono`).
+- **Signature Component**: Always features at least 1 bespoke interactive domain control (e.g. waveform scrub bar, rotary gain indicator with detent ticks, crystallite texture toggle).
+
+---
+
+## 6. Token Implementation Matrix
+
+| Token Class | Minimalist / Linear | Neobrutalist | Warm Tactile | Cold Luxury | Tactile Spatial |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Border Width** | `border` (1px) | `border-2` (2px) | `border` (1px) | `border` (1px) | `border` (1px subtle highlight) |
+| **Corner Radius** | `rounded-md` (6px) | `rounded-none` (0px) | `rounded-2xl` (16px) | `rounded-xl` (12px) | `rounded-lg` (8–10px) |
+| **Shadow / Depth** | Flat border contrast | `shadow-[4px_4px_0px_#000]` | `shadow-sm` / diffuse | Ambient directional | Dual $135^\circ$ inset + diffuse |
+| **Glass / Blur** | Zero blur | Zero blur | Zero blur | Minimal nav blur | Coherent $85\% / 75\%$ + SVG Grain |
+| **Luminance Ladder** | Subtle border tint | Hard fill contrasts | Warm surface steps | Cold slate gradient | $\text{Base} < \text{Card} < \text{Modal}$ |
+| **Font Pairing** | Geist Sans + Mono | Space Grotesk + Mono | Plus Jakarta + Serif | Satoshi + Neutral | Plus Jakarta + JetBrains Mono |
+| **Action Motion** | 150ms ease-out | Immediate jump-in | 300ms gentle spring | 200ms smooth fade | 180ms ease + scale(0.98) |

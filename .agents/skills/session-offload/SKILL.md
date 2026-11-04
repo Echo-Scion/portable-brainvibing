@@ -1,7 +1,7 @@
 ---
 name: session-offload
 description: >-
-  Mandatory checklist for ending a session smoothly, evicting stale scratchpads, running gated commits, and persisting handoff state. Use when finishing a session, handing off context to a future session, or when the user invokes /session-offload.
+  Mandatory checklist for ending a session smoothly, evicting stale scratchpads, running gated commits, resolving git branches/worktrees, and persisting handoff state. Use when finishing a session, handing off context to a future session, or when the user invokes /session-offload.
 ---
 
 # Session Offload (`/session-offload`)
@@ -18,7 +18,7 @@ python .agents/scripts/orion.py gc
 ```
 
 ## 1.5. Auto-Context Sync (Conversational Extraction)
-If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` 82-file structure before memory is wiped.
+If any new business rules, logic constraints, or architectural decisions were explicitly discussed with the user during this session, you MUST execute the `/auto-context` workflow now. This ensures conversational knowledge is persisted into the `context/` structure before memory is wiped.
 > **TERMINATION GATE**: Execute `/auto-context` ONCE. Do not re-enter session-offload.md after `/auto-context` completes. After injection, proceed directly to Step 1.6.
 
 ## 1.6. Public Changelog Ledger & DNA SemVer Hook (Full Session & Unreleased Audit)
@@ -29,7 +29,7 @@ Once `CHANGELOG.md` is present, audit the **entire unreleased delta since the la
 2. **Outcome-Focused & Zero Internal Leaks**: `CHANGELOG.md` MUST serve external users and developers, never an internal engineering diary.
    - **Outcome Over Process**: State the resulting capability or fix, never internal review stages, development workflows, or implementation steps.
    - **Zero Internal Symbols or Paths**: Never include internal source paths (`core/...`, `commands/...`), function/class/variable names, flags, comment markers, or test suite filenames.
-   - **Concise Flat Bullets**: Write 1 flat bullet per deliverable ($\le 20$ words). Never group nested sub-bullets under module headers.
+   - **Macro-Thematic Consolidation**: Group deliverables into 5–8 high-signal thematic entries per release milestone. Macro capabilities receive 1 prominent list item with scope description; related minor enhancements and fixes are synthesized into 1 coherent summary paragraph per domain, avoiding fragmented 20+ item lists.
    - **Zero AI Fingerprints**: Ban metaphorical AI verbs (*absorb, supercharge, empower, revolutionize, unleash, delve*). Use plain verbs (*add, fix, update, remove*).
 3. **Episodic Triage (Strict Unreleased Invariant)**: Ensure **every** public deliverable across all commits and working-tree changes in this session (`v<VERSION>..HEAD`) is recorded under `## [Unreleased]` across standard Keep a Changelog categories (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`).
 4. **Release Milestone Stamping (Explicit User Release Gate Only)**:
@@ -63,6 +63,27 @@ git add -u
 git commit -m "<type>(<scope>): <precise description>"
 ```
 
+### 2.5. Git Worktree & Branch Integration State Machine
+When completing feature work on a branch or worktree:
+1. **Detect Workspace Isolation**:
+   ```bash
+   # Check if inside linked worktree (not git submodule)
+   git rev-parse --show-superproject-working-tree
+   ```
+2. **Present Integration Menu to User**:
+   - **Option 1: Merge to Base Branch Locally**:
+     ```bash
+     git checkout <base_branch>
+     git pull
+     git merge <feature_branch>
+     # Run tests on merged result
+     <test_command>
+     # Remove worktree if safe
+     git worktree remove <worktree_path>
+     ```
+   - **Option 2: Push & Create Pull Request**: Push branch to origin and emit PR template.
+   - **Option 3: Keep Branch / Worktree As-Is**: Preserve current checkout for manual developer inspection.
+
 ## 3. Atomic Memory Compression & Task Archival
 Run the compression tool to prevent token bloat for the next session. The script automatically archives any tasks marked as `DONE`.
 ```pwsh
@@ -80,7 +101,7 @@ python .agents/scripts/orion.py harness promote
 - **Mandatory Action**: Before ending the session, you MUST analyze any errors, failed executions, false assumptions, and cognitive biases that occurred during the session. Document these learnings in the session log so the system and user can evolve.
 
 ## 4. Generate Precise Handoff State (MANDATORY FORMAT)
-You MUST explicitly use the `write_to_file` tool to save the exact markdown block below to `.orion/working/handoff.md` BEFORE running the offload and compression scripts. Do not just output it to the chat screen. Do not leave fields empty.
+You MUST explicitly use the `write_file` tool to save the exact markdown block below to `.orion/working/handoff.md` BEFORE running the offload and compression scripts. Do not just output it to the chat screen. Do not leave fields empty.
 
 ## 4.5. Orion Session Log & Synthesis (Awareness Push)
 - **Mandatory Action**: The agent MUST append a 3-line session learning or architectural decision summary to `.orion/episodic/session_history.md`.
@@ -130,4 +151,3 @@ Give a 1-sentence summary of the task completion and confirm that `.orion/workin
 | If User Prompt/Task Relates To... | Immediately Load (view_file) |
 | :--- | :--- |
 | **Business Rule Extraction / Auto-Context** | .agents/skills/session-offload/references/auto-context.md |
-

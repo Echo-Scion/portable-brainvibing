@@ -1,7 +1,7 @@
 ---
 name: ui-finish
 description: >-
-  Applies premium, restrained aesthetics (Linear, Raycast, Stripe), visual engineering, and design token contracts. Use when applying UI polish, designing micro-interactions, refining typography, or creating design tokens.
+  Applies premium, restrained aesthetics (Linear, Raycast, Stripe), visual engineering, design tokens, craft floor rules, bento grids, 60fps motion, and accessibility contracts. Use when applying UI polish, designing micro-interactions, refining typography, or creating design tokens.
 ---
 
 # UI & Visual Design Architect (Restrained Visual Engineering)
@@ -23,13 +23,13 @@ Enforces high-craft production UI paradigms (Linear, Raycast, Stripe) by rejecti
 
 Verify aesthetics mechanically: `python .agents/evals/audit_aesthetics.py --dir <target_path>`.
 
-## Operational Posture: Restraint Over Novelty
-Production UI prioritizes clarity over novelty. Interfaces mandate solid backgrounds, crisp 1px borders, verified WCAG contrast, and zero decorative animations or AI aesthetic tells.
-
+## Operational Posture: Restraint & Soulful Engineering
+Production UI prioritizes clarity and high agency over decorative novelty. However, restraint does NOT mean sterile monotony. Interfaces combine strict 5-token color contracts (`OKLCH`), APCA contrast compliance, physical materiality (135° directional lighting), and at least one bespoke Signature Soul Component so the interface never looks like an anonymous AI clone.
 
 ## Critical Validations (Universal)
 - **Disambiguation (UI-Finish vs Frontend-Experience)**: Use `ui-finish` STRICTLY for visual engineering, creative polish, and aesthetic craftsmanship. Do NOT use this skill for analytical widget tree debugging, state management, or structural layout fixing. For structural fixes, delegate to the `frontend-experience` skill.
-- **Depth & Restraint**: NEVER use floating glassmorphism panels, oversized rounded corners (20px+), or gradient backgrounds as decoration. Use solid backgrounds with subtle borders.
+- **Depth & Restraint**: NEVER use arbitrary floating glassmorphism panels, oversized rounded corners (20px+), or gradient backgrounds as decoration. Use solid or systemically coherent surfaces with subtle borders and 135° directional light source.
+- **Glass Coherence**: If using blur/glass, apply it system-wide with focus-driven opacity hierarchy (85% active / 75% inactive) and pair with low-opacity SVG noise texture to prevent 8-bit banding.
 - **Inclusive Visuals**: NEVER accept "Clone Faces." Mandate distinct facial structures and authentic attire.
 - **Performance**: NEVER use metric-card grids as default dashboards or floating widgets unless required by product.
 - **Accessibility & Semantics**:
@@ -107,17 +107,22 @@ When a user provides a reference URL or screenshot:
 Before delivering any frontend emit, every condition of the Visual Critique Gates must be satisfied across Visual Integrity, Structural Craft, and Typography. Refer to the full checklist in `.agents/skills/ui-finish/references/craft_floor.md#4-the-visual-critique-gates--anti-cliché-sweep-pre-emit-audit`.
 
 ## 🚢 Delivery Verification Checklist (Physical Criteria)
-Before declaring a UI task complete, verify all 5 physical criteria (tested mechanically via `python .agents/evals/audit_aesthetics.py --dir <target_path>` where applicable):
-1. **Visual Restraint**: Zero unearned neon glow, decorative backdrop blurs, or default purple gradients. Crisp 1px borders, solid fills.
-2. **Copy Authenticity**: Zero placeholder buzzwords, synthetic testimonials, or ungrounded claims (per `prose-authenticity.md`).
-3. **Interactive Wiring**: All buttons, links, and forms wired with handlers; full 4-state coverage (Idle, Loading, Error, Empty).
-4. **Resilience & Contrast**: WCAG AA contrast ratio verified; responsive layout tested across mobile and desktop.
-5. **Code Hygiene**: Zero commented-out dead blocks or cosmetic commentary.
+Before declaring a UI task complete, verify all 6 physical criteria (tested mechanically via `python .agents/evals/audit_aesthetics.py --dir <target_path>` where applicable):
+1. **Visual Restraint & Optics**: Zero unearned neon glow or default purple gradients. Contrast passes APCA $|L_c| \ge 75$ & WCAG AA; dark mode adheres to luminance elevation ($\text{Base} < \text{Card} < \text{Modal}$).
+2. **Signature Soul Component**: At least 1 bespoke interactive domain control or tactile affordance is physically implemented (no anonymous templates).
+3. **Copy Authenticity**: Zero placeholder buzzwords, synthetic testimonials, or ungrounded claims (per `prose-authenticity.md`).
+4. **Interactive Wiring**: All buttons, links, and forms wired with handlers; full 4-state coverage (Idle, Loading, Error, Empty).
+5. **Resilience & Contrast**: Responsive layout tested across mobile and desktop without viewport clipping.
+6. **Code Hygiene**: Zero commented-out dead blocks or cosmetic commentary.
 
 ## Workflow Patterns (Universal)
+0. **Observe, Oppose, Upscale (First-Principles UX Protocol)**:
+   - *Observe*: Map the user's authentic workflow friction, click steps, and visual confusion.
+   - *Oppose*: Challenge modal popups, multi-step sub-dialogs, hidden filters, and trial-and-error numeric inputs. Aim to cut interaction friction by $50\%$.
+   - *Upscale*: Apply `OKLCH` 5-token balance (`60:30:10`), Dark Mode luminance elevation, and craft **1 Signature Soul Component** (domain-specific visual/tactile control).
 1. **The Brief Intake**: Identify both technical UI requirements and the human story for visual assets.
 2. **Design Specification (DESIGN.md)**: Before coding, define the visual identity using the `DESIGN.md` format (YAML tokens + Markdown prose). Reference `.agents/skills/ui-finish/references/visual_engineering.md` for details.
-3. **Implementation**: Use patterns from ecosystem canons and the `DESIGN.md` spec to build surfaces and animations.
+3. **Implementation**: Use patterns from ecosystem canons, 6 Systemic UX Redesign Patterns, and the `DESIGN.md` spec to build surfaces and animations.
 4. **Prompt Engineering**: Use the annotation framework from `.agents/skills/ui-finish/references/visual_engineering.md` for AI-generated visual assets.
 
 ## Troubleshooting (Universal)

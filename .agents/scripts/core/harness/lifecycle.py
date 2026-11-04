@@ -44,8 +44,18 @@ class LifecycleManager:
     """
 
     @staticmethod
-    def calculate_rate(use: int, denominator: int) -> float:
-        return use / denominator if denominator > 0 else 0.0
+    def calculate_rate(use: int, denominator: int, pass_count: int = 0, fail_count: int = 0) -> float:
+        if denominator <= 0:
+            return 0.0
+        base_rate = use / denominator
+        # If outcome history exists, scale base rate by pass ratio
+        total_outcomes = pass_count + fail_count
+        if total_outcomes > 0:
+            pass_ratio = pass_count / total_outcomes
+            # Penalty if failures dominate (> 50% failures)
+            quality_multiplier = 0.5 + (0.5 * pass_ratio)
+            return base_rate * quality_multiplier
+        return base_rate
 
     @classmethod
     def evaluate(
@@ -72,9 +82,11 @@ class LifecycleManager:
             anchor = m.get("anchor", 0)
             use = m.get("use", m.get("calls", 0))
             view = m.get("view", 0)
+            pass_count = m.get("pass", 0)
+            fail_count = m.get("fail", 0)
             denom = max(0, request_count - anchor)
 
-            rate = cls.calculate_rate(use, denom)
+            rate = cls.calculate_rate(use, denom, pass_count=pass_count, fail_count=fail_count)
             rates[name] = round(rate, 4)
 
             # 1. Foundation Immunity Gate: baseline core skills are never auto-archived

@@ -212,7 +212,8 @@ class ReflexionEngine:
     def graduate_learning(self, title_query: str, skill_name: Optional[str] = None, intents_dir: Optional[str] = None) -> Dict[str, Any]:
         """
         Graduates a recurring failure learning from LEARNINGS.md into a Sovereign Harness skill intent.
-        Converts the text bullet into a modular skill proposal (SKILL.md + references/remediation.md).
+        If target maps to an existing core skill, stages a bounded patch inside <!-- LEARNED --> block
+        instead of creating a separate skill directory.
         """
         learnings = self.list_learnings()
         target = None
@@ -224,6 +225,67 @@ class ReflexionEngine:
         if not target:
             return {"ok": False, "error": f"Learning with title containing '{title_query}' not found"}
 
+        from core.harness.staging import IntentQueue, StagedIntent
+        target_intents_dir = intents_dir or os.path.join(WORKSPACE_DIR, '.orion', 'harness', 'intents')
+        queue = IntentQueue(target_intents_dir)
+
+        rule_text = target.get("rule") or target.get("intervention") or target.get("root_cause") or "Execute remediation before commit."
+        evidence_text = target.get("evidence") or target.get("root_cause") or "Observed recurring error trace in LEARNINGS.md"
+        reason_text = f"Graduated recurring learning: {target['title']}"
+        intent_id = str(uuid.uuid4())[:8]
+
+        # Check if skill_name or title targets an existing core skill
+        existing_skills_dir = os.path.join(WORKSPACE_DIR, '.agents', 'skills')
+        matched_core_skill = None
+        if skill_name and os.path.isdir(os.path.join(existing_skills_dir, skill_name)):
+            matched_core_skill = skill_name
+        else:
+            # Heuristic match against core skills
+            title_lower = target["title"].lower()
+            if any(k in title_lower for k in ("test", "tdd", "unit test", "mock")):
+                matched_core_skill = "strict-tdd"
+            elif any(k in title_lower for k in ("debug", "error", "trace", "catch")):
+                matched_core_skill = "systematic-debugging"
+            elif any(k in title_lower for k in ("security", "audit", "secret")):
+                matched_core_skill = "integrity-sentinel"
+            elif any(k in title_lower for k in ("ui", "layout", "aesthetics", "css")):
+                matched_core_skill = "ui-finish"
+
+        if matched_core_skill:
+            # Stage bounded patch into the core skill's LEARNED block
+            new_bullet = f"{target['title']}: {rule_text}"
+            intent = StagedIntent(
+                id=intent_id,
+                action="patch",
+                name=matched_core_skill,
+                reason=reason_text,
+                evidence=evidence_text,
+                level="project",
+                defect_class="SKILL_DEFECT",
+                ops=[{"op": "add", "anchor": "", "content": new_bullet}]
+            )
+            target_path = queue.enqueue(intent)
+            try:
+                with open(self.learnings_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if target['title'] in content and f"[Patched to Skill: {matched_core_skill}]" not in content:
+                    content = content.replace(
+                        f"— {target['title']}",
+                        f"— {target['title']} [Patched to Skill: {matched_core_skill}]"
+                    )
+                    atomic_write_text(self.learnings_path, content)
+            except Exception as _e:
+                _log_telemetry(_e, "reflexion.graduate_learning.patch_mark")
+
+            rel_path = os.path.relpath(target_path, WORKSPACE_DIR).replace(os.sep, '/')
+            return {
+                "ok": True,
+                "intent_id": intent_id,
+                "skill_name": matched_core_skill,
+                "action": "patch",
+                "staged_path": rel_path
+            }
+
         if not skill_name:
             clean = re.sub(r"[^a-z0-9]+", "-", target["title"].lower()).strip("-")
             clean_slug = clean[:25].rstrip("-")
@@ -232,7 +294,6 @@ class ReflexionEngine:
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", skill_name):
             skill_name = "rule-" + re.sub(r"[^a-z0-9]+", "-", skill_name).strip("-")
 
-        rule_text = target.get("rule") or target.get("intervention") or target.get("root_cause") or "Execute remediation before commit."
         trigger_cue = target.get("trigger") or f"encountering {target['title']}"
         if not re.search(r"(?i)\bwhen\b|[\"'][^\"']+[\"']|`[^`]+`", trigger_cue):
             trigger_cue = f"Use when {trigger_cue}"
@@ -259,14 +320,6 @@ class ReflexionEngine:
             f"- **Guard**: {target.get('guard', '')}\n"
         )
 
-        evidence_text = target.get("evidence") or target.get("root_cause") or "Observed recurring error trace in LEARNINGS.md"
-        reason_text = f"Graduated recurring learning: {target['title']}"
-
-        from core.harness.staging import IntentQueue, StagedIntent
-        target_intents_dir = intents_dir or os.path.join(WORKSPACE_DIR, '.orion', 'harness', 'intents')
-        queue = IntentQueue(target_intents_dir)
-
-        intent_id = str(uuid.uuid4())[:8]
         intent = StagedIntent(
             id=intent_id,
             action="create",
@@ -275,6 +328,7 @@ class ReflexionEngine:
             evidence=evidence_text,
             level="project",
             body=body,
+            defect_class="SKILL_DEFECT",
             files={"references/remediation.md": remediation_content}
         )
 
@@ -297,6 +351,7 @@ class ReflexionEngine:
             "ok": True,
             "intent_id": intent_id,
             "skill_name": skill_name,
+            "action": "create",
             "staged_path": rel_path
         }
 
@@ -503,6 +558,16 @@ class ObservationLedger:
 
         target_or_rule = rule_id if rule_id else target
         fp = self.compute_fingerprint(kind, target_or_rule, title)
+
+        # Negative Memory Barrier: Check if this fingerprint was previously declined in archive
+        arch = self.get_archive_observations()
+        for arch_item in arch:
+            if arch_item.get("fingerprint") == fp and arch_item.get("status") == "declined":
+                # Return blocked entry without resurrecting in active list
+                arch_item_copy = dict(arch_item)
+                arch_item_copy["status"] = "blocked_declined_fingerprint"
+                arch_item_copy["resolution"] = f"Blocked re-observation: previously declined in archive as #{arch_item.get('id')}"
+                return arch_item_copy
 
         active = self.get_all_observations()
         for item in active:

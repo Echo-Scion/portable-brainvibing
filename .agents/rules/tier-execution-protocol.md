@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.5
+version: 0.0.6
 last_updated: 2026-09-26
 ---
 
@@ -120,7 +120,7 @@ If the declared tier is lower than this fallback result, escalation is mandatory
 When operating as a **BUDGET Model**, the agent **MUST** adhere to the following architectural triad:
 1. **Context Diet Protocol (`performance-optimization.md`)**: Mandatory *Skeleton-First* (Grep/AST), forbidden from *full-reads* on long files to avoid *context poisoning*.
 2. **Bento-Box Workflow**: Mandatory single *State-Machine*. Focus on 1 primary logic file (maximum 3 files total including test/scaffolding per iteration). Forbidden from multi-domain sprawling.
-3. **Micro-Canons (`canons/micro/README.md`)**: Mandatory reading of domain summaries before starting reasoning.
+3. **JIT Routing (`AGENTS.md` §4)**: Mandatory reading of relevant domain canons per the JIT table before starting reasoning.
 
 # 2. Bento-Box Workflow (Anti-Multitasking for BUDGET)
 
@@ -161,7 +161,7 @@ Before executing `write_file` or `replace` for a complex feature or system desig
 
 ## 3. Value-Density Analysis (Scope Guard)
 - **MVC Principle**: Prioritize Minimum Viable Complexity via mechanical filtering:
-  - *Reduction Pass*: Run `grep` or analyze code to delete 10-20% of dead code/unused imports before adding new logic.
+  - *Surgical Scoping*: Modify only what is strictly required by the user prompt. Never delete pre-existing dead code or alter adjacent logic unless explicitly requested (Surgical Diff Mandate).
   - *Selective Expansion*: Request user's explicit permission before expanding scope beyond the original blueprint.
   - *Hold*: Strictly adhere to the original blueprint layout.
 

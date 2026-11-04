@@ -2184,3 +2184,111 @@
 - **resolved**: 2026-11-02T20:31:00.695437
 - **resolution**: Rolled over into GEN-7-1793626260683
 - **superseded_by**: GEN-7-1793626260683
+
+## Observation 146: Verify gate failure: HYGIENE - open() text mode missing explicit encoding='utf-8' (scripts/
+- **id**: 146
+- **fingerprint**: c5cc46fbfa26
+- **status**: superseded
+- **kind**: violation
+- **target**: scripts/tests/test_project_push.py
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 4
+- **evidence**: open() text mode missing explicit encoding='utf-8' (scripts/tests/test_project_push.py:91) | open() text mode missing explicit encoding='utf-8' (scripts/tests/test_project_push.py:74)
+- **created**: 2026-11-01T19:15:47.248578
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 147: Tool failure in orion:verify_agents (Exit Code 1)
+- **id**: 147
+- **fingerprint**: b123583fa637
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify_agents
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 7
+- **evidence**: Args: {'args': [], 'exit_code': 1}
+- **created**: 2026-11-01T19:15:47.310626
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 148: Verify gate failure: LINK - Broken rule reference: @AGENTS.md
+- **id**: 148
+- **fingerprint**: 26c7bd62450e
+- **status**: superseded
+- **kind**: violation
+- **target**: ..\GEMINI.md:3
+- **rule_id**: VERIFY_GATE_LINK
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Broken rule reference: @AGENTS.md
+- **created**: 2026-11-02T16:29:52.754303
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 149: Verify gate failure: LINK - Broken backticked file reference: `references/goldfish-perso
+- **id**: 149
+- **fingerprint**: 22394da04434
+- **status**: superseded
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md:87
+- **rule_id**: VERIFY_GATE_LINK
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Broken backticked file reference: `references/goldfish-personas.md`
+- **created**: 2026-11-02T17:28:19.609627
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 150: Verify gate failure: GHOST - Ghost skill reference: references/goldfish-personas.md
+- **id**: 150
+- **fingerprint**: 47b18a86191a
+- **status**: superseded
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/goldfish-personas.md
+- **created**: 2026-11-02T17:28:19.625184
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 151: Verify gate failure: GHOST - Ghost skill reference: references/spec-drift.md
+- **id**: 151
+- **fingerprint**: 5babb86c81cc
+- **status**: superseded
+- **kind**: violation
+- **target**: skills\project-architect\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/spec-drift.md
+- **created**: 2026-11-02T17:28:19.644335
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525
+
+## Observation 152: Verify gate failure: PROTOCOL - Exceeds Antigravity 24,000-byte per-file rule limit (24122 b
+- **id**: 152
+- **fingerprint**: d1771bfc37ff
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS.md
+- **rule_id**: VERIFY_GATE_PROTOCOL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Exceeds Antigravity 24,000-byte per-file rule limit (24122 bytes)
+- **created**: 2026-11-02T17:28:19.658477
+- **resolved**: 2026-11-04T04:47:38.534832
+- **resolution**: Rolled over into GEN-8-1793742458525
+- **superseded_by**: GEN-8-1793742458525

@@ -2,7 +2,7 @@
 description: Token-optimized CLI proxy rules and decision tree for Google Antigravity.
 activation: when using shell commands
 
-version: 0.0.5
+version: 0.0.6
 last_updated: 2026-05-20
 ---
 # RTK - Rust Token Killer (Google Antigravity)
@@ -27,7 +27,9 @@ Q2. Is the command interactive or does it require raw unfiltered JSON output? (e
 
 Antigravity natively intercepts commands via the `PreToolUse` lifecycle hook (`hooks.json` -> `rtk hook antigravity`), automatically rewriting commands like `git status` to `rtk git status`.
 
-Explicit `rtk` prefixing remains recommended practice for full transparency:
+- **Transparent Optimization**: Standard commands are automatically token-optimized by the hook without requiring manual decision trees on every turn.
+- **Manual Prefixing**: Recommended for meta-commands (`rtk gain`, `rtk gain --history`) or commands executed inside subshell scripts.
+- **Bypass Mode**: When RTK compression strips diagnostic signals or when commands contradict exit codes, execute `rtk proxy <cmd>`.
 
 ✅ **DO:**
 ```bash

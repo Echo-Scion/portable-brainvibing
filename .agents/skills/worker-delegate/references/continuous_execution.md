@@ -32,3 +32,27 @@ Outside of these four conditions: **EXECUTE TO COMPLETION.**
 - Fresh subagents handle isolated units of work (e.g., AST scans, repo mapping, test mutations) without context bleed.
 - Parent orchestrator holds the active plan state machine (`fsm transition EXECUTING` $\to$ `VERIFYING` $\to$ `DONE`).
 - Narrate at most 1–2 lines between execution steps. The execution evidence and exit codes carry the record.
+
+---
+
+## 4. The 5-Round Bounded Fix Loop
+
+When a subagent task review reports test failures, missing requirements, or Critical/Important findings:
+
+### Triage Routes
+- **Minor Findings (`🔵 nit`)**: Never enter the fix loop. Append directly to `.orion/working/audit/00-ledger.md` as `Task <N>: minor (deferred): <finding>`. The final branch review triages them before merge.
+- **Plan-Mandated Conflicts**: Weigh the finding against the plan text. If the finding reflects a plan defect, record a ruling before dispatching fixes.
+
+### Fix Rounds (Maximum 5 Rounds)
+1. **Rounds 1–3 (Same Implementer Tier)**:
+   - Re-dispatch to the implementer tier carrying the exact open findings, brief path, and test logs.
+   - The implementer fixes the code, runs the focused test covering amended files, and returns the short contract.
+2. **Rounds 4–5 (Capability Bump + Fresh Eyes)**:
+   - If the issue survives 3 rounds, the implementer cannot see its own defect.
+   - Dispatch to a fresh subagent on a higher model tier (e.g., `BUDGET` $\to$ `STANDARD` or `STANDARD` $\to$ `PREMIUM`) with:
+     *"A prior implementer attempted this task 3 times; you own it now. Inspect the report file for what was tried."*
+3. **Round 5 Breaker (Controller Adjudication)**:
+   - If Round 5 still leaves findings open, stop dispatching. Adjudicate each open finding:
+     - *Contestable/Wrong Reviewer*: Park it: `Task <N>: parked — <finding> — Ruling: <why code stands>`.
+     - *Real but Non-Blocking*: Park it as deferred.
+     - *Real & Load-Bearing*: Decide the smallest surgical change unblocking dependent tasks and carry the ruling forward.

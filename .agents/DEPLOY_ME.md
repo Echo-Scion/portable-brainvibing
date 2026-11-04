@@ -47,8 +47,14 @@ python .agents/scripts/orion.py setup --yes --target . --enable graph-db,second-
 # Or enable ALL Orion features at once:
 python .agents/scripts/orion.py setup --yes --target . --enable all
 
-# Direct foundation deploy CLI command:
+# Direct foundation deploy CLI command (Auto-detects Brownfield vs Greenfield):
 python .agents/scripts/orion.py foundation deploy --target /path/to/project
+
+# Greenfield Deploy with Pre-Seeded Intent & Single-Archetype DESIGN.md:
+python .agents/scripts/orion.py foundation deploy --target /path/to/project --statement "P2P offline ledger" --archetype modern-minimal
+
+# Greenfield Deploy with Interactive Terminal Q&A:
+python .agents/scripts/orion.py foundation deploy --target /path/to/project --interactive
 
 # Hydrate Constitutional Vision (Option A: Direct Creator Statement via CLI):
 python .agents/scripts/orion.py hydrate-vision --target /path/to/project --statement "P2P offline ledger with zero cloud dependencies"
@@ -112,7 +118,7 @@ For the active AI platform, create its manifest in the target project root point
 ```json
 {
   "name": "portable-brainvibing",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
   "skills": ".agents/skills"
 }
@@ -210,5 +216,5 @@ when unavailable.
 
 ---
 > [!NOTE]
-> **Version**: 0.0.5 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
+> **Version**: 0.0.6 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
 > All 18 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.

@@ -18,6 +18,8 @@ When modifying any file inside `.agents/` (e.g., adding a new rule or modifying 
    python .agents/scripts/orion.py verify_agents
    ```
 4. **Revert on Failure**: If the script returns an error (e.g., broken link, security finding, missing frontmatter), you must fix or revert the change immediately. Do not ignore the verifier output.
+5. **Trigger-Only Description Invariant (Anti-Shortcut Rule)**: A skill's `description:` YAML frontmatter MUST state *only* triggering symptoms and conditions (`"Use when..."` or `"Use before..."`). NEVER summarize the skill's procedural workflow in the frontmatter; summarizing causes agents to shortcut past reading the full `SKILL.md`.
+6. **Pressure-Scenario Evaluation (TDD for Skills)**: When authoring or revising behavior-shaping skills, test against pressure scenarios using read-only subagents: observe baseline rationalizations without the skill (RED), write minimal actionable rules addressing those exact violations (GREEN), and plug cognitive loopholes (REFACTOR).
 
 ## Ecosystem Principles
 - **The Four Anchored Pillars Mandate (Strict Prerequisites)**: All framework components, tools, and ingested skills must strictly align with the Four Anchored Pillars architecture (see `.agents/rules/four-pillars-architecture.md`):
