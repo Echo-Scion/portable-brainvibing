@@ -2,7 +2,7 @@
 activation: model_decision
 description: Decision trees for performance optimization, token usage, and Bolt-level speed enforcement.
 
-version: 0.0.5
+version: 0.0.6
 last_updated: 2026-05-20
 ---
 
@@ -79,9 +79,9 @@ REQUIRED OUTPUT FORMAT:
 
 ## 6. Keyword Surgical Loading (Token Diet)
 
-The Agent MUST NEVER read an entire file solely to locate a symbol or understanding structure.
+For files >800 lines, the Agent MUST NEVER read the entire file solely to locate a symbol or understand structure. For files <=800 lines, direct inspection via `read_file` or targeted line spans is permitted.
 
-**ALGORITHM:**
+**ALGORITHM (Files >800 Lines):**
 1. **Map First**: Run `python .agents/scripts/orion.py scan map --dir <target>` to get AST/Skeleton.
 2. **Search Second**: Run `rtk grep "<pattern>" <target>` to find exact line numbers.
 3. **Surgical Read**: When `read_file` is needed, use `StartLine` and `EndLine` to read only the target block.

@@ -18,6 +18,11 @@ import unicodedata
 import shutil
 import subprocess
 import secrets
+import shlex
+import time
+import datetime
+import urllib.request
+import urllib.error
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Set, Tuple, Union
 
@@ -163,6 +168,386 @@ def redact_data(data: Any) -> Any:
     elif isinstance(data, list):
         return [redact_data(v) for v in data]
     return data
+
+
+# ==============================================================================
+# ZERO-TRUST COMMAND GUARD (ANTI-HALLUCINATION & EXECUTION SAFETY)
+# ==============================================================================
+
+INSTALL_PATTERNS = {
+    "npm": (
+        r"\b(?:npm|pnpm)\s+(?:i|install|add)\s+(.+?)|\b(?:yarn|bun)\s+add\s+(.+)",
+        "https://registry.npmjs.org/{name}",
+    ),
+    "pypi": (
+        r"\b(?:pip3?|uv\s+pip)\s+install\s+(.+?)|\b(?:poetry|uv)\s+add\s+(.+)",
+        "https://pypi.org/pypi/{name}/json",
+    ),
+    "pub": (
+        r"\b(?:flutter|dart)\s+pub\s+add\s+(.+)",
+        "https://pub.dev/api/packages/{name}",
+    ),
+    "cargo": (
+        r"\bcargo\s+add\s+(.+)",
+        "https://crates.io/api/v1/crates/{name}",
+    ),
+}
+
+REMOTE_PIPE_RE = re.compile(
+    r"(?:curl|wget|iwr|invoke-webrequest|irm)\b[^|]*\|\s*(?:sh|bash|zsh|iex|invoke-expression|python)\b",
+    re.IGNORECASE,
+)
+
+DESTRUCTIVE_RE = re.compile(
+    r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*f?\s+(?:/|~|\*|/\*|~/\*)(?:\s|$)"
+    r"|\bremove-item\b.*-recurse.*\s(?:[a-zA-Z]:\\?|/|~)(?:\s|$)"
+    r"|\bremove-item\b.*\s(?:[a-zA-Z]:\\?|/|~).*-recurse(?:\s|$)"
+    r"|\brmdir\s+/[sS]\s+/[qQ]\s+(?:[a-zA-Z]:\\?|/)(?:\s|$)",
+    re.IGNORECASE,
+)
+
+
+def is_destructive_deletion(cmd_line: str) -> bool:
+    """Detect destructive deletion commands targeting root, home, or drive root."""
+    if DESTRUCTIVE_RE.search(cmd_line):
+        return True
+    lowered = cmd_line.strip().lower()
+    if re.search(r"\brm\b", lowered) and (re.search(r"\s-r\b", lowered) or re.search(r"\s--recursive\b", lowered)):
+        if re.search(r"\s(/|~|\*|/\*|~/\*)(\s|$)", lowered):
+            return True
+    return False
+
+
+def _normalize_pkg_name(eco: str, pkg: str) -> str:
+    """Normalize ecosystem package string to bare registry query name."""
+    pkg = pkg.strip().strip("'\"")
+    if eco == "npm":
+        if pkg.startswith("@"):
+            parts = pkg[1:].split("@", 1)
+            return "@" + parts[0]
+        return pkg.split("@", 1)[0]
+    elif eco == "pypi":
+        pkg = re.sub(r"\[.*?\]", "", pkg)
+        pkg = re.split(r"[><=~!]", pkg, maxsplit=1)[0]
+        return pkg.strip()
+    elif eco == "pub":
+        return pkg.split(":", 1)[0].strip()
+    elif eco == "cargo":
+        return pkg.split("@", 1)[0].strip()
+    return pkg
+
+
+def extract_install_targets(cmd_line: str) -> List[Tuple[str, str]]:
+    """
+    Extract (ecosystem, package_name) pairs from a package install command.
+    Skips flags, options, local paths, URLs, and requirement files.
+    """
+    try:
+        tokens = shlex.split(cmd_line)
+    except Exception:
+        tokens = cmd_line.split()
+
+    if not tokens:
+        return []
+
+    cmd_lower = [t.lower() for t in tokens]
+    eco: Optional[str] = None
+    idx = 0
+
+    if len(tokens) >= 2:
+        if cmd_lower[0] in ("npm", "pnpm") and cmd_lower[1] in ("i", "install", "add"):
+            eco = "npm"
+            idx = 2
+        elif cmd_lower[0] in ("yarn", "bun") and cmd_lower[1] == "add":
+            eco = "npm"
+            idx = 2
+        elif cmd_lower[0] in ("pip", "pip3") and cmd_lower[1] == "install":
+            eco = "pypi"
+            idx = 2
+        elif cmd_lower[0] == "uv" and cmd_lower[1] == "pip" and len(cmd_lower) >= 3 and cmd_lower[2] == "install":
+            eco = "pypi"
+            idx = 3
+        elif cmd_lower[0] in ("poetry", "uv") and cmd_lower[1] == "add":
+            eco = "pypi"
+            idx = 2
+        elif cmd_lower[0] in ("flutter", "dart") and cmd_lower[1] == "pub" and len(cmd_lower) >= 3 and cmd_lower[2] == "add":
+            eco = "pub"
+            idx = 3
+        elif cmd_lower[0] == "cargo" and cmd_lower[1] == "add":
+            eco = "cargo"
+            idx = 2
+
+    if not eco:
+        return []
+
+    skip_next = False
+    skip_value_flags = {
+        "-r", "--requirement", "-f", "--find-links", "-i", "--index-url",
+        "--extra-index-url", "--features", "-c", "--constraint",
+    }
+
+    targets: List[Tuple[str, str]] = []
+    for t in tokens[idx:]:
+        if skip_next:
+            skip_next = False
+            continue
+        if t in skip_value_flags:
+            skip_next = True
+            continue
+        if t.startswith("-"):
+            continue
+        # Local paths
+        if t == "." or t.startswith(("./", "../", ".\\", "..\\", "/", "~")):
+            continue
+        if ("/" in t or "\\" in t) and not (eco == "npm" and t.startswith("@") and t.count("/") == 1):
+            continue
+        # Remote URLs
+        if any(t.startswith(p) for p in ("http://", "https://", "git://", "git+", "ssh://")):
+            continue
+        # Static files
+        if any(t.endswith(ext) for ext in (".txt", ".tar.gz", ".whl", ".tgz", ".zip", ".json", ".yaml", ".yml")):
+            continue
+
+        norm = _normalize_pkg_name(eco, t)
+        if norm:
+            targets.append((eco, norm))
+
+    return targets
+
+
+def _parse_iso_age_days(iso_str: str) -> Optional[int]:
+    """Parse ISO 8601 string and return package age in days."""
+    try:
+        clean_ts = iso_str.strip().replace("Z", "+00:00")
+        dt = datetime.datetime.fromisoformat(clean_ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        delta_seconds = (now - dt).total_seconds()
+        return max(0, int(delta_seconds // 86400))
+    except Exception:
+        return None
+
+
+def check_registry(
+    ecosystem: str,
+    name: str,
+    cache_path: Optional[str] = None,
+    timeout: float = 2.5,
+) -> Dict[str, Any]:
+    """
+    Query official ecosystem package registry with 24h caching.
+    Returns:
+      {'exists': True, 'age_days': int}
+      {'exists': False, 'age_days': None}
+      {'exists': None, 'age_days': None, 'error': str} (offline / timeout)
+    """
+    key = f"{ecosystem}:{name}"
+    now_ts = time.time()
+    cache: Dict[str, Any] = {}
+
+    if cache_path and os.path.isfile(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+            entry = cache.get(key)
+            if isinstance(entry, dict):
+                cached_at = entry.get("cached_at", 0)
+                if now_ts - cached_at < 86400:  # 24h TTL
+                    return {"exists": entry.get("exists"), "age_days": entry.get("age_days")}
+        except Exception as _ce:
+            _log_telemetry(_ce, "security:check_registry_cache_read")
+
+    url_map = {
+        "npm": f"https://registry.npmjs.org/{name}",
+        "pypi": f"https://pypi.org/pypi/{name}/json",
+        "pub": f"https://pub.dev/api/packages/{name}",
+        "cargo": f"https://crates.io/api/v1/crates/{name}",
+    }
+    url = url_map.get(ecosystem)
+    if not url:
+        return {"exists": True, "age_days": 9999}
+
+    headers = {
+        "User-Agent": "OrionAgent/1.0 (ZeroTrustGuard; +https://github.com/agent-foundation)",
+        "Accept": "application/json",
+    }
+    req = urllib.request.Request(url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = getattr(resp, "status", 200)
+            if status == 200:
+                raw_body = resp.read().decode("utf-8", errors="replace")
+                data = json.loads(raw_body)
+                age_days: Optional[int] = None
+
+                if ecosystem == "npm":
+                    created = data.get("time", {}).get("created")
+                    if created:
+                        age_days = _parse_iso_age_days(created)
+                    else:
+                        time_dict = data.get("time", {})
+                        dates = [v for k, v in time_dict.items() if k not in ("modified", "created") and isinstance(v, str)]
+                        if dates:
+                            age_days = _parse_iso_age_days(min(dates))
+                elif ecosystem == "pypi":
+                    releases = data.get("releases", {})
+                    all_dates = [
+                        item.get("upload_time_iso_8601")
+                        for r in releases.values()
+                        if isinstance(r, list)
+                        for item in r
+                        if isinstance(item, dict) and item.get("upload_time_iso_8601")
+                    ]
+                    if all_dates:
+                        age_days = _parse_iso_age_days(min(all_dates))
+                    else:
+                        urls = data.get("urls", [])
+                        url_dates = [u.get("upload_time_iso_8601") for u in urls if isinstance(u, dict) and u.get("upload_time_iso_8601")]
+                        if url_dates:
+                            age_days = _parse_iso_age_days(min(url_dates))
+                elif ecosystem == "pub":
+                    versions = data.get("versions", [])
+                    pub_dates = [v.get("published") for v in versions if isinstance(v, dict) and v.get("published")]
+                    if pub_dates:
+                        age_days = _parse_iso_age_days(min(pub_dates))
+                    else:
+                        latest_pub = data.get("latest", {}).get("published")
+                        if latest_pub:
+                            age_days = _parse_iso_age_days(latest_pub)
+                elif ecosystem == "cargo":
+                    created = data.get("crate", {}).get("created_at")
+                    if created:
+                        age_days = _parse_iso_age_days(created)
+
+                result = {"exists": True, "age_days": age_days}
+                if cache_path:
+                    try:
+                        cache[key] = {
+                            "exists": True,
+                            "age_days": age_days,
+                            "cached_at": now_ts,
+                        }
+                        atomic_write_text(cache_path, json.dumps(cache, indent=2))
+                    except Exception as _cwe:
+                        _log_telemetry(_cwe, "security:check_registry_cache_write")
+                return result
+
+    except urllib.error.HTTPError as he:
+        if he.code == 404:
+            result = {"exists": False, "age_days": None}
+            if cache_path:
+                try:
+                    cache[key] = {
+                        "exists": False,
+                        "age_days": None,
+                        "cached_at": now_ts,
+                    }
+                    atomic_write_text(cache_path, json.dumps(cache, indent=2))
+                except Exception as _cwe:
+                    _log_telemetry(_cwe, "security:check_registry_cache_write_404")
+            return result
+        return {"exists": None, "age_days": None, "error": f"HTTP {he.code}"}
+    except Exception as e:
+        return {"exists": None, "age_days": None, "error": str(e)}
+
+    return {"exists": None, "age_days": None, "error": "unknown"}
+
+
+def evaluate_command_guard(cmd_line: str, workspace_dir: Optional[str] = None) -> Tuple[str, str]:
+    """
+    Evaluates shell command line against Zero-Trust security rules.
+    Returns (decision, reason):
+      - ('block', reason)
+      - ('warn', reason)
+      - ('allow', reason)
+    """
+    if not cmd_line or not cmd_line.strip():
+        return ("allow", "Empty command line.")
+
+    # 1. GUARD-RCE-01: Remote script piped directly into shell execution
+    if REMOTE_PIPE_RE.search(cmd_line):
+        return (
+            "block",
+            "GUARD-RCE-01: Remote script piped directly into shell execution "
+            "(curl/wget/iwr/irm | sh/bash/iex/python). Potential remote code execution."
+        )
+
+    # 2. GUARD-DEL-01: Destructive recursive deletion targeting root, home, or drive root
+    if is_destructive_deletion(cmd_line):
+        return (
+            "block",
+            "GUARD-DEL-01: Destructive recursive deletion targeting root, home, or drive root."
+        )
+
+    # 3. ANTI-HANG GUARD: Empty regex pattern in rg/grep/findstr
+    if any(cmd_line.strip().startswith(s) or f" {s}" in cmd_line for s in ("rg ", "grep ", "findstr ")):
+        if re.search(r'\b(rg|grep|findstr)\b.*(?:\s["\']\s*["\'])(?:\s|$)', cmd_line):
+            return (
+                "block",
+                "[ANTI-HANG GUARD]: Empty pattern (\"\" or '') in rg/grep/findstr causes infinite stdin wait "
+                "in background IDE processes. Use a non-empty regex like '.' or specific pattern instead."
+            )
+
+    # 4. Package Hallucination / Slopsquatting: GUARD-PKG-404 and GUARD-PKG-NEW
+    targets = extract_install_targets(cmd_line)
+    if targets:
+        cache_path = os.path.join(workspace_dir, ".orion", "working", "registry_cache.json") if workspace_dir else None
+        for eco, pkg in targets:
+            info = check_registry(eco, pkg, cache_path=cache_path)
+            if info.get("exists") is False:
+                return (
+                    "block",
+                    f"GUARD-PKG-404: Package '{pkg}' not found on {eco} registry. "
+                    "Blocked potential AI hallucination / slopsquatting risk."
+                )
+            elif info.get("exists") is True:
+                age = info.get("age_days")
+                if age is not None and age < 14:
+                    return (
+                        "block",
+                        f"GUARD-PKG-NEW: Package '{pkg}' on {eco} was first published {age}d ago "
+                        "(<14d threshold). Potential slopsquatting / brand-new package risk."
+                    )
+            elif info.get("exists") is None:
+                err = info.get("error", "unreachable")
+                return (
+                    "warn",
+                    f"GUARD-PKG-NET: Registry lookup failed for '{pkg}' on {eco} ({err}). "
+                    "Proceeding without validation (fail-open)."
+                )
+        return ("allow", "All requested packages verified on official registries.")
+
+    # 5. GUARD-LOCK-01: Non-hermetic install when lockfile exists
+    if workspace_dir:
+        cmd_lower = cmd_line.strip().lower()
+        if re.search(r"^\s*(?:npm|pnpm)\s+(?:install|i)(?:\s+-[a-zA-Z0-9_-]+)*\s*$", cmd_lower):
+            if os.path.exists(os.path.join(workspace_dir, "package-lock.json")):
+                return (
+                    "warn",
+                    "GUARD-LOCK-01: Lockfile detected (package-lock.json). Prefer hermetic 'npm ci' "
+                    "instead of 'npm install' to ensure reproducible dependency resolution."
+                )
+            if os.path.exists(os.path.join(workspace_dir, "pnpm-lock.yaml")):
+                return (
+                    "warn",
+                    "GUARD-LOCK-01: Lockfile detected (pnpm-lock.yaml). Prefer hermetic 'pnpm install --frozen-lockfile'."
+                )
+        elif re.search(r"^\s*yarn(?:\s+install)?(?:\s+-[a-zA-Z0-9_-]+)*\s*$", cmd_lower):
+            if os.path.exists(os.path.join(workspace_dir, "yarn.lock")):
+                return (
+                    "warn",
+                    "GUARD-LOCK-01: Lockfile detected (yarn.lock). Prefer hermetic 'yarn install --immutable'."
+                )
+        elif re.search(r"^\s*(?:flutter|dart)\s+pub\s+get(?:\s+-[a-zA-Z0-9_-]+)*\s*$", cmd_lower):
+            if os.path.exists(os.path.join(workspace_dir, "pubspec.lock")):
+                return (
+                    "warn",
+                    "GUARD-LOCK-01: Lockfile detected (pubspec.lock). Prefer 'dart pub get --enforce-lockfile'."
+                )
+
+    return ("allow", "Command passed zero-trust checks.")
 
 
 DANGEROUS_IMPORTS = {'pty', 'winreg', 'ctypes'}

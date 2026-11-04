@@ -1,16 +1,15 @@
 <div align="center">
 
-# 🧠 Portable Brainvibing (`.agents`)
+# 🧠 Portable Brainvibing: Flexible. Memory. Orchestration.
 
-### Turnkey Auto-Vibe Coding Brain & Cognitive Runtime for Autonomous AI Agents
+### Adapt across any environment, retain zero-loss memory, and orchestrate deterministic AI agents.
 
 <p align="center">
-  <b>Turn probabilistic coding AIs into deterministic, self-verifying software engineers.</b><br>
-  Deploy across separate workspace-level brain, local, zero-pip, zero runtime.
+  A sovereign agent runtime with a zero-pip Python stdlib floor and opt-in local accelerators (Rust, Ollama, Bun) that leverages SQLite FTS5 graph memory and Living DNA to execute deterministic, self-verifying, evolving agent workflows.
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.5-blue.svg?style=flat-square" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.6-blue.svg?style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/core-Python%203.10%2B%20Stdlib-brightgreen.svg?style=flat-square" alt="Core"></a>
   <a href="#-the-four-anchored-pillars"><img src="https://img.shields.io/badge/database-SQLite3%20WAL-informational.svg?style=flat-square" alt="Database"></a>
@@ -62,9 +61,9 @@ Every subsystem addresses a systemic failure mode of autonomous AI coding throug
 * **How it Works**: Automatically discovers sibling project repositories across a workspace portfolio (the `Constellation` spoke mesh). Tracks individual project health scorecards, validates cross-project architectural boundaries, syncs shared standards without coupling git trees, and projects a unified second-brain knowledge mesh into interoperable Obsidian vaults.
 * 📖 *Deep Dive: [.agents/docs/03-local_rag_brain.md](.agents/docs/03-local_rag_brain.md)*
 
-### 3. 🧭 Master BIOS, JIT Router & Communication Protocols (`AGENTS.md`, `rules/`, `lessword`)
+### 3. 🧭 Master BIOS, JIT Router & Communication Protocols (`AGENTS.md`, `rules/`, `cost-optimizer` / `lessword`)
 * **Problem**: Massive static system prompts trigger "Lost in the Middle" attention degradation, models waste 60%–80% of their output tokens on polite filler and bureaucratic hedging, and behavior diverges wildly across fragmented AI IDEs (Antigravity, Cursor, Claude Code, VS Code).
-* **How it Works**: Anchors autonomous behavior in a single Master BIOS (`AGENTS.md`) with a 33-row Just-In-Time (JIT) knowledge router that loads targeted procedural runbooks on Turn 1 and deploys lightweight pointer adapters (`GEMINI.md`, `CLAUDE.md`) across 19 supported AI coding hosts. Enforces the Lessword communication protocol (ASD-STE100 concise engineering English cutting token bloat by ~75%) and mandates a deterministic 4-line Response Footer with explicit model tier recommendations.
+* **How it Works**: Anchors autonomous behavior in a single Master BIOS (`AGENTS.md`) with a 33-row Just-In-Time (JIT) knowledge router featuring bilingual (ID/EN) intent normalization, child reference routing, and active hook surfacing that loads targeted procedural runbooks on Turn 1 and deploys lightweight pointer adapters (`GEMINI.md`, `CLAUDE.md`) across 19 supported AI coding hosts. Enforces the Lessword communication protocol (ASD-STE100 concise engineering English cutting token bloat by ~75%) and mandates a deterministic 4-line Response Footer with explicit model tier recommendations.
 * 📖 *Deep Dive: [.agents/docs/04-rule_library___rules.md](.agents/docs/04-rule_library___rules.md)*
 
 ### 4. 🧬 Living Architectural DNA & Dynamic SemVer (`core/dna.py`)
@@ -195,38 +194,41 @@ python .agents/scripts/orion.py foundation push-upstream --project <project_path
 <a id="-unified-command--agent-prompt-reference"></a>
 ## 💻 Unified Command & Agent Prompt Reference
 
-You can either run commands directly via the unified `orion.py` CLI or copy-paste natural language prompts directly into your AI coding assistant (Antigravity, Claude Code, Cursor, Copilot, Gemini CLI):
+You can either run commands directly via the unified `orion.py` CLI or copy-paste natural language prompts directly into your AI coding assistant (Antigravity, Claude Code, Cursor, Copilot, Gemini CLI), organized in chronological order from initial deployment to final release and offload:
 
-| Domain / Intent | Say This in Chat (AI Prompt) | CLI Command (`orion.py`) |
+| Scenario / Lifecycle Stage | What to Tell AI (Chat Prompt) | CLI Command (`orion.py`) |
 | :--- | :--- | :--- |
-| **New Project Setup** | `"Setup .agents for this new project and start in draft mode"` | `python .agents/scripts/orion.py setup --inspect` |
-| **Brownfield Onboarding** | `"Scan my existing codebase, harvest our theme tokens, and setup .agents"` | `python .agents/scripts/orion.py setup` |
+| **Deploy to Downstream Spoke** | `"Deploy complete foundation engine to downstream target repository"` | `python .agents/scripts/orion.py deploy --target <dir>` |
 | **Health & 4 Pillars Audit** | `"Check .agents health, active pillars, and environment status"` | `python .agents/scripts/orion.py doctor` |
-| **Mechanical Repository Audit** | `"Run the 8-gate mechanical, ceiling, and portability audit"` | `python .agents/scripts/orion.py verify` |
+| **New Project Setup** | `"Setup .agents for this new project and start in draft mode"` | `python .agents/scripts/orion.py setup --inspect` |
+| **Brownfield Codebase Onboarding** | `"Scan my existing codebase, harvest our theme tokens, and setup .agents"` | `python .agents/scripts/orion.py setup` |
+| **AI Host Adapters Sync** | `"Generate thin GEMINI.md and CLAUDE.md adapters linked to AGENTS.md"` | `python .agents/scripts/orion.py sync-ai --target . --ai gemini,claude` |
+| **Workspace & GraphRAG Hydration** | `"Synchronize and hydrate all rules, context, and vector embeddings"` | `python .agents/scripts/orion.py brain hydrate --all` |
+| **Cognitive Memory & RAG Search** | `"Sync memory knowledge graph for auth token flow using hybrid RAG"` | `python .agents/scripts/orion.py brain sync "auth token flow"` |
+| **Design Archetype Selection** | `"Lock our design archetype to Dark Industrial and flatten DESIGN.md"` | `python .agents/scripts/orion.py design select dark-industrial` |
+| **Design Token Harvesting** | `"Harvest theme tokens from our code and tell me the inferred archetype"` | `python .agents/scripts/orion.py design infer` |
 | **Project DNA Architecture Audit** | `"Audit our project DNA to verify 5-tier architecture layer boundaries"` | `python .agents/scripts/orion.py dna audit` |
-| **Dynamic Polyglot SemVer** | `"Calculate SemVer impact across 5-tier strata and bump manifests"` | `python .agents/scripts/orion.py dna bump --auto` |
-| **Bento Task Slicing** | `"Slice implementation plan into topological tasks and emit active card"` | `python .agents/scripts/orion.py bento init plan.md` |
-| **Bento Step & Gate Verification** | `"Verify disk mutation, run verification gate, and step to next task"` | `python .agents/scripts/orion.py bento next --verify` |
 | **AST Skeleton & Line Mapping** | `"Extract AST skeletons and symbol line spans to inspect without paging"` | `python .agents/scripts/orion.py scan map src/` |
 | **PageRank Repo Map** | `"Generate PageRank-ranked core symbols within a 1500-token budget"` | `python .agents/scripts/orion.py repomap --budget 1500` |
 | **Token Consumption Audit** | `"Audit repository files to find the largest token-consuming files"` | `python .agents/scripts/orion.py scan tokens` |
-| **Cognitive Memory & RAG Search** | `"Sync memory knowledge graph for auth token flow using hybrid RAG"` | `python .agents/scripts/orion.py brain sync "auth token flow"` |
+| **Bento Task Slicing** | `"Slice implementation plan into topological tasks and emit active card"` | `python .agents/scripts/orion.py bento init plan.md` |
+| **Bento Step & Gate Verification** | `"Verify disk mutation, run verification gate, and step to next task"` | `python .agents/scripts/orion.py bento next --verify` |
+| **Mechanical Repository Audit** | `"Run the 8-gate mechanical, ceiling, and portability audit"` | `python .agents/scripts/orion.py verify` |
+| **UI Aesthetics & Anti-Slop Audit** | `"Audit UI tokens, 8pt spatial grid, and prose anti-slop rules"` | `python .agents/scripts/orion.py eval --dir src/` |
+| **AST Security & Secret Scan** | `"Scan codebase for AST vulnerabilities, secrets, and Trojan Unicode"` | `python .agents/scripts/orion.py scan security .` |
+| **Delta Mutation Testing** | `"Run delta-scoped AST mutation testing against our recent git diff"` | `python .agents/scripts/orion.py adversarial mutate <f> --diff` |
+| **Context Bundling for Web Audits** | `"Pack codebase into at most 10 balanced Markdown bundles for web review"` | `python .agents/scripts/orion.py pack [arch|hybrid|full|pr]` |
+| **Habit & Friction Observation** | `"Record developer friction or recurring bug pattern in observations"` | `python .agents/scripts/orion.py observe "fix" --target rules` |
 | **Expand Anchor Recall** | `"Expand raw recall turns behind memory anchor O1"` | `python .agents/scripts/orion.py brain recall O1` |
 | **Generational Memory Rollover** | `"Trigger zero-LLM generational memory rollover with Shannon surprisal"` | `python .agents/scripts/orion.py brain rollover` |
 | **Obsidian Vault Export** | `"Export our local second-brain knowledge graph to Obsidian vault format"` | `python .agents/scripts/orion.py brain export-vault` |
 | **Portfolio Mesh Discovery** | `"Discover sibling repositories across the portfolio and audit scorecards"` | `python .agents/scripts/orion.py constellation status` |
 | **Portfolio Knowledge Sync** | `"Export cross-project portfolio knowledge mesh across sibling repositories"` | `python .agents/scripts/orion.py constellation sync` |
-| **Habit & Friction Observation** | `"Record developer friction or recurring bug pattern in observations"` | `python .agents/scripts/orion.py observe "fix" --target rules` |
-| **Temporal Session Synthesis** | `"Run Temporal Pulse session synthesis and mine recurring habits"` | `python .agents/scripts/orion.py consolidate session` |
-| **Design Archetype Selection** | `"Lock our design archetype to Dark Industrial and flatten DESIGN.md"` | `python .agents/scripts/orion.py design select dark-industrial` |
-| **Design Token Harvesting** | `"Harvest theme tokens from our code and tell me the inferred archetype"` | `python .agents/scripts/orion.py design infer` |
-| **UI Aesthetics & Anti-Slop Audit** | `"Audit UI tokens, 8pt spatial grid, and prose anti-slop rules"` | `python .agents/scripts/orion.py eval --dir src/` |
-| **AST Security & Secret Scan** | `"Scan codebase for AST vulnerabilities, secrets, and Trojan Unicode"` | `python .agents/scripts/orion.py scan security .` |
-| **Delta Mutation Testing** | `"Run delta-scoped AST mutation testing against our recent git diff"` | `python .agents/scripts/orion.py adversarial mutate <f> --diff` |
-| **Context Bundling for Web Audits** | `"Pack codebase into at most 10 balanced Markdown bundles for web review"` | `python .agents/scripts/orion.py pack [arch|hybrid|full|pr]` |
-| **AI Host Adapters Sync** | `"Generate thin GEMINI.md and CLAUDE.md adapters linked to AGENTS.md"` | `python .agents/scripts/orion.py sync-ai --target . --ai gemini,claude` |
 | **Safe Upstream Upgrade** | `"Surgically upgrade .agents from upstream while shielding sovereign state"` | `python .agents/scripts/orion.py upgrade` |
-| **Deploy to Downstream Spoke** | `"Deploy complete foundation engine to downstream target repository"` | `python .agents/scripts/orion.py deploy --target <dir>` |
+| **Dynamic Polyglot SemVer** | `"Calculate SemVer impact across 5-tier strata and bump manifests"` | `python .agents/scripts/orion.py dna bump --auto` |
+| **Pre-Push 5-Gate Verification** | `"Verify all 5 pre-push gates before pushing to remote repository"` | `python .agents/scripts/orion.py push` |
+| **Temporal Session Synthesis** | `"Run Temporal Pulse session synthesis and mine recurring habits"` | `python .agents/scripts/orion.py consolidate session` |
+| **Session Offload & Context Flush** | `"Clean scratchpads, audit changelog, commit, and write session handoff"` | `/session-offload` |
 
 ---
 
@@ -234,7 +236,7 @@ You can either run commands directly via the unified `orion.py` CLI or copy-past
 
 `.agents` is architected with a strict **100% Zero-Pip Floor Sovereignty** invariant (pure Python 3.10+ stdlib & SQLite3 WAL), drawing conceptual inspiration and optional execution acceleration from outstanding open-source projects:
 
-* **Conceptual Inspirations**: [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (CLI proxy noise filtering), [caveman](https://github.com/Echo-Scion/caveman) (high-density communication evolved into `lessword`), [ast-grep](https://github.com/ast-grep/ast-grep) (structural CST search), [paul-gauthier/aider](https://github.com/paul-gauthier/aider) (PageRank repo-map packing), [microsoft/graphrag](https://github.com/microsoft/graphrag) & [graphify](https://github.com/Echo-Scion/graphify) (community clustering + entity graph retrieval), [Obsidian](https://obsidian.md) (wikilink graph interoperability), [The Component Gallery](https://component.gallery/) (canonical UI component taxonomy by Iain Bean), and Google DeepMind AutoHarness (deterministic action-verification gates).
+* **Conceptual Inspirations**: [rtk-ai/rtk](https://github.com/rtk-ai/rtk) (CLI proxy noise filtering), [caveman](https://github.com/Echo-Scion/caveman) (high-density communication evolved into the Lessword protocol in `cost-optimizer`), [ast-grep](https://github.com/ast-grep/ast-grep) (structural CST search), [paul-gauthier/aider](https://github.com/paul-gauthier/aider) (PageRank repo-map packing), [microsoft/graphrag](https://github.com/microsoft/graphrag) & [graphify](https://github.com/Echo-Scion/graphify) (community clustering + entity graph retrieval), [Obsidian](https://obsidian.md) (wikilink graph interoperability), [The Component Gallery](https://component.gallery/) (canonical UI component taxonomy by Iain Bean), and Google DeepMind AutoHarness (deterministic action-verification gates).
 * **Anchored Pillars & Accelerators**:
   - **Pillar 2 (Rust)**: [rtk](https://github.com/rtk-ai/rtk) (CLI proxy), [ast-grep](https://github.com/ast-grep/ast-grep) (structural search), [difftastic](https://github.com/Wilfred/difftastic) (syntax diffing), [gitleaks](https://github.com/gitleaks/gitleaks) (secret scanning), and [jujutsu (`jj`)](https://github.com/martinvonz/jj) (anonymous working-copy VCS).
   - **Pillar 3 (Local)**: [Ollama](https://github.com/ollama/ollama) and [llama.cpp](https://github.com/ggerganov/llama.cpp) (local neural coprocessing and background embeddings).

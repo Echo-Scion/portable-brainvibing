@@ -6,7 +6,7 @@ import re
 import math
 import argparse
 from collections import defaultdict, Counter
-from typing import Dict, List, Set, Tuple, Any, Optional
+from typing import Dict, List, Set, FrozenSet, Tuple, Any, Optional
 
 _scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _scripts_dir not in sys.path:
@@ -409,6 +409,7 @@ class OrionGraphStore:
         node_community_mapping = {i: i for i in range(N)}
         level = 0
         best_modularity = -1.0
+        recorded_signatures: Set[FrozenSet[str]] = set()
 
         while True:
             # Phase 1: Local modularity optimization on current level graph
@@ -432,7 +433,7 @@ class OrionGraphStore:
 
             # Save this hierarchy level
             final_name_to_cluster = {idx_to_node[i]: node_community_mapping[i] for i in range(N)}
-            self._record_communities_level(level, final_name_to_cluster, entities, entity_types, relation_rows, mod_q)
+            self._record_communities_level(level, final_name_to_cluster, entities, entity_types, relation_rows, mod_q, recorded_signatures)
             best_modularity = max(best_modularity, mod_q)
 
             if len(unique_communities) == 1:
@@ -561,10 +562,17 @@ class OrionGraphStore:
         entities: List[str],
         entity_types: Dict[str, str],
         relation_rows: List[sqlite3.Row],
-        modularity_q: float
+        modularity_q: float,
+        recorded_signatures: Optional[Set[FrozenSet[str]]] = None
     ) -> None:
         """Saves community clustering results and generates macro summaries into SQLite & FTS5."""
         cur = self.conn.cursor()
+
+        # Compute degree centrality across relations for ranking representative hub entities
+        node_degrees: Counter = Counter()
+        for r in relation_rows:
+            node_degrees[r["subject_id"]] += 1
+            node_degrees[r["object_id"]] += 1
 
         # Group entities by cluster_id
         clusters: Dict[int, List[str]] = defaultdict(list)
@@ -585,13 +593,27 @@ class OrionGraphStore:
         member_records: List[Tuple[int, str]] = []
         for cid, members in clusters.items():
             size = len(members)
+            # Skip trivial micro-communities (< 3 nodes) to eliminate macro FTS noise
+            if size < 3:
+                continue
+
+            # Deduplicate identical cluster member signatures across hierarchy levels
+            sig = frozenset(members)
+            if recorded_signatures is not None:
+                if sig in recorded_signatures:
+                    continue
+                recorded_signatures.add(sig)
+
             types = [entity_types.get(m, "unknown") for m in members]
             type_counts = Counter(types)
             dominant_type = type_counts.most_common(1)[0][0] if type_counts else "general"
 
             intra_relations = intra_by_cluster.get(cid, [])
             rel_str = "; ".join(intra_relations) if intra_relations else "co-located module elements"
-            top_entities = members[:6]
+
+            # Degree-centrality ordering: list most connected architectural hub entities first
+            ranked_members = sorted(members, key=lambda m: (node_degrees[m], len(m)), reverse=True)
+            top_entities = ranked_members[:6]
             summary = (
                 f"Community #{cid} (Level {level}, {size} members, dominant: {dominant_type}). "
                 f"Core entities: {', '.join(top_entities)}. Relationships: {rel_str}."
@@ -856,6 +878,140 @@ class OrionGraphStore:
             "community": dict(comm_row) if comm_row else None,
             "relations": edges,
         }
+
+    def personalized_pagerank(
+        self,
+        seed_entities: List[str],
+        damping: float = 0.85,
+        iterations: int = 6,
+        top_k: int = 8,
+        max_subgraph_edges: int = 300
+    ) -> List[Dict[str, Any]]:
+        """
+        Executes Personalized PageRank (Spreading Activation) over knowledge graph relations.
+        Implements HippoRAG pattern: seeds probability mass on initial BM25/Vector entity matches,
+        propagates relevance along semantic relation edges with predicate-specific damping weights,
+        and returns multi-hop related architectural entities.
+        Zero external pip dependencies (Pure-Python power iteration).
+        """
+        if not seed_entities:
+            return []
+
+        clean_seeds = [s.strip() for s in seed_entities if s and s.strip()]
+        if not clean_seeds:
+            return []
+
+        cur = self.conn.cursor()
+
+        # Step 1: Collect 1-hop edges originating or targeting seeds
+        placeholders = ",".join("?" for _ in clean_seeds)
+        cur.execute(f"""
+            SELECT subject_id, predicate, object_id, weight, source_path
+            FROM relations
+            WHERE subject_id IN ({placeholders}) OR object_id IN ({placeholders})
+            ORDER BY weight DESC
+            LIMIT ?
+        """, clean_seeds + clean_seeds + [max_subgraph_edges // 2])
+        hop1_rows = cur.fetchall()
+
+        discovered_nodes = set(clean_seeds)
+        for r in hop1_rows:
+            discovered_nodes.add(r["subject_id"])
+            discovered_nodes.add(r["object_id"])
+
+        # Fetch 2-hop boundary edges
+        hop2_placeholders = ",".join("?" for _ in discovered_nodes)
+        cur.execute(f"""
+            SELECT subject_id, predicate, object_id, weight, source_path
+            FROM relations
+            WHERE subject_id IN ({hop2_placeholders}) OR object_id IN ({hop2_placeholders})
+            ORDER BY weight DESC
+            LIMIT ?
+        """, list(discovered_nodes) + list(discovered_nodes) + [max_subgraph_edges])
+        all_edge_rows = cur.fetchall()
+
+        if not all_edge_rows:
+            return []
+
+        # Architectural predicates receive higher spreading activation weights
+        ARCH_PREDICATES = {
+            "governed_by", "implements", "enforces", "imports", "calls",
+            "depends_on", "supersedes", "routes_to", "executes", "inherits"
+        }
+        STRUCT_PREDICATES = {"has_section", "mentions"}
+
+        adj: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        nodes: Set[str] = set()
+
+        for r in all_edge_rows:
+            u, pred, v, w = r["subject_id"], (r["predicate"] or "").lower(), r["object_id"], float(r["weight"] or 1.0)
+            if u == v:
+                continue
+            if pred in ARCH_PREDICATES:
+                edge_w = w * 1.5
+            elif pred in STRUCT_PREDICATES:
+                edge_w = w * 0.25
+            else:
+                edge_w = w * 1.0
+
+            adj[u][v] += edge_w
+            adj[v][u] += edge_w * 0.5
+            nodes.add(u)
+            nodes.add(v)
+
+        if not nodes:
+            return []
+
+        # Step 2: Initialize restart vector p0
+        matched_seeds = [s for s in clean_seeds if s in nodes]
+        if not matched_seeds:
+            lower_nodes = {n.lower(): n for n in nodes}
+            for s in clean_seeds:
+                if s.lower() in lower_nodes:
+                    matched_seeds.append(lower_nodes[s.lower()])
+
+        if not matched_seeds:
+            return []
+
+        p0_weight = 1.0 / len(matched_seeds)
+        p0 = {n: (p0_weight if n in matched_seeds else 0.0) for n in nodes}
+        p = dict(p0)
+
+        out_degree = {u: sum(adj[u].values()) for u in nodes}
+
+        # Step 3: Power Iteration
+        for _ in range(iterations):
+            p_next = {n: (1.0 - damping) * p0[n] for n in nodes}
+            for u in nodes:
+                p_u = p[u]
+                deg_u = out_degree[u]
+                if deg_u > 0:
+                    transfer = damping * p_u / deg_u
+                    for v, w in adj[u].items():
+                        p_next[v] += transfer * w
+            p = p_next
+
+        # Step 4: Rank nodes by score, excluding original seeds from results
+        seed_lower = {s.lower() for s in clean_seeds}
+        ranked = [
+            (node, score) for node, score in p.items()
+            if node.lower() not in seed_lower and not node.startswith("#")
+        ]
+        ranked.sort(key=lambda x: x[1], reverse=True)
+
+        results = []
+        for node, score in ranked[:top_k]:
+            best_seed = None
+            for s in matched_seeds:
+                if s in adj[node]:
+                    best_seed = s
+                    break
+            results.append({
+                "entity": node,
+                "ppr_score": round(score, 6),
+                "seed_connection": best_seed,
+            })
+        return results
 
     def get_stats(self) -> Dict[str, int]:
         """Returns entity, relation, and community counts."""

@@ -10,8 +10,8 @@ activation: model_decision
 > **MICRO-CANON MANDATE (BUDGET MODELS)**
 > If you are operating on a strict token budget, rely on this 30-second cheat sheet.
 > - **Format**: `<type>(<scope>): <subject>` (feat, fix, refactor, perf, test, docs, chore, ci)
-> - **Branching**: `develop` (integration), `feat/*`, `fix/*`. PR to `develop`.
-> - **Pre-Commit Checks**: Run tests & lint (`flutter test`, `dart analyze`, `npm test`).
+> - **Dual-Loop Git**: Micro-commits for local step safety (Inner Loop); Trunk release discipline on `main` (Outer Loop).
+> - **Pre-Commit Checks**: Run tests & lint (`flutter test`, `dart analyze`, `python .agents/scripts/orion.py verify_agents`).
 > - **Destructive Commands**: (`git reset --hard`, `git push --force`) require explicit mechanical IDE feedback block.
 > - **Bypass Git**: If the project is not a git repository (e.g., no `.git` folder), skip all git commands to prevent `not a git repository` errors.
 
@@ -31,6 +31,11 @@ activation: model_decision
   - Never include AI chatbot attributions ("Generated with AI", "Prompted by user").
   - Never restate file names if `<scope>` already specifies them.
 
+### 1.1. Release Commits (Trunk Discipline Invariant)
+When committing or squashing a release milestone on `main` (e.g. `chore(release): ...`), the commit message MUST NOT be an opaque generic stub like `chore(release): sync foundation vX.Y.Z`.
+- **Thematic Macro Summary**: The commit message MUST summarize the core breakthroughs and deliverables of that version from `CHANGELOG.md` in 1 cohesive, high-signal sentence (e.g. `chore(release): v0.0.6 - HippoRAG GraphRAG engine, zero-trust command guard, Dual-Loop Git, and BIOS rules rationalization`).
+- **Release Exemption to 72-Char Cap**: Release commit messages are explicitly exempt from the 72-character ceiling so that the version's macro deliverables can be stated clearly in a single sentence.
+
 ## 1.5. Changelog Integrity & Public Neutrality
 `CHANGELOG.md` is a public, user-facing document adhering to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Public-Facing Perspective**: Write for external developers and end-users, describing observable features, CLI options, public APIs, performance metrics, and bug fixes.
@@ -44,15 +49,18 @@ The **Agentic Framework Engine** (`.agents`, `orion.py`, `gemini-extension.json`
 - **Greenfield Invariant**: An uninitiated project (lacking application manifests) is strictly `0.0.0 (Uninitiated / Greenfield)`. Agents MUST NOT synthesize a `VERSION` file or stamp a release header onto greenfield directories.
 - **Pre-Release Invariant**: In-development alpha/beta projects (`ROADMAP.md` phase milestones or 0 git release tags) MUST keep session deliverables under `## [Unreleased]`. Never stamp production release tags without explicit human command.
 
-## 2. Branching Strategy & Lifecycle
-- `main`: Production-ready code (never commit directly).
-- `develop`: Integration branch for features.
-- `feat/<ticket-id>-short-description`: New features.
-- `fix/<ticket-id>-short-description`: Bug fixes.
+## 2. Dual-Loop Git Strategy: Micro-Commits & Trunk Discipline
+Both **Micro-Commits** and **Trunk Discipline** are essential and operate together:
 
-**Lifecycle**: Branch from `develop`. Rebase `develop` into your branch frequently. Open PR to `develop`. Squash WIP commits (`git rebase -i HEAD~N`) before merge.
+- **Inner Loop (Active Local Development & Save-Points)**:
+  - Commit immediately after every successful, significant sub-step, green test, or logic addition.
+  - Granular micro-commits prevent context-drop regressions and enable safe rollback of isolated sub-steps.
+- **Outer Loop (Trunk Release Discipline & Public History)**:
+  - On single-branch trunk repositories (`main`), maintain `1 Release Version = 1 Commit` on `origin/main`.
+  - When preparing a release milestone, squash development micro-commits (`git rebase -i` or `/internal` release squash) while preserving local history in `backup-local`.
+  - When working on multi-branch teams with integration branches (`develop`), open PRs to `develop` and squash WIP commits before final merge.
 
-**Hotfix Protocol**: Branch from `main`. After fix, PR to `main` AND cherry-pick to `develop`. Tag the release (`vX.Y.Z`).
+**Hotfix Protocol**: Branch from `main`. Verify with tests, then commit/squash to `main` with release tag (`vX.Y.Z`).
 
 ## 3. Worktree Isolation & Branch Finishing Lifecycle
 - **Worktree Sandboxing**: For parallel sub-tasks or complex feature implementations, isolate the workspace:
@@ -74,9 +82,9 @@ The **Agentic Framework Engine** (`.agents`, `orion.py`, `gemini-extension.json`
      Never leave orphaned worktree directories on disk.
 
 ## 4. The "Save Point" Protocol (Micro-Commits)
-- **Rule**: Treat Git commits like save points in a game. **Do not wait for a task to be "done" before committing.**
-- **Why**: Context windows drop details. Re-reading a file later can cause the AI to accidentally revert previous changes due to state misinterpretation.
-- **Action**: Commit immediately after *every* successful, significant sub-step or logic addition. If the task is complex, you MUST create multiple small commits.
+- **Rule**: Treat Git commits like save points in a game during local development. **Do not wait for an entire complex task to be "done" before saving state.**
+- **Why**: LLM context windows drop details. Re-reading a file later can cause the AI to accidentally revert previous changes due to state misinterpretation.
+- **Action**: Commit immediately after *every* successful, significant sub-step, green test, or logic addition locally. If the task is complex, you MUST create multiple small local commits. At release or push time, squash these into a clean atomic release commit to preserve Trunk Discipline.
 
 ## 5. Security & Verification
 - **Drift Radar**: Execute `python .agents/scripts/orion.py verify_agents` before finalizing any commit modifying core logic to ensure AST sync.
@@ -105,22 +113,19 @@ If the Harness rejects the action, categorize the rejection reason before trying
 - *System/Architecture Error*: (Violating RLS, Security Boundary) ➔ **High Risk Trigger**.
 
 ## 5. Storage
-Store reusable and generic harnesses in `.agents/canons/global/harnesses/` so other agents can reuse them across sessions.
+Store reusable and generic harnesses in `.agents/canons/global/harnesses/` when created for complex repetitive migrations.
 
-## 6. Mandatory Activation Triggers
-Action-Harness verification is REQUIRED when any of the following is true:
-
+## 6. Verification Triggers
+Rigorous verification (via `orion.py verify --fast`, language linters, or deterministic scripts) is REQUIRED when:
 - Operation can delete, overwrite, or migrate persistent state.
-- Action depends on strict syntax/format constraints (YAML, JSON, schema, migrations).
-- Previous attempt failed more than once for the same operation class.
-
-If a trigger is present and no harness is used, the action must be blocked.
+- Action modifies schemas, configurations, or structured manifests (YAML, JSON, SQLite migrations).
+- A previous attempt failed more than once for the same operation class.
 
 ## 8. Zero-Error Tooling Execution (Anti-CLI-Crash & AST Precision)
 
-- **No Raw CLI Patching**: You are **STRICTLY FORBIDDEN** from modifying files via terminal/CLI commands with manual string replacements (e.g., `python -c`, `sed`, `awk`).
-- **Native IDE Tooling**: The Agent MUST delegate file modifications to native IDE file-editing tools (`edit_file`).
-- **Scratch Buffer**: For complex non-editing scripts, the Agent MUST write the code to `<appDataDir>/brain/<conversation-id>/scratch/` via native `write_file` before executing it.
+- **Native IDE Tooling First**: The Agent MUST delegate file modifications to native IDE file-editing tools (`edit_file`, `write_file`) as the primary default.
+- **No Raw CLI String Replacement**: You are **STRICTLY FORBIDDEN** from modifying files via terminal/CLI commands with manual string replacements (e.g., `python -c`, `sed`, `awk`).
+- **Pragmatic Scratch Buffer**: For read-only diagnostics, data extraction, dry-runs, or complex programmatic regex transformations, write scripts to `<appDataDir>/brain/<conversation-id>/scratch/` via native `write_file` before executing. Do not use scratch scripts as a bypass for standard text editing.
 - **AST Precision (Anti-Indentation Error)**: For Python or indentation-sensitive files, the Agent MUST inspect the specific target lines via `read_file` or `rtk grep` before patching, ensuring that replacement spacing aligns perfectly with the AST.
 
 ## 9. Anti-Hardcode Path Rule (Portability Preservation)
@@ -138,8 +143,9 @@ If a trigger is present and no harness is used, the action must be blocked.
 
 ## 11. Windows Shell & UTF-8 Terminal Guardrails
 
-- **Zero Inline Quoting Traps (`python -c`)**: On Windows PowerShell, NEVER run inline `python -c` snippets that contain complex regex, quotes (`\"`, `\'`), or square brackets (`[` / `]`). Always write temporary diagnostic scripts to a dedicated scratch file (e.g. via `write_file`) and execute it via `python <script>.py`, deleting it after verification.
+- **Zero Inline Quoting Traps (`python -c`)**: On Windows PowerShell, NEVER run inline `python -c` snippets that contain complex regex, quotes (`\"`, `\'`), or square brackets (`[` / `]`). Use temporary diagnostic scratch files or native file tools to prevent PowerShell quote stripping and syntax errors.
 - **Mandatory `-X utf8` on Windows CLI**: To prevent `UnicodeEncodeError: 'charmap' codec can't encode character...` (Windows legacy `cp1252` default), all one-off Python terminal executions reading/printing UTF-8 or emoji MUST pass `python -X utf8` or set `PYTHONUTF8=1`.
+- **Automatic Post-Action Hook**: In Antigravity IDE, `hooks.json` automatically runs `post-agent-action.py` via `PostToolUse` after file changes. Do not invoke it manually via `run_command`.
 
 
 

@@ -57,3 +57,8 @@ Execute these four phases sequentially for ANY bug, test failure, crash, or unex
   2. Run the script.
   3. If script succeeds (no bug found), STOP fix.
   4. If script fails (bug proven), proceed with implementation.
+
+## 📚 Specialized References & Tooling
+- **Condition-Based Waiting**: [references/condition-based-waiting.md](references/condition-based-waiting.md) (Eliminate flaky sleeps in async tests).
+- **4-Layer Defense-in-Depth**: [references/defense-in-depth.md](references/defense-in-depth.md) (Entry, Domain, Sandbox, and Telemetry layers).
+- **Test Pollution Bisector**: Run `python .agents/scripts/orion.py polluter <leak_target> <test_pattern>` to isolate tests that leak state or files.

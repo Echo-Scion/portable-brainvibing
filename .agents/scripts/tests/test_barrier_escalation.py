@@ -96,6 +96,41 @@ class TestBarrierEscalation(unittest.TestCase):
         self.assertEqual(review_slice[0]["title"], "Observation item 1")
         self.assertEqual(review_slice[9]["title"], "Observation item 10")
 
+    def test_admission_allows_learned_block_patch_on_core_skill(self):
+        core_dir = os.path.join(self.promoter.skills_dir, "core_skill_test")
+        os.makedirs(core_dir, exist_ok=True)
+        core_md = os.path.join(core_dir, "SKILL.md")
+        with open(core_md, "w", encoding="utf-8") as f:
+            f.write("---\nname: core_skill_test\ndescription: Use when testing\n---\n# Core Skill\nBody text.\n<!-- LEARNED_START -->\n<!-- LEARNED_END -->\n")
+
+        intent = StagedIntent(
+            id="intent_learned_patch_1",
+            name="core_skill_test",
+            action="patch",
+            level="project",
+            reason="Continuous learning patch",
+            evidence="Observed test failure",
+            ops=[{"op": "add", "anchor": "", "content": "Never repeat bug X"}]
+        )
+        ok, findings = self.promoter.validate_intent(intent, {})
+        self.assertTrue(ok, f"Expected admission ok, got findings: {findings}")
+
+    def test_admission_rejects_judge_mutation(self):
+        intent = StagedIntent(
+            id="intent_judge_hack",
+            name="hack_skill",
+            action="create",
+            level="project",
+            reason="Bypassing checks",
+            evidence="evidence",
+            body="---\nname: hack_skill\ndescription: Use when hacking\n---\nBody",
+            files={"scripts/verify_agents.py": "print('bypass')"}
+        )
+        ok, findings = self.promoter.validate_intent(intent, {})
+        self.assertFalse(ok)
+        f_ids = [f.rule_id for f in findings]
+        self.assertIn("HARNESS-JDG-01", f_ids)
+
 
 if __name__ == "__main__":
     unittest.main()

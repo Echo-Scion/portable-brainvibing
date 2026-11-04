@@ -20,7 +20,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-# --- WCAG 2.x MATHEMATICAL CONTRAST ENGINE ---
+# --- WCAG 2.x & APCA (Lc) MATHEMATICAL CONTRAST ENGINE ---
 
 def parse_hex(val: str):
     val = val.strip().lstrip("#")
@@ -45,6 +45,48 @@ def contrast_ratio(c1, c2) -> float:
     darkest = min(l1, l2)
     return (brightest + 0.05) / (darkest + 0.05)
 
+def apca_luminance(rgb) -> float:
+    """APCA 0.98G standard sRGB screen luminance with simple power 2.4."""
+    r = (rgb[0] / 255.0) ** 2.4
+    g = (rgb[1] / 255.0) ** 2.4
+    b = (rgb[2] / 255.0) ** 2.4
+    return 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+
+def apca_contrast(fg_rgb, bg_rgb) -> float:
+    """
+    Computes APCA Lc perceptual contrast score (W3C Silver working draft).
+    Returns Lc value where positive is dark text on light bg (BoW)
+    and negative is light text on dark bg (WoB).
+    """
+    y_txt = apca_luminance(fg_rgb)
+    y_bg = apca_luminance(bg_rgb)
+
+    blk_thresh = 0.022
+    blk_clamp = 1.414
+
+    y_txt_eff = y_txt if y_txt > blk_thresh else y_txt + (blk_thresh - y_txt) ** blk_clamp
+    y_bg_eff = y_bg if y_bg > blk_thresh else y_bg + (blk_thresh - y_bg) ** blk_clamp
+
+    if abs(y_bg_eff - y_txt_eff) < 0.0005:
+        return 0.0
+
+    if y_bg_eff > y_txt_eff:
+        # Dark text on light background (BoW)
+        s_bg = y_bg_eff ** 0.56
+        s_txt = y_txt_eff ** 0.57
+        c = (s_bg - s_txt) * 1.14
+        if c < 0.027:
+            return 0.0
+        return (c - 0.027) * 100.0
+    else:
+        # Light text on dark background (WoB)
+        s_bg = y_bg_eff ** 0.65
+        s_txt = y_txt_eff ** 0.62
+        c = (s_bg - s_txt) * 1.14
+        if c > -0.027:
+            return 0.0
+        return (c + 0.027) * 100.0
+
 def audit_contrast_cli(fg_str: str, bg_str: str) -> bool:
     try:
         fg = parse_hex(fg_str)
@@ -57,16 +99,40 @@ def audit_contrast_cli(fg_str: str, bg_str: str) -> bool:
     pass_normal = ratio >= 4.5
     pass_large = ratio >= 3.0
 
-    print("=" * 45)
-    print(" 🎨 WCAG 2.x CONTRAST RATIO AUDIT")
-    print("=" * 45)
+    lc = apca_contrast(fg, bg)
+    abs_lc = abs(lc)
+    if abs_lc >= 75.0:
+        apca_tier = "PASS (Preferred Body Text >= 75)"
+    elif abs_lc >= 60.0:
+        apca_tier = "PASS (Content/Secondary Text >= 60)"
+    elif abs_lc >= 45.0:
+        apca_tier = "PASS (Large Heading/Non-Text UI >= 45)"
+    else:
+        apca_tier = "FAIL (Insufficient Contrast < 45)"
+
+    print("=" * 55)
+    print(" 🎨 WCAG 2.x & APCA PERCEPTUAL CONTRAST AUDIT")
+    print("=" * 55)
     print(f"Foreground   : {fg_str}")
     print(f"Background   : {bg_str}")
-    print(f"Ratio        : {ratio:.2f}:1")
+    print(f"WCAG Ratio   : {ratio:.2f}:1")
     print(f"Normal Text  : {'PASS (>= 4.5:1)' if pass_normal else 'FAIL (< 4.5:1)'}")
     print(f"Large Text   : {'PASS (>= 3.0:1)' if pass_large else 'FAIL (< 3.0:1)'}")
-    print("=" * 45)
-    return pass_normal and pass_large
+    print("-" * 55)
+    print(f"APCA Lc      : {lc:+.1f} (|Lc| = {abs_lc:.1f})")
+    print(f"APCA Status  : {apca_tier}")
+
+    # Halation warning for high-contrast on near-black
+    bg_lum = relative_luminance(bg)
+    is_near_black = bg_lum < 0.015 or sum(bg) <= 8
+    is_pure_white = sum(fg) >= 750
+    if (is_near_black and is_pure_white) or (is_near_black and ratio >= 18.5):
+        print("-" * 55)
+        print(" ⚠️  HALATION RISK (Astigmatism Bleed):")
+        print("     Pure white text on near-black canvas causes severe retinal glare.")
+        print("     Soften canvas to tinted dark (#0D0F12 / #111318) and text to #EAEAFB.")
+    print("=" * 55)
+    return pass_normal and (abs_lc >= 45.0)
 
 # --- AESTHETIC & CRAFT SCANNER ---
 
@@ -110,6 +176,7 @@ AESTHETIC_DEGENERACY_RULES = [
     (re.compile(r'(?:not\s+(?:only|just|merely)\s+[^,.\n]{1,80},?\s+but\b|it\'s\s+not\s+[^,.\n]{1,80},?\s+it\'s\b)', re.IGNORECASE), "Copy Truth Violation: Staged Not-X-but-Y contrast detected. State the positive claim directly."),
     (re.compile(r'\b(?:let\'s\s+dive\s+in|let\'s\s+explore|here\'s\s+what\s+you\s+need\s+to\s+know|at\s+its\s+core|let\s+that\s+sink\s+in|that\s+is\s+the\s+real\s+win|read\s+that\s+again|make\s+no\s+mistake)\b', re.IGNORECASE), "Copy Truth Violation: Staged throat-clearing opener or dramatic fragment closer detected."),
     (re.compile(r'\b(?:as\s+of\s+my\s+(?:last\s+update|knowledge\s+cutoff)|i\s+hope\s+this\s+helps)\b', re.IGNORECASE), "Copy Truth Violation: P0 Chatbot conversational leftover or cutoff disclaimer detected."),
+    (re.compile(r'(?:bg-\[#000000\]|bg-\[#000\]|background(?:-color)?:\s*#(?:000000|000)\b)', re.IGNORECASE), "Dark Mode Halation Warning: Pure #000000 background detected. Use tinted dark obsidian (#0D0F12, #111318, or oklch(0.15 0.02 H)) to prevent astigmatism halation."),
 ]
 
 def _load_canonical_jargon_pattern():

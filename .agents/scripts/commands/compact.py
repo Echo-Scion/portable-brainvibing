@@ -754,7 +754,7 @@ def is_sensitive_path(path_str: str) -> bool:
 # ============================================================================
 # NATIVE ORION COMPACTOR & LESSWORD ENGINE (commands/brain.py)
 # Pure Python 3.10+ Stdlib — Zero External Repo Fingerprints
-# Implements AGENTS.md §2 & .agents/skills/lessword/SKILL.md Mechanically
+# Implements AGENTS.md §2 & .agents/skills/cost-optimizer/SKILL.md Mechanically
 # ============================================================================
 
 LESSWORD_PHRASE_MAP: List[Tuple[re.Pattern, str]] = [
@@ -801,9 +801,9 @@ SAFETY_BOUNDARY_ESCAPE_RE = re.compile(
 
 class SyntaxAnchorGuard:
     """
-    Pelindung payload verbatim sesuai aturan .agents/skills/lessword/references/lessword-compress.md:
-    Mengisolasi code fences, inline backticks, URL, file paths, wikilinks, dan environment variables
-    ke dalam slot memori sementara agar tidak pernah tersentuh oleh pemangkasan teks.
+    Verbatim payload protector per .agents/skills/cost-optimizer/references/lessword-compress.md:
+    Isolates code fences, inline backticks, URLs, file paths, wikilinks, and environment variables
+    into temporary memory slots to shield them from text pruning.
     """
     def __init__(self):
         self._slots: Dict[str, str] = {}
@@ -816,23 +816,23 @@ class SyntaxAnchorGuard:
         return token
 
     def lock(self, text: str) -> str:
-        # 1. Blok kode berpagar (```...``` atau ~~~...~~~) & Display LaTeX ($$...$$)
+        # 1. Fenced code blocks (```...``` or ~~~...~~~) & Display LaTeX ($$...$$)
         text = re.sub(r"(?:```[\s\S]*?```|~~~[\s\S]*?~~~|\$\$[\s\S]*?\$\$)", self._stash, text)
         # 2. Inline code (`...`) & Inline LaTeX ($...$)
         text = re.sub(r"`[^`\n]+`|\$(?!\s)[^$\n]+(?<!\s)\$", self._stash, text)
-        # 3. Wikilinks [[...]] & Markdown links [...](...) & URL
+        # 3. Wikilinks [[...]] & Markdown links [...](...) & URLs
         text = re.sub(r"\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|https?://[^\s)\]>]+", self._stash, text)
-        # 4. Path file eksplisit & baris nomor (misal: .agents/scripts/orion.py:42)
+        # 4. Explicit file paths & line numbers (e.g. .agents/scripts/orion.py:42)
         text = re.sub(r"(?<![/\w.-])[a-zA-Z0-9_.-]+/[a-zA-Z0-9_./-]+(?::\d+)?", self._stash, text)
-        # 5. Environment variables & konstanta UPPER_SNAKE_CASE / akronim teknis (kecuali preposisi 2 huruf)
+        # 5. Environment variables & UPPER_SNAKE_CASE constants / technical acronyms (except 2-letter prepositions)
         text = re.sub(
             r"\$[A-Z_][A-Z0-9_]*|\b(?!(?:IN|ON|AT|TO|BY|OR|IF|IS|IT|AS|OF|DO|BE|WE|SO|AN)\b)[A-Z][A-Z0-9_]{1,}\b",
             self._stash,
             text,
         )
-        # 6. Rasio matematis eksplisit (misal: 60:30:10, 16:9, 1:1)
+        # 6. Explicit mathematical ratios (e.g. 60:30:10, 16:9, 1:1)
         text = re.sub(r"\b\d+:\d+(?::\d+)?\b", self._stash, text)
-        # 7. Batas pembanding fisik, persentase & unit (misal: <= 8px, >= 16000, 100%, 300 lines)
+        # 7. Physical comparison bounds, percentages & units (e.g. <= 8px, >= 16000, 100%, 300 lines)
         text = re.sub(
             r"(?:[<>=!]=?|\b(?:<=|>=))\s*\d+(?:\.\d+)?\s*(?:px|%|ms|s|m|h|B|KB|MB|GB|tokens|lines|chars?|deg)?(?!\w)",
             self._stash,
@@ -843,7 +843,7 @@ class SyntaxAnchorGuard:
             self._stash,
             text,
         )
-        # 8. Deterministic verification gates & exit code assertions (misal: Exit Code 0, exit code 1)
+        # 8. Deterministic verification gates & exit code assertions (e.g. Exit Code 0, exit code 1)
         text = re.sub(r"\b[Ee]xit [Cc]ode \d+\b", self._stash, text)
         return text
 
@@ -988,25 +988,25 @@ class OrionCompactor:
 
     @staticmethod
     def requires_auto_clarity(text: str) -> bool:
-        """Memeriksa apakah teks memuat peringatan keamanan atau operasi destruktif yang wajib jelas."""
+        """Checks if text contains safety boundary alerts or destructive operations requiring full clarity."""
         return bool(SAFETY_BOUNDARY_ESCAPE_RE.search(text))
 
     # -------------------------------------------------------------------------
-    # TINGKAT 1: LITE (Lossless Cleanup — 0% Perubahan Semantik)
+    # TIER 1: LITE (Lossless Cleanup — 0% Semantic Shift)
     # -------------------------------------------------------------------------
     @classmethod
     def run_lite(cls, text: str, elide: bool = True) -> str:
         if not text:
             return text
-        # Bersihkan kode escape ANSI terminal
+        # Clean terminal ANSI escape sequences
         clean = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", text)
-        # Pangkas data URI base64 gambar yang membengkakkan konteks
+        # Prune context-bloating base64 image data URIs
         clean = re.sub(
             r"data:image/[a-zA-Z+]+;base64,[a-zA-Z0-9+/=]{120,}",
             "[IMAGE_DATA_REDACTED]",
             clean,
         )
-        # Lipat baris berulang yang identik & hapus trailing spaces
+        # Collapse duplicate identical lines and strip trailing spaces
         lines = [line.rstrip() for line in clean.splitlines()]
         out_lines: List[str] = []
         prev = None
@@ -1104,7 +1104,7 @@ class OrionCompactor:
         return cls.elide_output(cls.run_lite(text, elide=False))
 
     # -------------------------------------------------------------------------
-    # TINGKAT 2: FULL (Standar Default Lessword — ASD-STE100 Concise Prose)
+    # TIER 2: FULL (Default Lessword Standard — ASD-STE100 Concise Prose)
     # -------------------------------------------------------------------------
     @classmethod
     def run_full(cls, text: str, check_safety_escape: bool = True) -> str:
@@ -1113,7 +1113,7 @@ class OrionCompactor:
         frontmatter, body = split_frontmatter(text)
         body = cls.run_lite(body)
 
-        # Auto-Clarity Escape: jangan pangkas kalimat jika berisi operasi destruktif/keamanan
+        # Auto-Clarity Escape: do not prune sentences containing destructive or security operations
         if check_safety_escape and cls.requires_auto_clarity(body):
             return (frontmatter + body) if frontmatter else body
 
@@ -1123,7 +1123,7 @@ class OrionCompactor:
         for pattern, replacement in LESSWORD_PHRASE_MAP:
             locked = pattern.sub(replacement, locked)
 
-        # Hapus artikel (a, an, the) dengan tetap menjaga heading, tabel, dan kata negasi
+        # Strip articles (a, an, the) while preserving headings, tables, and negation words
         processed_lines: List[str] = []
         for line in locked.splitlines():
             stripped = line.strip()
@@ -1197,16 +1197,16 @@ class OrionCompactor:
         return text, "prose"
 
     # -------------------------------------------------------------------------
-    # CHRONOLOGICAL SECTION DECAY (Pemadatan Memori & Handoff Berbasis Usia Seksi)
+    # CHRONOLOGICAL SECTION DECAY (Age-Based Compaction for Memory & Handoffs)
     # -------------------------------------------------------------------------
     @classmethod
     def decay_historical_sections(cls, text: str, fresh_keep: int = 2, mid_keep: int = 4) -> str:
         """
-        Memadatkan seksi-seksi lama (`## ...`) pada dokumen memori/handoff/log:
-          - 2 seksi terbaru : Dipertahankan 100% utuh (verbatim)
-          - Seksi ke-3..4   : Dikompresi dengan mode Lessword Full
-          - Seksi ke-5+     : Dipadatkan menjadi judul + 1 baris intisari (<=120 karakter)
-        Seksi kritis (Resume Point, Anti-Goals, Fractal Shorthand) selalu dilindungi.
+        Compacts historical sections (`## ...`) in memory/handoff/log documents:
+          - 2 newest sections : Preserved 100% verbatim
+          - Sections 3..4     : Compressed with Lessword Full mode
+          - Sections 5+       : Distilled to title + 1-line essence (<=120 characters)
+        Critical sections (Resume Point, Anti-Goals, Fractal Shorthand) remain protected.
         """
         frontmatter, body = split_frontmatter(text)
         blocks = re.split(r"(?m)^(?=##\s+)", body)
@@ -1265,7 +1265,7 @@ class OrionCompactor:
         return (frontmatter + combined) if frontmatter else combined
 
     # -------------------------------------------------------------------------
-    # TINGKAT 3: AGGRESSIVE (Payload Shaper + Chronological Decay + Lessword Full)
+    # TIER 3: AGGRESSIVE (Payload Shaper + Chronological Decay + Lessword Full)
     # -------------------------------------------------------------------------
     @classmethod
     def run_aggressive(cls, text: str, filename_hint: str = "") -> Tuple[str, List[str]]:
@@ -1284,7 +1284,7 @@ class OrionCompactor:
         return current, steps
 
     # -------------------------------------------------------------------------
-    # TINGKAT 4: ULTRA (Surprisal Pruning + Telegraphic Abbreviations)
+    # TIER 4: ULTRA (Surprisal Pruning + Telegraphic Abbreviations)
     # -------------------------------------------------------------------------
     @classmethod
     def run_ultra(cls, text: str, filename_hint: str = "", ratio: float = 0.5) -> Tuple[str, List[str]]:
@@ -1315,11 +1315,11 @@ class OrionCompactor:
         guard = SyntaxAnchorGuard()
         locked = guard.lock(body)
 
-        # Terapkan singkatan Ultra sesuai spesifikasi .agents/skills/lessword/SKILL.md
+        # Apply Ultra abbreviations per .agents/skills/cost-optimizer/SKILL.md specification
         for pattern, abbrev in LESSWORD_ULTRA_ABBREV:
             locked = pattern.sub(abbrev, locked)
 
-        # Pangkas token bersurprisal rendah melalui fts5vocab di .orion/orion.db (preserve_code=False karena sudah di-lock oleh guard di atas)
+        # Prune low-surprisal tokens via fts5vocab in .orion/orion.db (preserve_code=False since locked by guard above)
         with CorpusInformationCompactor() as compactor:
             pruned = compactor.compact(locked, keep_ratio=ratio, preserve_code=False)
 
@@ -1328,7 +1328,7 @@ class OrionCompactor:
         return final_text, ["chronological_decay", "lessword_ultra_abbrev", "surprisal_fts5vocab"]
 
     # -------------------------------------------------------------------------
-    # TINGKAT 5: PIPELINE (Rantai Deterministik Multi-Tahap — Default)
+    # TIER 5: PIPELINE (Multi-Stage Deterministic Pipeline — Default)
     # -------------------------------------------------------------------------
     @classmethod
     def run_pipeline(cls, text: str, filename_hint: str = "") -> Tuple[str, List[str]]:
@@ -1384,7 +1384,7 @@ class OrionCompactor:
         comp_tokens = max(1, math.ceil(len(out) / 4.0))
         delta_tokens = orig_tokens - comp_tokens
 
-        # Gate 1: Pastikan pagar kode (```) tidak ada yang terpotong
+        # Gate 1: Ensure code fences (```) are not truncated or unbalanced
         fence_mismatch = (lvl not in ("stream", "ultra") and text.count("```") != out.count("```")) or (out.count("```") % 2 != 0)
         if fence_mismatch:
             return {
@@ -1398,7 +1398,7 @@ class OrionCompactor:
                 "elapsed_ms": round((time.time() - t_start) * 1000.0, 2),
             }
 
-        # Gate 2: Jika tidak ada penghematan nyata, kembalikan teks asli tanpa modifikasi
+        # Gate 2: If no tangible token savings achieved, return original text unchanged
         if delta_tokens <= 0 or len(out) >= len(text):
             return {
                 "output": text,
@@ -1424,12 +1424,12 @@ class OrionCompactor:
 
 
 def telegraphic_shrink(text: str) -> str:
-    """Alias kompatibilitas ke OrionCompactor level full."""
+    """Compatibility alias to OrionCompactor full tier."""
     return OrionCompactor.compress(text, level="full")["output"]
 
 
 def lessword_compress_text(text: str, level: str = "full") -> str:
-    """Mesin utama Lessword yang kini dilindungi SyntaxAnchorGuard."""
+    """Primary Lessword engine guarded by SyntaxAnchorGuard."""
     return OrionCompactor.compress(text, level=level)["output"]
 
 
@@ -1437,7 +1437,7 @@ lessword_compress = lessword_compress_text
 
 
 def compact_target(target_path: str, ratio: float = 0.5, level: str = "full") -> Tuple[str, str]:
-    """Router file tunggal menggunakan OrionCompactor."""
+    """Single-file router using OrionCompactor."""
     if not os.path.exists(target_path):
         raise FileNotFoundError(f"Target not found: {target_path}")
     with open(target_path, "r", encoding="utf-8-sig", errors="replace") as f:

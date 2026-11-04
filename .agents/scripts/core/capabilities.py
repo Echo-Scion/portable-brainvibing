@@ -1293,20 +1293,23 @@ def run_rtk_proxy(args: List[str]) -> int:
             except Exception as _he:
                 _log_telemetry(_he, "capabilities:rtk_hook_record")
 
+        if tool_name == "run_command" and isinstance(tool_args, dict):
+            _guard_cmd = str(tool_args.get("CommandLine") or tool_args.get("command") or "")
+            if _guard_cmd:
+                try:
+                    from core.security import evaluate_command_guard
+                    _decision, _reason = evaluate_command_guard(_guard_cmd, workspace_dir)
+                    if _decision == "block":
+                        sys.stderr.write(f"[ZERO-TRUST GUARD]: {_reason}\n")
+                        sys.stdout.write(json.dumps({"decision": "block", "reason": _reason}))
+                        return 0
+                    if _decision == "warn":
+                        sys.stderr.write(f"[ZERO-TRUST ADVISORY]: {_reason}\n")
+                except Exception as _ge:
+                    # INVARIANT [FAIL-OPEN-HOOK]: guard crash must never brick IDE tools
+                    _log_telemetry(_ge, "capabilities:command_guard")
+
         if has_rtk and tool_name == "run_command":
-            cmd_line = ""
-            if isinstance(tool_args, dict):
-                cmd_line = str(tool_args.get("CommandLine") or tool_args.get("command") or "")
-
-            # Anti-Hang Guard: Detect lethal stdin-hanging pattern on CLI tools
-            if cmd_line and any(cmd_line.strip().startswith(s) or f" {s}" in cmd_line for s in ("rg ", "grep ", "findstr ")):
-                import re as _re_cmd
-                if _re_cmd.search(r'\b(rg|grep)\b.*(?:\s["\']\s*["\'])(?:\s|$)', cmd_line):
-                    reason = "[ANTI-HANG GUARD]: Empty pattern (\"\" or '') in rg/grep causes infinite stdin wait in background IDE processes. Use a non-empty regex like '.' or specific pattern instead."
-                    sys.stderr.write(f"{reason}\n")
-                    sys.stdout.write(json.dumps({"decision": "block", "reason": reason}))
-                    return 0
-
             try:
                 proc = subprocess.run(
                     [rtk_bin, 'hook', 'antigravity'],

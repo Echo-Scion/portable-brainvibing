@@ -58,10 +58,10 @@ Every plan or logic execution must pass:
 ## 5. Review Output Format (Lessword Protocol)
 Generate a clear report using the strict Lessword format. NEVER approve code that violates CRITICAL Security points!
 - **Format:** `L<line>: <problem>. <fix>.` (or `<file>:L<line>: ...` for multi-file diffs). One line per finding. No throat-clearing.
-- **Evidence Mandate**: Every `🔴 bug` finding MUST cite a reproduction command (test runner assertion or script) OR a demonstrated AST vulnerability trace. Where appropriate, provide a 1-line adversarial input or snippet reproducing the fault. Structural architectural gaps (e.g. unhandled transaction aborts) that cannot easily be condensed to 1 line must include the exact collision trace.
+- **Evidence Mandate (Strix PoC Gate)**: Every `🔴 bug` finding MUST cite a reproduction command (test runner assertion or script) OR a demonstrated AST vulnerability trace with concrete inputs. Static syntax flags without dynamic proof remain `🟡 risk` (unverified hypothesis) until an executable PoC validates state divergence or unauthorized access. Where appropriate, provide a 1-line adversarial input or snippet reproducing the fault. Structural architectural gaps (e.g. unhandled transaction aborts) that cannot easily be condensed to 1 line must include the exact collision trace.
 - **Severity Prefixes:**
-  - `🔴 bug:` — broken behavior, security leak, or proven structural failure
-  - `🟡 risk:` — fragile pattern without hard exploit (unbounded buffer, swallowed error, missing timeout)
+  - `🔴 bug:` — broken behavior, security leak, or proven structural failure (PoC-verified)
+  - `🟡 risk:` — fragile pattern or unverified hypothesis without hard exploit (unbounded buffer, swallowed error, missing timeout)
   - `🔵 nit:` — style, naming, micro-optim. Author can ignore
   - `❓ q:` — genuine question regarding domain requirements
 - **Constraints:** Keep exact line numbers, use exact symbol names in backticks, provide a concrete fix (not "consider refactoring"), drop hedging ("I think", "maybe").

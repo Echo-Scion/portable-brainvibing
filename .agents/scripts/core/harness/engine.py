@@ -167,6 +167,10 @@ class HarnessEngine:
                     _log_telemetry(_e, "engine:load_sidecar")
             if event_type == "use":
                 sc_data["use"] = sc_data.get("use", 0) + 1
+            elif event_type == "pass":
+                sc_data["pass"] = sc_data.get("pass", 0) + 1
+            elif event_type == "fail":
+                sc_data["fail"] = sc_data.get("fail", 0) + 1
             else:
                 sc_data["view"] = sc_data.get("view", 0) + 1
             _atomic_write_text(sidecar_path, json.dumps(sc_data, indent=2))
@@ -191,12 +195,32 @@ class HarnessEngine:
             is_valid, findings = self.promoter.validate_intent(intent, live_skills)
             
             if not is_valid:
-                rejected.append({
+                rej_item = {
                     "id": intent.id,
                     "name": intent.name,
                     "action": intent.action,
                     "findings": [{"family": f.family, "message": f.message, "rule": f.rule_id} for f in findings]
-                })
+                }
+                rejected.append(rej_item)
+                # Persist rejected fingerprint so identical failed proposals are blocked
+                try:
+                    from core.harness.admission import compute_intent_fingerprint
+                    rej_fp_file = os.path.join(self.state_dir, "rejected_fingerprints.json")
+                    curr_rej = {}
+                    if os.path.exists(rej_fp_file):
+                        with open(rej_fp_file, "r", encoding="utf-8") as rf:
+                            curr_rej = json.load(rf)
+                    fp_key = compute_intent_fingerprint(intent)
+                    curr_rej[fp_key] = {
+                        "name": intent.name,
+                        "action": intent.action,
+                        "reason": intent.reason,
+                        "findings": [f.rule_id for f in findings],
+                        "status": "discard"
+                    }
+                    _atomic_write_text(rej_fp_file, json.dumps(curr_rej, indent=2))
+                except Exception as _re_err:
+                    _log_telemetry(_re_err, "engine:save_rejected_fp")
                 continue
 
             target_skill_md = Path(self.skills_dir) / intent.name / "SKILL.md"

@@ -145,16 +145,14 @@ class RAGDiagnosticJudge:
             faithfulness = answer_overlap / max(len(answer_words), 1)
         else:
             # Context Grounding / Coverage Density (retrieval-only mode)
-            segments = [seg.strip().lower() for ch in chunks for seg in re.split(r'[\n.!?]+', ch) if seg.strip()]
-            if query_words and segments:
+            if query_words:
+                clean_q_words = [qw for qw in query_words if len(qw) > 1 and qw not in {"the", "and", "for", "with", "from", "that", "this"}]
+                eval_words = clean_q_words if clean_q_words else list(query_words)
                 grounded_terms = 0
-                for qw in query_words:
-                    hits = sum(1 for seg in segments if qw in seg)
-                    if hits >= 2:
+                for qw in eval_words:
+                    if qw in chunk_text:
                         grounded_terms += 1
-                faithfulness = grounded_terms / len(query_words)
-            elif query_words and chunk_words:
-                faithfulness = query_overlap / len(query_words)
+                faithfulness = grounded_terms / max(len(eval_words), 1)
             else:
                 faithfulness = 0.0
 
@@ -373,14 +371,37 @@ def sync(intent: str, delta: bool = False) -> None:
                     RRF_K = 60.0
                     scored_paths: Dict[str, float] = {}
 
-                    # 1. FTS5 Robertson BM25 Lexical Rank (excluding superseded pages)
+                    # 1. FTS5 Robertson BM25 Lexical Rank (weighted: 10.0 path, 1.0 content)
                     if query_str.strip():
-                        c.execute('''
-                        SELECT pages_fts.path FROM pages_fts
-                        JOIN pages ON pages_fts.path = pages.path
-                        WHERE pages_fts MATCH ? AND (pages.superseded_by IS NULL OR pages.superseded_by = '')
-                        ORDER BY rank LIMIT 15
-                        ''', (query_str,))
+                        # Self-heal missing pages in pages_fts if drift exists
+                        try:
+                            c.execute("SELECT COUNT(*) FROM pages")
+                            cnt_pages = c.fetchone()[0]
+                            c.execute("SELECT COUNT(*) FROM pages_fts")
+                            cnt_fts = c.fetchone()[0]
+                            if cnt_pages > cnt_fts:
+                                c.execute("""
+                                    INSERT OR IGNORE INTO pages_fts (path, content)
+                                    SELECT path, path FROM pages WHERE path NOT IN (SELECT path FROM pages_fts)
+                                """)
+                                conn.commit()
+                        except Exception as _fe:
+                            _log_telemetry(_fe, "rag.py:fts_self_heal")
+
+                        try:
+                            c.execute('''
+                            SELECT pages_fts.path FROM pages_fts
+                            JOIN pages ON pages_fts.path = pages.path
+                            WHERE pages_fts MATCH ? AND (pages.superseded_by IS NULL OR pages.superseded_by = '')
+                            ORDER BY bm25(pages_fts, 10.0, 1.0) LIMIT 15
+                            ''', (query_str,))
+                        except Exception:
+                            c.execute('''
+                            SELECT pages_fts.path FROM pages_fts
+                            JOIN pages ON pages_fts.path = pages.path
+                            WHERE pages_fts MATCH ? AND (pages.superseded_by IS NULL OR pages.superseded_by = '')
+                            ORDER BY rank LIMIT 15
+                            ''', (query_str,))
                         for rank_idx, (path,) in enumerate(c.fetchall(), start=1):
                             scored_paths[path] = scored_paths.get(path, 0.0) + (1.0 / (RRF_K + rank_idx))
 
@@ -407,6 +428,33 @@ def sync(intent: str, delta: bool = False) -> None:
                                     scored_paths[path] = scored_paths.get(path, 0.0) + (1.2 / (RRF_K + rank_idx))
                         except Exception as _e:
                             _log_telemetry(_e, "rag.py:archival_vectors")
+
+                    # Lazy Vector Hydration: if NanoBrain is active, progressively backfill top candidates into archival_vectors
+                    if temp_nb and temp_nb.ping(capability="EMBED") and scored_paths:
+                        try:
+                            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='archival_vectors'")
+                            if c.fetchone():
+                                top_candidates = sorted(scored_paths.keys(), key=lambda k: scored_paths[k], reverse=True)[:3]
+                                for cand_p in top_candidates:
+                                    c.execute("SELECT 1 FROM archival_vectors WHERE id = ?", (cand_p,))
+                                    if not c.fetchone():
+                                        full_cand = cand_p if os.path.isabs(cand_p) else os.path.join(workspace_dir, cand_p)
+                                        if os.path.isfile(full_cand):
+                                            try:
+                                                with open(full_cand, "r", encoding="utf-8", errors="replace") as f_cand:
+                                                    txt_cand = f_cand.read(2500)
+                                                emb_cand = temp_nb.embed(txt_cand)
+                                                if emb_cand:
+                                                    c.execute("""
+                                                        INSERT INTO archival_vectors (id, content, embedding, created_at)
+                                                        VALUES (?, ?, ?, ?)
+                                                        ON CONFLICT(id) DO UPDATE SET content = excluded.content, embedding = excluded.embedding
+                                                    """, (cand_p, txt_cand[:400], pack_vector(emb_cand), time.time()))
+                                                    conn.commit()
+                                            except Exception as _ce:
+                                                _log_telemetry(_ce, f"rag.py:lazy_embed:{cand_p}")
+                        except Exception as _le:
+                            _log_telemetry(_le, "rag.py:lazy_vector_hydration")
 
                     # 3. Memory Hygiene Importance & Access Frequency Boost
                     if scored_paths:
@@ -475,11 +523,22 @@ def sync(intent: str, delta: bool = False) -> None:
                         except Exception as _e:
                             _log_telemetry(_e, 'rag.py:update_access_count')
 
-                    # --- 1-Hop Graph Traversal ---
+                    # --- Graph Traversal & Personalized PageRank (Spreading Activation) ---
                     try:
                         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relations'")
                         has_relations = bool(c.fetchone())
                         if has_relations and final_paths:
+                            # 1. Multi-Hop Personalized PageRank via HippoRAG pattern
+                            try:
+                                from core.orion_graph import OrionGraphStore
+                                with OrionGraphStore(db_path=db_path) as g_store:
+                                    ppr_hits = g_store.personalized_pagerank(seed_entities=final_paths, damping=0.85, iterations=6, top_k=5)
+                                    for hit in ppr_hits:
+                                        ent = hit["entity"]
+                                        _resolve_neighbor_target(c, ent, workspace_dir, neighbor_files)
+                            except Exception as _ppre:
+                                _log_telemetry(_ppre, "rag.py:ppr_activation")
+
                             for seed_path in final_paths:
                                 seed_clean = seed_path.replace("\\", "/")
                                 seed_base = os.path.basename(seed_path)
@@ -488,8 +547,9 @@ def sync(intent: str, delta: bool = False) -> None:
                                 c.execute('''
                                     SELECT subject_id, predicate, object_id, weight
                                     FROM relations
-                                    WHERE subject_id = ? OR subject_id = ? OR subject_id LIKE ? OR source_path = ?
-                                    LIMIT 8
+                                    WHERE (subject_id = ? OR subject_id = ? OR subject_id LIKE ? OR source_path = ?)
+                                      AND lower(predicate) != 'has_section'
+                                    ORDER BY weight DESC LIMIT 6
                                 ''', (seed_path, seed_clean, f"%{seed_base}", seed_path))
                                 for src, rel, tgt, conf in c.fetchall():
                                     hop_triplets.append((os.path.basename(src), rel, tgt))
@@ -498,8 +558,9 @@ def sync(intent: str, delta: bool = False) -> None:
                                 c.execute('''
                                     SELECT subject_id, predicate, object_id, weight
                                     FROM relations
-                                    WHERE object_id = ? OR object_id = ? OR object_id = ? OR object_id LIKE ?
-                                    LIMIT 8
+                                    WHERE (object_id = ? OR object_id = ? OR object_id = ? OR object_id LIKE ?)
+                                      AND lower(predicate) != 'has_section'
+                                    ORDER BY weight DESC LIMIT 6
                                 ''', (seed_path, seed_clean, seed_stem, f"%{seed_base}"))
                                 for src, rel, tgt, conf in c.fetchall():
                                     hop_triplets.append((os.path.basename(src), rel, os.path.basename(tgt)))
@@ -515,8 +576,8 @@ def sync(intent: str, delta: bool = False) -> None:
                                     for (ent_name,) in c.fetchall():
                                         c.execute('''
                                             SELECT subject_id, predicate, object_id FROM relations
-                                            WHERE subject_id = ? OR object_id = ?
-                                            LIMIT 3
+                                            WHERE (subject_id = ? OR object_id = ?) AND lower(predicate) != 'has_section'
+                                            ORDER BY weight DESC LIMIT 3
                                         ''', (ent_name, ent_name))
                                         for s_id, rel, t_id in c.fetchall():
                                             hop_triplets.append((s_id, rel, t_id))

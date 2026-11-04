@@ -47,12 +47,14 @@ python .agents/scripts/orion.py <command> [args...]
 | `consequence` | Static consequence assertion analysis and false-green test audit. | `commands/verify_agents.py` |
 | `validate-response` | Validates agent output formatting against mandatory footer contract. | `evals/assertion_engine.py` |
 | `delegate-check <tasks...>` | Deterministic Jaccard dependency overlap gate for worker delegation (<20% threshold). | `core/scanner.py` |
+| `polluter` / `find-polluter <target> [pattern]` | Deterministic test pollution bisector in Python stdlib isolating state/filesystem leakage. | `commands/polluter_finder.py` |
 
 ### 3. Execution State, Runtime & Orchestration
 | Command | Purpose | Target Script |
 | :--- | :--- | :--- |
 | `fsm <action>` | Crash-proof formal state machine tracker with Git-bound checkpoint rollbacks (`--restore-code`). | `commands/state_machine.py` |
 | `bento <action>` | Universal atomic task dispenser & plan slicer with live line recalibration (`slice`, `next`, `status`, `done`). | `commands/bento_slicer.py` |
+| `decisions <action>` | Architectural Decision Ledger & plan resolution tracker (`record`, `list`, `resolve`, `audit`). | `commands/decisions.py` |
 | `state_graph` | Superstep cyclic execution graph engine with channel reducers. | `commands/state_machine.py` |
 | `harness` | Sovereign autonomous evolution harness engine. | `core/harness/engine.py` |
 | `rtk` | Rust Token Killer proxy for CLI token minimization. | `core/capabilities.py` |

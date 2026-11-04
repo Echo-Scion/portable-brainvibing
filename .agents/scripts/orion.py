@@ -47,6 +47,7 @@ load_env()
 
 CMD_MAP = {
     "brain": ["commands", "brain.py"],
+    "hydrate": ["commands", "brain.py"],
     "context": ["commands", "brain.py"],
     "ingest": ["commands", "brain.py"],
     "gc": ["commands", "brain.py"],
@@ -124,6 +125,8 @@ CMD_MAP = {
     "consequence": ["..", "evals", "consequence_verifier.py"],
     "consequence-verify": ["..", "evals", "consequence_verifier.py"],
     "false-green": ["..", "evals", "consequence_verifier.py"],
+    "polluter": ["commands", "polluter_finder.py"],
+    "find-polluter": ["commands", "polluter_finder.py"],
     "bun": ["core", "capabilities.py"],
     "bun_runtime": ["core", "capabilities.py"],
     "compact": ["commands", "compact.py"],
@@ -149,10 +152,13 @@ CMD_MAP = {
     "constellation": ["commands", "constellation.py"],
     "worktree": ["commands", "worktree.py"],
     "push": ["commands", "foundation.py"],
-    "project": ["commands", "foundation.py"]
+    "project": ["commands", "foundation.py"],
+    "decisions": ["commands", "decisions.py"],
+    "decision": ["commands", "decisions.py"]
 }
 
 _ALIAS_NAMES = {
+    "decision",
     "verify_agents", "orion", "push-upstream", "sync-ai", "scanner",
     "init", "onboard", "doctor",
     "compress_memory", "amnesia", "rule_eviction", "preflight_check",

@@ -18,31 +18,47 @@ When generating prompts for image/video models:
 *Derived from Antigravity Skills Archive & Legacy Standards*
 
 ## 📄 The DESIGN.md Specification
-When structuring UI visual identity, use the `DESIGN.md` format. It combines machine-readable design tokens (YAML front matter) with human-readable design rationale (markdown prose).
+When structuring UI visual identity, use the `DESIGN.md` format. It couples machine-readable design tokens (YAML front matter) with human-readable design rationale and systemic interaction rules (markdown prose).
 
-**Format Example:**
+**Format Example (Perceptual & Optical Specification):**
 ```md
 ---
-name: ComponentName
-colors:
-  primary: "#1A1C1E"
+name: AppName
+archetype: tactile-spatial
+tokens:
+  colors:
+    # OKLCH 5-Token Perceptual System (60:30:10 ratio, <= 12 total tokens)
+    bg: "oklch(0.14 0.02 260)"           # 60% Dominant canvas surface
+    text: "oklch(0.94 0.01 260)"         # High-contrast body copy (APCA |Lc| >= 75)
+    primary: "oklch(0.68 0.16 250)"      # Primary CTA / key focal point
+    secondary: "oklch(0.24 0.03 260)"    # 30% Structural cards, panels, sidebars
+    accent: "oklch(0.78 0.14 70)"        # 10% Focus indicator / status dot
+  optics:
+    lighting_angle: "135deg"             # Top-left directional lighting
+    elevation_ladder: "base < card < modal" # Surface luminance increases with elevation
+    apca_min_lc: 75                      # APCA |Lc| >= 75 for body text
+    noise_grain_opacity: 0.04            # SVG feTurbulence grain to prevent 8-bit banding
 typography:
-  h1:
-    fontFamily: Public Sans
+  display: Plus Jakarta Sans
+  body: Inter
+  mono: JetBrains Mono
 ---
 
-## Overview
-Architectural Minimalism meets Journalistic Gravitas.
+## 1. Overview & Signature Soul Component
+- **Overview**: Tactile spatial interface combining 135° directional lighting with restrained 8-state component contracts.
+- **Signature Soul Component**: Conical rotary gain indicator with detent ticks and draggable waveform cue scrubber. Forbid anonymous AI template clones.
 
-## Colors
-The palette is rooted in high-contrast neutrals.
-- **Primary (#1A1C1E):** Deep ink for headlines and core text.
+## 2. Colors & Optics
+- **Palette**: Calibrated in perceptually uniform `OKLCH`. Dark mode desaturates accents by 15% to prevent vibration.
+- **Dark Mode Elevation**: Base canvas (`#0D0F12`) < Card (`#16191E`) < Modal (`#1E222A`).
+- **Directional Light**: Buttons feature dual $135^\circ$ inner-shadows; inputs feature recessed inner wells.
+- **Contrast**: Every text/surface pairing passes APCA $|L_c| \ge 75$ and WCAG AA $\ge 4.5:1$.
 ```
 
 **Philosophy:**
-- **Prose, not Tokens, is the focus**: The token values serve as context and are not rendering instructions. The prose is where the design lives.
-- **Specific References**: A specific reference (e.g., "A 1970s graduate lecture handout") carries more than a list of adjectives. It carries the reasoning behind the values.
-- Do NOT use tokens as strict rendering instructions. They are context for the prose.
+- **Prose and Tokens in Harmony**: The YAML frontmatter provides machine-readable tokens for linters (`audit_aesthetics.py`) and style configs; the markdown prose defines the human story, spatial layout, and signature domain controls.
+- **Specific References**: A specific reference (e.g., "A 1970s graduate lecture handout" or "conical rotary gain meter with physical detents") carries more authority than generic adjectives. It prevents aesthetic convergence.
+- **No Orphan Tokens**: Every color token must map to one of the 5 semantic roles (`--bg`, `--text`, `--primary`, `--secondary`, `--accent`).
 
 ---
 

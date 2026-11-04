@@ -816,11 +816,6 @@ def smart_merge_config(template_content, target_path, project_name, fmt, dry_run
         with open(target_path, "r", encoding="utf-8") as f:
             old_content = f.read()
             
-        if not dry_run:
-            import datetime
-            ts = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            shutil.copy2(target_path, target_path + "." + ts + ".bak")
-            
         marker = "<!-- END FOUNDATION MANDATES -->"
         idx = old_content.find(marker)
         if idx != -1:
@@ -844,7 +839,21 @@ def smart_merge_config(template_content, target_path, project_name, fmt, dry_run
                 content += "\n\n" + old_content + "\n"
                 merge_status = "Merged (Appended missing marker config)"
 
-    if not dry_run:
+        # Only backup if content is actually changing (avoid spurious .bak files on clean runs)
+        if old_content.strip() == content.strip():
+            merge_status = "Unchanged (Already up to date)"
+        elif not dry_run:
+            # Rotate exactly 1 backup into isolated .agents/.backup/ to prevent root clutter
+            target_dir = os.path.dirname(os.path.abspath(target_path))
+            backup_dir = os.path.join(target_dir, ".agents", ".backup")
+            try:
+                os.makedirs(backup_dir, exist_ok=True)
+                backup_file = os.path.join(backup_dir, os.path.basename(target_path) + ".bak")
+                shutil.copy2(target_path, backup_file)
+            except Exception:
+                pass
+
+    if not dry_run and merge_status != "Unchanged (Already up to date)":
         atomic_write_text(target_path, content)
     return content, merge_status
 
@@ -887,11 +896,43 @@ BLACKLIST = {
 # === DEPLOY ===
 
 
+def prompt_greenfield_intake(target_dir: str) -> dict:
+    """Interactively prompts user for core project scope during Greenfield deployment."""
+    proj_name = os.path.basename(os.path.abspath(target_dir))
+    print(f"\n🌱 [GREENFIELD INTAKE] Deploying to clean workspace: '{proj_name}'")
+    statement = ""
+    archetype = ""
+    try:
+        statement = input("  • Project Core Purpose / Mission (1 phrase): ").strip()
+        archetype = input("  • Aesthetic Archetype [e.g. modern-minimal, dark-industrial] (default: modern-minimal): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        pass
+    return {
+        "statement": statement,
+        "archetype": archetype or "modern-minimal",
+    }
+
+
 def cmd_deploy(args):
     # args.target, args.framework, args.language, args.dry_run
     target_dir = os.path.abspath(args.target)
     foundation_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     target_agents_dir = os.path.join(target_dir, ".agents")
+
+    # Greenfield Intake & Grounding Check
+    statement = getattr(args, "statement", None) or ""
+    archetype = getattr(args, "archetype", None) or ""
+    interactive = getattr(args, "interactive", False)
+
+    is_greenfield = not any(
+        os.path.exists(os.path.join(target_dir, marker))
+        for marker in ("pubspec.yaml", "package.json", "Cargo.toml", "pyproject.toml", "go.mod", "src", "lib")
+    )
+
+    if is_greenfield and interactive and sys.stdin.isatty():
+        intake = prompt_greenfield_intake(target_dir)
+        statement = statement or intake.get("statement", "")
+        archetype = archetype or intake.get("archetype", "")
     
     # Auto-detect framework & language if omitted
     framework = args.framework
@@ -1194,9 +1235,44 @@ def cmd_deploy(args):
                         "memory": []
                     }, indent=2))
                         
+                # Populate Core Context Pillars (BLUEPRINT, ROADMAP, STYLE_GUIDE, ARCHITECTURE)
+                templates_dir = os.path.join(foundation_dir, ".agents", "templates")
+                pillars_map = {
+                    "00_Strategy/BLUEPRINT.md": "BLUEPRINT.template.md",
+                    "01_Product/ROADMAP.md": "ROADMAP.template.md",
+                    "02_Creative/STYLE_GUIDE.md": "STYLE_GUIDE.template.md",
+                    "03_Tech/ARCHITECTURE.md": "PROJECT_SCAFFOLD.template.md",
+                }
+                proj_name = os.path.basename(os.path.abspath(target_dir))
+                for rel_pillar, tpl_name in pillars_map.items():
+                    pillar_full = os.path.join(context_dir, rel_pillar)
+                    tpl_path = os.path.join(templates_dir, tpl_name)
+                    if not os.path.isfile(pillar_full):
+                        content = f"# {os.path.splitext(os.path.basename(rel_pillar))[0]} — {proj_name}\n"
+                        if os.path.isfile(tpl_path):
+                            try:
+                                with open(tpl_path, "r", encoding="utf-8") as f:
+                                    content = f.read().replace("{{PROJECT_NAME}}", proj_name).replace("{project_name}", proj_name)
+                            except Exception:
+                                pass
+                        atomic_write_text(pillar_full, content)
+
+                # Auto-Hydrate context/VISION.md
+                vision_path = os.path.join(context_dir, "VISION.md")
+                if not os.path.isfile(vision_path):
+                    try:
+                        hydrate_vision(target_dir, statement=statement, auto_confirm=True)
+                    except Exception as _ve:
+                        _log_telemetry(_ve, "cmd_deploy:hydrate_vision")
+
                 readme_md = os.path.join(target_dir, "README.md")
                 if not os.path.exists(readme_md):
-                    atomic_write_text(readme_md, f"# {os.path.basename(os.path.abspath(target_dir))}\n\nProject initialized by Portable Brainvibing.\n")
+                    readme_content = f"# {proj_name}\n\n"
+                    if statement:
+                        readme_content += f"> **Mission**: {statement}\n\n"
+                    readme_content += f"A modular **{framework}** ({language}) project powered by [Portable Brainvibing](.agents).\n\n"
+                    readme_content += "## Architecture & Governance\n- Constitutional North Star: [`context/VISION.md`](context/VISION.md)\n- Strategy & Roadmap: [`context/`](context/)\n- Agent Operational BIOS: [`AGENTS.md`](AGENTS.md)\n"
+                    atomic_write_text(readme_md, readme_content)
 
                 # 3. Auto-Hydrate Graph with Rules, Skills, and Context (enforcing cross-platform UTF-8)
                 print("  -> Auto-Hydrating Rules & Context into Brain Graph...")
@@ -2436,6 +2512,8 @@ def execute_setup_pipeline(
     enabled_features: Optional[List[str]] = None,
     auto_install_deps: bool = False,
     auto_pull_models: bool = False,
+    statement: Optional[str] = None,
+    archetype: Optional[str] = None,
 ) -> dict:
     """
     Executes the entire Portable Brainvibing setup pipeline and activates selected Orion features.
@@ -2588,6 +2666,14 @@ def execute_setup_pipeline(
                 except Exception:
                     pass
 
+    # Ensure Constitutional context/VISION.md exists
+    vision_file = os.path.join(context_dir, "VISION.md")
+    if not os.path.isfile(vision_file):
+        try:
+            hydrate_vision(abs_target, statement=statement, auto_confirm=True)
+        except Exception as _ve:
+            _log_telemetry(_ve, "setup:hydrate_vision")
+
     # Re-resolve orion_py at target
     target_orion_py = os.path.join(abs_target, ".agents", "scripts", "orion.py")
     if os.path.isfile(target_orion_py):
@@ -2707,6 +2793,20 @@ def execute_setup_pipeline(
                 steps_log.append({"step": "design-md", "ok": True, "detail": "Created baseline DESIGN.md"})
 
         else:  # GREENFIELD
+            tokens = harvest_tokens(abs_target) if harvest_tokens else {}
+            chosen_archetype = archetype or tokens.get("detected_archetype")
+            if not chosen_archetype:
+                manifest_path_cand = os.path.join(abs_target, ".agents", ".project_manifest.json")
+                manifest_data = {}
+                if os.path.isfile(manifest_path_cand):
+                    with open(manifest_path_cand, "r", encoding="utf-8") as mf:
+                        manifest_data = json.load(mf)
+                det_fw = manifest_data.get("framework", "").lower()
+                if any(k in det_fw for k in ("cli", "system", "terminal", "console", "backend")):
+                    chosen_archetype = "dark-industrial"
+                else:
+                    chosen_archetype = "modern-minimal"
+
             if os.path.exists(design_tpl):
                 try:
                     with open(design_tpl, "r", encoding="utf-8") as f:
@@ -2717,13 +2817,16 @@ def execute_setup_pipeline(
                         with open(manifest_path_cand, "r", encoding="utf-8") as mf:
                             manifest_data = json.load(mf)
                     resolved_design = resolve_template_string(tpl_text, manifest_data, proj_name)
-                    resolved_design = re.sub(
-                        r"-\s*\*\*Selected Archetype\*\*:\s*`.*?`",
-                        "- **Selected Archetype**: `status: DRAFT (catalog active)`",
-                        resolved_design
-                    )
-                    atomic_write_text(design_dest, resolved_design)
-                    steps_log.append({"step": "design-md", "ok": True, "detail": "Seeded DESIGN.md in DRAFT status with archetype catalog menu"})
+                    resolved_design = resolved_design.replace("{{archetype_name}}", chosen_archetype)
+                    for tk, tv in tokens.items():
+                        if isinstance(tv, str):
+                            resolved_design = resolved_design.replace("{{" + tk + "}}", tv)
+                    if flatten_catalogs:
+                        flattened_design = flatten_catalogs(resolved_design, chosen_archetype)
+                    else:
+                        flattened_design = resolved_design
+                    atomic_write_text(design_dest, flattened_design)
+                    steps_log.append({"step": "design-md", "ok": True, "detail": f"Generated locked single-archetype DESIGN.md ({chosen_archetype})"})
                 except Exception as de:
                     steps_log.append({"step": "design-md", "ok": False, "detail": str(de)})
             else:
@@ -2800,7 +2903,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.5)     ║")
+    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.6)     ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")
@@ -2992,6 +3095,8 @@ def cmd_setup(args: argparse.Namespace) -> None:
         enabled_features=enabled_features,
         auto_install_deps=auto_install,
         auto_pull_models=auto_pull,
+        statement=getattr(args, "statement", None),
+        archetype=getattr(args, "archetype", None),
     )
 
     for st in res["steps"]:
@@ -3468,7 +3573,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
 
     base_url = "http://127.0.0.1:11434"
     try:
-        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.5"})
+        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.6"})
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             models = [m.get("name") for m in data.get("models", []) if m.get("name")]
@@ -3494,7 +3599,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
         req = urllib.request.Request(
             f"{base_url}/api/generate",
             data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.5"}
+            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.6"}
         )
         with urllib.request.urlopen(req, timeout=10.0) as resp:
             res_data = json.loads(resp.read().decode("utf-8"))
@@ -3955,6 +4060,9 @@ def main():
         p_setup.add_argument("--framework", type=str, default=None, help="Override detected framework")
         p_setup.add_argument("--language", type=str, default=None, help="Override detected language")
         p_setup.add_argument("--ai", type=str, default=None, help="Comma-separated AI platforms to configure")
+        p_setup.add_argument("--statement", type=str, default=None, help="Creator intent statement for context/VISION.md")
+        p_setup.add_argument("--archetype", type=str, default=None, help="Aesthetic archetype to lock into DESIGN.md")
+        p_setup.add_argument("--interactive", action="store_true", help="Prompt user for Greenfield project scope")
 
     # Deploy
     parser_deploy = subparsers.add_parser("deploy", help="Deploy Foundation to a target project")
@@ -3966,6 +4074,9 @@ def main():
     parser_deploy.add_argument("--use-local-llm", action="store_true", help="Flag to indicate if using a local LLM")
     parser_deploy.add_argument("--llm-params", type=float, default=0.0, help="Parameter size of the local LLM in Billions (e.g., 8.0, 70.0)")
     parser_deploy.add_argument("--with-flutterin", action="store_true", help="Include flutterin MCP server definitions in deployed manifests")
+    parser_deploy.add_argument("--statement", type=str, default=None, help="Creator intent statement for context/VISION.md")
+    parser_deploy.add_argument("--archetype", type=str, default=None, help="Aesthetic archetype to lock into DESIGN.md")
+    parser_deploy.add_argument("--interactive", action="store_true", help="Prompt user for Greenfield project scope")
     
     # Push Upstream
     parser_upstream = subparsers.add_parser("push-upstream", help="Sync local project changes back to Foundation")

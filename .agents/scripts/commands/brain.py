@@ -987,10 +987,45 @@ def parse_markdown_to_dict(md_content):
     # Remove empty sections
     return {k: v for k, v in matrix.items() if v}
 
+def normalize_bilingual_query(query: str) -> str:
+    """
+    Pure stdlib deterministic Indonesian-to-English technical intent normalizer.
+    Enables Indonesian prompts (e.g. 'periksa bug', 'bikin unit test', 'rapikan ui')
+    to map to canonical skill triggers without needing external embeddings or LLMs.
+    """
+    if not query:
+        return ""
+    q = query.lower()
+    translations = [
+        (r"\bperiksa\b|\bcek\b|\btinjau\b", "check audit review verify"),
+        (r"\bperbaiki\b|\bdebug\b|\bbug\b|\beror\b|\berror\b", "debug error fix crash"),
+        (r"\bbikin\b|\bbuat\b|\btambah\b", "create make scaffold new"),
+        (r"\brapikan\b|\btampilan\b|\bdesain\b", "polish ui layout aesthetics design"),
+        (r"\btes\b|\buji\b|\bpengujian\b", "test tdd testing verify"),
+        (r"\barkitektur\b|\brancang\b|\bskema\b", "architecture blueprint schema system"),
+        (r"\bkompres\b|\bhemat\b|\bsingkat\b", "compress token reduction lessword"),
+        (r"\bbelajar\b|\bpelajari\b|\bevolusi\b", "learn reflection self-evolve harness"),
+        (r"\bselesai\b|\bakhiri\b|\bsimpan sesi\b", "session end handoff offload"),
+        (r"\bkeamanan\b|\baudit keamanan\b", "security audit validation sentinel"),
+        (r"\bhalusinasi\b|\bslopsquatting\b", "hallucination slopsquatting ai_llm_attacks ai llm attacks"),
+        (r"\binjeksi\b|\bserangan\b", "injection prompt security attack"),
+        (r"\bpaket\b|\blibrary\b|\bpustaka\b", "package registry dependency"),
+        (r"\banimasi\b|\bgerak\b|\btransisi\b", "motion animation 60fps transition"),
+        (r"\bkomponen\b|\btaksonomi\b", "component taxonomy recipe"),
+        (r"\bjembatan\b|\bantar proses\b|\bipc\b", "ipc bridge webview desktop mobile"),
+    ]
+    augmented = [q]
+    for pattern, eng in translations:
+        if re.search(pattern, q):
+            augmented.append(eng)
+    return " ".join(augmented)
+
+
 def compile_skill_routes():
     """
     Extracts skill metadata (name, description, triggers, references) from
     .agents/skills/*/SKILL.md into a compact .orion/matrix/skill_routes.json.
+    Includes Tier-3 reference triggers and bilingual intent mappings.
     """
     skills_dir = os.path.join(BASE_DIR, "skills")
     if not os.path.exists(skills_dir):
@@ -1000,16 +1035,16 @@ def compile_skill_routes():
     
     # Pre-defined high-precision triggers from JIT Knowledge Routing table
     JIT_TRIGGERS = {
-        "ai-engineer": ["ai engineering", "llm drift", "probabilistic traits", "model drift", "ai engineer", "prompt injection", "evals"],
+        "ai-engineer": ["ai engineering", "llm drift", "probabilistic traits", "model drift", "ai engineer", "prompt injection", "evals", "ai hallucination", "slopsquatting", "ai security"],
         "api-contract": ["api contract", "zod", "schemas", "request validation", "api schema", "openapi", "api safety"],
         "app-lifecycle": ["new project", "init", "scaffold", "legacy migration", "brownfield", "app builder", "feature sunset", "sunset code", "dead code purge"],
         "brain-graph": ["brain graph", "knowledge base", "ingest", "lint", "cross-reference", "triplet", "knowledge extraction", "orion"],
+        "feature-discovery": ["feature discovery", "socratic elicitation", "requirements intake", "zero trust discovery", "ideation", "ideate", "concept probing", "new feature", "explore feature", "feature idea", "requirements exploration"],
         "code-review": ["code review", "pr review", "diff audit", "security check", "pull request"],
-        "cost-optimizer": ["cost analysis", "token budget", "llm costs", "performance", "latency", "speed optimization", "token reduction"],
+        "cost-optimizer": ["cost analysis", "token budget", "llm costs", "performance", "latency", "speed optimization", "token reduction", "compression", "lessword", "be brief", "lessword mode", "/lessword"],
         "data-logic": ["data immutability", "state management", "transformers", "dto", "unidirectional flow"],
         "frontend-experience": ["frontend", "debugging", "errors", "crashes", "runtime issues", "ux audit", "component lifecycle"],
-        "integrity-sentinel": ["security audit", "qa", "testing", "bugs", "validation", "audit ledger", "audit vectors", "pre-completion"],
-        "lessword": ["token reduction", "compression", "lessword", "be brief", "lessword mode", "/lessword"],
+        "integrity-sentinel": ["security audit", "qa", "testing", "bugs", "validation", "audit ledger", "audit vectors", "pre-completion", "ai_llm_attacks", "slopsquatting", "package hallucination"],
         "meta-agent-admin": ["meta-agent-admin", "/meta-agent-admin", "audit .agents", "ecosystem audit", "foundation review", "template health", "system mod", "rules"],
         "palette": ["accessibility", "a11y", "micro-interactions", "web ux", "aria", "semantic html"],
         "project-architect": ["system architecture", "database schema", "blueprint", "backend logic", "api server", "cache", "architectural standards"],
@@ -1019,8 +1054,77 @@ def compile_skill_routes():
         "session-offload": ["session end", "handoff", "context eviction", "/session-offload", "auto-context"],
         "strict-tdd": ["test-driven development", "tdd", "writing tests", "red-green-refactor", "unit test", "strict-tdd"],
         "systematic-debugging": ["debugging", "systematic debugging", "scientific debugging", "root-cause", "reproduction"],
-        "ui-finish": ["frontend ui", "layout", "aesthetics", "animations", "visual craft", "design token", "ui polish"],
+        "ui-finish": ["frontend ui", "layout", "aesthetics", "animations", "visual craft", "design token", "ui polish", "craft floor", "bento grid", "60fps"],
         "worker-delegate": ["worker delegation", "sub-agent", "task splitting", "parallel worker", "delegate"]
+    }
+
+    # Bilingual intent additions
+    BILINGUAL_EXTRA_TRIGGERS = {
+        "integrity-sentinel": ["periksa", "audit", "keamanan", "verifikasi", "validasi", "halusinasi", "slopsquatting"],
+        "ai-engineer": ["halusinasi", "prompt injection", "model ai"],
+        "systematic-debugging": ["debug", "error", "eror", "crash", "perbaiki bug"],
+        "strict-tdd": ["tes", "uji", "unit test", "bikin tes", "buat tes"],
+        "ui-finish": ["tampilan", "rapikan ui", "desain", "aesthetics", "animasi"],
+        "self-evolve": ["belajar", "pelajari", "evaluasi", "kesalahan"],
+        "session-offload": ["selesai", "akhiri sesi", "simpan konteks"],
+        "cost-optimizer": ["hemat token", "singkat", "padat", "kompres", "optimasi biaya"],
+        "feature-discovery": ["curah pendapat", "ide fitur", "eksplorasi ide", "penemuan fitur", "mau bikin fitur", "mau buat fitur", "tambah fitur"],
+        "project-architect": ["rancang", "skema database", "cetak biru"],
+    }
+
+    # Curated high-signal sub-domain triggers for deep Tier-3 runbooks
+    REFERENCE_SPECIAL_TRIGGERS = {
+        "ai_llm_attacks.md": [
+            "ai llm attacks", "ai_llm_attacks", "prompt injection", "rag poisoning",
+            "mcp trust", "tool argument injection", "confused deputy", "markdown image exfiltration",
+            "package hallucination", "slopsquatting", "ghost package", "llm security",
+            "agent attack", "indirect prompt injection", "halusinasi package", "slop squatting",
+            "ai attack", "mcp security", "agentic security"
+        ],
+        "skill_inspector.md": [
+            "skill inspector", "skill_inspector", "audit skill", "skill security", "skill intake", "untrusted skill"
+        ],
+        "desktop_mobile_ipc.md": [
+            "desktop mobile ipc", "desktop_mobile_ipc", "webview bridge", "deep link csrf",
+            "named pipe", "ipc privilege", "intent filter", "unix domain socket", "local ipc", "ipc security"
+        ],
+        "memory_safety_and_binary.md": [
+            "memory safety", "memory_safety", "binary invariants", "buffer overflow",
+            "use after free", "integer overflow", "unsafe rust", "ffi boundary", "native memory"
+        ],
+        "consequence_verification.md": [
+            "consequence verification", "false green", "state delta proof", "consequence tiers", "user flow replay"
+        ],
+        "craft_floor.md": [
+            "craft floor", "visual craft", "12 visual craft", "category refusals", "visual floor"
+        ],
+        "bento_and_macrostructures.md": [
+            "bento grid", "bento macrostructures", "asymmetric layout", "responsive grid", "bento layout"
+        ],
+        "component_decision_matrix.md": [
+            "component decision matrix", "component selection", "overlay triage", "input selection"
+        ],
+        "component_taxonomy.md": [
+            "component taxonomy", "component primitives", "design system primitives"
+        ],
+        "component_recipes.md": [
+            "component recipes", "production component recipes"
+        ],
+        "motion_performance.md": [
+            "motion performance", "60fps", "60 fps", "compositor", "layout thrashing", "flip transition"
+        ],
+        "accessibility_contracts.md": [
+            "accessibility contracts", "aria contracts", "focus trap", "accessible name", "keyboard access"
+        ],
+        "audit_vectors.md": [
+            "audit vectors", "12 vector", "diagnostic matrix", "fail fast vector", "dry vector"
+        ],
+        "audit-ledger.md": [
+            "audit ledger", "multi-session audit", "ledger tracking"
+        ],
+        "offensive-audit.md": [
+            "offensive audit", "adversarial qa", "race condition audit", "stress test"
+        ]
     }
 
     for skill_name in sorted(os.listdir(skills_dir)):
@@ -1043,15 +1147,59 @@ def compile_skill_routes():
         if raw_desc:
             desc = " ".join(str(raw_desc).split())
 
-        # Collect references
+        # Collect references with structured child metadata
         ref_dir = os.path.join(skills_dir, skill_name, "references")
         references = []
+        reference_routes = []
         if os.path.isdir(ref_dir):
             for ref_file in sorted(os.listdir(ref_dir)):
                 if ref_file.endswith(".md"):
-                    references.append(os.path.join(".agents", "skills", skill_name, "references", ref_file).replace("\\", "/"))
+                    ref_rel = os.path.join(".agents", "skills", skill_name, "references", ref_file).replace("\\", "/")
+                    references.append(ref_rel)
+                    
+                    stem_raw = os.path.splitext(ref_file)[0]
+                    stem_spaced = stem_raw.replace("-", " ").replace("_", " ")
+                    ref_triggers = [stem_spaced]
+                    if stem_raw not in ref_triggers:
+                        ref_triggers.append(stem_raw)
+                    if ref_file not in ref_triggers:
+                        ref_triggers.append(ref_file)
+
+                    # Extract headings and bold checklist terms from reference file
+                    try:
+                        with open(os.path.join(ref_dir, ref_file), "r", encoding="utf-8", errors="ignore") as rf:
+                            lines = rf.readlines()[:120]
+                            for line in lines:
+                                line_s = line.strip()
+                                if line_s.startswith(("# ", "## ", "### ")):
+                                    clean_h = re.sub(r'^[#\s]+', '', line_s)
+                                    clean_h = re.sub(r'[^\w\s\-]', ' ', clean_h).strip().lower()
+                                    clean_h = " ".join(clean_h.split())
+                                    if len(clean_h) >= 4 and clean_h not in ref_triggers:
+                                        ref_triggers.append(clean_h)
+                                # Bold checklist lead patterns (e.g. **Ghost Package Hallucination**)
+                                bolds = re.findall(r'\*\*([A-Za-z0-9_\-\s]{4,40})\*\*', line_s)
+                                for b in bolds:
+                                    b_clean = " ".join(b.strip().lower().split())
+                                    if len(b_clean) >= 4 and b_clean not in ref_triggers:
+                                        ref_triggers.append(b_clean)
+                    except Exception:
+                        pass
+
+                    # Merge curated special triggers
+                    if ref_file in REFERENCE_SPECIAL_TRIGGERS:
+                        for st in REFERENCE_SPECIAL_TRIGGERS[ref_file]:
+                            if st not in ref_triggers:
+                                ref_triggers.append(st)
+
+                    reference_routes.append({
+                        "path": ref_rel,
+                        "triggers": ref_triggers
+                    })
 
         triggers = list(JIT_TRIGGERS.get(skill_name, []))
+        if skill_name in BILINGUAL_EXTRA_TRIGGERS:
+            triggers.extend(BILINGUAL_EXTRA_TRIGGERS[skill_name])
         if skill_name not in triggers:
             triggers.append(skill_name)
         desc_lower = desc.lower()
@@ -1061,7 +1209,9 @@ def compile_skill_routes():
             "with", "from", "into", "that", "this", "your", "make", "task", "tasks",
             "tool", "tools", "file", "data", "system", "project", "run", "running",
             "check", "checking", "needs", "need", "should", "could", "would", "about",
-            "orchestrates", "provides", "defines", "manages"
+            "orchestrates", "provides", "defines", "manages", "building", "designing",
+            "auditing", "creating", "writing", "implementing", "features", "integrations",
+            "pipelines", "applications", "components", "workflows"
         }
         words = [
             w.strip(" .,();:\"'[]") for w in source_clause.split()
@@ -1074,7 +1224,8 @@ def compile_skill_routes():
             "skill_path": os.path.join(".agents", "skills", skill_name, "SKILL.md").replace("\\", "/"),
             "description": desc[:150],
             "triggers": triggers,
-            "references": references
+            "references": references,
+            "reference_routes": reference_routes
         })
 
     out_file = os.path.join(MATRIX_DIR, "skill_routes.json")
@@ -1268,7 +1419,11 @@ def raw_ingest_main(argv=None):
 STRUCTURAL_RELATIONS = (
     "mentions", "imports", "defines", "defines_map",
     "routes_to", "executes", "inherits", "related_to",
-    "REFERENCES", "CONTAINS", "DEPENDS_ON", "USES", "CALLS"
+    "references", "contains", "depends_on", "uses", "calls",
+    "has_section", "enforces", "governs", "integrates", "rationale_why",
+    "implements", "exports", "provides", "supports", "documents",
+    "audits", "validates", "mitigates", "triggers", "produces", "requires",
+    "targets", "configures", "manages", "wraps", "binds"
 )
 
 def detect_contradictions():
@@ -1278,11 +1433,12 @@ def detect_contradictions():
         cursor = conn.cursor()
         
         # Purge legacy false-positive contradictions caused by multi-target structural relations
-        rel_placeholders = ",".join("?" for _ in STRUCTURAL_RELATIONS)
+        lower_struct = tuple(r.lower() for r in STRUCTURAL_RELATIONS)
+        rel_placeholders = ",".join("?" for _ in lower_struct)
         cursor.execute(f"""
             DELETE FROM contradictions 
-            WHERE edge_a_relation IN ({rel_placeholders}) OR edge_b_relation IN ({rel_placeholders})
-        """, STRUCTURAL_RELATIONS + STRUCTURAL_RELATIONS)
+            WHERE lower(edge_a_relation) IN ({rel_placeholders}) OR lower(edge_b_relation) IN ({rel_placeholders})
+        """, lower_struct + lower_struct)
         conn.commit()
 
         # Check if canonical relations table exists and has rows
@@ -1299,22 +1455,22 @@ def detect_contradictions():
                 SELECT r1.subject_id, r1.predicate, r1.object_id, r2.object_id
                 FROM relations r1
                 JOIN relations r2 ON r1.subject_id = r2.subject_id 
-                    AND r1.predicate = r2.predicate 
+                    AND lower(r1.predicate) = lower(r2.predicate) 
                     AND r1.object_id != r2.object_id
                 WHERE r1.object_id < r2.object_id
-                    AND r1.predicate NOT IN ({rel_placeholders})
-            """, STRUCTURAL_RELATIONS)
+                    AND lower(r1.predicate) NOT IN ({rel_placeholders})
+            """, lower_struct)
         else:
             # Find edges where same source_id + exclusive relation points to different targets
             cursor.execute(f"""
                 SELECT e1.source_id, e1.relation, e1.target_id, e2.target_id
                 FROM edges e1
                 JOIN edges e2 ON e1.source_id = e2.source_id 
-                    AND e1.relation = e2.relation 
+                    AND lower(e1.relation) = lower(e2.relation) 
                     AND e1.target_id != e2.target_id
                 WHERE e1.target_id < e2.target_id
-                    AND e1.relation NOT IN ({rel_placeholders})
-            """, STRUCTURAL_RELATIONS)
+                    AND lower(e1.relation) NOT IN ({rel_placeholders})
+            """, lower_struct)
         
         collisions = cursor.fetchall()
         
@@ -1928,7 +2084,7 @@ def prune_orphans() -> int:
                 original_path = entry.get("filepath")
                 orion_file = entry.get("orion_file")
                 
-                # Cek jika file asli masih ada di sistem (kecuali jika pathnya memang dihapus)
+                # Check if original source file still exists on disk (unless explicitly deleted)
                 if original_path and not os.path.exists(original_path):
                     pruned_count += 1
                     print(f"[PRUNE] Pruning orphan from orion: {original_path}")
@@ -3206,6 +3362,103 @@ from commands.vault import (  # noqa: F401
 )
 
 
+def hydrate_semantic_facts(workspace_dir: str = WORKSPACE_DIR) -> int:
+    """
+    Auto-hydrates Tier-1 Semantic Memory (multi_layer_memory) with active invariants
+    from context/VISION.md and architectural decisions from .agents/DECISIONS.md.
+    """
+    hydrated_count = 0
+    try:
+        from core.memory import MultiLayerMemoryManager
+        mlm = MultiLayerMemoryManager()
+        try:
+            # 1. Parse context/VISION.md
+            vision_path = os.path.join(workspace_dir, "context", "VISION.md")
+            if os.path.exists(vision_path):
+                with open(vision_path, "r", encoding="utf-8", errors="replace") as f:
+                    v_text = f.read()
+                # Extract North Star / Core Essence
+                m_essence = re.search(r"##\s*1\.\s*Core Essence[^\n]*\n+([^\n#]+)", v_text)
+                if m_essence and m_essence.group(1).strip():
+                    mlm.set_fact("session", "vision:core_essence", m_essence.group(1).strip()[:200])
+                    hydrated_count += 1
+                # Extract Invariants
+                invariants = re.findall(r"-\s*\*\*([^*]+)\*\*:\s*([^\n]+)", v_text)
+                for inv_name, inv_val in invariants[:5]:
+                    clean_k = f"vision:inv:{inv_name.strip().lower().replace(' ', '_')}"
+                    mlm.set_fact("session", clean_k, inv_val.strip()[:250])
+                    hydrated_count += 1
+
+            # 2. Parse .agents/DECISIONS.md
+            decisions_path = os.path.join(workspace_dir, ".agents", "DECISIONS.md")
+            if os.path.exists(decisions_path):
+                with open(decisions_path, "r", encoding="utf-8", errors="replace") as f:
+                    d_text = f.read()
+                dec_blocks = re.findall(r"###\s*\[(D\d+|DEC-\d+|[^\]]+)\]\s*([^\n]+)\n+(?:- \*\*Context\*\*: ([^\n]+)\n+)?(?:- \*\*Decision\*\*: ([^\n]+))?", d_text)
+                for d_id, d_title, d_ctx, d_choice in dec_blocks[-8:]:
+                    val = f"{d_title.strip()}: {d_choice.strip() if d_choice else (d_ctx.strip() if d_ctx else '')}"
+                    clean_k = f"decision:{d_id.strip().lower()}"
+                    mlm.set_fact("session", clean_k, val[:250])
+                    hydrated_count += 1
+        finally:
+            mlm.close()
+    except Exception as e:
+        _log_telemetry(e, "brain.py:hydrate_semantic_facts")
+    return hydrated_count
+
+
+def hydrate_main(argv=None):
+    """
+    Unified All-in-One Workspace & Orion Cognitive Memory Hydration.
+    Executes:
+    1. Tier-1 Semantic Memory Auto-Hydration (VISION.md + DECISIONS.md)
+    2. Deep workspace ingestion (.agents, context) with optional --embed
+    3. Contradiction sweep & false-positive purge
+    4. Louvain community clustering & centrality ranking
+    5. Rule matrix compilation
+    6. Database vacuum & GC SLA compaction
+    """
+    print("="*60)
+    print(" 🧠 ORION COGNITIVE MEMORY & WORKSPACE HYDRATION ENGINE")
+    print("="*60)
+    embed = False
+    if argv:
+        embed = any(a in argv for a in ("--embed", "-e"))
+
+    # 1. Hydrate Semantic Memory
+    facts_count = hydrate_semantic_facts()
+    print(f"\n[1/6] Hydrated {facts_count} Tier-1 semantic memory facts into multi_layer_memory.")
+
+    # 2. Full Ingest
+    print("\n[2/6] Ingesting .agents and context directories into graph...")
+    ingest_main([os.path.join(WORKSPACE_DIR, ".agents"), os.path.join(WORKSPACE_DIR, "context")], autonomy="balanced", embed=embed)
+
+    # 3. Contradiction Sweep
+    print("\n[3/6] Scanning and purging graph contradiction collisions...")
+    detect_contradictions()
+
+    # 4. Louvain Communities Re-clustering
+    print("\n[4/6] Recomputing Louvain modularity clusters & centrality summaries...")
+    _recompute_canonical_communities()
+
+    # 5. Compile Rules
+    print("\n[5/6] Compiling rule matrices and skill routes...")
+    try:
+        compile_all()
+        compile_skill_routes()
+    except Exception as e:
+        print(f"Warning: compile_all failed: {e}")
+
+    # 6. GC & Vacuum
+    print("\n[6/6] Executing GC vacuum & storage SLA compaction...")
+    gc_main(["--deep"])
+
+    print("\n" + "="*60)
+    print(" 🌟 WORKSPACE & ORION COGNITIVE MEMORY 100% HYDRATED")
+    print("="*60)
+    return 0
+
+
 def gc_main(argv=None):
     """Garbage collects orphaned caches, stale test backups, loose vault mirrors, and vacuums SQLite."""
     print("🧹 ORION GARBAGE COLLECTOR ENGAGED...")
@@ -3322,6 +3575,20 @@ def gc_main(argv=None):
                     cleaned_items += 1
                 except Exception as e:
                     _log_telemetry(e, "brain.py:gc_working")
+
+    # 3b. Clean legacy root backup artifacts (*.bak)
+    try:
+        project_root = os.path.dirname(os.path.abspath(ORION_DIR))
+        if os.path.exists(project_root):
+            for f in os.listdir(project_root):
+                if f.endswith(".bak") or (f.startswith(("AGENTS.md.", "GEMINI.md.", "CLAUDE.md.")) and ".bak" in f):
+                    fp = os.path.join(project_root, f)
+                    if os.path.isfile(fp):
+                        reclaimed_bytes += os.path.getsize(fp)
+                        os.remove(fp)
+                        cleaned_items += 1
+    except Exception as e:
+        _log_telemetry(e, "brain.py:gc_root_bak")
 
     # 4. Prune rolling FIFO tables & orphaned AST cache in orion.db
     if os.path.exists(DB_PATH):
@@ -3464,6 +3731,44 @@ def gc_main(argv=None):
                 print(f" [PASS] Generational Rollover executed: archived {rollover_res['superseded_count']} observations into {rollover_res['head_generation_id']}.")
     except Exception as _ro_err:
         _log_telemetry(_ro_err, "brain.py:gc_obs_rollover")
+
+    # 4g. Compact excess harness run logs & sessions (keep latest 10 runs to satisfy lean SLA)
+    harness_dir = os.path.join(ORION_DIR, "harness")
+    if os.path.exists(harness_dir):
+        try:
+            h_dirs_to_clean = [harness_dir, os.path.join(harness_dir, "sessions")]
+            for hd in h_dirs_to_clean:
+                if os.path.exists(hd):
+                    h_files = [os.path.join(hd, f) for f in os.listdir(hd) if os.path.isfile(os.path.join(hd, f))]
+                    h_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                    for old_h in h_files[10:]:
+                        try:
+                            reclaimed_bytes += os.path.getsize(old_h)
+                            os.remove(old_h)
+                            cleaned_items += 1
+                        except Exception:
+                            pass
+        except Exception as _he:
+            _log_telemetry(_he, "brain.py:gc_harness")
+
+    # 4h. Compact excess episodic handoff snapshots (keep latest 10 snapshots to satisfy lean SLA)
+    episodic_dir = os.path.join(ORION_DIR, "episodic")
+    if os.path.exists(episodic_dir):
+        try:
+            ep_files = [
+                os.path.join(episodic_dir, f) for f in os.listdir(episodic_dir)
+                if os.path.isfile(os.path.join(episodic_dir, f)) and (f.startswith("handoff_") or f.startswith("STALE_"))
+            ]
+            ep_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            for old_ep in ep_files[10:]:
+                try:
+                    reclaimed_bytes += os.path.getsize(old_ep)
+                    os.remove(old_ep)
+                    cleaned_items += 1
+                except Exception:
+                    pass
+        except Exception as _ee:
+            _log_telemetry(_ee, "brain.py:gc_episodic")
 
     # Record GC timestamp
     last_gc_file = os.path.join(ORION_DIR, "working", ".last_gc")
@@ -3710,6 +4015,7 @@ def main():
         print("  raw-ingest                - Ingest context/raw/ files")
         print("  diagnostics               - RAG relevance & faithfulness diagnostics")
         print("  memory                    - Multi-layer memory status")
+        print("  hydrate [--all] [--embed] - Single-command complete workspace & graph hydration")
         print("  mine-triplets-worker      - Autonomous background local LLM triplet miner")
         return 0
 
@@ -3823,6 +4129,8 @@ def main():
         res = ledger.rollover_generation(max_active_keep=10)
         print(json.dumps(res, indent=2))
         return 0
+    elif cmd in ("hydrate", "rehydrate", "sync-all"):
+        return hydrate_main(sub_args)
     elif cmd in ("handoff", "cloud_handoff", "cloud-handoff"):
         return handoff_main(sub_args)
     elif cmd in ("mine-triplets-worker", "mine_triplets_worker"):

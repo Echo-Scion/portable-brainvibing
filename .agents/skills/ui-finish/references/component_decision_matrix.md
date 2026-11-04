@@ -121,3 +121,28 @@ The following anti-patterns represent bad LLM heuristics and are strictly forbid
 3. **The Hidden Dropdown Trap**: NEVER hide $\le 4$ options inside a dropdown `<select>`. Use `Segmented Control` or `Radio Group` so the user sees all options at a glance.
 4. **The Ghost Notification**: NEVER use fleeting auto-dismissing `Toast` messages for critical errors that block user workflows. Critical errors require an in-page `Banner` or blocking `Alert Dialog`.
 5. **The Bare Icon**: NEVER emit an `IconButton` without either a visible label or an accessible `aria-label` and `Tooltip`.
+
+---
+
+## 6. 6 Systemic UX Redesign Patterns
+
+When building or refactoring complex application views, replace legacy friction points with systemic interaction patterns:
+
+| Pattern | Legacy Anti-Pattern | Systemic UX Solution |
+| :--- | :--- | :--- |
+| **1. Non-Modal Contextual Overlays** | Centered modal popups blocking main workspace/media while adjusting settings. | Transparent/translucent **Side Drawers / Overlay Panels** allowing live preview and active workspace manipulation. |
+| **2. Direct Spatial / Timeline Manipulation** | Abstract millisecond (`ms`) or coordinate inputs forcing trial-and-error guessing. | Direct interactive visual scrubbing (e.g. draggable subtitle/cue blocks on an audio waveform or seek bar). |
+| **3. De-Frankensteining (UI Unification)** | Multiple fragmented menus, disparate icon weights, or conflicting light/dark patches. | Single unified Design System contract, consolidated icon sets, and unified primary + context menus. |
+| **4. Entity Unification** | Disconnected "Cloud Catalog" vs. "Local Library" items where editing metadata breaks origin links. | Unified data entity model where user edits metadata without severing parent links or breadcrumbs. |
+| **5. Flattened Filters & User Agency** | Filters hidden inside multi-level dropdowns that auto-close on each select; forced algorithm feeds. | **Persistent horizontal chip bar**, user-curated feed collections, and visible feed tag customization/muting. |
+| **6. Cozy Spatial De-cluttering & Hybrid Bar** | Crowded sidebars with noisy red badges competing for attention simultaneously. | Hover-to-expand compact rails, vertical tabs on wide screens, thumb-zone mobile hitboxes ($\ge 48\text{px}$), and a fast **`Cmd+K` Command Bar**. |
+
+---
+
+## 7. Anti-Dark-Pattern Ethics Gate
+
+Interfaces must respect user autonomy and avoid deceptive patterns:
+- **Zero Visual Interference**: Never hide "Cancel", "Downgrade", or "Unsubscribe" actions behind low-contrast washed-out text or misleading styles.
+- **Zero Confirmshaming**: Never write manipulative emotional guilt-trip button copy (e.g., "No thanks, I hate saving money").
+- **Zero Muscle-Memory Swapping**: Never flip button order (placing destructive confirmation where "Cancel" was on previous steps) to trap accidental clicks.
+

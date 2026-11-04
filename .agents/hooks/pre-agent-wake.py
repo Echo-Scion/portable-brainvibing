@@ -876,10 +876,18 @@ def main():
         except Exception as _rt_err:
             _log_telemetry(_rt_err, "pre_wake:record_turn")
 
-    # 9. 2-Stage JIT Skill Router
+    # 9. 2-Stage JIT Skill & Tier-3 Reference Router
     matched_skills = []
     skill_routes_path = os.path.join(WORKSPACE_DIR, '.orion', 'matrix', 'skill_routes.json')
-    query_text = f"{sanitize_input(user_intent)} {active_file} {sanitize_input(terminal_error)}".lower()
+    raw_query = f"{sanitize_input(user_intent)} {active_file} {sanitize_input(terminal_error)}".lower()
+    
+    # Bilingual intent normalization
+    query_text = raw_query
+    try:
+        from commands.brain import normalize_bilingual_query
+        query_text = normalize_bilingual_query(raw_query)
+    except Exception:
+        pass
     
     if os.path.exists(skill_routes_path) and query_text.strip():
         try:
@@ -903,16 +911,44 @@ def main():
                             score += 3 if t_low == name.lower() else 1
                 if re.search(rf"\b{re.escape(name.lower())}\b", query_text):
                     score += 4
+                
+                # Check Tier-3 reference routes
+                matched_refs = []
+                for ref_item in r.get("reference_routes", []):
+                    ref_score = 0
+                    ref_path = ref_item.get("path", "")
+                    for r_trig in ref_item.get("triggers", []):
+                        rt_low = r_trig.lower().strip()
+                        if not rt_low:
+                            continue
+                        matched = False
+                        if " " in rt_low or "_" in rt_low or "-" in rt_low:
+                            if (rt_low in query_text or 
+                                rt_low.replace("_", " ") in query_text or 
+                                rt_low.replace("-", " ") in query_text or
+                                rt_low.replace(" ", "_") in query_text):
+                                matched = True
+                        else:
+                            if re.search(rf"\b{re.escape(rt_low)}\b", query_text):
+                                matched = True
+                        if matched:
+                            ref_score += 3
+                    if ref_score > 0:
+                        matched_refs.append(ref_path)
+                        score += ref_score
+
                 if score > 0:
-                    scored_matches.append((score, r))
+                    scored_matches.append((score, r, matched_refs))
             
             scored_matches.sort(key=lambda x: x[0], reverse=True)
-            for _, sk in scored_matches[:3]:
+            for m_score, sk, m_refs in scored_matches[:3]:
                 matched_skills.append({
                     "name": sk.get("name"),
+                    "score": m_score,
                     "skill_path": sk.get("skill_path"),
                     "description": sk.get("description"),
-                    "references": sk.get("references", [])
+                    "references": sk.get("references", []),
+                    "matched_references": m_refs
                 })
                 try:
                     from core.harness.engine import HarnessEngine
@@ -1258,6 +1294,23 @@ def main():
         )
     elif obs_digest:
         active_warnings.append(f"👁️ OBSERVATION DIGEST: {obs_digest}")
+
+    # Active JIT Skill & Tier-3 Reference Routing Surfacing
+    if matched_skills:
+        top_matches = [m for m in matched_skills if m.get("score", 0) >= 3]
+        if top_matches:
+            match_notices = []
+            for tm in top_matches[:2]:
+                if tm.get("matched_references"):
+                    ref_path = tm["matched_references"][0]
+                    match_notices.append(
+                        f"`{tm['name']}` -> Direct Reference: `{ref_path}` (Parent: `{tm['skill_path']}`). Call read_file on `{ref_path}` immediately"
+                    )
+                else:
+                    match_notices.append(
+                        f"`{tm['name']}` -> `{tm['skill_path']}`. Call read_file on target before executing"
+                    )
+            active_warnings.append(f"🎯 JIT SKILL ROUTER: Auto-detected intent match for {'; '.join(match_notices)}.")
 
     ephemeral_msg = "\n\n".join(active_warnings) if active_warnings else ""
         

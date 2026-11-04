@@ -151,6 +151,9 @@ Agents cannot write directly into `.agents/skills/` during autonomous turns:
 | `HARNESS-CUR-01` | Curation | Triggers `ClusterCurator` check when $>3$ skills share a domain prefix |
 | `HARNESS-REF-01` | Integrity | All referenced `references/` and `scripts/` paths physically exist |
 | `HARNESS-SEC-01` | AST Security | Passes `core/security.py` static AST/regex scan with zero high-severity findings |
+| `HARNESS-JDG-01` | Immutability | Blocks autonomous mutations to judge files (`verify_agents.py`, `security.py`, `admission.py`) |
+| `HARNESS-REJ-01` | Negative Memory | Blocks re-proposal of previously rejected or discarded intent fingerprints |
+| `HARNESS-ANC-01` | Bounded Ops | Strict anchor match and $\le 3$ ops inside `<!-- LEARNED -->` blocks without unmatched skips |
 | `HARNESS-VERIFY-01` | Executable Gate | Associated verification command or `--self-test` harness exits with Code `0` |
 | `HARNESS-CMT-01` | Prose & Hygiene | Passes comment hygiene and anti-slop prose authenticity checks |
 

@@ -49,6 +49,8 @@ class StagedIntent:
     files: Optional[Dict[str, str]] = None
     absorbed_into: Optional[str] = None
     siblings_checked: str = "true"
+    defect_class: str = "SKILL_DEFECT"  # "SKILL_DEFECT" or "EXECUTION_LAPSE"
+    ops: Optional[List[Dict[str, str]]] = None  # Bounded op-edits: [{op: add|replace|delete, anchor: str, content: str}]
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict[str, Any]:

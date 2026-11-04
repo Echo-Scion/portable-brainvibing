@@ -54,8 +54,9 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
 - **Core Directives**: OWASP vulnerability audits, algorithmic mutation testing, temporal state simulation, and Lessword review tags (`🔴 bug:`, `🟡 risk:`, `🔵 nit:`, `❓ q:`).
 
 ### 12.6. `cost-optimizer`
-- **Domain**: Token expenditure and computational budget management.
-- **Core Directives**: Model tier routing (BUDGET vs STANDARD vs PREMIUM), context window bloat detection, and Small Model Superiority (SMS) telemetry.
+- **Domain**: Token expenditure, computational budget management, and Lessword compression.
+- **Core Directives**: Model tier routing (BUDGET vs STANDARD vs PREMIUM), context window bloat detection, enforcement of the Lessword communication protocol (ASD-STE100 concise engineering English cutting output bloat by ~75%), and Small Model Superiority (SMS) telemetry.
+- **Reference**: `.agents/skills/cost-optimizer/references/lessword-compress.md` (Context & Memory Compactor).
 
 ### 12.7. `data-logic`
 - **Domain**: Data immutability and unidirectional data flow.
@@ -80,10 +81,10 @@ The agent loads Tier 1 during discovery, mounts Tier 2 when activated via JIT ro
   - `ui_testing_patterns.md`: Cross-framework UI interaction testing.
   - `plan-checklist.md`, `security.md`, `skill_inspector.md`, `telemetry-gate.md`.
 
-### 12.10. `lessword`
-- **Domain**: Ultra-terse, high-density communication compression (~75% token reduction).
-- **Core Directives**: Drops articles, pleasantries, conversational filler, and hedging. Supports 6 intensity levels (`lite`, `full`, `ultra`, `wenyan-lite`, `wenyan-full`, `wenyan-ultra`).
-- **Reference**: `.agents/skills/lessword/references/lessword-compress.md`.
+### 12.10. `feature-discovery`
+- **Domain**: Socratic requirements elicitation, design discovery, and Goldfish Zero-Trust exploration.
+- **Core Directives**: Single-question turns, "look before you ask" codebase context reads, dive-in escape hatches, and builder-check subagent validation.
+- **Reference**: `.agents/skills/feature-discovery/SKILL.md`.
 
 ### 12.11. `meta-agent-admin`
 - **Domain**: AI agent ecosystem architecture, rule creation, and foundation governance.

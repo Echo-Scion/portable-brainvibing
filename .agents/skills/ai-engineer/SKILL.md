@@ -1,7 +1,7 @@
 ---
 name: ai-engineer
 description: >-
-  Concrete engineering algorithms and patterns to mitigate probabilistic LLM limitations (GIGO, drift, hallucinations, latency). Use when designing, building, or auditing AI integrations, LLM features, or ML pipelines.
+  Concrete engineering algorithms and patterns to mitigate probabilistic LLM limitations (GIGO, drift, hallucinations, latency) and audit AI/LLM threats (prompt injection, slopsquatting). Use when designing, building, or auditing AI integrations, LLM features, or ML pipelines.
 ---
 
 # 🧠 AI Engineering Standards & Mitigating AI Limitations
@@ -97,3 +97,13 @@ Matrix multiplication, model inference, and vector search operations are mathema
    - If cache misses, escalate to a fast, medium-tier API model (e.g., Gemini Flash).
    - Reserve highly expensive frontier models (e.g., Gemini Pro) strictly for critical, complex decision layers.
 3. **Rate-Limit Backoff**: All remote model wrappers MUST implement a **Truncated Exponential Backoff with Jitter** retry mechanism to gracefully handle `429 Too Many Requests` status codes without thread blocking.
+
+---
+
+## 📚 On-Demand Reference Sitemap
+
+Load these specialized runbooks via `read_file` when handling security audits, adversary threats, or untrusted skill analysis:
+
+- **AI/LLM Attack Vectors & Mitigations**: `.agents/skills/integrity-sentinel/references/ai_llm_attacks.md` (Prompt injection, RAG poisoning, slopsquatting, agent goal hijacking, MCP tool-call exploits).
+- **Skill & Package Guard**: `.agents/skills/integrity-sentinel/references/skill_inspector.md` (Auditing untrusted agents, malicious packages, and prompt injections).
+

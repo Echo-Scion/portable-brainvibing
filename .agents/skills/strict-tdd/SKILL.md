@@ -32,6 +32,13 @@ Execute the following steps sequentially when instructed to use TDD.
 - **State-Delta Assertion Mandate**: Tests must assert *what changed*. Tautologies (checking that an object exists, status is 200 with unverified payload, or ungrounded assertions) do NOT prove correctness. Always assert specific property deltas or state transitions.
 - **Adversarial Mutation Check**: An assertion that cannot fail when code is defective is useless. Ensure every assertion deterministically fails if the underlying business logic operator is inverted or bypassed.
 
+## 3. Test & Mock Hygiene Rules (Universal)
+1. **No Mirror Assertions**: Derive expected values by hand or using independent fixtures; never compute `expected` using the same builder or helper under test (`expect(buildQuery(x)).toBe(buildQuery(x))` is an auto-tautology).
+2. **No Change-Detector Tests**: Test the behavior that depends on a decision, not raw constants or internal private variables (`expect(MAX_RETRIES).toBe(5)` is forbidden).
+3. **The Mock Earns No Assertions**: Never assert on a mock's existence (`expect(sidebarMock).toBeInTheDocument()`); assert the real component's behavior or unmock.
+4. **Mirror Real Schemas Completely**: Mock complete real structures (all documented fields), never partial objects that pass unit tests but break integration when downstream code reads an omitted field.
+5. **Zero Test-Only Production Methods**: Methods like `destroy()` or `resetForTest()` belong strictly in test utilities, never as methods on production classes.
+
 **THE PENALTY (Mechanical Rollback):** If implementation code was written BEFORE a verified failing test existed, execute `git stash push --include-untracked -m "tdd-premature-impl-backup" -- <file>` to revert the implementation code safely. You must capture an `Exit Code > 0` on the test run before proceeding.
 
 **ABSOLUTE RULE (Log Check):** Evidence over claims. If the shell log does not explicitly show the test failing (Exit Code > 0), you do not know what you are testing. Halt and rewrite the test.

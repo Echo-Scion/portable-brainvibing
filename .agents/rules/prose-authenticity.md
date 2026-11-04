@@ -117,8 +117,9 @@ When editing existing prose to remove AI tells:
 3. **Zero AI Fingerprints & Promotional Buzzwords**:
    - Strictly forbid metaphorical AI tell verbs (*absorb, supercharge, empower, revolutionize, unleash, bolster, delve, harness, orchestrate*).
    - Use plain, neutral engineering verbs (*add, fix, update, replace, remove, enforce*).
-4. **Universal Standard (Keep a Changelog)**:
+4. **Universal Standard (Keep a Changelog & Macro-Thematic Consolidation)**:
    - Use canonical categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
+   - Structure releases into 5–8 high-signal thematic entries per release milestone: major features receive 1 distinct list item with scope description; related minor enhancements and bug fixes are synthesized into 1 coherent summary paragraph per domain rather than sprawling lists of 20+ micro-bullets.
    - Keep entries concise, factual, and devoid of marketing fluff or subjective grandstanding.
 
 ---

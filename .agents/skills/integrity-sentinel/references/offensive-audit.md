@@ -37,3 +37,21 @@ To prevent the AI from succumbing to **Context Window Degradation (Memory Loss)*
 1. **No Manual Long-Session Audits**: The agent is strictly PROHIBITED from manually reading and auditing more than 2 files sequentially in the same chat history thread.
 2. **Mandatory Subagent Isolation**: For multi-file codebases, the Agent MUST use the Subagent orchestration mechanism (`invoke_subagent`) to spawn a clean, isolated Subagent for EACH file being audited. If `invoke_subagent` is unavailable, you MUST clear context by writing a temporary summary file and instructing the user to reset the session.
 3. **Pristine Instruction Injection**: Every Subagent MUST be launched with this protocol loaded directly as its primary system prompt alongside the target file content. This guarantees the attention mechanism has 100% focus on the rules without cognitive dilution.
+
+---
+
+## 5. Dynamic Exploit Validation & Zero-False-Positive PoC Gate (Strix Elevation)
+
+Inspired by Strix's autonomous pentesting architecture, static scan alerts and regex AST flags are *hypotheses*, never verified vulnerabilities.
+
+1. **Hypothesis-to-PoC Validation Loop**:
+   - A finding cannot be classified as `CONFIRMED` or `CRITICAL` based solely on static syntax.
+   - The auditor MUST construct an executable Proof of Concept (deterministic unit test, curl reproduction, or script payload) that exercises the sink and demonstrates actual state divergence or unauthorized data access.
+   - If dynamic execution is constrained (e.g. lack of active sandbox, mock credentials), tag the finding explicitly as `HYPOTHESIS [UNVERIFIED]` rather than asserting confirmed exploitability.
+2. **Attack-Surface Coverage Reconciliation**:
+   - Before completing an audit, build an explicit Coverage Matrix enumerating:
+     - All public HTTP/API routes and query parameters.
+     - Authentication & authorization checkpoints (RBAC, tenant separation, IDOR vectors).
+     - State mutation handlers and database sinks.
+     - Tool calling, MCP server, and FFI boundaries.
+   - Reconcile every entry: status must be `VERIFIED_SAFE`, `PoC_CONFIRMED`, `FOLLOW_UP_REQUIRED`, or `OUT_OF_SCOPE`. Never omit uninspected surfaces silently.
