@@ -32,6 +32,20 @@ if hasattr(sys.stdout, 'reconfigure'):
     except (AttributeError, OSError, ValueError):
         pass
 
+def _parse_dotenv_value(raw_val: str) -> str:
+    val = raw_val.strip()
+    if not val:
+        return ""
+    if (val.startswith('"') and '"' in val[1:]) or (val.startswith("'") and "'" in val[1:]):
+        q = val[0]
+        end_idx = val.find(q, 1)
+        return val[1:end_idx]
+    if " #" in val:
+        val = val.split(" #", 1)[0].rstrip()
+    elif "\t#" in val:
+        val = val.split("\t#", 1)[0].rstrip()
+    return val.strip('"').strip("'")
+
 def load_env():
     env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
     if os.path.exists(env_path):
@@ -40,8 +54,9 @@ def load_env():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     k, v = line.split('=', 1)
-                    if k.strip() not in os.environ:
-                        os.environ[k.strip()] = v.strip()
+                    k_clean = k.strip()
+                    if k_clean and k_clean not in os.environ:
+                        os.environ[k_clean] = _parse_dotenv_value(v)
 
 load_env()
 
@@ -89,11 +104,11 @@ CMD_MAP = {
     "context_naming_lint": ["commands", "verify_agents.py"],
     "instruction-lint": ["commands", "verify_agents.py"],
     "instruction_language_lint": ["commands", "verify_agents.py"],
-    "linkify": ["commands", "reflexion.py"],
-    "observe": ["commands", "reflexion.py"],
-    "observations": ["commands", "reflexion.py"],
-    "resolve": ["commands", "reflexion.py"],
-    "habits": ["commands", "reflexion.py"],
+    "linkify": ["commands", "pulsar.py"],
+    "observe": ["commands", "pulsar.py"],
+    "observations": ["commands", "pulsar.py"],
+    "resolve": ["commands", "pulsar.py"],
+    "habits": ["commands", "pulsar.py"],
     "matrix": ["commands", "brain.py"],
     "matrix-query": ["commands", "brain.py"],
     "matrix_query": ["commands", "brain.py"],
@@ -102,16 +117,18 @@ CMD_MAP = {
     "adversarial": ["commands", "verify_agents.py"],
     "security": ["core", "security.py"],
     "memory": ["commands", "brain.py"],
-    "reflexion": ["commands", "reflexion.py"],
-    "reflect": ["commands", "reflexion.py"],
-    "record": ["commands", "reflexion.py"],
+    "reflexion": ["commands", "pulsar.py"],
+    "reflect": ["commands", "pulsar.py"],
+    "record": ["commands", "pulsar.py"],
+    "worker": ["commands", "worker.py"],
+    "delegate": ["commands", "worker.py"],
 
     "raw_ingest": ["commands", "brain.py"],
-    "consolidate": ["commands", "reflexion.py"],
+    "consolidate": ["commands", "pulsar.py"],
     "contradict": ["commands", "brain.py"],
     "fsm": ["commands", "state_machine.py"],
-    "bento": ["commands", "bento_slicer.py"],
-    "bento_slicer": ["commands", "bento_slicer.py"],
+    "bento": ["commands", "dispenser.py"],
+    "bento_slicer": ["commands", "dispenser.py"],
     "shrink": ["commands", "brain.py"],
     "distill": ["commands", "brain.py"],
     "eval": ["..", "evals", "audit_aesthetics.py"],
@@ -149,18 +166,34 @@ CMD_MAP = {
     "delegate_check": ["core", "scanner.py"],
     "fast-track": ["commands", "state_machine.py"],
     "fast_track": ["commands", "state_machine.py"],
-    "constellation": ["commands", "constellation.py"],
+    "constellation": ["commands", "galaxy.py"],
     "worktree": ["commands", "worktree.py"],
     "push": ["commands", "foundation.py"],
     "project": ["commands", "foundation.py"],
     "decisions": ["commands", "decisions.py"],
-    "decision": ["commands", "decisions.py"]
+    "decision": ["commands", "decisions.py"],
+    "env": ["core", "platform_inspector.py"],
+    "platform": ["core", "platform_inspector.py"],
+    # Dual-Layer Cosmic-Neuro Canonical Engines
+    "galaxy": ["commands", "galaxy.py"],
+    "portfolio": ["commands", "galaxy.py"],
+    "observatory": ["commands", "observatory.py"],
+    "vault": ["commands", "observatory.py"],
+    "pulsar": ["commands", "pulsar.py"],
+    "dispenser": ["commands", "dispenser.py"],
+    "impulse": ["commands", "dispenser.py"],
+    "codex": ["commands", "brain.py"],
+    # Functional Engineering Nomenclature: Slicer / Task Slicer
+    "slicer": ["commands", "dispenser.py"],
+    "task-slicer": ["commands", "dispenser.py"],
+    "task_slicer": ["commands", "dispenser.py"],
 }
 
 _ALIAS_NAMES = {
     "decision",
     "verify_agents", "orion", "push-upstream", "sync-ai", "scanner",
     "init", "onboard", "doctor",
+    "impulse", "task_slicer", "vault", "codex", "constellation", "portfolio", "reflexion",
     "compress_memory", "amnesia", "rule_eviction", "preflight_check",
     "track_budget", "compile_rules", "context_naming_lint",
     "instruction_language_lint", "matrix-query", "matrix_query",
@@ -168,7 +201,7 @@ _ALIAS_NAMES = {
     "bun_runtime", "compactor", "events", "consequence-verify", "false-green",
     "sovereign_harness", "compile_ast", "ast_rules", "repomap", "orion_graph",
     "packer", "digest", "contrast", "event_stream", "clean", "delegate_check", "bento_slicer",
-    "fast-track", "fast_track"
+    "fast-track", "fast_track", "platform"
 }
 CANONICAL_CMD_MAP = {name: path for name, path in CMD_MAP.items() if name not in _ALIAS_NAMES}
 ALIAS_CMD_MAP = {name: CMD_MAP[name] for name in _ALIAS_NAMES}
@@ -206,7 +239,7 @@ _HELP_GROUPS = {
                             "adversarial", "context-lint", "instruction-lint",
                             "matrix", "compile", "consequence"],
     "Compression Suite":   ["compact", "compress", "shrink", "distill"],
-    "Foundation / Deploy": ["setup", "foundation", "hydrate-vision", "dna", "evolve", "bun", "push", "project"],
+    "Foundation / Deploy": ["setup", "foundation", "hydrate-vision", "dna", "evolve", "bun", "push", "project", "env"],
     "Runtime / Misc":      ["fsm", "bento", "reflexion", "harness", "rtk", "telemetry",
                             "sandbox", "events", "pack", "budget",
                             "compile_ast", "diagnostics", "validate-response",

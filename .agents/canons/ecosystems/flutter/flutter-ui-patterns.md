@@ -29,16 +29,20 @@ Stack(
 )
 ```
 
-## 🪄 Micro-Animation & Tactile Delight
+## 🪄 Micro-Animation & Tactile Delight (4-Gate Motion Compliant)
 ```dart
+// Enforce scale(0.96) with Curves.easeOutCubic (zero elastic bounce).
+// Pass isStatic: true for 100+/day high-frequency toolbar/shortcut controls.
 GestureDetector(
-  onTapDown: (_) => HapticFeedback.lightImpact(), // Tactile Feedback
-  onTap: () => ...,
+  onTapDown: (_) {
+    if (!isStatic) HapticFeedback.lightImpact();
+  },
+  onTap: onPressed,
   child: AnimatedScale(
-    scale: isTapped ? 0.95 : 1.0,
-    duration: const Duration(milliseconds: 100),
-    curve: Curves.elasticOut,
-    child: MyGlassButton(...),
+    scale: (!isStatic && isTapped) ? 0.96 : 1.0,
+    duration: const Duration(milliseconds: 150),
+    curve: Curves.easeOutCubic,
+    child: MyRestrainedButton(...),
   ),
 )
 ```

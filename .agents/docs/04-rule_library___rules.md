@@ -71,7 +71,7 @@ Optimization operations must pass three gates before execution:
 1. **Measurable?** Baseline and post-fix metrics must be measurable; otherwise cancel.
 2. **Readable?** Does the optimization preserve architectural readability?
 3. **Scope < 50 lines?** Does the change remain compact and contained?
-- **500-Line Refactor Decision Tree**: Modules exceeding 500 lines are flagged for modular decomposition.
+- **Soft Modularity Refactor Decision Tree (800–1200 Lines)**: Modules exceeding 800 lines (or 350 lines on BUDGET tier) receive an advisory warning for cohesive modular decomposition once current tests pass.
 
 ---
 

@@ -2,16 +2,21 @@
 name: code-review
 description: >-
   Conducts code reviews, pull request audits, and offensive security checks using adversarial verification. Use when reviewing diffs, auditing pull requests, checking security boundaries, or evaluating code quality before merging.
+core_max_lines: 125
 ---
 
 # 🕵️ Code Review & Offensive Audit (`/code-review`)
 
 Before accepting or approving code changes (`git diff --name-only HEAD`), perform a check on each modified file based on the following criteria. Maintain the Lessword protocol: terse, direct, zero throat-clearing.
 
+## 0. Scope Mode & UI Single-System Order (`3_ui` Diffs)
+- **Mode Resolution**: Default to `full` (max **15** findings across all states including empty/loading/error/narrow-width) unless `quick` (max **5** `HIGH`/`MEDIUM` findings on primary path) is specified.
+- **Single-System UI Priority Order**: For `3_ui` files, evaluate in strict sequence so foundational failures are never masked by polish: **1. Accessibility -> 2. Layout -> 3. Writing -> 4. Typography -> 5. UI Polish**. Assign overlapping issues to the foundational owner and cite `path/to/file:line`.
+
 ## 1. Context Retrieval & Execution Loop
 - **CRITICAL ACTION**: Audit MUST be executed **pipeline by pipeline** per phase (vertical slice), NOT layer-by-layer. Trace the full flow (e.g., Route -> Controller -> Service -> Repo) for each feature.
 - **CRITICAL ACTION (Blast Radius & Cross-Boundary Trace)**: If diff modifies signatures or calls critical sinks (SQL, subprocess, cache, memory DB, file system), MUST perform a forward trace of at least 1 hop into caller and consumer modules. Do not review diff lines in isolation.
-- **CRITICAL ACTION**: You MUST execute `run_command` with `python .agents/scripts/orion.py scan targets <DIR>` NOW if auditing the full project. Do not guess filenames.
+- **CRITICAL ACTION**: The Agent MUST execute `run_command` with `python .agents/scripts/orion.py scan targets <DIR>` NOW if auditing the full project. Do not guess filenames.
 - **CRITICAL ACTION (Ledger Auto-Sync)**: If `.orion/working/audit/00-ledger.md` exists, any findings discovered during audit MUST be logged directly into `00-ledger.md` with incremental ID (`[OPEN]`) and state pointer in `AUDIT_STATE.md` updated.
 - [ ] **Subagent Delegation (Deep Audits)**: For large files, delegate deep audits to `integrity-sentinel` (`.agents/skills/integrity-sentinel/references/audit_vectors.md`) to prevent context degradation.
 

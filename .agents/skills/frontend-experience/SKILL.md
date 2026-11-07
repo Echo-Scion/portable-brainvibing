@@ -36,16 +36,17 @@ When writing UI automation scripts (Playwright, Puppeteer, Integration Tests), d
 4. **Action**: Execute interactions only using confirmed, discovered selectors.
 Never attempt to interact with the DOM before the network is idle.
 
-## Component State Map (MANDATORY — Universal)
+## Component & Screen State Map (MANDATORY — Unified 2-Level Contract)
 
-When creating or auditing a frontend component that interacts with a backend, you MUST mechanically verify all 4 states are implemented in code:
+When creating or auditing a frontend view or data-fetching component, the Agent MUST mechanically verify all **5 Core View Data States** (matching `core/dna.py` and `ui-finish` 6-Family State Machine; standalone interactive controls follow the 8-State Interactive Contract in `ui-finish`):
 
-1. **SUCCESS** — Data loaded, display content.
-2. **EMPTY** — Data loaded but collection is empty, show dedicated empty state message.
-3. **ERROR** — Request failed, show actionable error with retry callback.
-4. **LOADING** — Request in-flight, show skeleton shimmer or spinner.
+1. **LOADING (Skeleton / Shimmer)** — Request in-flight; preserve layout geometry with skeleton shimmer or contained spinner (`aria-busy="true"`).
+2. **EMPTY (First-Time vs. Filtered-to-Empty)** — Collection is empty; distinguish first-time onboarding CTA from filtered search empty state (`"Clear filters"`).
+3. **POPULATED (Success)** — Data loaded and rendered cleanly.
+4. **PARTIAL / OFFLINE (Degraded State)** — Stale cache banner, offline draft indicator, or partial sub-widget degradation without full-screen crash.
+5. **ERROR (Actionable Recovery)** — Request failed; display human-readable recovery message with explicit retry callback.
 
-> **Verification Action**: Use `grep_search` on the target component file to verify that branches for error, empty, and loading states are physically present in the widget/component tree. If you submit or approve a component that only handles the SUCCESS state, you have violated protocol.
+> **Verification Action**: The Agent MUST use `grep_search` on the target component file to verify that branches for error, empty, and loading states are physically present in the widget/component tree. Submitting a component that only handles the POPULATED state is a protocol violation.
 
 ## Micro-UX & Form Interaction Standards (Universal)
 When auditing interactions, verify mechanical compliance:

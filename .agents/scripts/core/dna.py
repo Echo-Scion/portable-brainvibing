@@ -2,7 +2,7 @@
 """
 Universal Living Project DNA Sequencer & Epigenetic Mutation Engine (core/dna.py)
 --------------------------------------------------------------------------------
-Ground-truth architectural genome of the Portable Brainvibing ecosystem.
+Ground-truth architectural genome of the OrionCortex ecosystem.
 Codifies the 6 Biological DNA Layers across any language or framework:
   1. Topological & Dependency Law (The Nervous System) - 5-Tier Strata & Forbidden Edges
   2. Naming, Symbol & Pattern Signatures (Cell Morphology) - AST Symbol Stereotypes
@@ -115,7 +115,7 @@ CANONICAL_5_TIERS: Dict[str, Dict[str, Any]] = {
         "symbol_stereotypes": [
             "notifier", "provider", "bloc", "cubit", "controller", "store", "viewmodel", "reducer", "statemachine"
         ],
-        "audit_focus": "Audit state orchestration, task pipelines, concurrency safety, stream/task lifecycles, race conditions, and error transitions."
+        "audit_focus": "Audit state orchestration, 6-Family State Machine transitions (optimistic update, partial-data degradation, filtered-empty reset, recovery/undo), concurrency safety, and race conditions."
     },
     "5_presentation": {
         "gravity": 7,
@@ -127,7 +127,7 @@ CANONICAL_5_TIERS: Dict[str, Dict[str, Any]] = {
             "screen", "page", "view", "widget", "dialog", "sheet", "component", "router", "route",
             "consumerwidget", "statelesswidget", "statefulwidget", "theme"
         ],
-        "audit_focus": "Audit 5-State visual coverage (Loading, Empty, Success, Error, Shimmer), accessibility/WCAG AA contrast, and zero raw DB/HTTP calls in UI."
+        "audit_focus": "Audit DESIGN.md token parity, Task-First Layout fit (anti-container-fatigue), 6-Family State coverage (First-Time vs Filtered Empty, Partial Data, Recovery), Concentric/Optical craft, 4-Gate Motion restraint, WCAG 2.2 AA + APCA contrast, and zero raw DB/HTTP calls in UI."
     },
     "8_native_and_cli": {
         "gravity": 8,
@@ -145,7 +145,7 @@ CANONICAL_5_TIERS: Dict[str, Dict[str, Any]] = {
         "folder_tokens": ["test", "tests", "__tests__", "spec", "specs", "e2e", "integration_test", "evals", "harness"],
         "manifest_files": [],
         "symbol_stereotypes": ["test", "spec", "mock", "fixture", "harness"],
-        "audit_focus": "Audit test assertion completeness, false green detection, mocking fidelity, and edge-case regression coverage."
+        "audit_focus": "Audit Tier 1-3 state-delta consequence assertions, false green elimination, Production Gremlins (0/1/1000 items, long text overflow, partial failure), keyboard focus restoration, and goal-based user journey coverage."
     }
 }
 
@@ -241,14 +241,20 @@ class ProjectDNA:
 def is_foundation_root(root_dir: str) -> bool:
     """Checks if root_dir is the upstream foundation hub repository itself."""
     abs_p = os.path.abspath(root_dir)
-    return (
-        os.path.basename(abs_p) == "_foundation"
-        or (
-            os.path.isdir(os.path.join(abs_p, ".agents", "canons", "ecosystems"))
-            and os.path.isfile(os.path.join(abs_p, ".agents", "scripts", "commands", "foundation.py"))
-            and os.path.isdir(os.path.join(abs_p, "tools", "digestpack"))
-        )
+    if os.path.basename(abs_p) == "_foundation":
+        return True
+    has_foundation_structure = (
+        os.path.isdir(os.path.join(abs_p, ".agents", "canons", "ecosystems"))
+        and os.path.isfile(os.path.join(abs_p, ".agents", "scripts", "commands", "foundation.py"))
+        and os.path.isdir(os.path.join(abs_p, ".agents", "rules"))
     )
+    if not has_foundation_structure:
+        return False
+    has_host_manifest = any(
+        os.path.isfile(os.path.join(abs_p, m))
+        for m in ("pubspec.yaml", "package.json", "Cargo.toml", "pyproject.toml", "go.mod", "pom.xml")
+    )
+    return not has_host_manifest
 
 def is_foundation_agents(root_dir: str) -> bool:
     """Checks if path is directly inside .agents directory."""
@@ -458,6 +464,14 @@ def classify_file_to_tier(
         t1 = CANONICAL_5_TIERS["1_contracts"]
         return "1_contracts", t1["gravity"], t1["slug"], t1["title"]
 
+    # Tier 3 Kernel Modules & Shared Engine Utilities
+    # Evaluated before Tier 4 and Tier 5 to prevent system backend scripts from being misclassified as app state/UI
+    is_kernel_module = any(seg in ("core", "utils", "shared", "common") for seg in parts[:-1]) and any(".agents" in seg or "scripts" in seg for seg in parts[:-1])
+    is_kernel_script = is_kernel_module or base_lower.startswith(("db.", "orion_graph.", "memory.", "capabilities.", "packer.", "scanner."))
+    if is_kernel_script:
+        t3 = CANONICAL_5_TIERS["3_services"]
+        return "3_services", t3["gravity"], t3["slug"], t3["title"]
+
     # Tier 4: State Orchestration, Notifiers & Controllers
     # NOTE: Evaluated before Tier 5 to properly classify controllers/providers/state within presentation/ or feature-first directories
     is_state_path = any(seg in CANONICAL_5_TIERS["4_state"]["folder_tokens"] for seg in parts[:-1])
@@ -474,7 +488,7 @@ def classify_file_to_tier(
         return "5_presentation", t5["gravity"], t5["slug"], t5["title"]
 
     # Tier 3: Services, Repositories & Data Persistence
-    is_srv_path = any(seg in CANONICAL_5_TIERS["3_services"]["folder_tokens"] for seg in parts[:-1]) or base_lower.startswith(("db.", "orion_graph.", "memory.", "capabilities."))
+    is_srv_path = any(seg in CANONICAL_5_TIERS["3_services"]["folder_tokens"] for seg in parts[:-1])
     is_srv_sym = any(any(st in s for st in CANONICAL_5_TIERS["3_services"]["symbol_stereotypes"]) for s in syms_lower)
     if is_srv_path or stem_tier == "3_services" or is_srv_sym:
         t3 = CANONICAL_5_TIERS["3_services"]
@@ -542,17 +556,114 @@ def detect_execution_spine(root_dir: str, audit_files: List[str]) -> List[str]:
     return discovered
 
 
-def detect_feature_organs(audit_files: List[str]) -> List[Dict[str, Any]]:
-    """Discovers Bounded Context feature verticals (e.g. features/auth, modules/billing)."""
-    organ_roots = ("features", "modules", "packages", "apps", "services", "domains")
-    organs: Dict[str, Dict[str, Any]] = {}
+def discover_file_subsystem(rel_path: str) -> Optional[str]:
+    """
+    Path-agnostic topological subsystem resolver.
+    Strips transparent wrapper containers (src, lib, app, pkg, internal, .agents/scripts)
+    to identify the true functional module/subsystem cluster regardless of folder naming conventions.
+    """
+    norm = rel_path.replace("\\", "/").strip("/")
+    if not norm or "/" not in norm:
+        return None
+    parts = norm.split("/")
+    dir_parts = parts[:-1]
+    if not dir_parts:
+        return None
 
+    low_parts = [p.lower() for p in dir_parts]
+    ignored_roots = {".git", ".orion", ".gemini", "node_modules", "__pycache__", "build", "dist", ".dart_tool", "tests", "test", "__tests__", "docs", "assets", "context"}
+    if low_parts[0] in ignored_roots:
+        return None
+
+    if low_parts[0] == ".agents":
+        if len(low_parts) >= 3 and low_parts[1] in ("scripts", "skills", "canons"):
+            if low_parts[1] == "scripts" and len(low_parts) >= 4 and low_parts[2] == "core":
+                return f"scripts/core/{low_parts[3]}"
+            return f"{low_parts[1]}/{low_parts[2]}"
+        if len(low_parts) >= 2 and low_parts[1] in ("rules", "docs", "templates", "archive"):
+            return f"agents/{low_parts[1]}"
+        return ".agents"
+
+    transparent_wrappers = {"src", "lib", "app", "internal", "pkg", "cmd", "main", "java", "kotlin", "python"}
+    vertical_containers = {"features", "modules", "packages", "apps", "services", "domains", "plugins", "verticals", "crates", "clients", "servers", "tools"}
+
+    idx = 0
+    while idx < len(low_parts) - 1 and low_parts[idx] in transparent_wrappers:
+        idx += 1
+
+    if idx < len(low_parts) - 1 and low_parts[idx] in vertical_containers:
+        return f"{low_parts[idx]}/{low_parts[idx + 1]}"
+
+    # Path-agnostic fallback: use the deepest meaningful module cluster up to depth 2 after wrappers
+    rem = low_parts[idx:]
+    if len(rem) >= 2 and rem[0] in ("core", "commands", "domain", "services", "presentation", "ui", "state", "data"):
+        return f"{rem[0]}/{rem[1]}"
+    return "/".join(rem[:min(2, len(rem))])
+
+
+def discover_topological_subsystems(audit_files: List[str]) -> Dict[str, List[str]]:
+    """Groups repository files into path-agnostic functional subsystem clusters."""
+    clusters: Dict[str, List[str]] = defaultdict(list)
+    for f in audit_files:
+        sub = discover_file_subsystem(f)
+        if sub:
+            clusters[sub].append(f.replace("\\", "/").strip("/"))
+    return dict(clusters)
+
+
+def detect_feature_organs(audit_files: Union[str, List[str]]) -> List[Dict[str, Any]]:
+    """
+    Discovers Bounded Context feature verticals (e.g. features/auth, modules/billing, custom src/checkout, or .agents/skills/*).
+    Combines container-based discovery with Path-Agnostic Structural Multi-Tier Verticality
+    (supporting both Full-Stack UI mode and Headless/Engine mode).
+    Accepts either a workspace root string or a list of relative file paths.
+    """
+    if isinstance(audit_files, str):
+        try:
+            from core.paths import get_workspace_files
+            audit_files = get_workspace_files(audit_files)
+        except ImportError:
+            try:
+                from .paths import get_workspace_files
+                audit_files = get_workspace_files(audit_files)
+            except Exception:
+                fl: List[str] = []
+                for r, _, fs in os.walk(audit_files):
+                    for f in fs:
+                        fl.append(os.path.relpath(os.path.join(r, f), audit_files).replace("\\", "/"))
+                audit_files = fl
+
+    organ_roots = ("features", "modules", "packages", "apps", "services", "domains", "plugins", "verticals", "skills", "canons")
+    shared_horizontal_roots = {
+        "core", "shared", "common", "utils", "helpers", "foundation", "config", "constants",
+        "theme", "styles", "l10n", "i18n", "assets", "routes", "router", "navigation", "di",
+        "contracts", "models", "entities", "dtos", "schemas", "repositories",
+        "repos", "data", "db", "database", "api", "network", "state", "providers", "controllers",
+        "bloc", "cubit", "store", "presentation", "screens", "views", "widgets", "components",
+        "pages", "ui", "commands", "scripts", "hooks", "evals", "rules",
+        "templates", "tests", "test", "__tests__", "docs", "context", ".orion",
+        "android", "ios", "macos", "windows", "linux", "web", "build", "dist"
+    }
+    transparent_wrappers = {"src", "lib", "app", "internal", "pkg", ".agents", "ecosystems"}
+    organs: Dict[str, Dict[str, Any]] = {}
+    candidate_verticals: Dict[str, Dict[str, Any]] = {}
+
+    has_any_ui = False
     for f in audit_files:
         norm = f.replace("\\", "/").strip("/")
         parts = norm.split("/")
+        if len(parts) < 2:
+            continue
+        tier_key, _, _, _ = classify_file_to_tier(norm)
+        if tier_key == "5_presentation":
+            has_any_ui = True
+
+        matched_explicit = False
         for idx, seg in enumerate(parts[:-1]):
-            if seg.lower() in organ_roots and idx + 1 < len(parts) - 1:
+            if seg.lower() in organ_roots and idx + 1 < len(parts):
                 organ_name = parts[idx + 1].lower()
+                if organ_name in shared_horizontal_roots or organ_name.startswith("."):
+                    break
                 root_prefix = "/".join(parts[:idx + 2])
                 if organ_name not in organs:
                     organs[organ_name] = {
@@ -562,10 +673,43 @@ def detect_feature_organs(audit_files: List[str]) -> List[Dict[str, Any]]:
                         "detected_tiers": set()
                     }
                 organs[organ_name]["files"].append(norm)
-                # Assign tier
-                tier_key, _, _, _ = classify_file_to_tier(norm)
                 organs[organ_name]["detected_tiers"].add(tier_key)
+                matched_explicit = True
                 break
+
+        if not matched_explicit:
+            # Path-Agnostic Structural Verticality candidate (e.g. src/auth/... or billing/...)
+            dir_parts = parts[:-1]
+            idx = 0
+            while idx < len(dir_parts) - 1 and dir_parts[idx].lower() in transparent_wrappers:
+                idx += 1
+            cand_seg = dir_parts[idx].lower()
+            if cand_seg not in shared_horizontal_roots and not cand_seg.startswith("."):
+                root_prefix = "/".join(parts[:idx + 1])
+                if cand_seg not in candidate_verticals:
+                    candidate_verticals[cand_seg] = {
+                        "name": cand_seg,
+                        "root_prefix": root_prefix,
+                        "files": [],
+                        "detected_tiers": set()
+                    }
+                candidate_verticals[cand_seg]["files"].append(norm)
+                candidate_verticals[cand_seg]["detected_tiers"].add(tier_key)
+
+    # Admit path-agnostic vertical candidates
+    for c_name, c_info in candidate_verticals.items():
+        if c_name in organs:
+            continue
+        tiers = c_info["detected_tiers"]
+        if has_any_ui:
+            has_upper = bool(tiers & {"4_state", "5_presentation"})
+            has_lower = bool(tiers & {"1_contracts", "2_domain", "3_services"})
+            qualifies = (len(c_info["files"]) >= 2 and has_upper and has_lower)
+        else:
+            has_lower = bool(tiers & {"1_contracts", "2_domain", "3_services", "8_native_and_cli", "4_state"})
+            qualifies = bool(has_lower and len(c_info["files"]) >= 1)
+        if qualifies:
+            organs[c_name] = c_info
 
     results = []
     for o_name, info in sorted(organs.items()):
@@ -716,7 +860,8 @@ def check_layer_violations(
                         break
 
             # Check Horizontal Feature-Organ Isolation (Organ A importing Organ B's internal state/presentation/services)
-            if src_organ and resolved_target_path and resolved_target_tier in ("3_services", "4_state", "5_presentation"):
+            is_shared_kernel_import = any(seg in ("core", "utils", "shared", "common") for seg in (resolved_target_path or "").split("/"))
+            if src_organ and resolved_target_path and not is_shared_kernel_import and resolved_target_tier in ("3_services", "4_state", "5_presentation"):
                 target_organ = next((o_name for o_pref, o_name in organ_prefixes if resolved_target_path.startswith(o_pref + "/")), None)
                 if target_organ and target_organ != src_organ:
                     violations.append({
@@ -1187,13 +1332,17 @@ def sequence_project_dna(
     # 2. Collect scan files if not provided
     files = list(audit_files) if audit_files is not None else []
     if not files:
+        should_include_agents = bool(allow_foundation and (is_foundation_root(abs_root) or is_foundation_agents(abs_root)))
         try:
             from core.paths import get_workspace_files
-            files = get_workspace_files(abs_root, include_agents=False)
+            files = get_workspace_files(abs_root, include_agents=should_include_agents)
         except ImportError:
             files = []
             for r, dirs, filenames in os.walk(abs_root):
-                dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "build", "dist", "target", "venv", ".venv")]
+                if should_include_agents:
+                    dirs[:] = [d for d in dirs if (not d.startswith(".") or d == ".agents") and d not in ("node_modules", "build", "dist", "target", "venv", ".venv")]
+                else:
+                    dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "build", "dist", "target", "venv", ".venv")]
                 for fn in filenames:
                     rel = os.path.relpath(os.path.join(r, fn), abs_root).replace("\\", "/")
                     files.append(rel)
@@ -1850,7 +1999,7 @@ def get_dna_trend(root_dir: str, limit: int = 10, db_path: Optional[str] = None)
                 has_regression = True
                 regression_reason = f"Compliance score dropped from {prev_score}/100 to {curr_score}/100"
                 try:
-                    from commands.reflexion import ObservationLedger
+                    from commands.pulsar import ObservationLedger
                     ledger = ObservationLedger()
                     ledger.add_observation(
                         title=f"DNA compliance score regression ({prev_score} -> {curr_score})",
@@ -2020,6 +2169,7 @@ class DynamicVersionScanner:
 
     # Sovereign Engine & Framework Disqualified Manifest Names / Identifiers
     ENGINE_DISQUALIFIED_IDS = {
+        "orioncortex",
         "portable-brainvibing",
         "antigravity-foundation",
         "gemini-extension",
@@ -2699,7 +2849,14 @@ class DynamicVersionScanner:
                 seen_paths.add(m_rel)
 
         # (b) Scan Source Code Constants matching canon_semver
-        for s_dir in cls.SRC_DIRS:
+        candidate_src_dirs = set(cls.SRC_DIRS)
+        try:
+            for entry in os.scandir(abs_root):
+                if entry.is_dir() and entry.name not in cls.EXCLUDE_DIRS and not entry.name.startswith("."):
+                    candidate_src_dirs.add(entry.name)
+        except OSError:
+            pass
+        for s_dir in sorted(candidate_src_dirs):
             dir_full = os.path.join(abs_root, s_dir)
             if not os.path.isdir(dir_full):
                 continue
@@ -3200,11 +3357,36 @@ def update_project_version(
     return sorted(list(updated_sinks))
 
 
-def compact_changelog_entries(raw_content: str) -> str:
+def sanitize_changelog_line(line: str) -> str:
+    """Sanitizes internal paths, developer trace markers, git hashes, and PR numbers from changelog lines."""
+    clean = line.strip()
+    # Strip paths
+    clean = re.sub(r'[A-Za-z]:\\[^:\s]+', '', clean)
+    clean = re.sub(r'/(?:Users|home|root)/[^\s]+', '', clean)
+    clean = re.sub(r'\.agents/scripts/[^\s]+', '', clean)
+    # Strip PR / issue numbers e.g. (#123) or #123
+    clean = re.sub(r'\(\s*#\d+\s*\)', '', clean)
+    clean = re.sub(r'\b#\d+\b', '', clean)
+    # Strip git commit hashes / bracketed commits e.g. [commit 7f3a9b1] or [7f3a9b1]
+    clean = re.sub(r'\[(?:commit\s+)?[0-9a-f]{7,40}\]', '', clean, flags=re.IGNORECASE)
+    # Strip internal trace markers
+    clean = re.sub(r'\(R-\d+\)', '', clean)
+    clean = re.sub(r'\[(?:decision|bugfix|feature|refactor|discovery|milestone|breaking-vision|epoch)\]:?', '', clean, flags=re.IGNORECASE)
+    clean = re.sub(r'\[DEBUG[^\]]*\]', '', clean, flags=re.IGNORECASE)
+    # Strip conventional commit prefix e.g. feat(auth): or fix:
+    clean = re.sub(r'^(?:feat|fix|chore|refactor|docs|style|test|perf|ci|build)(?:\([^)]+\))?:\s*', '', clean, flags=re.IGNORECASE)
+    # Normalize whitespace
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    if clean:
+        clean = clean[0].upper() + clean[1:]
+    return clean
+
+
+def compact_changelog_entries(raw_content: str, project_name: str = "") -> str:
     """
     Lessword Compact Changelog Synthesizer:
-    Consolidates raw bullet points into 3-5 dense domain sentences.
-    Eliminates AI slop, conversational filler, and verbose multi-line laundry lists.
+    Consolidates raw bullet points into 3-5 dense domain sentences across 5 universal tiers.
+    Eliminates AI slop, conversational filler, and internal developer trace paths.
     """
     lines = [l.strip() for l in raw_content.splitlines() if l.strip()]
     if not lines:
@@ -3216,7 +3398,8 @@ def compact_changelog_entries(raw_content: str) -> str:
             continue
         cleaned = re.sub(r"^[-*+]\s*(\[[ x]\]\s*)?", "", line).strip()
         cleaned = re.sub(r"^(?:Added|Changed|Fixed|Breaking Changes?|Security|Deprecated):\s*", "", cleaned, flags=re.IGNORECASE).strip()
-        if cleaned and len(cleaned) > 2:
+        cleaned = sanitize_changelog_line(cleaned)
+        if cleaned and len(cleaned) > 2 and cleaned not in raw_items:
             raw_items.append(cleaned)
 
     if not raw_items:
@@ -3230,13 +3413,13 @@ def compact_changelog_entries(raw_content: str) -> str:
 
     for item in raw_items:
         low = item.lower()
-        if any(k in low for k in ("dna", "strata", "ast", "scaffold", "semver", "vision", "blueprint", "rule", "guardrail", "manifest", "contract", "tier")):
+        if any(k in low for k in ("dna", "strata", "ast", "scaffold", "semver", "vision", "blueprint", "rule", "guardrail", "manifest", "contract", "tier", "architecture", "governance")):
             core_items.append(item)
-        elif any(k in low for k in ("service", "repo", "api", "bento", "packer", "bundle", "pipeline", "db", "sqlite", "query", "state", "cache", "hazard")):
+        elif any(k in low for k in ("service", "repo", "api", "bento", "packer", "bundle", "pipeline", "db", "sqlite", "query", "state", "cache", "hazard", "provider", "combo")):
             services_items.append(item)
-        elif any(k in low for k in ("ui", "screen", "widget", "token", "view", "theme", "design", "css", "layout", "craft")):
+        elif any(k in low for k in ("ui", "screen", "widget", "token", "view", "theme", "design", "css", "layout", "craft", "presentation")):
             ui_items.append(item)
-        elif any(k in low for k in ("test", "spec", "verify", "gate", "bugfix", "fix", "regression", "leak", "clean")):
+        elif any(k in low for k in ("test", "spec", "verify", "gate", "bugfix", "fix", "regression", "leak", "clean", "security", "integrity", "redact")):
             verification_items.append(item)
         else:
             general_items.append(item)
@@ -3264,10 +3447,10 @@ def compact_changelog_entries(raw_content: str) -> str:
     if services_items:
         dense_lines.append(f"- **Core Services & Pipelines**: {_condense(services_items)}")
     if ui_items:
-        dense_lines.append(f"- **Presentation & UI Craft**: {_condense(ui_items)}")
+        dense_lines.append(f"- **Presentation & Experience**: {_condense(ui_items)}")
     if verification_items:
         dense_lines.append(f"- **Integrity & Bug Fixes**: {_condense(verification_items)}")
-    if general_items and len(dense_lines) < 4:
+    if general_items and len(dense_lines) < 5:
         dense_lines.append(f"- **Operational Polish**: {_condense(general_items)}")
 
     if not dense_lines:
@@ -3319,6 +3502,242 @@ def stamp_changelog_release(root_dir: str = ".", version: str = "0.1.0", date_st
         return False
 
 
+def quantify_semver_impact(
+    abs_root: str = ".",
+    changed_files: Optional[List[str]] = None,
+    file_tier_map: Optional[Dict[str, str]] = None,
+    tier_counts: Optional[Dict[str, int]] = None,
+    commit_messages: Optional[List[str]] = None,
+    added_files: Optional[Union[Set[str], List[str]]] = None,
+    commits: Optional[List[str]] = None,
+    ast_delta: Optional[Dict[str, Any]] = None,
+    deleted_files: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    4-Axis Deterministic SemVer Impact Quantification:
+    Computes S_impact = S_strata + S_organ + S_ast + S_commit and B_breaking
+    with logarithmic strata scaling, maintenance damping, and single-file guard.
+    Thresholds: MINOR >= 35.0, MAJOR >= 50.0.
+    """
+    if changed_files is None:
+        changed_files = []
+    if commit_messages is None:
+        commit_messages = commits or []
+    if file_tier_map is None:
+        file_tier_map = {f: classify_file_to_tier(f)[0] for f in changed_files}
+    if tier_counts is None:
+        tier_counts = Counter(file_tier_map.values())
+
+    # 1. Strata Gravity (0 - 28.0)
+    strata_weights = {
+        "0_pillars_and_manifests": 3.5,
+        "1_contracts": 3.2,
+        "2_domain": 2.8,
+        "3_services": 2.4,
+        "4_state": 2.0,
+        "8_native_and_cli": 2.0,
+        "5_presentation": 1.2,
+        "9_verification": 0.25,
+    }
+    s_strata = 0.0
+    for t_key, count in tier_counts.items():
+        w = strata_weights.get(t_key, 1.0)
+        s_strata += w * math.log(1 + count) * 2.2
+    s_strata = min(28.0, round(s_strata, 2))
+
+    # 2. Topological Organ Entropy (0 - 41.0)
+    non_test_files = [f for f in changed_files if file_tier_map.get(f) != "9_verification"]
+    subsystems: Set[str] = set()
+    for f in non_test_files:
+        sub = discover_file_subsystem(f)
+        if sub:
+            subsystems.add(sub)
+    k = len(subsystems)
+    if k == 0:
+        base_organ = 0.0
+    elif k == 1:
+        base_organ = 4.0
+    else:
+        base_organ = min(26.0, 9.0 * k)
+
+    added_set = added_files or set()
+    n_added = len([f for f in non_test_files if f in added_set])
+    added_score = min(15.0, 5.0 * n_added)
+    s_organ = min(41.0, round(base_organ + added_score, 2))
+
+    # 3. AST Symbol Surface Delta (0 - 18.0)
+    delta_syms = 0
+    try:
+        from core.scanner import extract_file_symbols
+        for f in non_test_files[:20]:
+            fp = os.path.join(abs_root, f)
+            if os.path.isfile(fp):
+                syms = extract_file_symbols(fp)
+                pub = [s for s in syms if not s.startswith("_")]
+                delta_syms += len(pub)
+    except Exception:
+        delta_syms = len(non_test_files) * 2
+    s_ast = min(18.0, round(min(delta_syms, 20) * 0.9, 2))
+
+    # 4. Semantic Commit Momentum (0 - 80.0+)
+    combined_text = " ".join(commit_messages).lower()
+    n_conv_feat = 0
+    n_nat_feat = 0
+    additive_verbs = {
+        "add", "adds", "added", "introduce", "introduces", "introduced",
+        "implement", "implements", "implemented", "enable", "enables", "enabled",
+        "support", "supports", "supported", "create", "creates", "created",
+        "integrate", "integrates", "integrated"
+    }
+    for msg in commit_messages:
+        m_clean = msg.strip()
+        if not m_clean:
+            continue
+        if re.search(r'\b(?:feat(?:\([^)]+\))?|feature)\s*:', m_clean, re.IGNORECASE):
+            n_conv_feat += 1
+        else:
+            first_word = re.split(r'\s+', m_clean)[0].lower().rstrip(":")
+            if first_word in additive_verbs or any(f" {v} " in f" {m_clean.lower()} " for v in ("implemented", "introduced", "integrated", "added")):
+                n_nat_feat += 1
+
+    is_milestone = any(k in combined_text for k in ("[milestone]", "[epoch]", "milestone:"))
+    is_pillar = any("0_pillars_and_manifests" in file_tier_map.get(f, "") and "pillar" in f.lower() for f in changed_files) or "pillar:" in combined_text
+
+    s_commit = round(14.0 * n_conv_feat + 10.0 * n_nat_feat + (40.0 if is_milestone else 0.0) + (35.0 if is_pillar else 0.0), 2)
+
+    # Maintenance Damping & Single-File Guard
+    total_feat = n_conv_feat + n_nat_feat
+    is_pure_maintenance = (total_feat == 0) and any(k in combined_text for k in ("fix", "bug", "patch", "refactor", "chore", "clean", "test", "doc"))
+    if is_pure_maintenance:
+        s_strata = round(s_strata * 0.45, 2)
+        s_organ = round(s_organ * 0.45, 2)
+
+    s_impact = round(s_strata + s_organ + s_ast + s_commit, 2)
+
+    if len(non_test_files) <= 1 and total_feat <= 1 and n_added == 0 and not is_milestone and not is_pillar:
+        s_impact = min(29.0, s_impact)
+
+    # 5. Breaking Score (0 - 100.0)
+    b_breaking = 0.0
+    has_breaking_signal = any(k in combined_text for k in ("feat!:", "breaking change:", "[breaking-vision]", "[paradigm-shift]"))
+    vision_modified = any("context/vision.md" in f.lower() or f.lower().endswith("vision.md") for f in changed_files)
+    tier_has_breaking_surface = any(file_tier_map.get(f) in ("0_pillars_and_manifests", "1_contracts", "2_domain", "8_native_and_cli") for f in changed_files)
+
+    if has_breaking_signal and (vision_modified or tier_has_breaking_surface):
+        b_breaking = 65.0
+    elif vision_modified:
+        b_breaking = 25.0
+
+    return {
+        "strata_score": s_strata,
+        "organ_score": s_organ,
+        "ast_score": s_ast,
+        "commit_score": s_commit,
+        "impact_score": s_impact,
+        "breaking_score": b_breaking,
+        "is_minor": bool(s_impact >= 35.0),
+        "is_major": bool(b_breaking >= 50.0),
+        "recommended_bump": "major" if b_breaking >= 50.0 else ("minor" if s_impact >= 35.0 else "patch"),
+        "subsystem_count": k,
+        "topological_organs": sorted(list(subsystems)),
+        "organs_affected": sorted(list(subsystems)),
+        "added_files_count": n_added,
+        "is_pure_maintenance": is_pure_maintenance,
+    }
+
+
+def _evaluate_cognitive_semver_llm(
+    quant: Dict[str, Any],
+    changed_files: List[str],
+    commit_messages: List[str],
+    tier_counts: Dict[str, int],
+    curr_version: str,
+    project_name: str = "",
+) -> Optional[Dict[str, Any]]:
+    """
+    Neuro-symbolic Cognitive LLM SemVer Adjudicator.
+    Adjudicates borderline/ambiguous releases (12.0 <= S_impact <= 48.0 or untagged commits).
+    Routes through: (1) Local SLM, (2) Multi-provider Cloud API, (3) Gemini JSON endpoint.
+    """
+    try:
+        from core.capabilities import generate_completion, resolve_api_slot_config
+    except ImportError:
+        return None
+
+    prompt = (
+        f"You are the Chief Release Architect for project '{project_name or 'workspace'}'.\n"
+        f"Current Version: v{curr_version}\n"
+        f"Quantified Metrics:\n"
+        f"- Strata Score: {quant['strata_score']} / 28.0\n"
+        f"- Organ Entropy Score: {quant['organ_score']} / 41.0 (Topological Organs: {', '.join(quant['topological_organs']) or 'none'})\n"
+        f"- AST Surface Delta Score: {quant['ast_score']} / 18.0\n"
+        f"- Commit Momentum Score: {quant['commit_score']}\n"
+        f"- Total Impact Score: {quant['impact_score']} (Minor Threshold: >= 35.0)\n"
+        f"- Breaking Score: {quant['breaking_score']} (Major Threshold: >= 50.0)\n\n"
+        f"Changed Files ({len(changed_files)}):\n" + "\n".join(f"- {f}" for f in changed_files[:20]) + "\n\n"
+        f"Recent Commits ({len(commit_messages)}):\n" + "\n".join(f"- {m}" for m in commit_messages[:10]) + "\n\n"
+        f"Adjudicate the correct SemVer bump: 'PATCH', 'MINOR', or 'MAJOR'.\n"
+        f"Return strict JSON only:\n"
+        f'{{"recommended_bump": "PATCH|MINOR|MAJOR", "confidence": 0.0-1.0, "rationale": "one sentence explaining why"}}\n'
+    )
+
+    slot_cfg = resolve_api_slot_config("FAST")
+    model_name = slot_cfg.get("model", "qwen3-coder-flash")
+    raw_res = generate_completion(
+        prompt=prompt,
+        model=model_name,
+        system_prompt="You are a strict SemVer release engineer. Output valid JSON only.",
+        timeout_sec=6.0,
+        temperature=0.1
+    )
+
+    if not raw_res:
+        gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if gemini_key:
+            import urllib.request
+            g_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
+            }
+            try:
+                req = urllib.request.Request(
+                    g_url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "x-goog-api-key": gemini_key.strip()},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=5.0) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    raw_res = data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception:
+                pass
+
+    if raw_res:
+        try:
+            cleaned_json = re.sub(r'^```json\s*|\s*```$', '', raw_res.strip())
+            m_json = re.search(r'\{[\s\S]*\}', cleaned_json)
+            if m_json:
+                data = json.loads(m_json.group(0))
+                bump = str(data.get("recommended_bump", "")).upper()
+                conf = float(data.get("confidence", 0.0))
+                rat = str(data.get("rationale", ""))
+                if bump in ("PATCH", "MINOR", "MAJOR") and conf >= 0.75:
+                    if bump == "MAJOR" and quant["breaking_score"] < 25.0:
+                        bump = "MINOR" if quant["is_minor"] else "PATCH"
+                        rat += " (Guardrail prevented unearned MAJOR promotion)"
+                    return {
+                        "recommended_bump": bump,
+                        "confidence": conf,
+                        "rationale": rat,
+                        "engine": f"cognitive_llm:{model_name}"
+                    }
+        except Exception as _e:
+            _log_telemetry(_e, "_evaluate_cognitive_semver_llm:parse")
+
+    return None
+
+
 def evaluate_dna_semver(
     root_dir: str = ".",
     since_ref: Optional[str] = None,
@@ -3330,7 +3749,7 @@ def evaluate_dna_semver(
     """
     Evaluates changed files and commit messages against Project DNA 5-Tier Strata
     to deterministically calculate SemVer impact (MAJOR, MINOR, or PATCH) with
-    strict Anti-AI-Slop and Lessword thresholds.
+    4-Axis quantitative gravity and Neuro-Symbolic Cognitive LLM adjudication.
     """
     abs_root = os.path.abspath(root_dir)
     detected = detect_project_version(abs_root)
@@ -3340,6 +3759,7 @@ def evaluate_dna_semver(
 
     # 1. Resolve baseline release ref and collect modified files + unreleased commits
     changed_files = list(file_list or [])
+    added_files: Set[str] = set()
     baseline_ref: Optional[str] = since_ref
     unreleased_commits: List[str] = []
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
@@ -3361,22 +3781,28 @@ def evaluate_dna_semver(
         file_set: List[str] = []
         try:
             ref = baseline_ref or "HEAD"
-            cmd = ["git", "diff", "--name-only", ref]
+            cmd = ["git", "diff", "--name-status", ref]
             proc = subprocess.run(cmd, cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc.returncode == 0 and proc.stdout.strip():
-                for f in proc.stdout.strip().splitlines():
-                    norm_f = f.strip().replace("\\", "/")
-                    if norm_f and norm_f not in file_set:
-                        file_set.append(norm_f)
+                for line in proc.stdout.strip().splitlines():
+                    parts = line.strip().split(None, 1)
+                    if len(parts) >= 2:
+                        status_code, f_path = parts[0], parts[1].strip().replace("\\", "/")
+                        if f_path and f_path not in file_set:
+                            file_set.append(f_path)
+                            if status_code.startswith("A"):
+                                added_files.add(f_path)
 
             proc2 = subprocess.run(["git", "status", "--porcelain"], cwd=abs_root, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=flags)
             if proc2.returncode == 0 and proc2.stdout.strip():
                 for line in proc2.stdout.splitlines():
                     parts = line.strip().split(None, 1)
                     if len(parts) >= 2:
-                        norm_f = parts[1].strip().replace("\\", "/")
-                        if norm_f and norm_f not in file_set:
-                            file_set.append(norm_f)
+                        status_code, f_path = parts[0], parts[1].strip().replace("\\", "/")
+                        if f_path and f_path not in file_set:
+                            file_set.append(f_path)
+                            if "?" in status_code or "A" in status_code:
+                                added_files.add(f_path)
         except (OSError, subprocess.SubprocessError):
             pass
         changed_files = file_set
@@ -3394,7 +3820,7 @@ def evaluate_dna_semver(
                     if not clean_line:
                         continue
                     low_line = clean_line.lower()
-                    if f"release): sync foundation {release_marker}" in low_line or f"release): portable-brainvibing {release_marker}" in low_line:
+                    if f"release): sync foundation {release_marker}" in low_line or f"release): orioncortex {release_marker}" in low_line or f"release): portable-brainvibing {release_marker}" in low_line:
                         continue
                     unreleased_commits.append(clean_line)
         except (OSError, subprocess.SubprocessError):
@@ -3430,47 +3856,62 @@ def evaluate_dna_semver(
         tier_counts[t_key] += 1
         file_tier_map[f_rel] = t_key
 
-    # 4. Strict Major Gate (Quarantined against AI slop)
-    is_major = False
-    is_minor = False
-    combined_text = " ".join(msgs).lower()
+    # 4. 4-Axis SemVer Impact Quantification
+    quant = quantify_semver_impact(
+        abs_root=abs_root,
+        changed_files=changed_files,
+        file_tier_map=file_tier_map,
+        tier_counts=tier_counts,
+        commit_messages=msgs,
+        added_files=added_files,
+    )
+
+    is_major = quant["is_major"]
+    is_minor = quant["is_minor"]
+    cognitive_result: Optional[Dict[str, Any]] = None
 
     if allow_major_override:
         is_major = True
         reasons.append("Explicit human authorization for MAJOR release override")
-    else:
-        vision_modified = any("context/vision.md" in f.lower() or f.lower().endswith("vision.md") for f in changed_files)
-        if vision_modified and any(k in combined_text for k in ("[paradigm-shift]", "[breaking-vision]")):
-            is_major = True
-            reasons.append("Sacred North Star (context/VISION.md) paradigm shift confirmed in history")
-        elif vision_modified:
-            reasons.append("⚠️ Sacred North Star (context/VISION.md) modified without explicit [paradigm-shift] tag; autonomous Major Quarantine preserves minor/patch stability")
+    elif quant["breaking_score"] >= 50.0:
+        is_major = True
+        reasons.append(f"Quantified Breaking Gravity score {quant['breaking_score']:.1f} >= 50.0 (contract/architectural paradigm shift confirmed)")
 
-    # 5. Strict Minor Gate (High-Threshold: requires new feature organ, new pillar, or milestone)
     if not is_major:
         if allow_minor_override:
             is_minor = True
             reasons.append("Explicit human authorization for MINOR release override")
-        elif any(k in combined_text for k in ("[milestone]", "[epoch]", "[new-organ]")):
+        elif quant["impact_score"] >= 35.0:
             is_minor = True
-            reasons.append("Explicit Milestone or New Feature Organ tag detected in session history")
-        elif any("0_pillars_and_manifests" in file_tier_map.get(f, "") and "pillar" in f.lower() for f in changed_files):
-            is_minor = True
-            reasons.append("New capability pillar introduced in Tier 0")
-        else:
-            # Check if any new feature organ directory was added (e.g. src/organ/ or features/organ/)
-            detected_organs = set()
-            for f in changed_files:
-                parts = f.replace("\\", "/").split("/")
-                if len(parts) >= 3 and parts[0] in ("src", "lib", "features", "packages", "apps", "services"):
-                    detected_organs.add(f"{parts[0]}/{parts[1]}")
-            if len(detected_organs) >= 2:
-                # Multiple broad organs touched simultaneously with feature tag
-                if any(k in combined_text for k in ("[feature]", "feat:", "feat(")):
-                    is_minor = True
-                    reasons.append(f"Broad multi-organ feature evolution across {len(detected_organs)} contexts ({', '.join(sorted(detected_organs)[:3])})")
+            organs_str = ", ".join(quant["topological_organs"][:3]) or "core"
+            reasons.append(f"Quantified Impact score {quant['impact_score']:.1f} >= 35.0 (broad evolution across {quant['subsystem_count']} topological context(s): {organs_str})")
 
-    # 6. Universal Patch Default
+        # Cognitive LLM Adjudicator for borderline / ambiguous cases
+        is_borderline = (12.0 <= quant["impact_score"] <= 48.0) or (len(changed_files) >= 2 and quant["commit_score"] == 0.0)
+        if is_borderline and not allow_minor_override and not allow_major_override:
+            project_name = os.path.basename(abs_root)
+            cognitive_result = _evaluate_cognitive_semver_llm(
+                quant=quant,
+                changed_files=changed_files,
+                commit_messages=msgs,
+                tier_counts=tier_counts,
+                curr_version=curr_v_str,
+                project_name=project_name,
+            )
+            if cognitive_result and cognitive_result.get("confidence", 0.0) >= 0.75:
+                cog_bump = cognitive_result["recommended_bump"]
+                if cog_bump == "MAJOR":
+                    is_major = True
+                    is_minor = False
+                    reasons.append(f"Cognitive LLM Adjudication ({cognitive_result['engine']}): MAJOR — {cognitive_result['rationale']}")
+                elif cog_bump == "MINOR":
+                    is_minor = True
+                    reasons.append(f"Cognitive LLM Adjudication ({cognitive_result['engine']}): MINOR — {cognitive_result['rationale']}")
+                elif cog_bump == "PATCH":
+                    is_minor = False
+                    reasons.append(f"Cognitive LLM Adjudication ({cognitive_result['engine']}): PATCH — {cognitive_result['rationale']}")
+
+    # 5. Finalize Bump
     if is_major:
         bump = "MAJOR" if maj >= 1 else "MINOR"
         next_maj, next_min, next_pat = bump_semver_tuple(maj, minr, pat, "major" if maj >= 1 else "minor")
@@ -3480,7 +3921,7 @@ def evaluate_dna_semver(
     else:
         bump = "PATCH"
         next_maj, next_min, next_pat = bump_semver_tuple(maj, minr, pat, "patch")
-        reasons.append("Incremental development: routine endpoints, UI polish, bugfixes, refactorings, and test additions stay strictly PATCH (Anti-AI-Slop Invariant)")
+        reasons.append(f"Incremental development: Quantified Impact score {quant['impact_score']:.1f} < 35.0 (routine maintenance, polish, bugfixes, and tests stay strictly PATCH)")
 
     target_v = f"{next_maj}.{next_min}.{next_pat}"
     target_build = (detected.build_number + 1) if detected.build_number is not None else None
@@ -3506,5 +3947,7 @@ def evaluate_dna_semver(
         "tier_distribution": dict(tier_counts),
         "reasons": reasons,
         "file_tier_map": file_tier_map,
+        "quantification": quant,
+        "cognitive_verdict": cognitive_result,
         "discovered_sinks": [asdict(s) for s in detected.sinks],
     }

@@ -25,7 +25,7 @@ For each extracted piece of knowledge, determine its proper destination within t
 *If the target file does not exist, the Agent MUST execute the `write_to_file` tool to create it inside the matching categorized folder.*
 
 ## 3. Injection (Write Phase)
-- **Action**: Use your `replace_file_content` or `write_to_file` tools to inject the knowledge into the file.
+- **Action**: The Agent MUST use `replace_file_content` or `write_to_file` tools to inject the knowledge into the file.
 - **Format Constraint**: If the file contains a `<!-- LEGACY MERGE START -->` or `<!-- CONVERSATION MERGE START -->` marker, insert the new knowledge below it. Use clear bullet points and specify the date of extraction.
 
 Example Format:

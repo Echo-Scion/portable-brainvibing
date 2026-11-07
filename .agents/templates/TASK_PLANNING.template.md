@@ -29,6 +29,27 @@ During `/project-init` (Step 0 Intake), the agent MUST compile the user's answer
     "trinity_keywords": ["3 core values inferred from brief"],
     "dual_lens_concept": "The two primary user perspectives",
     "wow_moment": "The first 30 seconds experience",
+    "fresh_discovery_5_lenses": {
+      "contrarian_take": "Where the initial premise is incomplete or solving the wrong symptom",
+      "user_story_hook": "Concrete real-world user scenario (Setup -> Friction -> Resolution)",
+      "evidence_and_metrics": "Exact benchmarks to verify or [bracketed metric placeholders] to instrument",
+      "tactical_playbook": ["3-4 immediate execution steps"],
+      "what_was_missed": "Second-order consequences, partial-data states, and adjacent workflows"
+    },
+    "advisory_panel_verdict": {
+      "vote_split": "e.g., 4 For, 1 Conditional (Skeptic)",
+      "consensus_and_key_condition": "Bottom-line decision and the single guardrail that must hold true",
+      "operator_feasibility": "Execution bottlenecks and maintenance footprint",
+      "skeptic_failure_modes": "Worst-case downside, security/churn risk, and cross-advisor rebuttal",
+      "visionary_moat": "2-3 year asymmetric product upside",
+      "customer_advocate": "Real user adoption friction vs internal complexity",
+      "finance_unit_economics": "Token/cloud burn, payback, and opportunity cost"
+    },
+    "ui_structural_hypotheses": {
+      "primary_layout_model": "Table | Split-View | Rail | Command-Surface | Timeline | Bento",
+      "alt_a_rearrangement": "Hypothesis A: structural rearrangement of primary view",
+      "alt_b_first_principles": "Hypothesis B: first-principles rebuild minimizing user moves"
+    },
     "architectural_risks": ["Potential technical debt or scale issues"],
     "structural_pillars": ["How it maps to the 8 pillars of Tier-S"]
   }

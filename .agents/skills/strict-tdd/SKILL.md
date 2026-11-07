@@ -43,3 +43,7 @@ Execute the following steps sequentially when instructed to use TDD.
 
 **ABSOLUTE RULE (Log Check):** Evidence over claims. If the shell log does not explicitly show the test failing (Exit Code > 0), you do not know what you are testing. Halt and rewrite the test.
 
+## 💡 Continuous Learnings
+<!-- LEARNED_START -->
+- Recurring Mechanical Catch in test_module:fetch_items: Enforce boundary invariant guard on test_module:fetch_items
+<!-- LEARNED_END -->

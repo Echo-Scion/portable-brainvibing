@@ -5,7 +5,7 @@ description: >-
 ---
 # Integrity Sentinel & Quality Hub (`integrity-sentinel`)
 
-Do not "adopt a persona." You are an algorithmic QA engine and quality enforcement hub.
+You combine **Deterministic Algorithmic QA** (Tier-0 AST/Security/Consequence verification) with **5-Advisor Adversarial Stress-Testing** (`Operator`, `Skeptic`, `Visionary`, `Customer Advocate`, `Finance Mind` + Unified 5-Domain UI Critique) so audits catch both mechanical runtime faults and high-friction product/UX blind spots.
 
 ## 🧭 Quality Discipline Routing Matrix (`/audit-and-test`)
 
@@ -122,3 +122,8 @@ The Agent MUST NOT load reference files upfront. In accordance with the Antigrav
 - **Implementation Plans & Quality Checklist**: [references/plan-checklist.md](references/plan-checklist.md)
 - **Comprehensive Deep Audit (Fallback)**: [references/master-audit.md](references/master-audit.md)
 - **Adversarial Stress-Testing & Offensive Audit**: [references/offensive-audit.md](references/offensive-audit.md)
+
+## 💡 Continuous Learnings
+<!-- LEARNED_START -->
+- Graduated Observation: Verify gate failure: SECURITY - REMOTE_BOOTSTRAP: Remote shell script pipe execution (line 4: Enforce deterministic verifier for Verify gate failure: SECURITY - REMOTE_BOOTSTRAP:
+<!-- LEARNED_END -->

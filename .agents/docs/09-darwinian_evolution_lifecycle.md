@@ -46,7 +46,7 @@ The `.agents` infrastructure enforces a deterministic learning loop to prevent r
 ---
 
 ### 22.1. The 5-Status Observation Ledger (`OBSERVATIONS.md` & `OBSERVATIONS.archive.md`)
-Managed by `ObservationLedger` in `commands/reflexion.py` (`orion.py observe` / `orion.py resolve`):
+Managed by `ObservationLedger` in `commands/pulsar.py` (`orion.py observe` / `orion.py resolve`):
 - **5 Lifecycle Statuses**: `open`, `validated`, `promoted`, `parked`, and `superseded`.
 - **Workspace Path Sanitization**: Both `note` and `evidence` fields automatically strip machine-specific absolute paths and `file://` prefixes (`<workspace>/...`) before persisting to disk.
 - **Test Harness Isolation**: `core/db.py` (`log_telemetry`) and `core/harness/capture.py` (`ToolQuantumCapture`) isolate unit test runs (`unittest`/`pytest` or external `tempfile` directories) so synthetic test exceptions never bleed into the production `.agents/OBSERVATIONS.md`.
@@ -121,9 +121,9 @@ This merges hardened rules and canons back to the master framework hub, enabling
 
 ---
 
-## Chapter 25: Sovereign Skill Harness & Reflexion Auto-Heal (`core/harness/` & `reflexion.py`)
+## Chapter 25: Sovereign Skill Harness & Reflexion Auto-Heal (`core/harness/` & `commands/pulsar.py`)
 
-To prevent unverified LLM-authored skills or repairs from polluting the production workspace, `.agents` implements a quarantined **Sovereign Skill Harness** (`core/harness/`, ~79 KB) paired with closed-loop **Reflexion Auto-Heal** (`commands/reflexion.py`).
+To prevent unverified LLM-authored skills or repairs from polluting the production workspace, `.agents` implements a quarantined **Sovereign Skill Harness** (`core/harness/`, ~79 KB) paired with closed-loop **Reflexion Auto-Heal** (`commands/pulsar.py`).
 
 ### 25.1. Tool Quantum Capture & Secret Redaction (`core/harness/capture.py`)
 - **`ToolQuantumCapture`**: Tracks every tool execution as an opportunity-relative **session quantum** (`total_quanta`) in `.orion/harness/quantum_state.json`, recording which skills were invoked or missed without relying on wall-clock timestamps.
@@ -134,8 +134,8 @@ Agents cannot write directly into `.agents/skills/` during autonomous turns:
 1. Candidate skills are submitted as a `StagedIntent` to `.orion/harness/intents/<intent_id>.json` via `IntentQueue` or the built-in stdio JSON-RPC 2.0 MCP server (`python .agents/scripts/orion.py harness serve`, exposing the `stage_skill` tool).
 2. Each staged intent remains quarantined until evaluated by `SovereignPromoter` (`orion.py harness promote <intent_id>`).
 
-### 25.3. The 14-Gate Admission Barrier (`core/harness/admission.py`)
-`SovereignPromoter` validates every staged skill against 14 deterministic admission gates before permitting promotion into `.agents/skills/`:
+### 25.3. The 17-Gate Admission Barrier (`core/harness/admission.py`)
+`SovereignPromoter` validates every staged skill against 17 deterministic admission gates before permitting promotion into `.agents/skills/`:
 
 | Gate ID | Category | Deterministic Check |
 |:---|:---|:---|
@@ -155,6 +155,7 @@ Agents cannot write directly into `.agents/skills/` during autonomous turns:
 | `HARNESS-REJ-01` | Negative Memory | Blocks re-proposal of previously rejected or discarded intent fingerprints |
 | `HARNESS-ANC-01` | Bounded Ops | Strict anchor match and $\le 3$ ops inside `<!-- LEARNED -->` blocks without unmatched skips |
 | `HARNESS-VERIFY-01` | Executable Gate | Associated verification command or `--self-test` harness exits with Code `0` |
+| `HARNESS-TRN-01` | Anti-Truncation | Rejects mid-token truncated rules or shallow skill bodies |
 | `HARNESS-CMT-01` | Prose & Hygiene | Passes comment hygiene and anti-slop prose authenticity checks |
 
 ### 25.4. Opportunity-Relative Skill Lifecycle (`core/harness/lifecycle.py`)
@@ -166,7 +167,7 @@ Unlike wall-clock TTL systems that wrongly archive skills simply because a devel
 ### 25.5. Prefix Cluster Curation (`core/harness/curator.py`)
 `ClusterCurator` (`orion.py harness curate`) scans `.agents/skills/` for fragmented prefix clusters (e.g., multiple micro-skills sharing a `<domain>-*` prefix) and generates an umbrella consolidation plan that merges sibling playbooks into a single primary `SKILL.md` with on-demand `references/`.
 
-### 25.6. Closed-Loop Reflexion Auto-Heal (`commands/reflexion.py`)
+### 25.6. Closed-Loop Reflexion Auto-Heal (`commands/pulsar.py`)
 When a test or verification command fails, `ReflexionLoop.auto_heal(file_path, test_cmd, error_output)` coordinates with `resolve_elastic_execution_plan()`:
 1. Snapshots the original file contents in memory before attempting any repair.
 2. Allocates `0`–`3` local repair trials depending on the active local model parameter tier (`3B` `micro_syntax` $\to 1$ trial; `7B` `single_fn` $\to 2$ trials; `32B` `multi_fn` $\to 3$ trials).

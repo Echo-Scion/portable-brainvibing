@@ -8,7 +8,7 @@ Follow these steps to diagnose and fix a UI or logic issue in a Flutter app.
 
 ## 0. CONTEXT RETRIEVAL (JIT)
 *   [ ] Verify architecture compliance. IF unsure, refer to Section 1 of `AGENTS.md` or `GEMINI.md`.
-*   [ ] Run `view_file` on `context/README.md` to identify the target app.
+*   [ ] The Agent MUST run `view_file` on `context/README.md` to identify the target app.
 *   [ ] Scope ALL tool paths to the target app only.
 
 ## 1. VISUAL DIAGNOSIS
@@ -31,7 +31,7 @@ Follow these steps to diagnose and fix a UI or logic issue in a Flutter app.
 *   [ ] STOP: Wait for user confirmation OR proceed only if the evidence is 100% conclusive.
 
 ## 5. APPLY FIX & ITERATIVE REFINEMENT
-*   [ ] Verify the fix adheres to project standards. IF unsure, use `grep_search` on `@flutter-standards.md`.
+*   [ ] The Agent MUST verify the fix adheres to project standards using `grep_search` on `@flutter-standards.md` if unsure.
 *   [ ] Modify the code based on the single hypothesis.
 *   [ ] **Iterative Code Refinement (Harness Loop)**:
     *   Run tests or `dart analyze` as the "Harness" to evaluate the fix.

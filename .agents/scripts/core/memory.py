@@ -2,7 +2,7 @@
 
 Hosts the 3-tier memory stack (Core, Recall, Archival), graph community
 clustering, the Obsidian vault exporter and the Second Brain briefing builder.
-`commands/brain.py`, `commands/compact.py`, `commands/rag.py`, and `commands/vault.py` are the CLI gateways that import these primitives.
+`commands/brain.py`, `commands/compact.py`, `commands/rag.py`, and `commands/observatory.py` are the CLI gateways that import these primitives.
 """
 
 import hashlib

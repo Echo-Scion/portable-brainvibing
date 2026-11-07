@@ -21,11 +21,11 @@ When asked to evaluate context size or if context feels slow, use this calculati
 | `grep_search` with context:2 | ~150 per file | SAFE |
 
 ### Mandatory Interventions & Numerical Thresholds
-1. **Bulk Read Refusal**: If asked to "read all files in directory X", execute `python .agents/scripts/orion.py scan targets` first.
-2. **Soft Modularity Advisory (350–500 Lines)**: Files `<= 350 lines` may be read in a single `read_file` call. Files exceeding **350 lines** trigger an advisory warning during `scan map` / `scan tokens` recommending cohesive module extraction once the current feature test passes (`GREEN -> REFACTOR` phase). For files `> 350 lines`, map symbol spans first (`python .agents/scripts/orion.py scan map <file>`) to get `[Lstart-Lend]` boundaries, then read targeted spans.
+1. **Bulk Read Refusal**: If asked to "read all files in directory X", the Agent MUST execute `python .agents/scripts/orion.py scan targets` first.
+2. **Tier-Aware Code Skeleton First (`800` Standard/Premium vs `350` Budget)**: Files `<= 800 lines` (`<= 350 lines` on `BUDGET` tier) MAY be read directly via `read_file`. Before reading any file `> 800 lines` (`> 350 lines` on `BUDGET`), the Agent MUST run `python .agents/scripts/orion.py scan map <file>` to extract exact `[Lstart-Lend]` symbol spans, then call `read_file` with targeted `StartLine`/`EndLine`. Files between `800–1200 lines` trigger a soft modularity refactor advisory once current tests pass (`GREEN -> REFACTOR`).
 3. **Soft Session Attention Watermark (~40,000 Tokens)**: When accumulated session context crosses **~40,000 active tokens**, recommend `/session-offload` or sub-agent delegation (`worker-delegate`) to keep the active reasoning window sharp and prevent attention decay.
 4. **Memory Hygiene Gate**: If active working memory (`MEMORY.md`) exceeds 200 lines, trigger `/session-offload` to prune evicted context.
-5. **FORBIDDEN (Un-budgeted Bulk Dumps)**: Never stream full directory contents or un-filtered test logs into model context without pre-filtering via `grep_search` or `rtk`.
+5. **FORBIDDEN (Un-budgeted Bulk Dumps)**: The Agent MUST NEVER stream full directory contents or un-filtered test logs into model context without pre-filtering via `grep_search` or `rtk`.
 
 ---
 

@@ -170,6 +170,22 @@ Select exactly **one** primary archetype during scaffolding to eliminate generic
 - **Selected Archetype**: `{{archetype_name}}`
 - **Active Macrostructure**: `{{macrostructure_name}}` (Options: *Asymmetric Split-Masthead* | *Data-Dense Cockpit* | *Editorial Dossier* | *Interactive Playground* | *Stepped Narrative* | *Minimalist Utility*)
 
+<!-- START FOUNDATION:layout-model-by-task -->
+### 1.05 🧭 Task-First Layout Model & Two-Hypothesis Rule (Anti-UI-Slop)
+Never default to a card grid or Bento layout when a task-specific workspace primitive fits better:
+1. **Select Layout by Primary Task**:
+   - *Scan & Compare Multi-Attribute Records*: **Data Table** (sticky header, `tabular-nums`, sort carets; never card soup).
+   - *Simultaneous Context & Detail Editing*: **Split View / Master-Detail** or **Canvas + Inspector Rail**.
+   - *Sequential Triage & Action Rows*: **Compact Action List / Band** (grouped by whitespace $\ge 2\times$ intra-group gap, not boxed cards).
+   - *High-Velocity Power Operations*: **Command Surface + Keyboard First** (`0ms` open/close animation).
+   - *Chronological / Audit Streams*: **Vertical Timeline Rail**.
+   - *Heterogeneous Feature Overview (Marketing/Onboarding Only)*: **Asymmetric Bento Mosaic**.
+2. **Prevent Container Fatigue**: Group related elements via spatial proximity ($2\times$ outer gap vs inner gap) and typographic hierarchy first; use bordered cards only when an interactive boundary, comparison, or elevation layer is functionally required. Never separate the label, value, and context of one logical entity into unrelated containers.
+3. **Two-Hypothesis Exploration (`Alt A` vs `Alt B`)**: The first layout idea is a local maximum. Before coding a primary screen, formulate two structurally distinct hypotheses holding content and tokens constant:
+   - `Alt A (Structural Rearrangement)`: Optimizes hierarchy and eliminates dead space/container fatigue within the current flow.
+   - `Alt B (First-Principles Task Flow)`: Rebuilds the screen around the fewest user moves to complete the primary job.
+<!-- END FOUNDATION:layout-model-by-task -->
+
 ### 1.1 🌟 The Signature Soul Component
 Every project MUST specify and implement at least **one bespoke interactive domain control or visual affordance** unique to this product's domain identity (e.g., a tactile rotary gain meter with physical detents, a custom timeline waveform cue scrubber, an obsidian crystallite texture toggle, or a tactile hardware dial).
 - **Signature Component Name**: `{{signature_component_name}}`
@@ -240,6 +256,19 @@ Depth is expressed through layered surface tones and subtle elevation shadows:
 | **Level 4 (Alert / Toast)** | `colors.surface` | `elevation.xl` | System alert overlays, floating notification toasts |
 
 - **Hairline Rule**: Shadows MUST be paired with a subtle `1px` border (`colors.surface_border`) on dark themes to guarantee layer separation.
+
+<!-- START FOUNDATION:surface-optical-geometry -->
+### Surface Craft: Concentric Radii, Optical Alignment, Shadow-Borders & Image Outlines
+1. **Concentric Border Radius**: When nesting rounded elements with padding $\le 24\text{px}$, enforce `outerRadius = innerRadius + padding` (e.g., `rounded-2xl` `16px` outer card with `p-2` `8px` padding requires `rounded-lg` `8px` inner child).
+2. **Optical Over Geometric Alignment**:
+   - *Buttons with Text + Trailing/Leading Icon*: Reduce padding on the icon side by `2px` (`padding-inline-start: 16px; padding-inline-end: 14px` or `ps-4 pe-3.5`).
+   - *Triangular / Asymmetric Glyphs (Play, Caret, Star)*: Shift play triangles `+2px` horizontally (`translateX(2px)`) to align visual center with geometric center.
+3. **Shadows for Elevation vs. Borders for Structure**:
+   - Use multi-layer transparent `box-shadow` for card/button depth (`--shadow-border: 0 0 0 1px oklch(0 0 0 / 0.06), 0 1px 2px -1px oklch(0 0 0 / 0.06), 0 2px 4px 0 oklch(0 0 0 / 0.04)` in light mode; `0 0 0 1px oklch(1 0 0 / 0.08)` in dark mode).
+   - Keep `1px` solid borders strictly for structural dividers (`border-b`), table cell boundaries, and form input outlines.
+4. **Neutral Image Outlines**: Apply a `1px` inner outline to images (`outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px` in light mode; `oklch(1 0 0 / 0.1)` in dark mode; Tailwind: `outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10`). Never use tinted palette grays (`slate`/`zinc`) on image edges.
+5. **Tiered Brand Surface Contrast**: When stacking multiple brand-tinted background layers in dark mode, maintain $\ge 3.0:1$ non-text contrast between adjacent surface tiers.
+<!-- END FOUNDATION:surface-optical-geometry -->
 
 ---
 
@@ -314,53 +343,58 @@ Score planned output 1–5 across the 6 axes. Any score < 3 triggers revision pa
 
 ## ⚡ Motion & Micro-Interactions
 
-Animations must feel snappy, physical, and restrained:
-
-| Intent | Duration | Easing Curve | Use Case |
-| :--- | :--- | :--- | :--- |
-| **Micro-feedback** | `75ms` (`instant`) | `motion.easing.default` | Active click/press depression, toggle switch |
-| **Interactive State**| `150ms` (`fast`) | `motion.easing.out` | Hover color/border shift, tooltip fade |
-| **Layout / Expansion**| `250ms` (`normal`) | `motion.easing.default` | Accordion fold, dropdown expansion, tab slide |
-| **Modal / Dialog** | `250ms` (`normal`) | `motion.easing.out` | Modal fade & scale-in (`scale(0.96) -> scale(1)`) |
-| **Deliberate Reveal** | `400ms` (`deliberate`) | `motion.easing.out` | Page route transition, hero section entrance |
-
-- **Accessibility Mandate**: Respect user motion preferences:
-  ```css
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-  ```
+<!-- START FOUNDATION:four-gate-motion -->
+Every candidate animation must pass the **4-Gate Motion Filter** before implementation:
+1. **Gate 1 — Frequency Tier**:
+   - `100+ times/day` (Command palettes, keyboard shortcuts, core nav, focus jumps): **0ms — Reject animation completely.**
+   - `Tens of times/day` (Hover states, toggles, list traversal): `100ms–160ms` subtle compositor transition only.
+   - `Occasional` (Modals, drawers, toasts, popovers): `150ms–300ms` standard spatial transition (`transform-origin` anchored to trigger).
+   - `Rare / First-Time` (Onboarding, initial empty state, milestone completion): `300ms–400ms` split-and-stagger (`~80ms–100ms` delay).
+2. **Gate 2 — Named Purpose**: Must serve *Feedback*, *Spatial Consistency* (exit along entry vector), *State Indication*, *Bridge for Teleporting Content*, *Explanation*, or *Rare Delight*. Never animate functional charts/data being read.
+3. **Gate 3 — Interruptibility & Exact Recipes**:
+   - Use **CSS transitions** (never keyframes) for interactive state changes so mid-flight reversal retargets smoothly. Never use `transition: all` or `will-change: all`.
+   - **Scale on Press**: Use `active:not-disabled:scale-[0.96]` (`150ms ease-out`, never `< 0.95` and never bouncy elastic curves); expose a `static` prop to disable press scaling on high-frequency or toolbar controls.
+   - **Contextual Icon Swap**: Animate icon state changes with `scale(0.25 -> 1)`, `opacity(0 -> 1)`, and `filter: blur(4px -> 0px)` (`duration: 300ms`, `bounce: 0`, `cubic-bezier(0.2, 0, 0, 1)`). Set `initial={false}` on `AnimatePresence` so default icons never animate on initial page load.
+   - **Exit Subtlety**: Exits use shorter duration (`150ms`) and small fixed `translateY(-12px)` rather than full-height collapse.
+4. **Gate 4 — Opt-In Reduced Motion**: Wrap motion in `@media (prefers-reduced-motion: no-preference)` or replace slides/scales with gentle opacity crossfades under `prefers-reduced-motion: reduce`.
+<!-- END FOUNDATION:four-gate-motion -->
 
 ---
 
 ## 🎯 Iconography Standards
 
-- **Standard Icon Pack**: Lucide Icons or Phosphor Icons (Pick one library, never mix multiple icon styles).
-- **Sizing Grid**:
-  - `16px` (`size-4`): Compact inline badges, input field adornments, table row actions.
-  - `20px` (`size-5`): Standard button icons, navigation list items, tab headers.
-  - `24px` (`size-6`): Hero feature highlights, empty state visual anchors, page titles.
-- **Stroke Uniformity**: Consistent `1.5px` stroke weight across all icons (or `2px` for bold/compact). Never mix thin and thick icons.
-- **Alignment**: Center icon optical bounds vertically with adjacent typography.
+- **Standard Icon Pack**: Lucide Icons or Phosphor Icons (One optical strategy per surface; never mix libraries).
+- **Match Stroke Width to Adjacent Text Weight (24px Grid)**:
+  - Regular (`400`, `14–16px` text): `1.5px` stroke.
+  - Medium / Semibold (`500–600` text): `2.0px` stroke.
+  - Bold (`700` or standalone emphasis): `2.5px` stroke.
+- **State & Asset Hygiene**: Single SVG with `currentColor` (strip hardcoded hex fills). Default state uses **Outline** variant; active/selected state uses **Fill** variant. Test legibility at `16px` render grid.
+- **RTL Directionality (`dir="rtl"`)**: Mirror directional navigation arrows, chevrons, text-alignment glyphs, and send icons (`rtl:-scale-x-100`); NEVER flip brand logos, checkmarks, clocks/physical objects, or media playback controls.
 
 ---
 
-## 🧱 The 8-State Interactive Contract
+## 🧱 The 8-State Control & 6-Family Screen State Machine Contract
 
 <!-- START FOUNDATION:eight-state-contract -->
-Every interactive element (button, input, select, row) must provide explicit styling for all 8 states:
+### A. Interactive Control 8-State Contract
+Every interactive control (button, input, select, row) must provide explicit styling for all 8 states:
+1. **Default**: Crisp baseline token geometry (`>= 44x44px` touch / `>= 40x40px` desktop hit target; `16px` minimum mobile input font size to prevent iOS Safari zoom).
+2. **Hover**: Purposeful single-property transition (`@media (hover: hover) and (pointer: fine)` gated; NO universal `scale-105`).
+3. **Focus-Visible**: Instant `2px` high-contrast ring with `2px` offset (`:focus-visible`, never bare `:focus` or `outline: none`; must not be obscured by sticky headers per WCAG 2.4.11).
+4. **Active / Pressed**: `scale(0.96)` (`150ms ease-out`, disabled via `static` prop when needed).
+5. **Disabled**: Reduced opacity (`0.4–0.5`) AND clear explanation of *why* when non-obvious (prefer keeping Submit enabled and validating on submit to focus the first error).
+6. **Loading**: Inline spinner or skeleton matching layout geometry; `aria-busy="true"`.
+7. **Empty**: Orientation + concrete next action (never a bare `"No results"` shrug).
+8. **Error**: Instruction-first copy adjacent to the failing field (`aria-invalid="true"`, `aria-describedby`); zero blame or `"Oops!"`.
 
-1. **Default**: Crisp baseline token geometry.
-2. **Hover**: Purposeful single-property transition (color or border tint; NO universal `scale-105`).
-3. **Focus-Visible**: Instant 2px high-contrast ring with 2px offset (zero fade-in transition).
-4. **Active / Pressed**: Subtle scale compression (`scale(0.98)`) or 1px translateY depression.
-5. **Disabled**: Reduced opacity (`0.4–0.5`), `cursor: not-allowed`, inert pointer events.
-6. **Loading**: Inline indeterminate spinner or skeleton shimmer; interactive click blocked.
-7. **Empty**: Contextual illustration or typography explaining zero state + clear primary action.
-8. **Error**: Inline semantic red message + aria-invalid marker; focus redirected to field.
+### B. Screen-Level 6-Family State Machine (`UI State Expander`)
+A screen is a state machine, not a static poster. Every feature view must account for:
+1. **Data States**: `loading` (skeleton when layout matters), `first-time-empty` (explain value + primary create CTA), `filtered-to-empty` (name the query + `"Clear filters"` button), `no-permission-empty`, `populated`, `partial-data` (graceful degradation when 1 sub-request or image fails), `stale`, `optimistic-updating`.
+2. **Interaction States**: `default`, `hover`, `focus-visible`, `active`, `disabled-with-reason`, `selected`, `expanded/collapsed`, `dragging` (must include non-drag keyboard/click alternative per WCAG 2.5.7).
+3. **Form States**: `placeholder-as-example-only` (persistent visible `<label>` required), `editing`, `valid`, `invalid-instructional`, `auto-filled` (never block password/OTP paste per WCAG 3.3.8), `submitting`, `submit-failed-recoverable`.
+4. **Content States (Production Gremlins)**: Very long names/emails/URLs (`overflow-wrap: break-word`, `line-clamp` + tooltip access), `0` value, `1` item, `1,000+` items, localized string expansion (+30–50% width, logical CSS properties `margin-inline-start`).
+5. **System States**: `offline`, `timeout`, `rate-limited`, `session-expired`, `maintenance`.
+6. **Recovery States**: `retry`, `undo`, `restore-draft`, `reconnected-sync`.
 <!-- END FOUNDATION:eight-state-contract -->
 
 ---

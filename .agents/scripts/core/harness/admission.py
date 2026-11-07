@@ -284,6 +284,15 @@ class SovereignPromoter:
                 elif not TRIGGER_CUE_RE.search(desc_text):
                     findings.append(AdmissionFinding("structure", "Description must state WHEN to trigger (e.g. 'Use when...' or quote trigger words)", "HARNESS-STR-03"))
 
+                if "core_max_lines" in fm:
+                    try:
+                        c_max = int(str(fm["core_max_lines"]).strip())
+                        total_l = len(body.splitlines())
+                        if total_l > c_max:
+                            findings.append(AdmissionFinding("altitude", f"SKILL.md line count ({total_l}) exceeds declared core_max_lines ({c_max})", "HARNESS-FM-03"))
+                    except ValueError:
+                        findings.append(AdmissionFinding("frontmatter_lint", "core_max_lines must be a valid integer", "HARNESS-FM-03"))
+
                 for k, val in fm.items():
                     if isinstance(val, str):
                         raw_lines = [l.strip() for l in body.splitlines() if l.strip().startswith(f"{k}:")]
@@ -310,6 +319,8 @@ class SovereignPromoter:
                 findings.append(AdmissionFinding("altitude", f"Progressive disclosure cap exceeded: {total_lines} lines (max 500). Hoist detail into references/", "HARNESS-ALT-01"))
             if PLACEHOLDER_RE.search(body):
                 findings.append(AdmissionFinding("completeness", "Body contains unexpanded placeholder (TODO/FIXME/XXX)", "HARNESS-CMP-01"))
+            if re.search(r"->\s*[a-z_]{1,6}`?\s*$", body, re.MULTILINE):
+                findings.append(AdmissionFinding("completeness", "Skill body contains mid-token truncated sequence rule", "HARNESS-TRN-01"))
 
             # Tier-0 Forced Structural Barrier Check (2nd violation escalation)
             is_tier_0 = (
@@ -397,10 +408,12 @@ class SovereignPromoter:
                         f.write(content)
                     os.replace(tmp_sub, sub_path)
 
-            # 2. Materialize evidence slice
+            # 2. Materialize evidence slice into .orion/working/evidence/ (keep .agents/skills clean)
             ev_hash = hashlib.sha256(intent.evidence.encode("utf-8")).hexdigest()[:8]
             ev_filename = f"evidence-{ev_hash}.md"
-            ev_path = os.path.join(refs_dir, ev_filename)
+            ev_dir = os.path.join(os.path.dirname(os.path.dirname(self.skills_dir)), ".orion", "working", "evidence")
+            os.makedirs(ev_dir, exist_ok=True)
+            ev_path = os.path.join(ev_dir, ev_filename)
             _atomic_write_text(ev_path, f"# Evidence Trace [{ev_hash}]\n\n{intent.evidence}\n")
 
             # 3. Commit SKILL.md atomically
@@ -425,7 +438,7 @@ class SovereignPromoter:
             ledger_entry = {
                 "action": "create",
                 "reason": intent.reason,
-                "evidence": f"references/{ev_filename}",
+                "evidence": f".orion/working/evidence/{ev_filename}",
                 "level": intent.level
             }
             _atomic_append_jsonl(ledger_path, ledger_entry)
@@ -459,12 +472,12 @@ class SovereignPromoter:
                 f.write(new_text)
             os.replace(tmp_md, skill_md_path)
 
-            # Materialize evidence
-            refs_dir = os.path.join(skill_dir, "references")
-            os.makedirs(refs_dir, exist_ok=True)
+            # Materialize evidence slice into .orion/working/evidence/ (keep .agents/skills clean)
             ev_hash = hashlib.sha256(intent.evidence.encode("utf-8")).hexdigest()[:8]
             ev_filename = f"evidence-{ev_hash}.md"
-            ev_path = os.path.join(refs_dir, ev_filename)
+            ev_dir = os.path.join(os.path.dirname(os.path.dirname(self.skills_dir)), ".orion", "working", "evidence")
+            os.makedirs(ev_dir, exist_ok=True)
+            ev_path = os.path.join(ev_dir, ev_filename)
             _atomic_write_text(ev_path, f"# Evidence Trace [{ev_hash}]\n\n{intent.evidence}\n")
 
             # Update sidecar patch counter
@@ -483,7 +496,7 @@ class SovereignPromoter:
                 "action": "patch",
                 "status": "keep",
                 "reason": intent.reason,
-                "evidence": f"references/{ev_filename}",
+                "evidence": f".orion/working/evidence/{ev_filename}",
                 "line_delta": line_delta,
                 "fingerprint": compute_intent_fingerprint(intent)
             }

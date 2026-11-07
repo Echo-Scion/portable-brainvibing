@@ -10,6 +10,8 @@
 
 # 2. WHITELIST: Core Foundation Directories
 !/.agents/
+!/.antigravity-plugin/
+!/.antigravity-plugin/**
 
 # 3. WHITELIST: Core Foundation Files
 !/.gitignore
@@ -22,6 +24,7 @@
 !/LICENSE
 !/CODEOWNERS
 !/.env.example
+!/.env.template
 !/.all-contributorsrc
 .github/
 

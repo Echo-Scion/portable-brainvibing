@@ -1,13 +1,13 @@
 ---
 name: project-migrate
-description: Onboarding workflow for legacy or brownfield projects (90% done) into the Portable Brainvibing architecture.
+description: Onboarding workflow for legacy or brownfield projects (90% done) into the OrionCortex architecture.
 ---
 
 # PROJECT MIGRATE & BROWNFIELD ONBOARDING
 
 ## Workflow: Project Migrate (`/project-migrate`)
 
-Follow these steps when installing the Portable Brainvibing foundation (`.agents` directory) into an **existing, mostly complete (Brownfield)** codebase or when onboarding reverse-engineered application assets.
+Follow these steps when installing the OrionCortex foundation (`.agents` directory) into an **existing, mostly complete (Brownfield)** codebase or when onboarding reverse-engineered application assets.
 
 > **EPISTEMIC AUTO-CONTEXT PROTOCOL**: Raw source code and reverse-engineered packages (APK, IPA, Web, SQLite, HAR) contain high-fidelity structural facts (AST, database schemas, API routes, permissions, design tokens), but DO NOT contain business strategy or legal terms. Do NOT generate 82 empty or unanchored files. Follow the **3-Tier Epistemic Protocol**:
 > 1. `[AST_VERIFIED]`: 100% deterministic facts (schemas, APIs, permissions, colors). Write directly with `needs_human_review: false`.

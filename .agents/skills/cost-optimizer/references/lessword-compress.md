@@ -118,7 +118,7 @@ If file contains code blocks:
 ## Pattern
 
 Original:
-> You should always make sure to run the test suite before pushing any changes to the main branch. This is important because it helps catch bugs early and prevents broken builds from being deployed to production.
+> You must run the test suite before pushing any changes to the main branch. This is important because it helps catch bugs early and prevents broken builds from being deployed to production.
 
 Compressed:
 > Run tests before push to main. Catch bugs early, prevent broken prod deploys.

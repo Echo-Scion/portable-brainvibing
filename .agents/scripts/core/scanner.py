@@ -2505,6 +2505,12 @@ def _resolve_local_1hop_closure(raw_paths: List[str], root_dir: str = ".") -> Se
                         os.path.join(abs_root, "src"),
                         os.path.join(abs_root, "lib"),
                     ]
+                    try:
+                        for entry in os.scandir(abs_root):
+                            if entry.is_dir() and not entry.name.startswith(".") and entry.name not in ignore_dirs:
+                                search_bases.append(entry.path)
+                    except OSError:
+                        pass
                     for s_base in search_bases:
                         cand_file = os.path.join(s_base, rel_mod + ".py")
                         cand_pkg = os.path.join(s_base, rel_mod, "__init__.py")

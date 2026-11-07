@@ -38,7 +38,7 @@ export const UpdateProfileSchema = z.object({
 }).strict(); // Prevents injection of arbitrary fields like `isAdmin`
 ```
 
-Never proceed with an API implementation without defining the Zod schema first.
+The Agent MUST never proceed with an API implementation without defining the validation schema (Zod, Pydantic, or OpenAPI) first.
 
 ## 📜 Specification-First Architecture & Protocol (SDD)
 

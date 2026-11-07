@@ -295,7 +295,7 @@ def _save_checkpoint(state):
 
     # Flush observations on FSM checkpoint boundary
     try:
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
         ObservationLedger().get_digest()
     except Exception as _e_obs:
         pass
@@ -622,11 +622,11 @@ def main():
     if action == "init":
         arg2 = sys.argv[2] if len(sys.argv) > 2 else "default"
         if arg2.endswith(".md") and os.path.isfile(arg2):
-            from commands.bento_slicer import cmd_init as bento_init
+            from commands.dispenser import cmd_init as bento_init
             sys.exit(bento_init(arg2))
         cmd_init(arg2)
     elif action in ("slice", "next", "done"):
-        from commands.bento_slicer import main as bento_main
+        from commands.dispenser import main as bento_main
         sys.exit(bento_main(sys.argv[1:]))
     elif action in ("fast-track", "fast_track"):
         raw_args = sys.argv[2:]

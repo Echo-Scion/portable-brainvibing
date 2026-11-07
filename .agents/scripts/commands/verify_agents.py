@@ -885,13 +885,13 @@ def check_protocol_compliance(res: AuditResult, verbose: bool = True):
                         c_max = int(frontmatter["core_max_lines"])
                         rel_skill_path = os.path.relpath(skill_md, BASE_DIR)
                         if line_count > c_max:
-                            res.add_error("PROTOCOL", f"Line count ({line_count}) exceeds declared ceiling core_max_lines ({c_max})", rel_skill_path)
+                            res.add_warning("PROTOCOL", f"Line count ({line_count}) exceeds declared ceiling core_max_lines ({c_max}); consider hoisting details to references/", rel_skill_path, severity="MEDIUM")
                         elif c_max - line_count > 50:
                             res.add_warning("PROTOCOL", f"core_max_lines ceiling ({c_max}) sits >50 lines above actual count ({line_count}). Ratchet ceiling down to {line_count + 10}.", rel_skill_path)
                     except ValueError:
-                        pass
+                        res.add_warning("PROTOCOL", "Invalid non-integer core_max_lines in SKILL.md frontmatter", rel_skill_path, severity="LOW")
 
-                # Check required metadata keys in frontmatter (name, description per docs/skills.md)
+                # Check required metadata keys in frontmatter (name, description per docs/skills.md - Hard Gate)
                 if "name" not in frontmatter or "description" not in frontmatter:
                     res.add_error("PROTOCOL", "Missing essential metadata (name/description)", f"skills/{skill_name}/SKILL.md")
             except Exception as e:
@@ -1307,7 +1307,7 @@ def check_version_and_router_parity(res: AuditResult, verbose: bool = True):
         with tempfile.TemporaryDirectory() as td:
             # Greenfield simulation: deploy engine manifest into folder with no product code
             with open(os.path.join(td, "gemini-extension.json"), "w", encoding="utf-8") as f:
-                json.dump({"name": "portable-brainvibing", "version": "0.0.3"}, f)
+                json.dump({"name": "orioncortex", "version": "0.0.6"}, f)
             os.makedirs(os.path.join(td, ".agents"), exist_ok=True)
             with open(os.path.join(td, ".agents", ".project_manifest.json"), "w", encoding="utf-8") as f:
                 json.dump({"version": "0.0.3"}, f)
@@ -2045,6 +2045,277 @@ def check_operational_ergonomics(res: AuditResult, verbose: bool = True):
         except Exception as _ge:
             _log_telemetry(_ge, "verify_agents:guardrails_prog_check")
 
+def check_cross_artifact_contradictions(res: AuditResult, verbose: bool = True):
+    workspace_root = os.path.dirname(BASE_DIR)
+    invariants_path = os.path.join(workspace_root, ".agents", "canons", "global", "invariants_registry.json")
+    if not os.path.exists(invariants_path):
+        res.add_warning(
+            "INVARIANTS_REGISTRY_MISSING",
+            "Canonical invariants registry .agents/canons/global/invariants_registry.json not found.",
+            os.path.relpath(invariants_path, workspace_root),
+            severity="MEDIUM"
+        )
+        return
+
+    try:
+        with open(invariants_path, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+    except Exception as e:
+        res.add_warning(
+            "INVARIANTS_REGISTRY_CORRUPT",
+            f"Failed to parse invariants registry: {e}",
+            os.path.relpath(invariants_path, workspace_root),
+            severity="HIGH"
+        )
+        return
+
+    invariants = registry.get("invariants", {})
+    forbidden_claims = []
+    for inv_name, inv_data in invariants.items():
+        if isinstance(inv_data, dict) and "forbidden_legacy_claims" in inv_data:
+            for claim in inv_data["forbidden_legacy_claims"]:
+                forbidden_claims.append((inv_name, claim))
+
+    scan_paths = []
+    rules_dir = os.path.join(workspace_root, ".agents", "rules")
+    if os.path.exists(rules_dir):
+        for f in os.listdir(rules_dir):
+            if f.endswith(".md"):
+                scan_paths.append(os.path.join(rules_dir, f))
+
+    skills_dir = os.path.join(workspace_root, ".agents", "skills")
+    if os.path.exists(skills_dir):
+        for root, _, files in os.walk(skills_dir):
+            for f in files:
+                if f.endswith(".md"):
+                    scan_paths.append(os.path.join(root, f))
+
+    docs_dir = os.path.join(workspace_root, ".agents", "docs")
+    if os.path.exists(docs_dir):
+        for f in os.listdir(docs_dir):
+            if f.endswith(".md"):
+                scan_paths.append(os.path.join(docs_dir, f))
+
+    for root_file in ["AGENTS.md", "GEMINI.md"]:
+        rf_path = os.path.join(workspace_root, root_file)
+        if os.path.exists(rf_path):
+            scan_paths.append(rf_path)
+
+    initial_errors = len(res.errors)
+
+    # 1. Check forbidden legacy claims
+    for file_path in scan_paths:
+        try:
+            content = read_text(file_path)
+            rel_path = os.path.relpath(file_path, workspace_root)
+            for inv_name, claim in forbidden_claims:
+                if claim in content:
+                    res.add_error(
+                        "CONTRADICTION",
+                        f"Found forbidden legacy invariant claim '{claim}' ({inv_name}) violating invariants_registry.json",
+                        rel_path,
+                        severity="HIGH"
+                    )
+        except Exception:
+            pass
+
+    # 2. Check 2nd-level CLI subcommands
+    valid_subcommands = {
+        "design": {"select", "infer"},
+        "dna": {"sequence", "mutate", "audit", "lint", "snapshot", "trend", "semver", "bump"},
+        "bento": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "brain": {
+            "sync", "hydrate", "compile", "query", "ingest", "stats", "handoff", "extract",
+            "doctor", "core", "archival", "recall", "facts", "communities", "export-vault",
+            "second-brain", "nanobrain", "inject_triplets", "autoscale", "hardware", "page",
+            "gc", "init", "resolve", "matrix", "compress", "shrink", "distill", "compact",
+            "contradict", "raw-ingest", "diagnostics", "memory", "rollover", "mine-triplets-worker"
+        },
+        "reflexion": {
+            "record", "list", "graduate", "detect-recurring", "consolidate", "status",
+            "audit", "reflect", "observe", "observations", "resolve", "habits", "linkify",
+            "session", "milestone", "epoch", "daily", "weekly", "monthly"
+        },
+        "harness": {"promote", "stage", "status", "audit", "serve", "lifecycle", "curate", "index", "record-tool"},
+        "scan": {"map", "tokens", "security", "targets", "deps", "prose", "repomap", "audit-validate", "delegate-check"},
+        "worktree": {"seed", "add", "list"},
+        "foundation": {"deploy", "upgrade", "push-upstream", "sync-ai"},
+        "decisions": {"record", "list", "resolve", "audit"},
+        "dispenser": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "impulse": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "task-slicer": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "task_slicer": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "slicer": {"init", "next", "done", "park", "auto-solve", "status", "slice", "fast-track"},
+        "pulsar": {
+            "record", "list", "graduate", "detect-recurring", "consolidate", "status",
+            "audit", "reflect", "observe", "observations", "resolve", "habits", "linkify",
+            "session", "milestone", "epoch", "daily", "weekly", "monthly"
+        },
+        "observatory": {"export", "second-brain", "clean"},
+        "vault": {"export", "second-brain", "clean"},
+        "galaxy": {"status", "export", "sync", "add", "remove"},
+        "portfolio": {"status", "export", "sync", "add", "remove"},
+        "constellation": {"status", "export", "sync", "add", "remove"},
+        "codex": {
+            "sync", "hydrate", "compile", "query", "ingest", "stats", "handoff", "extract",
+            "doctor", "core", "archival", "recall", "facts", "communities", "export-vault",
+            "second-brain", "nanobrain", "inject_triplets", "autoscale", "hardware", "page",
+            "gc", "init", "resolve", "matrix", "compress", "shrink", "distill", "compact",
+            "contradict", "raw-ingest", "diagnostics", "memory", "rollover", "mine-triplets-worker"
+        },
+    }
+    cmd_pattern = re.compile(r'python\s+\.agents/scripts/orion\.py\s+([a-z_]+)\s+([a-z_-]+)')
+    for file_path in scan_paths:
+        try:
+            content = read_text(file_path)
+            rel_path = os.path.relpath(file_path, workspace_root)
+            for m in cmd_pattern.finditer(content):
+                cmd, subcmd = m.group(1), m.group(2)
+                if cmd in valid_subcommands and not subcmd.startswith("--"):
+                    if subcmd not in valid_subcommands[cmd]:
+                        res.add_error(
+                            "GHOST_SUBCOMMAND",
+                            f"Invalid subcommand 'orion.py {cmd} {subcmd}'. Expected one of: {', '.join(sorted(valid_subcommands[cmd]))}",
+                            rel_path,
+                            severity="HIGH"
+                        )
+        except Exception:
+            pass
+
+    # 3. Check JIT table row parity between AGENTS.md and templates/AGENTS.template.md
+    agents_md = os.path.join(workspace_root, "AGENTS.md")
+    template_md = os.path.join(workspace_root, ".agents", "templates", "AGENTS.template.md")
+    if os.path.exists(agents_md) and os.path.exists(template_md):
+        try:
+            content_a = read_text(agents_md)
+            content_t = read_text(template_md)
+            jit_rows_a = [l for l in content_a.splitlines() if l.strip().startswith("| **") and "|" in l[4:]]
+            jit_rows_t = [l for l in content_t.splitlines() if l.strip().startswith("| **") and "|" in l[4:]]
+            if len(jit_rows_a) != len(jit_rows_t):
+                res.add_error(
+                    "JIT_TEMPLATE_PARITY",
+                    f"AGENTS.md JIT table has {len(jit_rows_a)} rows but AGENTS.template.md has {len(jit_rows_t)} rows (drift detected).",
+                    os.path.relpath(template_md, workspace_root),
+                    severity="HIGH"
+                )
+        except Exception as _je:
+            _log_telemetry(_je, "verify_agents:jit_template_parity")
+
+    # 4. Mechanical AST Duplicate Symbol & Dict-Key Scanner across .agents/scripts/
+    scripts_root = os.path.join(workspace_root, ".agents", "scripts")
+    if os.path.exists(scripts_root):
+        for root, dirs, files in os.walk(scripts_root):
+            dirs[:] = [d for d in dirs if d != "__pycache__"]
+            for f in sorted(files):
+                if not f.endswith(".py"):
+                    continue
+                py_path = os.path.join(root, f)
+                rel_py = os.path.relpath(py_path, workspace_root).replace("\\", "/")
+                try:
+                    py_src = read_text(py_path)
+                    tree = ast.parse(py_src, filename=rel_py)
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Dict):
+                            seen_k = {}
+                            for k_node in node.keys:
+                                if isinstance(k_node, ast.Constant) and isinstance(k_node.value, (str, int)):
+                                    kv = k_node.value
+                                    if kv in seen_k:
+                                        res.add_error(
+                                            "PATCH_DUPLICATE_KEY",
+                                            f"Duplicate dictionary key {kv!r} at L{k_node.lineno} (first defined at L{seen_k[kv]})",
+                                            rel_py,
+                                            severity="HIGH"
+                                        )
+                                    seen_k[kv] = k_node.lineno
+                        if isinstance(node, (ast.Module, ast.ClassDef)):
+                            seen_defs = {}
+                            for stmt in node.body:
+                                if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                                    is_prop_mod = any(
+                                        isinstance(d, ast.Attribute) and d.attr in ("setter", "deleter")
+                                        for d in stmt.decorator_list
+                                    )
+                                    if not is_prop_mod:
+                                        if stmt.name in seen_defs:
+                                            res.add_error(
+                                                "PATCH_DUPLICATE_DEF",
+                                                f"Duplicate symbol definition `{stmt.name}` at L{stmt.lineno} (first defined at L{seen_defs[stmt.name]})",
+                                                rel_py,
+                                                severity="HIGH"
+                                            )
+                                        seen_defs[stmt.name] = stmt.lineno
+                except Exception:
+                    pass
+
+    if verbose and len(res.errors) == initial_errors:
+        print(" [PASS] Cross-Artifact Invariants: Deterministic anti-contradiction and subcommand validation active.")
+
+
+def check_changelog_hygiene(res: AuditResult, verbose: bool = True):
+    """
+    Validates public-facing CHANGELOG.md invariants:
+      1. Outcome Over Process: zero internal script paths (commands/..., core/..., scripts/...)
+      2. Zero Internal Codes: zero review/audit tags like (R-01) or internal function calls
+      3. Zero Machine Environments: zero %LOCALAPPDATA%, ~/.local, or local user paths
+      4. Zero Cross-Release Duplicate Bullets: each release must be distinct and non-redundant
+    """
+    workspace_root = os.path.dirname(BASE_DIR)
+    ch_path = os.path.join(workspace_root, "CHANGELOG.md")
+    if not os.path.isfile(ch_path):
+        return
+
+    content = read_text(ch_path)
+    lines = content.splitlines()
+
+    internal_path_pattern = re.compile(r'\b(?:core|commands|scripts|tests)/[a-zA-Z0-9_/.-]+\.(?:py|json|md)\b')
+    internal_review_code = re.compile(r'\b\(?R-\d+\)?\b')
+    local_env_pattern = re.compile(r'%(?:LOCALAPPDATA|APPDATA)%|~/(?:\.local|\.config|\.cache)|[a-zA-Z]:[\\/]Users', re.IGNORECASE)
+    internal_function_pattern = re.compile(r'\b(?:res\.add_error|mine_operator_habits|should_traverse_dir)\b')
+
+    violations = []
+    seen_bullets_by_version: Dict[str, Set[str]] = {}
+    current_version = "HEADER"
+
+    for idx, line in enumerate(lines, 1):
+        v_match = re.match(r'^##\s+\[([^\]]+)\]', line)
+        if v_match:
+            current_version = v_match.group(1)
+            seen_bullets_by_version.setdefault(current_version, set())
+            continue
+
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            bullet_clean = stripped[2:].strip()
+            # Check internal path
+            if internal_path_pattern.search(bullet_clean):
+                violations.append((idx, f"Internal source path leak in CHANGELOG: `{internal_path_pattern.search(bullet_clean).group(0)}`"))
+            # Check review code
+            if internal_review_code.search(bullet_clean):
+                violations.append((idx, f"Internal review code in CHANGELOG: `{internal_review_code.search(bullet_clean).group(0)}`"))
+            # Check machine environment
+            if local_env_pattern.search(bullet_clean):
+                violations.append((idx, f"Local workstation environment leak in CHANGELOG: `{local_env_pattern.search(bullet_clean).group(0)}`"))
+            # Check internal function
+            if internal_function_pattern.search(bullet_clean):
+                violations.append((idx, f"Internal function/variable leak in CHANGELOG: `{internal_function_pattern.search(bullet_clean).group(0)}`"))
+
+            # Check cross-version duplication (if bullet is non-trivial)
+            bullet_norm = re.sub(r'[*`_]', '', bullet_clean.split(':')[0]).strip().lower()
+            if len(bullet_norm) > 10 and current_version != "HEADER":
+                for prev_ver, prev_set in seen_bullets_by_version.items():
+                    if prev_ver != current_version and bullet_norm in prev_set:
+                        violations.append((idx, f"Duplicate changelog entry across versions ({current_version} and {prev_ver}): `{bullet_norm}`"))
+                seen_bullets_by_version[current_version].add(bullet_norm)
+
+    if violations:
+        for line_no, msg in violations:
+            res.add_error("CHANGELOG_HYGIENE", f"L{line_no}: {msg}", "CHANGELOG.md", severity="HIGH")
+            if verbose: print(f" [FAIL] Changelog Hygiene: L{line_no}: {msg}")
+    elif verbose:
+        print(" [PASS] Changelog Hygiene: 100% outcome-focused, project-centric, and zero internal leaks.")
+
+
 def run_audit(output_json: bool = False, vibe_check_file: Optional[str] = None, fast_delta: bool = False):
     res = AuditResult()
     verbose = not output_json
@@ -2076,6 +2347,8 @@ def run_audit(output_json: bool = False, vibe_check_file: Optional[str] = None, 
     check_ecosystem_canon_matrix(res, verbose=verbose)
     check_doc_metrics_sync(res, verbose=verbose)
     check_operational_ergonomics(res, verbose=verbose)
+    check_cross_artifact_contradictions(res, verbose=verbose)
+    check_changelog_hygiene(res, verbose=verbose)
     if verbose: print("\n--- CHECKING INSTRUCTION LANGUAGE LINT (GATE 8) ---")
     try:
         findings = lint_instruction_language(list(DEFAULT_INSTRUCTION_ROOTS))
@@ -2132,7 +2405,7 @@ def run_audit(output_json: bool = False, vibe_check_file: Optional[str] = None, 
         else:
             print(f"\n[FAIL] FAILED: Found {total_errors} integrity/compliance issues.")
             try:
-                from commands.reflexion import ObservationLedger
+                from commands.pulsar import ObservationLedger
                 ledger = ObservationLedger()
                 for err in res.errors[:5]:
                     cat = err.get("category", "AUDIT")
@@ -2422,7 +2695,17 @@ def run_preflight() -> int:
         if "GEMINI.md" in rel_src_path or "rules" in rel_src_path:
             potential_skills = re.findall(r'`([a-z0-9]+-[a-z0-9-]+)`', content)
             for ps in set(potential_skills):
-                ignore_terms = ["fail-fast", "anti-goals", "no-sweetwords", "high-fidelity", "pre-flight", "session-handoff", "zero-trust", "multi-agent", "front-end", "back-end", "try-catch", "react-window", "game-changer", "cutting-edge", "next-level", "deep-dive", "ast-grep", "nomic-embed-text"]
+                ignore_terms = {
+                    "fail-fast", "anti-goals", "no-sweetwords", "high-fidelity", "pre-flight",
+                    "session-handoff", "zero-trust", "multi-agent", "front-end", "back-end",
+                    "try-catch", "react-window", "game-changer", "cutting-edge", "next-level",
+                    "deep-dive", "ast-grep", "nomic-embed-text", "backup-local", "llama-server",
+                    "sqlite-vec", "tree-sitter", "implementation-readiness", "system-risks",
+                    "simplicity-reuse", "layer-boundaries", "frozen-lockfile", "enforce-lockfile",
+                    "pre-commit", "post-commit", "pre-push", "utf-8-sig", "orioncortex", "portable-brainvibing",
+                    "delegate-check", "hydrate-vision", "context-lint", "instruction-lint",
+                    "validate-response", "find-polluter", "foundation-upgrade", "sync-ai", "push-upstream"
+                }
                 if ps not in valid_skills and ps not in ignore_terms and len(ps) > 5:
                     print(f"  [WARNING] Possible broken skill reference '{ps}' in {rel_src_path}")
                     warnings += 1

@@ -1,0 +1,123 @@
+{
+  "schema_version": "0.1.0",
+  "description": "Single Source of Truth (SSOT) for cross-ecosystem numerical, behavioral, metaphor, and turn-cadence invariants enforced by verify_agents.py.",
+  "invariants": {
+    "code_skeleton_first": {
+      "standard_premium_direct_read_max_lines": 800,
+      "budget_direct_read_max_lines": 350,
+      "soft_modularity_refactor_advisory_lines": 800,
+      "hard_modularity_split_lines": 1200,
+      "forbidden_legacy_claims": [
+        "before reading any file > 100 lines",
+        "500-Line Refactor Decision Tree"
+      ]
+    },
+    "subagent_delegation": {
+      "max_jaccard_overlap": 0.2,
+      "max_jaccard_overlap_pct": 20,
+      "max_concurrent_subagents": 3,
+      "forbidden_legacy_claims": [
+        "with <10% context overlap",
+        "spawn a clean, isolated Subagent for EACH file being audited"
+      ]
+    },
+    "decision_autonomy": {
+      "mandate": "Tag preferred option with (Recommended) and execute on approval; halt only on 50/50 forks.",
+      "forbidden_legacy_claims": [
+        "Never Rank or Pick Silently"
+      ]
+    },
+    "ui_state_contracts": {
+      "view_data_states_count": 5,
+      "view_data_states": [
+        "Loading (Skeleton/Shimmer)",
+        "Empty (First-Time vs Filtered)",
+        "Populated (Success)",
+        "Partial/Offline",
+        "Error (Actionable Retry)"
+      ],
+      "component_interactive_states_count": 8
+    },
+    "saas_viability_scorecard": {
+      "dimensions_count": 6,
+      "scale_per_dimension": 10,
+      "max_total_score": 60,
+      "fight_threshold": 36,
+      "forbidden_legacy_claims": [
+        "Decision Thresholds (Out of 25):",
+        "Viability Confidence Score: [X/25]"
+      ]
+    },
+    "hooks_and_cadence": {
+      "active_hooks": [
+        "pre-agent-wake.py",
+        "run-hook.cmd",
+        "run-hook.sh"
+      ],
+      "forbidden_legacy_claims": [
+        "post-agent-action.py"
+      ],
+      "cadence_tiers": {
+        "turn_0_cold_start": [
+          "pre-agent-wake.py (auto <5ms)",
+          "read ACTIVE_TASK.md / handoff.md",
+          "JIT skill read_file (1x per session)",
+          "orion.py brain sync (PREMIUM tasks only)"
+        ],
+        "every_turn_delta": [
+          "orion.py scan map (ONLY if >800 lines Standard/Premium or >350 Budget)",
+          "orion.py bento next --verify OR dna-lint <modified_file> OR verify --fast",
+          "Unified Response Footer"
+        ],
+        "milestone_pre_commit": [
+          "full project test suite",
+          "orion.py dna audit",
+          "orion.py scan security .",
+          "audit_aesthetics.py (if UI modified)",
+          "orion.py verify (if .agents modified)"
+        ],
+        "turn_akhir_session_offload": [
+          "orion.py gc",
+          "orion.py orion_ops ingest <modified_context>",
+          "orion.py dna semver (Unreleased only)",
+          "orion.py compress",
+          "orion.py harness promote",
+          "orion.py consolidate session"
+        ],
+        "rare_lifecycle_only": [
+          "orion.py brain hydrate (onboarding / epoch only)",
+          "orion.py dna bump (tagged release only)",
+          "orion.py upgrade (spoke foundation update)"
+        ]
+      }
+    },
+    "ecosystem_counts": {
+      "supported_ide_platforms": 19,
+      "cli_command_engines": 14,
+      "admission_gates": 17,
+      "admission_classes": 6,
+      "mechanical_verify_gates": 8
+    }
+  },
+  "metaphor_taxonomy": {
+    "macro_layer_cosmic_space": {
+      "engine_dispatcher": "Orion (orion.py)",
+      "knowledge_graph": "Constellation / Orion Graph (entities = Stars, relations = Constellation Lines, communities = Star Clusters)",
+      "multi_project_mesh": "Galaxy / Constellation Portfolio Mesh (commands/galaxy.py; CLI: portfolio, galaxy, constellation)",
+      "authored_source_of_truth": "Core Codex (context/ directory, with context/VISION.md as North Star / Polaris)",
+      "obsidian_projection": "Observatory (.orion/vault/ read-only projection; commands/observatory.py; CLI: vault, observatory)",
+      "architectural_layers": "Orbital Strata (Gravity 0 Core Singularity -> Gravity 1-2 Inner Orbit -> Gravity 3-4 Mid Orbit -> Gravity 5 Outer Surface)",
+      "brownfield_mapping": "Orbital Adapters / Epigenetic Aliases",
+      "task_dispenser": "Stage / Impulse Dispenser (dispenser.py; CLI: slicer, task-slicer, dispenser, bento)",
+      "activity_cadence": "Pulsar / Temporal Pulse (Session -> Milestone -> Epoch; commands/pulsar.py; CLI: reflexion, pulsar)"
+    },
+    "micro_layer_neuro_cognitive": {
+      "rag_orchestrator": "Brain (brain.py / NanoBrain)",
+      "session_memory": "Episodic Memory (.orion/episodic/)",
+      "retrieval": "Recall (Anchor Timeline Recall [O1])",
+      "consolidation": "Generational Rollover (Shannon Surprisal Head Reflection)",
+      "eviction": "Amnesia (Rule & Low-Access Node Eviction)",
+      "self_correction": "Reflexion (Closed-Loop Auto-Heal & Observation Ledger)"
+    }
+  }
+}

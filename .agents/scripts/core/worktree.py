@@ -109,6 +109,10 @@ class WorktreeSeeder:
         """
         os.makedirs(os.path.dirname(dst), exist_ok=True)
 
+        is_dotenv = os.path.basename(src).lower().startswith(".env")
+        if is_dotenv:
+            allow_hardlink = False
+
         if os.path.exists(dst):
             try:
                 os.remove(dst)
@@ -116,7 +120,7 @@ class WorktreeSeeder:
                 pass
 
         # 1. Reflink (Linux / macOS / APFS via os.copy_file_range where available)
-        if hasattr(os, "copy_file_range") and sys.platform != "win32":
+        if not is_dotenv and hasattr(os, "copy_file_range") and sys.platform != "win32":
             try:
                 with open(src, "rb") as f_in, open(dst, "wb") as f_out:
                     size = os.path.getsize(src)
@@ -151,6 +155,11 @@ class WorktreeSeeder:
 
         # 3. Defensive Copy Fallback
         shutil.copy2(src, dst)
+        if is_dotenv and sys.platform != "win32":
+            try:
+                os.chmod(dst, 0o600)
+            except OSError:
+                pass
         return "copy"
 
     @classmethod

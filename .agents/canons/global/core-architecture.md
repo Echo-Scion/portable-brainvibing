@@ -1,4 +1,4 @@
-# Canon: Core Foundation & Architectural Standards (Portable Brainvibing)
+# Canon: Core Foundation & Architectural Standards (OrionCortex)
 
 > ⚠️ CRITICAL COUPLING: Modifying the Core Architecture mandates a full ecosystem check. After edits, you MUST run `python .agents/scripts/orion.py verify_agents`.
 

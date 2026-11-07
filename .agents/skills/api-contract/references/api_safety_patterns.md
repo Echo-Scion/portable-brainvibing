@@ -28,4 +28,4 @@ type CreateUser = z.infer<typeof CreateUserSchema>;
 - **422 Unprocessable Entity**: Semantic validation error.
 
 ---
-*Preserved from Portable Brainvibing Infrastructure*
+*Preserved from OrionCortex Infrastructure*

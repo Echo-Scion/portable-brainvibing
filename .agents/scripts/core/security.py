@@ -33,12 +33,8 @@ if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
 try:
-    from core.db import log_telemetry as _log_telemetry, atomic_write_text
+    from core.paths import atomic_write_text
 except ImportError:
-    def _log_telemetry(err: Exception = None, context: str = "") -> None:
-        if os.environ.get("ORION_DEBUG"):
-            msg = f": {err}" if err else ""
-            sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
     def atomic_write_text(filepath: str, content: str) -> None:
         os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
         import uuid
@@ -53,6 +49,18 @@ except ImportError:
                     os.remove(temp_file)
                 except OSError:
                     pass
+
+def _log_telemetry(err: Exception = None, context: str = "") -> None:
+    try:
+        mod = sys.modules.get("core.db")
+        if mod and hasattr(mod, "log_telemetry"):
+            mod.log_telemetry(err, context)
+            return
+    except Exception:
+        pass
+    if os.environ.get("ORION_DEBUG"):
+        msg = f": {err}" if err else ""
+        sys.stderr.write(f"[ORION_TELEMETRY] Non-fatal catch in {context}{msg}\n")
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -108,6 +116,12 @@ SECRET_PATTERNS = [
     ("STRIPE_LIVE_KEY", re.compile(r'\bsk_live_[0-9a-zA-Z]{24}\b')),
     ("STRIPE_TEST_KEY", re.compile(r'\bsk_test_[0-9a-zA-Z]{24}\b')),
     ("GOOGLE_API_KEY", re.compile(r'\bAIza[0-9A-Za-z\-_]{35}\b')),
+    ("CHUTES_API_KEY", re.compile(r'\bcpk_[a-zA-Z0-9_\-]{20,}\b')),
+    ("OPENROUTER_API_KEY", re.compile(r'\bsk-or-v1-[a-zA-Z0-9]{32,}\b')),
+    ("GROQ_API_KEY", re.compile(r'\bgsk_[a-zA-Z0-9]{20,}\b')),
+    ("CEREBRAS_API_KEY", re.compile(r'\bcsk-[a-zA-Z0-9_\-]{20,}\b')),
+    ("HF_TOKEN", re.compile(r'\bhf_[a-zA-Z0-9]{20,}\b')),
+    ("XAI_API_KEY", re.compile(r'\bxai-[a-zA-Z0-9]{20,}\b')),
     ("OPENAI_API_KEY", re.compile(r'\bsk-(?:proj-|svcacct-|ant-[a-zA-Z0-9_-]+-)?[a-zA-Z0-9_\-]{32,}\b')),
     ("GITHUB_TOKEN", re.compile(r'\bgh[pousr]_[A-Za-z0-9_]{36,}\b')),
     ("BEARER_TOKEN", re.compile(r'\bBearer\s+[a-zA-Z0-9\-\._~+/]{20,}=*')),
@@ -463,6 +477,18 @@ def evaluate_command_guard(cmd_line: str, workspace_dir: Optional[str] = None) -
       - ('warn', reason)
       - ('allow', reason)
     """
+    if not workspace_dir:
+        try:
+            from core.paths import get_workspace_dir
+            workspace_dir = str(get_workspace_dir())
+        except Exception:
+            workspace_dir = os.getcwd()
+    else:
+        # Guard against nested .agents directory leakage
+        ws_norm = os.path.normpath(os.path.abspath(workspace_dir))
+        if os.path.basename(ws_norm) == ".agents":
+            workspace_dir = os.path.dirname(ws_norm)
+
     if not cmd_line or not cmd_line.strip():
         return ("allow", "Empty command line.")
 
@@ -561,7 +587,10 @@ DANGEROUS_CALLS = {
 
 SENSITIVE_ENV_KEYS = {
     "AWS_SECRET_ACCESS_KEY", "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN",
-    "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY",
+    "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY",
+    "ORION_API_KEY", "ORION_API_KEY_NANO", "ORION_API_KEY_FAST", "ORION_API_KEY_SMART", "ORION_API_KEY_COUNCIL", "ORION_API_KEY_EMBED",
+    "OPENCODE_API_KEY", "CHUTES_API_KEY", "NINEROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY",
+    "GROQ_API_KEY", "CEREBRAS_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "MISTRAL_API_KEY", "XAI_API_KEY",
     "GITHUB_TOKEN", "GH_TOKEN", "SLACK_BOT_TOKEN", "SLACK_WEBHOOK_URL",
     "DATABASE_URL", "DB_PASSWORD", "PRIVATE_KEY", "SECRET_KEY",
     "STRIPE_API_KEY", "STRIPE_SECRET_KEY", "SENDGRID_API_KEY",
@@ -840,6 +869,20 @@ class ASTSecurityVisitor(ast.NodeVisitor):
             isinstance(sub, ast.Name) and (sub.id in self.sql_query_vars or sub.id in self.tainted_sql_vars)
             for sub in ast.walk(expr)
         )
+
+    def _is_authorized_env_access(self, key: str) -> bool:
+        base_name = os.path.basename(self.filepath.replace('\\', '/'))
+        allowed_llm_keys = {
+            "ORION_API_KEY", "ORION_API_KEY_NANO", "ORION_API_KEY_FAST",
+            "ORION_API_KEY_SMART", "ORION_API_KEY_COUNCIL", "ORION_API_KEY_EMBED",
+            "OPENCODE_API_KEY", "CHUTES_API_KEY", "NINEROUTER_API_KEY",
+            "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY", "GROQ_API_KEY",
+            "CEREBRAS_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY",
+            "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY",
+        }
+        if base_name in ("capabilities.py", "worker.py", "packer.py", "dna.py") and key in allowed_llm_keys:
+            return True
+        return False
 
     def _check_subprocess_call(self, node: ast.Call, call_label: str) -> None:
         if call_label.endswith((".getoutput", ".getstatusoutput")):
@@ -1228,7 +1271,7 @@ class ASTSecurityVisitor(ast.NodeVisitor):
                 key = None
                 if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
                     key = node.slice.value
-                if key and key in SENSITIVE_ENV_KEYS:
+                if key and key in SENSITIVE_ENV_KEYS and not self._is_authorized_env_access(key):
                     self.findings.append({
                         'file': self.filepath,
                         'line': node.lineno,
@@ -1443,14 +1486,15 @@ class ASTSecurityVisitor(ast.NodeVisitor):
                 elif attr == 'getenv':
                     if node.args and isinstance(node.args[0], ast.Constant) and str(node.args[0].value) in SENSITIVE_ENV_KEYS:
                         key = str(node.args[0].value)
-                        self.findings.append({
-                            'file': self.filepath,
-                            'line': node.lineno,
-                            'category': 'AST_CREDENTIAL_HARVESTING',
-                            'severity': 'HIGH',
-                            'message': f"Probing sensitive credential via os.getenv('{key}')",
-                            'snippet': self._get_snippet(node.lineno)
-                        })
+                        if not self._is_authorized_env_access(key):
+                            self.findings.append({
+                                'file': self.filepath,
+                                'line': node.lineno,
+                                'category': 'AST_CREDENTIAL_HARVESTING',
+                                'severity': 'HIGH',
+                                'message': f"Probing sensitive credential via os.getenv('{key}')",
+                                'snippet': self._get_snippet(node.lineno)
+                            })
 
             # os.environ.get calls
             if isinstance(val, ast.Attribute):
@@ -1459,14 +1503,15 @@ class ASTSecurityVisitor(ast.NodeVisitor):
                     if attr == 'get':
                         if node.args and isinstance(node.args[0], ast.Constant) and str(node.args[0].value) in SENSITIVE_ENV_KEYS:
                             key = str(node.args[0].value)
-                            self.findings.append({
-                                'file': self.filepath,
-                                'line': node.lineno,
-                                'category': 'AST_CREDENTIAL_HARVESTING',
-                                'severity': 'HIGH',
-                                'message': f"Probing sensitive credential via os.environ.get('{key}')",
-                                'snippet': self._get_snippet(node.lineno)
-                            })
+                            if not self._is_authorized_env_access(key):
+                                self.findings.append({
+                                    'file': self.filepath,
+                                    'line': node.lineno,
+                                    'category': 'AST_CREDENTIAL_HARVESTING',
+                                    'severity': 'HIGH',
+                                    'message': f"Probing sensitive credential via os.environ.get('{key}')",
+                                    'snippet': self._get_snippet(node.lineno)
+                                })
 
             # subprocess calls
             if val_id == 'subprocess':

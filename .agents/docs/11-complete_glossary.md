@@ -12,15 +12,16 @@
 | **AST Hollowing** | Token Optimization | Extraction of structural code skeletons (classes, methods, signatures) while stripping function bodies to reduce context size by ~90%. |
 | **AutoHarness Protocol** | Verification Engine | Automated generation of verification harnesses (Action-Verifier, Action-Filter, Policy) for destructive or multi-step operations. |
 | **Barrier Escalation** | Self-Learning Loop | Automated gate in `ObservationLedger.check_rule_violations()` that escalates a 2nd repeated violation of the same rule to a Tier-0 mechanical check (`[BARRIER_ESCALATION_CANDIDATE]`). |
-| **Bento Task Slicer** | Execution Resilience | Sequential task engine (`commands/bento_slicer.py`) that slices multi-step plans into single atomic task sheets (`.orion/working/ACTIVE_TASK.md`) with topological sorting ($T_0 \to T_5$), bottom-up same-file ordering, live AST anchor recalibration, and a post-condition disk mutation gate. |
+| **Sequential Task Slicer (Bento Slicer)** | Execution Resilience | Sequential task engine (`commands/dispenser.py`) that slices multi-step plans into single atomic task sheets (`.orion/working/ACTIVE_TASK.md`) with topological sorting ($T_0 \to T_5$), bottom-up same-file ordering, live AST anchor recalibration, and a post-condition disk mutation gate. In Cosmic-Neuro taxonomy, operates as the **Stage / Impulse Dispenser**. |
 | **Bento-Box Law** | Resource Allocation | Behavioral rule restricting BUDGET-tier models to at most 1 logic file modification (max 3 scaffolding targets) per iteration to prevent scope drift. |
 | **Circuit Breaker** | Execution Resilience | Automatic halt protocol triggered when any tool or test fails 3 times consecutively, stopping execution cascades and requesting human input. |
 | **Consequence Verifier** | Quality & Verification | Post-action verification engine (`evals/consequence_verifier.py`) checking DOM/Widget mutations, State/DB persistence, Network/IPC contracts, and Visual/Layout geometry to eliminate False-Green tests. |
-| **Constellation (Multi-Project Portfolio Mesh)** | Multi-Project Governance | Supervisory workspace portfolio engine (`commands/constellation.py`) discovering sibling repositories (`Stars`), harvesting living architectural DNA scorecards, and projecting a unified Obsidian portfolio knowledge mesh. |
+| **Constellation (Multi-Project Portfolio Mesh)** | Multi-Project Governance | Supervisory workspace portfolio engine (`commands/galaxy.py`) discovering sibling repositories (`Stars`), harvesting living architectural DNA scorecards, and projecting a unified Obsidian portfolio knowledge mesh. |
 | **Contradiction Engine** | Knowledge Integrity | Detection and resolution mechanism in `commands/brain.py` (`orion contradict`) that flags colliding predicate triplets and adjusts edge confidence scores. |
 | **Core Ceiling Ratchet (`core_max_lines`)** | Ecosystem Governance | Frontmatter line-count ceiling enforced on `SKILL.md` and root instruction files by `verify_agents.py` to prevent instruction bloat. |
 | **Darwinian Heartbeat** | Self-Learning Loop | Automated check in `hooks/pre-agent-wake.py` evaluating `LEARNINGS.md` and `OBSERVATIONS.md`; flags `evolution_overdue` when unprocessed lessons $\ge 3$. |
 | **Dual-Level GraphRAG** | Cognitive Retrieval | Retrieval architecture combining Global/Macro Louvain community summaries with Local/Micro 1-hop triplet graph expansion and vector similarity. |
+| **Dual-Worker Cognitive Engine** | Architecture Standard | Elastic architecture separating on-device local neural coprocessing (Ollama/llama-server) from remote multi-provider cloud API slot routing (`Chutes.ai`, `9Router` on `:20128`, `OpenRouter`, `Groq`) with HTTPS validation and secret redaction. |
 | **Dynamic Graph Topology Clustering** | Context Packaging | Clustering methodology in `packer.py` utilizing PageRank centrality and AST import graphs to cluster codebase volume organically, preventing arbitrary bucket collapses. |
 | **Tiered Execution Routing** | Resource Allocation | Dynamic execution planner (`resolve_elastic_execution_plan` in `core/capabilities.py`, formerly Elastic Neuro-Symbolic Continuum) that routes tasks across `0B`, `1.5B` (`nano`), `3B` (`micro_syntax`), `7B` (`single_fn`), and `32B` (`multi_fn`) local models with bounded repair trials. |
 | **Epigenetic Alias** | Architecture Audit | Brownfield directory mapping (`epigenetic_aliases` in `.agents/.dna.json`) discovered by `orion.py dna discover` so existing project folders bind to canonical architectural strata without renaming directories. |
@@ -42,14 +43,17 @@
 | **NanoBrain** | Local AI Coprocessor | Local model orchestration engine (`commands/brain.py`) supporting full, embed-only, llm-only, and pure-FTS5 operational modes. |
 | **Observation Ledger** | Self-Learning Loop | 5-status governance ledger (`.agents/OBSERVATIONS.md` and `OBSERVATIONS.archive.md`) tracking friction events, rule violations, and operator habits across `open`, `validated`, `promoted`, `parked`, and `superseded` states. |
 | **Session Context Cache (`context.json`)** | IDE Synchronization | Session state file (`.orion/working/context.json`, formerly Omni-Buffer) populated by `pre-agent-wake.py` with active editor file, terminal error, active Bento task, and a 5-minute SHA-256 structural hash gate. |
-| **Operator Habit Miner** | Self-Learning Loop | Pattern detector (`mine_operator_habits`) in `commands/reflexion.py` that identifies recurring manual developer CLI sequences ($\ge 3$ occurrences) for workflow automation. |
+| **Operator Habit Miner** | Self-Learning Loop | Pattern detector (`mine_operator_habits`) in `commands/pulsar.py` that identifies recurring manual developer CLI sequences ($\ge 3$ occurrences) for workflow automation. |
+| **Outcome-Centric Lessword Changelog** | Documentation Standard | Release note synthesis in `core/dna.py` stripping internal developer paths, commit hashes, and PR numbers into user-facing outcomes across 5 universal domain tiers. |
 | **Opportunity-Relative Lifecycle** | Self-Learning Loop | Skill maturity and archival model (`core/harness/lifecycle.py`) measured in elapsed session tool quanta (`maturity=100, capacity=50`) rather than wall-clock time. |
-| **Orion (Gateway CLI Dispatcher)** | Core Platform | Unified Python entrypoint (`python .agents/scripts/orion.py <command>`) routing commands across 9 modular CLI engines with 100% Zero-Pip Floor Sovereignty. |
+| **Orion (Gateway CLI Dispatcher)** | Core Platform | Unified Python entrypoint (`python .agents/scripts/orion.py <command>`) routing commands across 14 modular CLI engines with 100% Zero-Pip Floor Sovereignty. |
 | **Paraphrase-First Gate** | Quality & Verification | Pre-review verification rule requiring a reviewer to accurately synthesize a two-part paraphrase ("What this proposes" and "How the system works") before line-by-line critique; an inaccurate paraphrase constitutes an immediate Blocker. |
-| **Post-Condition Disk Mutation Gate** | Execution Resilience | Verification check in `bento_slicer.py` (`cmd_next`) that inspects the target file on disk before running tests and rejects unapplied patches with `Exit Code 2 ([BENTO NO-OP REJECTED])`. |
+| **Post-Condition Disk Mutation Gate** | Execution Resilience | Verification check in `commands/dispenser.py` (`cmd_next`) that inspects the target file on disk before running tests and rejects unapplied patches with `Exit Code 2 ([BENTO NO-OP REJECTED])`. |
 | **Post-Review Bloat Check** | Architecture Audit | Stage 4 of the blueprint review pipeline; specifically audits changes added during earlier review passes to eliminate defensive over-engineering and unnecessary abstractions before implementation starts. |
+| **Path-Agnostic Organ Discovery** | Architecture Audit | Recursive peeling of packaging wrappers (`src`, `lib`, `app`, `internal`, `pkg`, `.agents`, `ecosystems`) in `core/dna.py` to map polyglot files to functional organs without path blindness. |
 | **Pre-Audit Static Radar** | Context Packaging | Deterministic pre-computed risk index embedded in Bundle 01 identifying broad/silent exception handlers (`catch {}`), native execution sinks (`spawn`, `execAsync`), and large polyglot modules. |
 | **Project DNA (Architectural Genome & Strata)** | Architecture Audit | Universal 5-tier classification contract (`core/dna.py` and `.agents/.dna.json`) organizing codebase files across `contracts`, `domain`, `services`, `state`, and `presentation`, paired with polyglot dynamic SemVer synchronization. |
+| **5-Vector SemVer Gravity Engine** | Release Engineering | Mathematical release impact model in `core/dna.py` ($S_{\text{impact}} = S_{\text{strata}} + S_{\text{organ}} + S_{\text{ast}} + S_{\text{commit}}$) with single-file guards ($\le 29.0$) and maintenance damping ($0.45\times$) mapping to MINOR ($\ge 35.0$) and MAJOR ($\ge 50.0$). |
 | **Prompt-in-Data Shield** | Security Gate | Security mechanism unconditionally escaping prompt injection tags (`<system>`, `<prompt_instructions>`, `</artifact>`) across all lines including code blocks. |
 | **Prose Authenticity** | Documentation Standard | Writing standard (`rules/prose-authenticity.md`) eliminating 54 structural AI tells, binary contrast reversals, and corporate buzzwords. |
 | **RTK (Rust Token Killer)** | Token Optimization | Compiled Cargo Rust binary proxying terminal execution to strip progress bars, download stats, and info logs (60–90% noise reduction). |
@@ -57,16 +61,41 @@
 | **SecretRedactor** | Security Gate | Scrubber in `core/harness/capture.py` that strips API keys, PEM blocks, and bearer tokens from captured tool arguments before telemetry or skill staging. |
 | **Semantic Triplet** | Knowledge Graph | Structured `(Subject, Predicate, Object)` dependency extracted from source code and stored in the `edges` and `nodes` SQL tables. |
 | **Small Model Superiority (SMS)** | Cost Optimization | Telemetry metric and routing principle demonstrating that constrained models operating with tight harnesses outperform unbounded large models. |
-| **Sovereign Skill Harness** | Verification Engine | 6-module skill quarantine, 14-gate admission (`SovereignPromoter`), quantum lifecycle, and `Code-As-Harness` synthesis engine in `.agents/scripts/core/harness/`. |
+| **Sovereign Skill Harness** | Verification Engine | 6-module skill quarantine, 17-gate admission (`SovereignPromoter`), quantum lifecycle, and `Code-As-Harness` synthesis engine in `.agents/scripts/core/harness/`. |
 | **Spec-to-Code Drift Audit** | Architecture Audit | Diagnostic verification comparing physical code against contracts in `context/03_Tech/` to detect unmade data models, hardcoded logic shortcuts, and architectural divergence. |
 | **Star Repository** | Multi-Project Governance | An individual downstream application or tool repository tracked as a member of a `Constellation` multi-project portfolio with its own living DNA scorecard. |
 | **Stale Data & Cache-Aware TTL Gate** | IDE Synchronization | 5-minute SHA-256 structural hash check in `pre-agent-wake.py` that preserves LLM KV prompt caches on unchanged turns and emits a `temporal_gap_marker` after idle gaps. |
 | **Strict TDD** | Development Standard | Mandatory RED-GREEN-REFACTOR cycle with mechanical rollback (`git stash`) if implementation code precedes a verified failing test. |
 | **Systematic Debugging** | Diagnostic Protocol | 4-phase scientific root-cause protocol: Investigation → Pattern Analysis → Hypothesis Testing → Surgical Fix. |
 | **Tier Mismatch** | Resource Allocation | Condition where the active model class is weaker than required for the task tier, triggering an immediate `[ABORT: TIER MISMATCH]`. |
-| **Unified Context Packer** | Context Packaging | Zero-pip context packaging engine (`packer.py` / `digestpack`) that clusters codebases into at most 10 Markdown bundles (`.md`) across `arch`, `hybrid`, and `full` tiers. |
+| **Unified Context Packer** | Context Packaging | Zero-pip context packaging engine (`packer.py` / `digestpack`) that clusters codebases into at most 10 Markdown bundles (`.md`) across `arch`, `hybrid`, and `full` tiers, and exports clean GitHub-push mirror ZIP archives. |
 | **Unified Response Footer** | Communication Standard | Standardized navigation block terminating agent responses (`CHECKPOINT`, `EVIDENCE`, `EVALUATION`, `RECOMMENDED TIER`, `NEXT TASK`). |
 | **Zero-Decision Gate** | Execution Resilience | Architectural rule requiring an implementation plan to predetermine 100% of schema types, route signatures, error fallbacks, and libraries so that code generation never relies on in-flight assumptions. |
 | **Zero-Pip Sovereign Mandate** | Architecture Standard | Architectural mandate requiring core orchestration to run purely on standard library modules (`ast`, `re`, `sqlite3`, `urllib`), zero pip required. |
-| **14-Gate Admission Promoter** | Ecosystem Governance | Deterministic validator (`SovereignPromoter` in `core/harness/admission.py`) enforcing `HARNESS-FM-01..03`, `HARNESS-STR-01..04`, `HARNESS-T0-01`, `HARNESS-SIB-01`, `HARNESS-CUR-01`, `HARNESS-REF-01`, `HARNESS-SEC-01`, `HARNESS-VERIFY-01`, and `HARNESS-CMT-01` before promoting staged skills. |
+| **17-Gate Admission Promoter** | Ecosystem Governance | Deterministic validator (`SovereignPromoter` in `core/harness/admission.py`) enforcing `HARNESS-FM-01..03`, `HARNESS-STR-01..04`, `HARNESS-T0-01`, `HARNESS-SIB-01`, `HARNESS-CUR-01`, `HARNESS-REF-01`, `HARNESS-SEC-01`, `HARNESS-VERIFY-01`, `HARNESS-TRN-01`, and `HARNESS-CMT-01` before promoting staged skills. |
 | **19-Platform Manifest Matrix** | Spoke Deployment | Universal IDE adapter compiler (`core/platform_manifests.py`) generating native instructions and hooks for 19 AI coding hosts (`gemini`, `claude`, `cursor`, `windsurf`, `copilot`, `cline`, `roocode`, `kilocode`, `zed`, `aider`, `continue`, `trae`, `junie`, `kiro`, `codex`, `opencode`, `amp`, `goose`, `pearai`). |
+
+---
+
+## 2. Dual-Layer Cosmic-Neuro Taxonomy
+
+To prevent vocabulary drift, all `.agents` components are strictly organized into two metaphorical layers:
+
+### A. Macro Layer (Cosmic Space)
+- **Orion (`orion.py`)**: Central mission dispatcher and Gateway CLI engine.
+- **Constellation / Orion Graph**: Multi-entity knowledge graph where entities are Stars, dependencies are Constellation Lines, and semantic communities are Star Clusters.
+- **Galaxy / Constellation Portfolio Mesh**: Supervisory multi-project portfolio mesh linking downstream sibling repositories (Star Systems).
+- **Core Codex (`context/`)**: Human-authored single source of truth, anchored by `context/VISION.md` as the immutable North Star (Polaris).
+- **Observatory (`.orion/vault/`)**: Pure read-only Markdown projection for visual Obsidian inspection.
+- **Orbital Strata (`core/dna.py`)**: Concentric codebase layers sequenced by gravitational depth (Gravity 0 Core Singularity $\to$ Gravity 5 Outer Surface).
+- **Orbital Adapters / Epigenetic Aliases**: Non-destructive brownfield directory aliases mapping custom project layouts to canonical strata.
+- **Stage / Impulse Dispenser (`commands/dispenser.py`)**: Deterministic task propulsion mechanism dispensing atomic, verifiable task impulses (Action Cards) from high-level roadmaps to eliminate agent drift. Functionally operates as the Sequential Task Slicer.
+- **Pulsar / Temporal Pulse**: Rhythmic activity-based knowledge synthesis cycling across Sessions, Milestones, and Epochs.
+
+### B. Micro Layer (Neuro-Cognitive)
+- **Brain (`commands/brain.py` / `NanoBrain`)**: Local hybrid RAG orchestrator unifying FTS5, embeddings, and Ollama coprocessing.
+- **Episodic Memory (`.orion/episodic/`)**: Chronological ledger of session histories, technical decisions, and operational handoffs.
+- **Recall**: Surgical anchor timeline retrieval expanding raw execution turns behind ephemeral markers (`[O1]`).
+- **Generational Rollover**: Shannon Surprisal head reflection consolidating active turns into compact generation anchors.
+- **Amnesia (`commands/state_machine.py`)**: Automatic eviction of obsolete rules and stale low-access nodes.
+- **Reflexion (`commands/pulsar.py`)**: Closed-loop operational learning ledger tracking friction signals and anti-repetition guards.

@@ -58,7 +58,7 @@ When an unexpected defect (not part of the primary task deliverable) consumes a 
 - **Output a falsifiable problem report**: Document the exact symptom, what was eliminated, and the cheapest next verification step. Log it as an observation (`kind: violation` or `kind: improve`) and resume primary deliverables.
 
 ### C. Deferral Disguised as Diligence
-Never defer action with vague diligence phrases ("let's wait until we see more data", "we should test this in production first").
+The Agent MUST NEVER defer action with vague diligence phrases ("let's wait until we see more data", "let's test this in production first").
 - A valid deferral MUST name two concrete items:
   1. Which specific future observation or event would change the decision.
   2. When that event will realistically arrive.

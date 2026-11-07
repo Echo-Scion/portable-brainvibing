@@ -27,7 +27,7 @@ if SCRIPTS_DIR not in sys.path:
 
 from core.capabilities import compute_scaffold_discount, resolve_elastic_execution_plan
 from core.scanner import check_delegation_safety
-from commands.bento_slicer import (
+from commands.dispenser import (
     resolve_live_ast_symbol_span,
     _extract_symbol_name,
     _clean_target_path,
@@ -155,8 +155,8 @@ class TestScaffoldingEvolution(unittest.TestCase):
         target.write_text("def compute():\n    return 100\n", encoding="utf-8")
 
         # Mock workspace paths in bento_slicer
-        with patch("commands.bento_slicer.get_workspace_dir", return_value=self.ws), patch(
-            "commands.bento_slicer.get_orion_dir", return_value=self.ws / ".orion"
+        with patch("commands.dispenser.get_workspace_dir", return_value=self.ws), patch(
+            "commands.dispenser.get_orion_dir", return_value=self.ws / ".orion"
         ):
             exit_code = cmd_next(run_verify=True)
             self.assertEqual(exit_code, 1)

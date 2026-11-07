@@ -20,7 +20,11 @@ from core.spoke_mesh import (
     load_constellation_cache,
     save_constellation_cache,
     is_star_dirty,
+    inspect_spoke_dir,
+    load_constellation_registry,
+    save_constellation_registry,
 )
+from commands.galaxy import cmd_add, cmd_remove
 from core.memory import ConstellationVaultExporter
 
 
@@ -228,6 +232,67 @@ class TestSpokeMeshConstellation(unittest.TestCase):
 
         index_text = (vault_out / "index.md").read_text(encoding="utf-8")
         self.assertIn("[[01_Knowledge_Graph/index", index_text)
+
+    def test_constellation_registry_persistence(self):
+        reg_data = {
+            "search_roots": ["/custom/root1", "/custom/root2"],
+            "spokes": ["/custom/spoke/project_a"],
+        }
+        save_constellation_registry(reg_data, workspace_root=str(self.workspace_root))
+        loaded = load_constellation_registry(workspace_root=str(self.workspace_root))
+
+        self.assertEqual(loaded["search_roots"], ["/custom/root1", "/custom/root2"])
+        self.assertEqual(loaded["spokes"], ["/custom/spoke/project_a"])
+
+    def test_arbitrary_spoke_discovery_and_registry(self):
+        # Sibling hierarchy
+        sibling_root = self.workspace_root / "siblings"
+        sibling_root.mkdir()
+        hub_dir = sibling_root / "_foundation"
+        hub_dir.mkdir()
+        (hub_dir / ".agents").mkdir()
+
+        # Normal sibling star
+        sibling_star = sibling_root / "app_sibling"
+        sibling_star.mkdir()
+        (sibling_star / "package.json").write_text('{"name": "app_sibling"}', encoding="utf-8")
+
+        # Distant directory outside sibling hierarchy
+        external_root = self.workspace_root / "other_drive" / "repos"
+        external_root.mkdir(parents=True)
+        external_star1 = external_root / "ext_service"
+        external_star1.mkdir()
+        (external_star1 / "pyproject.toml").write_text('[project]\nname = "ext_service"', encoding="utf-8")
+
+        # Explicit individual spoke in another arbitrary location
+        special_spoke = self.workspace_root / "special_agents" / "deep_agent"
+        special_spoke.mkdir(parents=True)
+        (special_spoke / "AGENTS.md").write_text("# Deep Agent\n", encoding="utf-8")
+
+        # Register external root and explicit spoke
+        reg = {
+            "search_roots": [str(external_root)],
+            "spokes": [str(special_spoke)],
+        }
+        save_constellation_registry(reg, workspace_root=str(hub_dir))
+
+        discovered = discover_spokes(current_project_dir=str(hub_dir), include_well_known=False)
+        names = [s.name for s in discovered]
+
+        self.assertIn("app_sibling", names)
+        self.assertIn("ext_service", names)
+        self.assertIn("deep_agent", names)
+        self.assertNotIn("_foundation", names)
+
+    def test_inspect_spoke_dir_qualifications(self):
+        test_dir = self.workspace_root / "test_qual"
+        test_dir.mkdir()
+        self.assertIsNone(inspect_spoke_dir(str(test_dir)))
+
+        (test_dir / "AGENTS.md").write_text("# Test\n", encoding="utf-8")
+        star = inspect_spoke_dir(str(test_dir))
+        self.assertIsNotNone(star)
+        self.assertEqual(star.name, "test_qual")
 
 
 if __name__ == "__main__":

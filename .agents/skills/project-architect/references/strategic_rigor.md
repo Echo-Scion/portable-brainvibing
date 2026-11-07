@@ -19,9 +19,23 @@ Before writing any architectural blueprint (`context/00_Strategy/BLUEPRINT.md`) 
 
 ---
 
-## 2. The 6 Pre-Blueprint Stress-Test Lenses
+## 2. The 5-Advisor Adversarial Panel (`@get-more-perspectives`) & 6 Technical Vectors
 
-When exploring raw feature hypotheses, interrogate the concept across 6 specialized lenses to expose unstated assumptions:
+When evaluating architectural trade-offs, feature proposals, or major PRs, convene the **5-Advisor Adversarial Panel** first:
+- **Executive Verdict Header**:
+  - **Vote Split**: `[X For / Option A, Y Against / Option B, Z Conditional]`
+  - **Consensus Recommendation**: One decisive sentence naming the winning path.
+  - **Most Weighted Lens**: Which 1–2 advisors carry the highest weight for this domain and why.
+  - **Key Guardrail Condition**: The single condition that must hold true for this recommendation to succeed.
+- **Independent Advisor Commitments (Every advisor MUST commit to `For`, `Against`, or `Conditional` — no generic "it depends", and at least two advisors must directly rebut each other's core assumption)**:
+  1. **🔧 The Operator (Execution & Maintainability)**: Can this be built, tested, and maintained cleanly within the 5-Tier DNA strata without operational drag?
+  2. **⚠️ The Skeptic (Failure Modes, Security & State Corruption)**: What is the worst-case failure mode, race condition, silent fallback, or abuse vector?
+  3. **🚀 The Visionary (Asymmetric Upside & Product Moat)**: Does this unlock compounding 2–3 year product value or merely copy a generic template?
+  4. **👤 The Customer Advocate (User Friction, A11y & State Recovery)**: Does this reduce real user cognitive load and handle all 6 state families, or is it internal engineering friction disguised as a feature?
+  5. **💰 The Finance Mind (Token, Cloud & Engineering ROI)**: How does this impact LLM token burn, SQLite/DB query load, latency, and engineering opportunity cost?
+
+### Technical Deep-Dive Vectors
+After the 5-Advisor Panel verdict, verify the 6 technical implementation vectors:
 
 | Stress-Test Lens | Core Focus | Critical Interrogation |
 | :--- | :--- | :--- |

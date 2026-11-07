@@ -57,9 +57,9 @@ def _load_ai_configs(foundation_dir=None):
     default_configs = {
         "gemini": {"template": "AI_ADAPTER.template.md", "target_dir": "", "target_path": "GEMINI.md", "format": "md"},
         "claude": {"template": "AI_ADAPTER.template.md", "target_dir": "", "target_path": "CLAUDE.md", "format": "md"},
-        "cursor": {"template": "CURSOR_RULE.template.mdc", "target_dir": ".cursor/rules", "target_path": "portable-brainvibing.mdc", "format": "mdc"},
-        "windsurf": {"template": "AI_ADAPTER.template.md", "target_dir": ".windsurf/rules", "target_path": "portable-brainvibing.md", "format": "md"},
-        "cline": {"template": "AI_ADAPTER.template.md", "target_dir": ".clinerules", "target_path": "portable-brainvibing.md", "format": "md", "legacy_target_path": ".clinerules"},
+        "cursor": {"template": "CURSOR_RULE.template.mdc", "target_dir": ".cursor/rules", "target_path": "orioncortex.mdc", "format": "mdc"},
+        "windsurf": {"template": "AI_ADAPTER.template.md", "target_dir": ".windsurf/rules", "target_path": "orioncortex.md", "format": "md"},
+        "cline": {"template": "AI_ADAPTER.template.md", "target_dir": ".clinerules", "target_path": "orioncortex.md", "format": "md", "legacy_target_path": ".clinerules"},
         "copilot": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md", "canonical": "agents"},
         "agents": {"template": "AGENTS.template.md", "target_dir": "", "target_path": "AGENTS.md", "format": "md"}
     }
@@ -325,17 +325,21 @@ def _python_profile(deps: set[str], has_ui: bool = False) -> dict:
 
 
 def scan_monorepo_workspaces(target_dir):
-    """Scan root and sub-directories (apps, packages, services, plugins, etc.) to detect distinct workspaces."""
+    """Scan root and sub-directories dynamically to detect distinct workspaces."""
     candidate_roots = [target_dir]
-    for sub in ("apps", "packages", "services", "modules", "crates", "libs", "plugins"):
-        sp = os.path.join(target_dir, sub)
-        if os.path.isdir(sp):
-            try:
-                for entry in os.scandir(sp):
-                    if entry.is_dir() and not entry.name.startswith("."):
-                        candidate_roots.append(entry.path)
-            except OSError:
-                pass
+    ignored = {".git", ".orion", ".gemini", "node_modules", "build", "dist", ".dart_tool", "venv", ".venv", "__pycache__", ".agents"}
+    try:
+        for entry in os.scandir(target_dir):
+            if entry.is_dir() and entry.name not in ignored and not entry.name.startswith("."):
+                candidate_roots.append(entry.path)
+                try:
+                    for sub in os.scandir(entry.path):
+                        if sub.is_dir() and sub.name not in ignored and not sub.name.startswith("."):
+                            candidate_roots.append(sub.path)
+                except OSError:
+                    pass
+    except OSError:
+        pass
 
     workspaces = []
     for c_root in candidate_roots:
@@ -551,8 +555,8 @@ TEMPLATE_VARS = {
     "proactive_feature_recommendations": "Continuous background verification and automatic linting.",
     "scalability_roadmap": "Modular expansion into cross-platform spokes.",
     "tech_stack": "Universal Stack",
-    "visual_aesthetic": "Modern Bento UI with Spatial Glassmorphism",
-    "visual_aesthetic_keywords": "clean, tactile, modern, glassmorphic",
+    "visual_aesthetic": "Task-First Restrained Craft (Solid Surfaces, Concentric Geometry, Zero Container Fatigue)",
+    "visual_aesthetic_keywords": "authored, intentional, high-contrast, tactile, restrained",
     "database_schema_detail": "Relational/Document storage with integrity checks",
     "shared_services_mapping": "Orion Ops, Heartbeat Monitor, Telemetry Logger",
     "data_flow_hooks": "Pre/Post tool execution hooks",
@@ -583,7 +587,6 @@ TEMPLATE_VARS = {
     "database": "Database",
     "ui_framework": "Standard UI",
     "layout_approach": "Responsive Grid & Flexbox",
-    "brand_voice": "Technical, precise, confident",
     "primary_palette": "Deep Indigo, Slate Neutral, Cyan Accent",
     "typography_stack": "Inter, Roboto Mono",
     "ui_kit_reference": "Standard Design System",
@@ -633,19 +636,19 @@ TEMPLATE_VARS = {
     "completed_feature_1": "Project scaffolding",
     "slots": "template slots",
     "x": "example-value",
-    "canvas_hex": "#0D0F12",
-    "surface_hex": "#16191E",
-    "border_hex": "#262B35",
-    "text_primary": "#F3F4F6",
-    "text_muted": "#9CA3AF",
-    "accent_hex": "#3B82F6",
-    "display_font": "Space Grotesk",
+    "canvas_hex": "#F8FAFC",
+    "surface_hex": "#FFFFFF",
+    "border_hex": "#E2E8F0",
+    "text_primary": "#0F172A",
+    "text_muted": "#475569",
+    "accent_hex": "#2563EB",
+    "display_font": "Plus Jakarta Sans",
     "body_font": "Inter",
     "mono_font": "JetBrains Mono",
-    "nav_patterns": "Command Palette + Sidebar Master-Detail",
-    "archetype_name": "Dark Industrial",
-    "macrostructure_name": "Data-Dense Cockpit",
-    "brand_voice": "Technical, precise, and terse engineering prose",
+    "nav_patterns": "Task-Driven Layout (Split View, Rail, Table, or Command Surface)",
+    "archetype_name": "Modern Minimal",
+    "macrostructure_name": "Task-First Adaptive Workspace",
+    "brand_voice": "Clear, plain, verb-first product language with stake-adapted tone",
 }
 
 def resolve_template_string(content: str, manifest: dict, project_name: str = "") -> str:
@@ -924,10 +927,17 @@ def cmd_deploy(args):
     archetype = getattr(args, "archetype", None) or ""
     interactive = getattr(args, "interactive", False)
 
-    is_greenfield = not any(
-        os.path.exists(os.path.join(target_dir, marker))
-        for marker in ("pubspec.yaml", "package.json", "Cargo.toml", "pyproject.toml", "go.mod", "src", "lib")
-    )
+    manifest_markers = ("pubspec.yaml", "package.json", "Cargo.toml", "pyproject.toml", "go.mod", "pom.xml", "build.gradle.kts", "build.gradle", "deno.json")
+    has_manifest = any(os.path.exists(os.path.join(target_dir, m)) for m in manifest_markers)
+    has_source_files = False
+    try:
+        for entry in os.scandir(target_dir):
+            if entry.is_dir() and not entry.name.startswith(".") and entry.name not in ("node_modules", "build", "dist", "target", "venv", ".venv"):
+                has_source_files = True
+                break
+    except OSError:
+        pass
+    is_greenfield = not (has_manifest or has_source_files)
 
     if is_greenfield and interactive and sys.stdin.isatty():
         intake = prompt_greenfield_intake(target_dir)
@@ -1270,7 +1280,7 @@ def cmd_deploy(args):
                     readme_content = f"# {proj_name}\n\n"
                     if statement:
                         readme_content += f"> **Mission**: {statement}\n\n"
-                    readme_content += f"A modular **{framework}** ({language}) project powered by [Portable Brainvibing](.agents).\n\n"
+                    readme_content += f"A modular **{framework}** ({language}) project powered by [OrionCortex](.agents).\n\n"
                     readme_content += "## Architecture & Governance\n- Constitutional North Star: [`context/VISION.md`](context/VISION.md)\n- Strategy & Roadmap: [`context/`](context/)\n- Agent Operational BIOS: [`AGENTS.md`](AGENTS.md)\n"
                     atomic_write_text(readme_md, readme_content)
 
@@ -1464,7 +1474,7 @@ def sync_upstream_observations(
         return (0, 0)
 
     try:
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
     except ImportError:
         try:
             from .reflexion import ObservationLedger
@@ -2138,7 +2148,7 @@ OPTIONAL_ORION_FEATURES = [
 
 
 def _is_foundation_hub_repo(target_dir: str) -> bool:
-    """Detects whether target_dir is the upstream portable-brainvibing (_foundation) hub repository itself."""
+    """Detects whether target_dir is the upstream orioncortex (_foundation) hub repository itself."""
     abs_root = os.path.abspath(target_dir)
     app_markers = [
         "package.json", "pubspec.yaml", "Cargo.toml", "go.mod",
@@ -2190,7 +2200,7 @@ def _detect_ui_project(target_dir: str) -> bool:
 def _detect_workspace_mode(target_dir: str) -> str:
     """
     Returns one of:
-      - 'foundation_hub' : In upstream portable-brainvibing (_foundation) repository
+      - 'foundation_hub' : In upstream orioncortex (_foundation) repository
       - 'greenfield'     : New/empty project folder without app code or manifests
       - 'brownfield'     : Existing project with application code or manifests
     """
@@ -2371,7 +2381,7 @@ def inspect_environment_and_workspace(target_dir: str = ".") -> dict:
     2. Ollama model discovery and hardware-tailored model recommendations
     3. Workspace mode (Foundation Hub vs Greenfield vs Brownfield)
     4. Auto-detected tech stack & active AI IDEs
-    5. Status of all Portable Brainvibing & Orion assets in workspace
+    5. Status of all OrionCortex & Orion assets in workspace
     6. Catalog of optional Orion power-features
     """
     abs_target = os.path.abspath(target_dir)
@@ -2423,7 +2433,7 @@ def inspect_environment_and_workspace(target_dir: str = ".") -> dict:
     sub_workspaces = scan_monorepo_workspaces(abs_target)
     detected_ais = detect_active_ais(abs_target)
 
-    # Check status of Portable Brainvibing & Orion assets in target_dir
+    # Check status of OrionCortex & Orion assets in target_dir
     assets_status = {
         "gitignore": os.path.isfile(os.path.join(abs_target, ".gitignore")),
         "agents_md": os.path.isfile(os.path.join(abs_target, "AGENTS.md")),
@@ -2516,7 +2526,7 @@ def execute_setup_pipeline(
     archetype: Optional[str] = None,
 ) -> dict:
     """
-    Executes the entire Portable Brainvibing setup pipeline and activates selected Orion features.
+    Executes the entire OrionCortex setup pipeline and activates selected Orion features.
     """
     abs_target = os.path.abspath(target_dir)
     agents_dir = os.path.join(abs_target, ".agents")
@@ -2903,7 +2913,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     gpu_label = f" | GPU: {hw.get('gpu_name')} ({vram_val} GB VRAM)" if hw.get("gpu_name") else ""
 
     print("\n╔════════════════════════════════════════════════════════════════════════════╗")
-    print("║ 🧠 PORTABLE BRAINVIBING — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.0.6)     ║")
+    print("║ 🧠 ORIONCORTEX — ORION UNIFIED SETUP & DOCTOR WIZARD (v0.1.0)              ║")
     print("╚════════════════════════════════════════════════════════════════════════════╝")
 
     print("\n[1/4] 💻 LAPTOP & 4-PILLAR DEPENDENCY DIAGNOSTIC")
@@ -3029,7 +3039,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
 
         # Step 2: Workspace Confirmation
         if ws_mode == "foundation_hub":
-            print("\n  👉 You are currently inside the Global Hub `portable-brainvibing`. What would you like to do?")
+            print("\n  👉 You are currently inside the Global Hub `orioncortex`. What would you like to do?")
             print("     [1] Setup & Verify hub health (Self-Hosting Mode) [Default]")
             print("     [2] Deploy .agents to another project folder on this computer")
             ans_hub = input("  Choice [1/2, Enter=1]: ").strip()
@@ -3103,7 +3113,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
         icon = "✓" if st["ok"] else "!"
         print(f"  [{icon}] {st['step']:<20}: {st['detail']}")
 
-    print("\n🎉 SETUP COMPLETE! Workspace is now powered by Portable Brainvibing & Orion Brain.")
+    print("\n🎉 SETUP COMPLETE! Workspace is now powered by OrionCortex & Orion Brain.")
     print("\n📌 CHEAT SHEET — WHAT CAN YOU DO NEXT?")
     if ws_mode == "greenfield":
         print("  • Build New App     : Open AI Chat and run '/project-init' or state your product vision")
@@ -3356,6 +3366,18 @@ def cmd_dna(args: argparse.Namespace) -> None:
             if res.get("is_prerelease"):
                 print(f"  • Release Status    : IN-DEVELOPMENT ({res.get('release_status', 'Unreleased')})")
             print(f"  • Recommended Bump  : {res['recommended_bump']} -> v{res['target_version']}")
+            q = res.get("quantification")
+            if q:
+                minor_tag = ">= 35.0 [MINOR]" if q["is_minor"] else "< 35.0 [PATCH]"
+                major_tag = ">= 50.0 [MAJOR]" if q["is_major"] else "< 50.0"
+                print(f"  • Quantified Impact : {q['impact_score']:.1f} ({minor_tag}) | Breaking: {q['breaking_score']:.1f} ({major_tag})")
+                print(f"    - Strata: {q['strata_score']:.1f} | Organ: {q['organ_score']:.1f} (k={q['subsystem_count']}) | AST: {q['ast_score']:.1f} | Momentum: {q['commit_score']:.1f}")
+                if q["topological_organs"]:
+                    print(f"    - Topological Organs: {', '.join(q['topological_organs'][:5])}")
+            cog = res.get("cognitive_verdict")
+            if cog:
+                print(f"  • Cognitive SLM     : {cog['recommended_bump']} (conf: {cog['confidence']:.2f}, engine: {cog['engine']})")
+                print(f"    - Rationale       : {cog['rationale']}")
             if res.get("baseline_ref"):
                 print(f"  • Baseline Release  : {res['baseline_ref']}")
             print(f"  • Modified Files    : {res['changed_files_count']}")
@@ -3573,7 +3595,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
 
     base_url = "http://127.0.0.1:11434"
     try:
-        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.0.6"})
+        req = urllib.request.Request(f"{base_url}/api/tags", headers={"User-Agent": "Orion/0.1.0"})
         with urllib.request.urlopen(req, timeout=2.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             models = [m.get("name") for m in data.get("models", []) if m.get("name")]
@@ -3599,7 +3621,7 @@ def probe_local_ollama_for_vision(prompt: str, model: Optional[str] = None) -> O
         req = urllib.request.Request(
             f"{base_url}/api/generate",
             data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.0.6"}
+            headers={"Content-Type": "application/json", "User-Agent": "Orion/0.1.0"}
         )
         with urllib.request.urlopen(req, timeout=10.0) as resp:
             res_data = json.loads(resp.read().decode("utf-8"))
@@ -3794,7 +3816,7 @@ def cmd_hydrate_vision(args: argparse.Namespace) -> None:
     as_json = getattr(args, "json", False)
 
     if interactive and not statement and sys.stdin.isatty():
-        print("\n🎯 Portable Brainvibing: Human Creator Vision Grill")
+        print("\n🎯 OrionCortex: Human Creator Vision Grill")
         print("-----------------------------------------------------")
         try:
             val = input("1. What is the Core Essence / Purpose of this project?\n> ").strip()
@@ -4147,7 +4169,7 @@ def main():
     # Surgical Upgrade
     parser_upgrade = subparsers.add_parser("upgrade", aliases=["foundation-upgrade"], help="Surgically upgrade framework from upstream without clobbering sovereign assets")
     parser_upgrade.add_argument("--target", default=".", help="Target project root directory (default: current directory)")
-    parser_upgrade.add_argument("--source", default=None, help="Custom upstream source: local folder path or GitHub 'owner/repo' (default: local .foundation_path or Echo-Scion/portable-brainvibing)")
+    parser_upgrade.add_argument("--source", default=None, help="Custom upstream source: local folder path or GitHub 'owner/repo' (default: local .foundation_path or Echo-Scion/orioncortex)")
     parser_upgrade.add_argument("--check", action="store_true", help="Check for available updates without staging or applying")
     parser_upgrade.add_argument("--dry-run", action="store_true", help="Simulate surgical upgrade without writing files to disk")
     parser_upgrade.add_argument("--force", action="store_true", help="Force upgrade even if versions match")

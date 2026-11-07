@@ -279,6 +279,14 @@ def _check_heartbeat(learnings_path: str, base_agents_dir: str) -> Tuple[bool, i
         except OSError:
             pass
     
+    try:
+        from commands.pulsar import ObservationLedger
+        open_obs = ObservationLedger().list_observations(status="open")
+        if len(open_obs) >= 10:
+            evolution_overdue = True
+    except Exception as _obs_err:
+        _log_telemetry(_obs_err, "pre_agent_wake:check_heartbeat:observation_ledger")
+
     if unprocessed_learnings >= 3:
         evolution_overdue = True
 
@@ -805,10 +813,40 @@ def main():
         from core.harness.engine import HarnessEngine
         harness = HarnessEngine()
         harness.increment_request_count()
-        if not args.hook:
+        intents_dir = getattr(harness, "intents_dir", "")
+        has_pending_intents = False
+        if intents_dir and os.path.exists(intents_dir):
+            has_pending_intents = any(f.endswith(".json") and not f.endswith(".tmp") for f in os.listdir(intents_dir))
+        if (not args.hook) or has_pending_intents:
             harness.promote_pending_queue()
         harness_lifecycle = harness.evaluate_lifecycle(maturity=100, capacity=50, execute_archive=False)
         harness_index = harness.build_session_index(max_desc_chars=90)
+
+        if active_file and ".agents/skills/" in active_file.replace("\\", "/"):
+            try:
+                rel_sk = active_file.replace("\\", "/").split(".agents/skills/")[1]
+                sk_name = rel_sk.split("/")[0]
+                if sk_name:
+                    HarnessEngine.record_skill_event(sk_name, "use")
+            except Exception as _sk_use_err:
+                _log_telemetry(_sk_use_err, "pre_wake:record_skill_use_active_file")
+
+        if transcript_path and os.path.isfile(transcript_path):
+            try:
+                with open(transcript_path, "rb") as _tf:
+                    _tf.seek(0, os.SEEK_END)
+                    _size = _tf.tell()
+                    _seek_pos = max(0, _size - 16384)
+                    _tf.seek(_seek_pos)
+                    _t_lines = _tf.read().decode("utf-8", errors="replace").splitlines()
+                    for _line in reversed(_t_lines):
+                        if ".agents/skills/" in _line:
+                            import re
+                            m_sk = re.search(r"\.agents/skills/([a-z0-9-]+)", _line)
+                            if m_sk:
+                                HarnessEngine.record_skill_event(m_sk.group(1), "use")
+            except Exception as _t_sk_err:
+                _log_telemetry(_t_sk_err, "pre_wake:record_skill_use_transcript")
     except Exception as _h_err:
         _log_telemetry(_h_err, "harness_lifecycle_pre_wake")
 
@@ -1039,7 +1077,7 @@ def main():
     obs_digest = None
     obs_broken_probe = False
     try:
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
         obs_ledger = ObservationLedger(
             active_path=os.path.join(base_agents_dir, "OBSERVATIONS.md"),
             archive_path=os.path.join(base_agents_dir, "OBSERVATIONS.archive.md")
@@ -1217,6 +1255,15 @@ def main():
             "• Constitutional North Star: VISION.md Immutable Lock | Anti-Enterprise-Bloat | YAGNI | Evidence Mandate (Exit Code 0) | Lessword Token Efficiency"
         ]
 
+        try:
+            from core.platform_inspector import get_environment_summary
+            env_sum = get_environment_summary(WORKSPACE_DIR)
+            slash_cmds = [sc["command"] for sc in env_sum.get("slash_commands", [])]
+            if slash_cmds:
+                cold_start_lines.append(f"• Host Platform Superpowers: {env_sum['host_platform_name']} [{', '.join(slash_cmds[:6])}] (Run 'python .agents/scripts/orion.py env' for cheat sheet)")
+        except Exception:
+            pass
+
         handoff_path = os.path.join(CONTEXT_DIR, "handoff.md")
         if os.path.exists(handoff_path):
             try:
@@ -1264,8 +1311,9 @@ def main():
 
         active_warnings.append("\n".join(cold_start_lines))
     if active_bento_task_data:
+        lane_badge = active_bento_task_data.get("execution_lane") or "LANE-2: MAIN-WORKER BUDGET [High Effort]"
         active_warnings.append(
-            f"🎯 ACTIVE BENTO TASK ({active_bento_task_data['index']}): "
+            f"🎯 ACTIVE BENTO TASK ({active_bento_task_data['index']}) [{lane_badge}]: "
             f"Task {active_bento_task_data['task_id']} on `{active_bento_task_data['target_file']}` ({active_bento_task_data['lines']}). "
             "Execute ONLY this single task in .orion/working/ACTIVE_TASK.md before verifying."
         )
@@ -1288,6 +1336,13 @@ def main():
             f"🚨 DNA ARCHITECTURE HARD GATE VIOLATION ({project_dna_data['layer_violations_count']} violations, score {project_dna_data.get('dna_compliance_score', 0)}/100): "
             f"Illegal cross-layer imports detected! Code completion BLOCKED. Run 'python .agents/scripts/orion.py dna audit' to locate and fix."
         )
+    if evolution_overdue or unprocessed_learnings >= 3:
+        active_warnings.append(
+            f"⚡ EVOLUTION OVERDUE ({unprocessed_learnings} unprocessed signals/learnings): "
+            "Cognitive drift threshold crossed. Recommend running 'self-evolve' or "
+            "'python .agents/scripts/orion.py reflexion detect-recurring' to graduate recurring patterns."
+        )
+
     if obs_broken_probe:
         active_warnings.append(
             "🚨 OBSERVATION SCAN BROKEN: Raw observations present in .agents/OBSERVATIONS.md but parser returned 0 entries!"

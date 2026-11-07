@@ -13,7 +13,7 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
 - [ ] **Root Cause Analysis**: Identify if the failure was due to a missing rule, contradictory instruction, or a missing context link.
 
 ## 2. MEMORY WRITE (PERSISTENCE)
-- [ ] **Update Learnings**: Use `replace_file_content` or `python .agents/scripts/orion.py reflexion record` to inject the finding into `.agents/LEARNINGS.md`. Do not wait or queue this action.
+- [ ] **Update Learnings**: The Agent MUST use `replace_file_content` or `python .agents/scripts/orion.py reflexion record` to inject the finding into `.agents/LEARNINGS.md` without delay.
 - [ ] **4-Tuple Failure Pattern Contract (Harness-Zero Protocol)**:
   Every systemic reflection MUST capture:
   1. `Trigger`: Recognizable condition in the unexecuted proposal.
@@ -67,7 +67,7 @@ This workflow defines how the agent ecosystem learns and updates itself to preve
   2. The deterministic promoter validates admission classes (AST safety, frontmatter schema, progressive disclosure cap <= 500 lines, no absolute host paths, ledger evidence, judge immutability lock `HARNESS-JDG-01`, and rejected-fingerprint barrier `HARNESS-REJ-01`) before committing to `.agents/skills/`.
   3. **Continuous Learnings (Protected Block)**: If graduating an invariant into an existing core skill, propose bounded ops strictly inside `<!-- LEARNED_START --> ... <!-- LEARNED_END -->` (max 3 bullets per cycle, Simplicity Criterion enforced). Body text remains immutable.
   4. **Reference-First Growth**: If the pattern captures specialized technical SOPs, stage it as a subfile under `references/*.md` (which automatically registers in `skill_routes.json` as a child route). Body core skills remain lean.
-- [ ] **Integrate & Self-Audit**: Update JIT triggers and ensure the new file is indexed correctly (Rules in `RULES_INDEX.md`). If modifying `.agents/` engine itself, verify against `.agents/skills/meta-agent-admin/references/meta-agent-audit.md` and ensure `python .agents/scripts/orion.py verify` returns Exit Code 0. You MUST execute `python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .agents/canons context/` to store them back into `.orion/`.
+- [ ] **Integrate & Self-Audit**: The Agent MUST update JIT triggers and ensure the new file is indexed in `AGENTS_INDEX.md` with 100% route parity. If modifying `.agents/` engine itself, verify against `.agents/skills/meta-agent-admin/references/meta-agent-audit.md` and ensure `python .agents/scripts/orion.py verify` returns Exit Code 0. You MUST execute `python .agents/scripts/orion.py orion_ops ingest .agents/rules .agents/skills .agents/canons context/` to store them back into `.orion/`.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
 *If your current task intersects with these domains, you MUST execute `view_file` on the target BEFORE writing code:*

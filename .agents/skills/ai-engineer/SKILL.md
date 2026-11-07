@@ -6,7 +6,7 @@ description: >-
 
 # 🧠 AI Engineering Standards & Mitigating AI Limitations
 
-Use `python .agents/scripts/orion.py reflexion` for declarative reflection and Reflexion history. `commands/reflexion.py` connects structured prompt patterns to deterministic execution chains.
+Use `python .agents/scripts/orion.py reflexion` for declarative reflection and Reflexion history. `commands/pulsar.py` connects structured prompt patterns to deterministic execution chains.
 
 Developing applications that integrate Artificial Intelligence requires a radical departure from traditional, deterministic software engineering. Model outputs are probabilistic, opaque, and highly dependent on live context. 
 

@@ -12,21 +12,43 @@ ecosystem: flutter
 When creating or auditing a Flutter widget that interacts with a backend, you MUST ensure all 4 states are handled:
 
 ```dart
-// FLUTTER RIVERPOD PATTERN
+// FLUTTER RIVERPOD 6-FAMILY STATE MACHINE PATTERN
 Widget build(BuildContext context, WidgetRef ref) {
-  final dataState = ref.watch(userDataProvider);
+  final dataState = ref.watch(userListProvider);
+  final activeQuery = ref.watch(searchQueryProvider);
 
   return dataState.when(
-    // 1. SUCCESS
-    data: (user) {
-      // 2. EMPTY
-      if (user.isEmpty) return const EmptyStateWidget(message: 'No user found');
-      return UserProfileCard(user: user);
+    data: (users) {
+      // 1. FIRST-TIME EMPTY: Orientation + Primary Create CTA
+      if (users.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No users yet',
+          description: 'Invite team members to collaborate on this workspace.',
+          actionLabel: 'Invite user',
+          onAction: () => _openInviteDialog(context),
+        );
+      }
+      final filtered = users.where((u) => u.matches(activeQuery)).toList();
+      // 2. FILTERED-TO-EMPTY: Name query + Reset filter action
+      if (filtered.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No results for "$activeQuery"',
+          description: 'Try a different search term or clear active filters.',
+          actionLabel: 'Clear filters',
+          onAction: () => ref.read(searchQueryProvider.notifier).clear(),
+        );
+      }
+      // 3. POPULATED (Truncation-safe rows)
+      return UserListView(users: filtered);
     },
-    // 3. ERROR
-    error: (err, stack) => ErrorDisplayWidget(error: err),
-    // 4. LOADING
-    loading: () => const SkeletonProfileCard(),
+    // 4. INSTRUCTIONAL ERROR + RETRY RECOVERY
+    error: (err, stack) => ErrorDisplayWidget(
+      title: 'Unable to load users',
+      instruction: 'Check your connection and try again.',
+      onRetry: () => ref.invalidate(userListProvider),
+    ),
+    // 5. SKELETON LOADING (Preserves layout geometry)
+    loading: () => const SkeletonUserList(),
   );
 }
 ```

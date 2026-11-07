@@ -1,6 +1,6 @@
 # 📋 Templates & Scaffolding Index
 
-This directory contains the master blueprints and boilerplates for the **Portable Brainvibing** infrastructure. 
+This directory contains the master blueprints and boilerplates for the **OrionCortex** infrastructure. 
 
 <template-index>
 ## 🏛️ Core Master Templates
@@ -15,7 +15,7 @@ This directory contains the master blueprints and boilerplates for the **Portabl
 | `DESIGN.template.md` | `DESIGN.md` | Master 20+ design archetypes, color palettes, and locked visual tokens. |
 | `AGENTS.template.md` | `.agents/AGENTS_INDEX.md` | Multi-AI instruction generator (DRY source). |
 | `AI_ADAPTER.template.md` | Native adapter files | Lightweight adapters that route tools to canonical `AGENTS.md`. |
-| `CURSOR_RULE.template.mdc` | `.cursor/rules/portable-brainvibing.mdc` | Native Cursor project rule adapter. |
+| `CURSOR_RULE.template.mdc` | `.cursor/rules/orioncortex.mdc` | Native Cursor project rule adapter. |
 
 
 ## 🛠️ Operational & Memory Templates

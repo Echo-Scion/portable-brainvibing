@@ -197,21 +197,21 @@ def harvest_tokens(target_dir: str) -> Dict[str, Any]:
 
 def _default_tokens() -> Dict[str, Any]:
     return {
-        "canvas_hex": "#0D0F12",
-        "surface_hex": "#16191E",
-        "border_hex": "#2A2E37",
-        "text_primary": "#F3F4F6",
-        "text_muted": "#9CA3AF",
-        "accent_hex": "#F59E0B",
-        "bg_oklch_or_hex": "#0D0F12",
-        "text_oklch_or_hex": "#F3F4F6",
-        "primary_oklch_or_hex": "#F59E0B",
-        "secondary_oklch_or_hex": "#16191E",
-        "accent_oklch_or_hex": "#F59E0B",
-        "display_font": "Space Grotesk",
+        "canvas_hex": "#F8FAFC",
+        "surface_hex": "#FFFFFF",
+        "border_hex": "#E2E8F0",
+        "text_primary": "#0F172A",
+        "text_muted": "#475569",
+        "accent_hex": "#2563EB",
+        "bg_oklch_or_hex": "#F8FAFC",
+        "text_oklch_or_hex": "#0F172A",
+        "primary_oklch_or_hex": "#2563EB",
+        "secondary_oklch_or_hex": "#FFFFFF",
+        "accent_oklch_or_hex": "#2563EB",
+        "display_font": "Plus Jakarta Sans",
         "body_font": "Inter",
         "mono_font": "JetBrains Mono",
-        "detected_archetype": "dark-industrial",
+        "detected_archetype": "modern-minimal",
         "raw_colors_found": [],
         "raw_fonts_found": [],
     }
@@ -284,11 +284,22 @@ Choose exactly ONE archetype from these 12 canonical options:
 11. luxury-atelier
 12. solar-minimal
 
+Analyze the codebase across the 7 Design DNA Vectors before selecting the archetype:
+1. Spatial Structure & Grid Topology (Split-view, table, rail, or asymmetric mosaic)
+2. Information Density & Container Philosophy (Spatial proximity vs bordered cards)
+3. Typographic Hierarchy & Scale Contrast
+4. Color Logic & Tonal Surface Ladder
+5. Component Geometry & Concentric Radii
+6. Interaction Mechanics & Motion Restraint (4-Gate filter)
+7. Product Personality & Stake-Adapted Tone
+
 Return JSON strictly in this format:
 ```json
 {{
   "archetype": "<archetype-id>",
-  "rationale": "<1-sentence reason based on colors and fonts>"
+  "primary_layout_model": "<table|split-view|rail|command-surface|timeline|bento>",
+  "dna_thesis": "<1-sentence structural thesis avoiding generic SaaS card soup>",
+  "rationale": "<1-sentence reason based on colors, fonts, and task density>"
 }}
 ```"""
 

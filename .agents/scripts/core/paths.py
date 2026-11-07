@@ -29,7 +29,8 @@ DEFAULT_IGNORE_FILENAMES: Set[str] = {
     "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "pubspec.lock",
     "cargo.lock", "poetry.lock", "composer.lock", "gemfile.lock", "pipfile.lock",
     "bun.lockb", "bun.lock", "uv.lock", "gradle.lockfile", "podfile.lock",
-    ".ds_store", "thumbs.db", "desktop.ini"
+    ".ds_store", "thumbs.db", "desktop.ini",
+    ".env", ".env.local", ".env.development", ".env.production", ".env.staging", ".env.test"
 }
 
 AGENT_TOOLING_DIRS: Set[str] = {
@@ -176,7 +177,10 @@ class GitIgnoreFilter:
         if any(p in self.ignore_dirs for p in check_parts):
             return True
         if not is_dir:
-            if parts[-1].lower() in self.ignore_filenames:
+            base_low = parts[-1].lower()
+            if base_low in self.ignore_filenames:
+                return True
+            if (base_low == ".env" or base_low.startswith(".env.")) and base_low not in (".env.example", ".env.template"):
                 return True
             if self.asset_filter_fn and self.asset_filter_fn(norm):
                 return True
@@ -215,7 +219,7 @@ def should_traverse_dir(
     if dir_name in DEFAULT_IGNORE_DIRS or dir_name.lower() in DEFAULT_IGNORE_DIRS:
         return False
     if dir_name.startswith("."):
-        if dir_name == ".agents" and allow_agents:
+        if dir_name in {".agents", ".antigravity-plugin"} and allow_agents:
             return True
         if dir_name in {".github", ".storybook"}:
             return True

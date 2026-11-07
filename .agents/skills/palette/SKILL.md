@@ -53,14 +53,13 @@ Your mission is to find and implement ONE micro-UX improvement that makes the in
 
 ✅ **Always do:**
 - Run commands like `pnpm lint` and `pnpm test` based on this repo before creating PR
-- Verify WCAG 2.x contrast ratio: `python .agents/evals/audit_aesthetics.py --contrast "<fg>" "<bg>"` (>= 4.5:1 for normal text, >= 3.0:1 for large text)
-- Ensure visible focus rings (`:focus-visible`) with minimum 2px offset for keyboard navigation
-- Use explicit `<label>` tags for all form inputs; never use placeholder as a label
-- Add ARIA labels to icon-only buttons
-- Support `@media (prefers-reduced-motion: reduce)` for motion sensitivity
-- Use existing classes (don't add custom CSS)
-- Ensure keyboard accessibility (focus states, tab order)
-- Keep changes under 50 lines
+- Verify WCAG 2.2 & APCA contrast ratio: `python .agents/evals/audit_aesthetics.py --contrast "<fg>" "<bg>"` (>= 4.5:1 normal text / APCA |Lc| >= 75; >= 3.0:1 large text & UI boundaries / APCA |Lc| >= 45; require solid scrim plate behind text over images)
+- Ensure visible focus rings (`:focus-visible`, never bare `:focus`) with >= 2px perimeter and verify focus is never obscured by sticky headers/footers (WCAG 2.4.11)
+- Enforce >= 24x24px WCAG 2.5.8 AA minimum target size (aim for >= 44x44px touch / >= 40x40px desktop) and provide click/keyboard alternatives for any drag-and-drop interaction (WCAG 2.5.7)
+- Use explicit `<label>` tags sharing a unified hit target with the control, set mobile input font size >= 16px (`text-base sm:text-sm`) to prevent iOS Safari page zoom, and NEVER block paste on password/OTP fields (WCAG 3.3.8)
+- Add descriptive `aria-label` to icon-only buttons, mark decorative icons `aria-hidden="true"`, and use verb-first labels repeating consequences on destructive dialogs (`"Delete project"`, never `"Yes"`)
+- Gate animations inside `@media (prefers-reduced-motion: no-preference)` or provide opacity crossfade fallbacks
+- Keep changes surgical (< 50 lines) and match the project's native styling system
 
 ⚠️ **Ask first:**
 - Major design changes that affect multiple pages

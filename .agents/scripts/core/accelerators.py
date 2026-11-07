@@ -457,15 +457,6 @@ def query_telemetry_jsonl(jsonl_glob: str) -> Dict[str, Any]:
         except Exception:
             pass
     return {"engine": "python-streaming", "total_events": total, "files": len(files)}
-    for fpath in files:
-        try:
-            with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    if line.strip():
-                        total += 1
-        except Exception:
-            pass
-    return {"engine": "python-stream-fallback", "total_events": total, "files": len(files)}
 
 
 # -------------------------------------------------------------------------
@@ -524,7 +515,7 @@ def scrub_secrets(text: str) -> str:
     import re
     if _SECRET_PREFIX_RE is None:
         _SECRET_PREFIX_RE = re.compile(
-            r"\b(sk-[A-Za-z0-9_\-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9\-]{16,})\b"
+            r"\b(sk-[A-Za-z0-9_\-]{16,}|sk-or-v1-[A-Za-z0-9]{32,}|cpk_[A-Za-z0-9_\-]{24,}|gsk_[A-Za-z0-9]{24,}|csk-[A-Za-z0-9_\-]{24,}|hf_[A-Za-z0-9]{24,}|xai-[A-Za-z0-9]{24,}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9\-]{16,})\b"
         )
     scrubbed = _SECRET_PREFIX_RE.sub("[REDACTED_SECRET]", text)
 
@@ -747,6 +738,24 @@ def get_accelerator_status() -> Dict[str, Any]:
             },
         },
     }
+
+
+def get_active_accelerator_manifest() -> Dict[str, Dict[str, Any]]:
+    """Backward-compatible flat manifest of the 7 Python Tier-2 accelerators for platform_inspector & hooks."""
+    raw = get_accelerator_status().get("accelerators", {})
+    py_keys = ("orjson", "rapidfuzz", "tree_sitter", "sqlite_vec", "model2vec", "tokenizers", "duckdb")
+    manifest: Dict[str, Dict[str, Any]] = {}
+    for k in py_keys:
+        info = raw.get(k, {})
+        avail = bool(info.get("available", False))
+        manifest[k] = {
+            "status": "active" if avail else "fallback",
+            "available": avail,
+            "version": info.get("version"),
+            "role": info.get("role", ""),
+            "fallback": info.get("fallback", ""),
+        }
+    return manifest
 
 
 def install_high_value_accelerators(python_bin: Optional[str] = None) -> Tuple[bool, str]:

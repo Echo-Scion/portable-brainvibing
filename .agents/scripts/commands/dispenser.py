@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-bento_slicer.py — Universal Orion FSM, Audit-Ledger & Bento Task Dispenser
+bento_slicer.py — Universal Orion FSM, Audit-Ledger, 4-Lane Router & Bento Task Dispenser
 Unifies .orion/ task management across all 19 AI platforms and model tiers (BUDGET / STANDARD / PREMIUM).
 
 Bridges monolithic Audit Reports and implementation_plan.md files directly into:
@@ -46,6 +46,7 @@ try:
     from core.db import log_telemetry as _log_telemetry
     from core.dna import classify_file_to_tier
     from core.scanner import _resolve_local_1hop_closure
+    from core.capabilities import resolve_elastic_execution_plan
 except ImportError:
     def _log_telemetry(err: Optional[Exception] = None, context: str = "") -> None:
         pass
@@ -70,6 +71,14 @@ except ImportError:
     def _resolve_local_1hop_closure(file_paths: List[str], root_dir: str = ".") -> Set[str]:
         return set(file_paths)
 
+    def resolve_elastic_execution_plan(**kwargs) -> Dict[str, Any]:
+        return {
+            "effective_score": 1.5,
+            "execution_lane": "LANE-2: MAIN-WORKER BUDGET [High Effort]",
+            "lane_id": 2,
+            "recommended_cloud_tier_2d": "BUDGET [High Effort]",
+        }
+
 
 QUEUE_FILE = "bento_queue.json"
 ACTIVE_TASK_FILE = "ACTIVE_TASK.md"
@@ -85,13 +94,13 @@ TASK_HEADER_RE = re.compile(
     re.MULTILINE,
 )
 TARGET_FILE_RE = re.compile(
-    r"-\s*\*\*Target File\*\*\s*:\s*`?([^`\n]+?)`?(?:\s*$|\s*\()", re.IGNORECASE | re.MULTILINE
+    r"[-*]\s*\*\*Target File\*\*\s*:\s*`?([^`\n]+?)`?(?:\s*$|\s*\()", re.IGNORECASE | re.MULTILINE
 )
 TARGET_SPAN_RE = re.compile(
-    r"-\s*\*\*Target Span(?:\s*/\s*Symbol)?\*\*\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE
+    r"[-*]\s*\*\*Target Span(?:\s*/\s*Symbol)?\*\*\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE
 )
 ROOT_CAUSE_RE = re.compile(
-    r"-\s*\*\*Root Cause\*\*\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE
+    r"[-*]\s*\*\*Root Cause\*\*\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE
 )
 LINE_RANGE_EXTRACT_RE = re.compile(r"(?:Lines?|L)\s*(\d+)(?:\s*[-–—]\s*L?(\d+))?", re.IGNORECASE)
 SEARCH_REPLACE_SPLIT_RE = re.compile(
@@ -199,7 +208,6 @@ def resolve_live_ast_symbol_span(file_path: Path, symbol_name: str) -> Optional[
         except Exception:
             pass
 
-    # Polyglot fallback (regex-based search for symbol definition line)
     try:
         lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
         sym_pattern = re.compile(rf"(?:def|class|function|fn|void|async|const|let|var)\s+{re.escape(clean_sym)}\b")
@@ -213,7 +221,6 @@ def resolve_live_ast_symbol_span(file_path: Path, symbol_name: str) -> Optional[
 
 
 def _find_task_headers_outside_fences(markdown_text: str) -> List[re.Match]:
-    """Finds ### Task X.Y headers only when outside fenced code blocks."""
     matches: List[re.Match] = []
     lines = markdown_text.splitlines(keepends=True)
     in_fence = False
@@ -244,7 +251,6 @@ def _find_task_headers_outside_fences(markdown_text: str) -> List[re.Match]:
 
 
 def _find_phase_headers_outside_fences(markdown_text: str) -> List[Tuple[int, str, str]]:
-    """Finds Phase X headers outside fenced code blocks, returning (offset, phase_id, phase_title)."""
     matches: List[Tuple[int, str, str]] = []
     lines = markdown_text.splitlines(keepends=True)
     in_fence = False
@@ -276,7 +282,6 @@ def _find_phase_headers_outside_fences(markdown_text: str) -> List[Tuple[int, st
 
 
 def textwrap_dedent_preserve(text: str) -> str:
-    """Dedent common 2-space markdown list indentation if all non-empty lines share it."""
     lines = text.rstrip().splitlines()
     if not lines:
         return ""
@@ -290,13 +295,6 @@ def _partition_into_disjoint_tracks(
     tasks: List[Dict[str, Any]],
     workspace_root: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
-    """
-    Computes Connected Components across task files using 1-hop dependency closures.
-    If tasks are tightly coupled (Jaccard overlap > 0.05 or shared imports):
-      labeled as execution_topology="SEQUENTIAL_CHAIN", track_id="CHAIN".
-    If tasks form disjoint clusters with zero/near-zero overlap (J <= 0.05):
-      labeled as execution_topology="PARALLEL_DISJOINT", track_id="TRACK-A", "TRACK-B", etc.
-    """
     if not tasks:
         return tasks
 
@@ -308,12 +306,10 @@ def _partition_into_disjoint_tracks(
             t["track_id"] = "CHAIN"
         return tasks
 
-    # Resolve closures
     closures: Dict[str, Set[str]] = {}
     for f in unique_files:
         closures[f] = _resolve_local_1hop_closure([f], root_dir=ws_str)
 
-    # Build adjacency list: edge if closures intersect with Jaccard > 0.05
     adj: Dict[str, Set[str]] = {f: set() for f in unique_files}
     for i, f1 in enumerate(unique_files):
         c1 = closures[f1]
@@ -327,7 +323,6 @@ def _partition_into_disjoint_tracks(
                 adj[f1].add(f2)
                 adj[f2].add(f1)
 
-    # Connected components via BFS
     visited: Set[str] = set()
     components: List[List[str]] = []
     for f in unique_files:
@@ -344,13 +339,11 @@ def _partition_into_disjoint_tracks(
                         queue.append(neighbor)
             components.append(comp)
 
-    # If only 1 component, all are coupled
     if len(components) <= 1:
         for t in tasks:
             t["execution_topology"] = "SEQUENTIAL_CHAIN"
             t["track_id"] = "CHAIN"
     else:
-        # Multiple disjoint components -> sort by minimum gravity so central components get TRACK-A
         components.sort(key=lambda comp: min(classify_file_to_tier(f)[1] for f in comp))
         track_labels = [f"TRACK-{chr(65 + k)}" for k in range(len(components))]
         file_to_track: Dict[str, str] = {}
@@ -367,11 +360,6 @@ def _partition_into_disjoint_tracks(
 
 
 def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None) -> List[Dict[str, Any]]:
-    """
-    Parses an Audit Report or implementation_plan.md into discrete, topological & blast-radius
-    sorted task dicts, respecting Phase boundaries and Bottom-Up line editing within each file.
-    Supports both separate Verbatim Search / Replacement code blocks and <<<< SEARCH / ==== REPLACE blocks.
-    """
     phase_headers = _find_phase_headers_outside_fences(markdown_text)
     task_matches = _find_task_headers_outside_fences(markdown_text)
     raw_tasks: List[Dict[str, Any]] = []
@@ -384,7 +372,6 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
         task_id = match.group(1) or match.group(2) or f"T-{idx + 1:02d}"
         title = match.group(3).strip()
 
-        # Determine enclosing Phase
         assigned_phase_id = "1"
         assigned_phase_title = "Core Execution"
         for ph_off, ph_id, ph_title in phase_headers:
@@ -412,11 +399,6 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
         start_line, end_line = _extract_line_bounds(span_text, raw_file)
 
         code_blocks = extract_fenced_code_blocks(section_body)
-        search_code = ""
-        replacement_code = ""
-        replacement_lang = "python"
-        verification_cmd = "python .agents/scripts/orion.py verify --fast"
-
         verification_cmd = "python .agents/scripts/orion.py verify --fast"
         non_shell_blocks: List[Tuple[str, str]] = []
         for lang, code in code_blocks:
@@ -448,13 +430,21 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
             pairs.append(("python", "", ""))
 
         target_symbol = _extract_symbol_name(span_text, raw_file)
-
         tier_key, gravity, slug, tier_title = classify_file_to_tier(target_file)
 
         for p_idx, (p_lang, p_search, p_repl) in enumerate(pairs):
             sub_id = f"{task_id}{chr(97 + p_idx)}" if len(pairs) > 1 else str(task_id)
             sub_title = f"{title} (Part {p_idx + 1})" if len(pairs) > 1 else title
             if target_file or p_repl:
+                # Classify 4-Lane Execution Tier
+                span_len = max(1, end_line - start_line)
+                c_info = resolve_elastic_execution_plan(
+                    task_complexity="single_fn" if span_len <= 80 else "multi_fn",
+                    blast_radius_files=1,
+                    span_lines=span_len,
+                    scaffold_stage="bento_card",
+                    use_2d=True,
+                )
                 raw_tasks.append({
                     "task_id": sub_id,
                     "title": sub_title,
@@ -473,10 +463,13 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
                     "dna_tier": tier_key,
                     "gravity": gravity,
                     "tier_slug": slug,
+                    "effective_score": c_info.get("effective_score", 1.5),
+                    "execution_lane": c_info.get("execution_lane", "LANE-2: MAIN-WORKER BUDGET"),
+                    "lane_id": c_info.get("lane_id", 2),
+                    "cloud_tier_2d": c_info.get("recommended_cloud_tier_2d", "BUDGET [High Effort]"),
                     "status": "OPEN",
                 })
 
-    # Group tasks strictly by Phase to preserve Topological Phase Ordering (Phase 1 unlocks Phase 2)
     phase_order: List[str] = []
     tasks_by_phase: Dict[str, List[Dict[str, Any]]] = {}
     for t in raw_tasks:
@@ -490,10 +483,8 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
 
     for pid in phase_order:
         phase_tasks = tasks_by_phase[pid]
-        # Partition into Disjoint Parallel Tracks within this Phase
         phase_tasks = _partition_into_disjoint_tracks(phase_tasks, workspace_root)
 
-        # Group by target_file within this phase
         files_in_phase: List[str] = []
         grouped_by_file: Dict[str, List[Dict[str, Any]]] = {}
         file_gravities: Dict[str, int] = {}
@@ -506,13 +497,10 @@ def parse_action_cards(markdown_text: str, workspace_root: Optional[Path] = None
                 file_gravities[tf] = t.get("gravity", 5)
             grouped_by_file[tf].append(t)
 
-        # 1. Sort edits on the SAME file Bottom-Up (start_line descending)
         for tf in files_in_phase:
             if len(grouped_by_file[tf]) > 1:
                 grouped_by_file[tf].sort(key=lambda item: item["start_line"], reverse=True)
 
-        # 2. Sort files in this phase Topologically:
-        # Lower Gravity (Hub/Contracts first) -> Track ID -> File path
         files_in_phase.sort(key=lambda tf: (
             file_gravities.get(tf, 5),
             grouped_by_file[tf][0].get("track_id", "CHAIN"),
@@ -534,11 +522,6 @@ def read_live_target_window(
     context_pad: int = 6,
     symbol_name: str = "",
 ) -> Tuple[str, str, int, int]:
-    """
-    Reads the exact current lines from disk and dynamically recalibrates (start_line, end_line)
-    via Live AST Symbol Re-Anchoring or search_code location, eliminating line-shift drift completely.
-    Returns (numbered_window, raw_unnumbered_window, actual_start_line, actual_end_line).
-    """
     if not rel_path:
         msg = "# [Target file not specified in card]"
         return msg, msg, start_line, end_line
@@ -552,13 +535,11 @@ def read_live_target_window(
         lines = content.splitlines()
         total = len(lines)
 
-        # 1. Live AST Symbol Re-Anchoring (eliminates line-shift drift across prior cards)
         if symbol_name:
             sym_span = resolve_live_ast_symbol_span(full_path, symbol_name)
             if sym_span:
                 start_line, end_line = sym_span
 
-        # 2. Dynamic Live Anchor Recalibration: locate search_code on disk if present
         clean_search = search_code.strip()
         if clean_search and not clean_search.startswith("# [File does not exist"):
             search_lines = clean_search.splitlines()
@@ -590,13 +571,6 @@ def sync_orion_infrastructure(
     tasks: List[Dict[str, Any]],
     current_index: int,
 ) -> None:
-    """
-    Unifies all 4 .orion/ task management surfaces automatically:
-      1. .orion/working/execution_state.json + SQLite fsm_checkpoints (via StateGraph)
-      2. .orion/working/audit/00-ledger.md & AUDIT_STATE.md
-      3. .orion/working/context.json (Omni-Buffer active_bento_task field)
-      4. .orion/task.md (Lifecycle checklist)
-    """
     orion_dir = get_orion_dir()
     working_dir = orion_dir / "working"
     audit_dir = working_dir / "audit"
@@ -613,6 +587,7 @@ def sync_orion_infrastructure(
             "phase": f"Phase {active_task.get('phase_id', '1')} — {active_task.get('phase_title', 'Core Execution')}",
             "topology": active_task.get("execution_topology", "SEQUENTIAL_CHAIN"),
             "track": active_task.get("track_id", "CHAIN"),
+            "execution_lane": active_task.get("execution_lane", "LANE-2: MAIN-WORKER BUDGET"),
             "dna_tier": active_task.get("dna_tier", "2_domain"),
             "target_file": active_task["target_file"],
             "lines": f"L{active_task['start_line']}-L{active_task['end_line']}",
@@ -626,7 +601,7 @@ def sync_orion_infrastructure(
             "phase_id": t.get("phase_id", "1"),
             "track_id": t.get("track_id", "CHAIN"),
             "target_file": t["target_file"],
-            "status": "COMPLETED",
+            "status": t.get("status", "COMPLETED"),
         }
         for t in tasks[:current_index]
     ]
@@ -653,7 +628,6 @@ def sync_orion_infrastructure(
     except Exception as e:
         _log_telemetry(e, "bento_slicer:sync_state_graph")
 
-    # 2. Sync .orion/working/audit/00-ledger.md & AUDIT_STATE.md (for /strict-tdd Fused Mode)
     ledger_lines = [
         "# 00-LEDGER (Auto-Synced by Orion Task Dispenser)",
         f"> **Source**: `{source_file}`",
@@ -661,9 +635,10 @@ def sync_orion_infrastructure(
         "## Remediation Queue [01]",
     ]
     for idx, t in enumerate(tasks):
-        status_tag = "[FIXED]" if idx < current_index else ("[IMPLEMENTATION]" if idx == current_index else "[OPEN]")
+        t_status = t.get("status", "OPEN")
+        status_tag = "[FIXED]" if t_status == "DONE" or idx < current_index else (f"[{t_status}]" if t_status == "PARKED" else ("[IMPLEMENTATION]" if idx == current_index else "[OPEN]"))
         ledger_lines.append(
-            f"- {t['task_id']} {status_tag}: `{t['target_file']}#L{t['start_line']}-L{t['end_line']}` — {t['title']}"
+            f"- {t['task_id']} {status_tag}: `{t['target_file']}#L{t['start_line']}-L{t['end_line']}` — {t['title']} [{t.get('execution_lane', 'LANE-2')}]"
         )
     atomic_write_text(audit_dir / "00-ledger.md", "\n".join(ledger_lines) + "\n")
 
@@ -672,7 +647,7 @@ def sync_orion_infrastructure(
             "# AUDIT STATE\n\n"
             f"**Current Phase:** Remediation Execution ({current_index + 1} of {len(tasks)})\n"
             f"**Current Focus:** `{active_task['target_file']}` (Lines {active_task['start_line']}–{active_task['end_line']})\n"
-            f"**Active Finding ID:** `{active_task['task_id']}` — {active_task['title']}\n"
+            f"**Active Task:** `{active_task['task_id']}` [{active_task.get('execution_lane', 'LANE-2')}] — {active_task['title']}\n"
             f"**Next Action:** Read `.orion/working/{ACTIVE_TASK_FILE}`, apply the surgical replacement to `{active_task['target_file']}`, and run `{active_task['verification_cmd']}`.\n"
         )
     else:
@@ -684,20 +659,18 @@ def sync_orion_infrastructure(
         )
     atomic_write_text(audit_dir / "AUDIT_STATE.md", audit_state_md)
 
-    # 3. Sync .orion/task.md (Lifecycle checklist)
     task_md_lines = [
         "# Active Execution Checklist (.orion/task.md)",
         f"> **Progress**: {min(current_index, len(tasks))}/{len(tasks)} completed",
         "",
     ]
     for idx, t in enumerate(tasks):
-        box = "[x]" if idx < current_index else ("[/]" if idx == current_index else "[ ]")
+        box = "[x]" if idx < current_index or t.get("status") == "DONE" else ("[/]" if idx == current_index else "[ ]")
         task_md_lines.append(
-            f"- {box} **Task {t['task_id']}**: `{t['target_file']}` (L{t['start_line']}-L{t['end_line']}) — {t['title']}"
+            f"- {box} **Task {t['task_id']}**: `{t['target_file']}` (L{t['start_line']}-L{t['end_line']}) — {t['title']} [{t.get('execution_lane', 'LANE-2')}]"
         )
     atomic_write_text(orion_dir / "task.md", "\n".join(task_md_lines) + "\n")
 
-    # 4. Inject active_bento_task into .orion/working/context.json (Omni-Buffer)
     ctx_path = working_dir / CONTEXT_FILE
     ctx_data: Dict[str, Any] = {}
     if ctx_path.is_file():
@@ -714,6 +687,7 @@ def sync_orion_infrastructure(
             "phase": f"Phase {active_task.get('phase_id', '1')} — {active_task.get('phase_title', 'Core Execution')}",
             "topology": active_task.get("execution_topology", "SEQUENTIAL_CHAIN"),
             "track": active_task.get("track_id", "CHAIN"),
+            "execution_lane": active_task.get("execution_lane", "LANE-2: MAIN-WORKER BUDGET"),
             "dna_tier": active_task.get("dna_tier", "2_domain"),
             "title": active_task["title"],
             "target_file": active_task["target_file"],
@@ -726,11 +700,6 @@ def sync_orion_infrastructure(
 
 
 def _align_replacement_indentation(raw_window: str, search_code: str, replacement_code: str) -> str:
-    """
-    Adjusts the leading indentation of replacement_code by the exact delta between
-    raw_window (on-disk) and search_code (from markdown).
-    Guarantees 100% exact whitespace alignment for model tool calls.
-    """
     if not raw_window or not search_code or not replacement_code:
         return replacement_code
 
@@ -760,16 +729,36 @@ def _align_replacement_indentation(raw_window: str, search_code: str, replacemen
         return "\n".join(adjusted)
 
 
+def _trigger_lookahead_predraft(next_task: Dict[str, Any], workspace_root: Path) -> None:
+    """Spawns background lookahead pre-drafting for task N+1 if replacement_code is empty."""
+    if not next_task or next_task.get("replacement_code"):
+        return
+    t_id = next_task["task_id"]
+    draft_file = get_orion_dir() / "working" / "drafts" / f"draft_{t_id}.json"
+    if draft_file.is_file():
+        return
+
+    try:
+        cmd = [
+            sys.executable,
+            str(Path(_SCRIPTS_DIR) / "commands" / "worker.py"),
+            "pre-draft",
+            "--file", next_task["target_file"],
+            "--span", f"L{next_task['start_line']}-L{next_task['end_line']}",
+            "--goal", next_task["title"],
+            "--task-id", t_id,
+        ]
+        subprocess.Popen(cmd, cwd=str(workspace_root), creationflags=_WINDOWLESS_FLAGS)
+    except Exception as e:
+        _log_telemetry(e, "bento_slicer:trigger_lookahead_predraft")
+
+
 def render_active_bento_markdown(
     task: Dict[str, Any],
     queue_index: int,
     total_tasks: int,
     workspace_root: Path,
 ) -> str:
-    """
-    Builds the universal, low-token ACTIVE_TASK.md card for BUDGET & STANDARD models
-    across all 19 platforms.
-    """
     numbered_window, raw_window, actual_start, actual_end = read_live_target_window(
         workspace_root,
         task["target_file"],
@@ -781,13 +770,35 @@ def render_active_bento_markdown(
     task["start_line"] = actual_start
     task["end_line"] = actual_end
     search_anchor = raw_window if (raw_window and not raw_window.startswith("# [")) else (task.get("search_code") or raw_window)
-    repl_code = _align_replacement_indentation(raw_window, task.get("search_code", ""), task.get("replacement_code", ""))
+
+    # Check sidecar lookahead pre-draft
+    t_id = task["task_id"]
+    draft_path = get_orion_dir() / "working" / "drafts" / f"draft_{t_id}.json"
+    effective_repl = task.get("replacement_code", "")
+    sidecar_badge = ""
+    if not effective_repl and draft_path.is_file():
+        try:
+            d_data = json.loads(draft_path.read_text(encoding="utf-8"))
+            effective_repl = d_data.get("replacement_code", "")
+            if effective_repl:
+                sidecar_badge = f"\n- **Lookahead Sidecar**: Loaded from `{draft_path.name}` (via {d_data.get('provider', 'second_worker')})"
+        except Exception:
+            pass
+
+    repl_code = _align_replacement_indentation(raw_window, task.get("search_code", ""), effective_repl)
     root_cause_line = f"\n- **Root Cause**: {task['root_cause']}" if task.get("root_cause") else ""
     phase_meta = f"- **Phase**: Phase {task.get('phase_id', '1')} — **{task.get('phase_title', 'Core Execution')}**\n"
+    lane_badge = task.get("execution_lane", "LANE-2: MAIN-WORKER BUDGET")
+    lane_meta = f"- **Execution Lane**: `{lane_badge}`\n"
     dna_meta = f"- **DNA Stratum**: `{task.get('tier_slug', 'DOMAIN_CORE')}` (Gravity `{task.get('gravity', 5)}`)\n"
     topology_meta = f"- **Execution Topology**: `{task.get('execution_topology', 'SEQUENTIAL_CHAIN')}` [`{task.get('track_id', 'CHAIN')}`]\n"
+    ui_contract_meta = (
+        "- **UI Contract Invariants (`3_ui`)**: Min `24x24px` hit area (`44x44px` touch), `:focus-visible` (`2px solid`), "
+        "`tabular-nums` on dynamic counters/prices, Dual Empty State (*First-Time* vs *Filtered*), Zero Elastic Bounce (`cubic-bezier(0.22, 1, 0.36, 1)`)\n"
+        if task.get("dna_tier") == "3_ui" else ""
+    )
 
-    return f"""# 🎯 ACTIVE ORION BENTO TASK ({queue_index + 1} of {total_tasks})
+    return f"""# 🎯 ACTIVE ORION BENTO TASK ({queue_index + 1} of {total_tasks}) [{lane_badge}]
 > **UNIVERSAL BENTO-BOX MANDATE (`BUDGET` & `STANDARD` TIERS — ALL PLATFORMS)**:
 > Execute **ONLY** this single task in this turn.
 > - **DO NOT** read the full audit report or full `implementation_plan.md`.
@@ -795,8 +806,8 @@ def render_active_bento_markdown(
 
 ## 1. Target Coordinates
 - **Task ID**: `{task['task_id']}` — **{task['title']}**
-{phase_meta}{dna_meta}{topology_meta}- **Target File**: `{task['target_file']}`
-- **Target Span**: `{task['span_text']}` (Live Lines `{actual_start}`–`{actual_end}`){root_cause_line}
+{phase_meta}{lane_meta}{dna_meta}{topology_meta}{ui_contract_meta}- **Target File**: `{task['target_file']}`
+- **Target Span**: `{task['span_text']}` (Live Lines `{actual_start}`–`{actual_end}`){root_cause_line}{sidecar_badge}
 
 ## 2. Live Code Window Currently on Disk (`{task['target_file']}`)
 *(Pre-extracted from disk with 1-indexed line numbers — zero `view_file` paging required)*:
@@ -823,7 +834,6 @@ python .agents/scripts/orion.py bento next --verify
 
 
 def check_finding_coverage(content: str, tasks: List[Dict[str, Any]]) -> List[str]:
-    """Detects orphaned finding IDs from audit reports that lack corresponding Task cards."""
     finding_pattern = re.compile(r'\b(TTP-[A-Z0-9_-]+|FINDING-[A-Z0-9_-]+)\b')
     all_findings = set(finding_pattern.findall(content))
     if not all_findings:
@@ -835,8 +845,7 @@ def check_finding_coverage(content: str, tasks: List[Dict[str, Any]]) -> List[st
         for f_id in finding_pattern.findall(task_str):
             covered_findings.add(f_id)
 
-    orphaned = sorted(all_findings - covered_findings)
-    return orphaned
+    return sorted(all_findings - covered_findings)
 
 
 def cmd_init(plan_path: str) -> int:
@@ -854,6 +863,15 @@ def cmd_init(plan_path: str) -> int:
     if not tasks:
         print(f"[ORION BENTO ERROR] No structured Task cards found in {plan_path}.", file=sys.stderr)
         return 1
+
+    # Record Plan Decisions upfront
+    try:
+        from commands.decisions import record_plan_decisions
+        resolved_count, total_count = record_plan_decisions(str(src), auto_resolve=True, workspace_root=ws)
+        if total_count > 0:
+            print(f"  ✓ Decision Gate: Auto-resolved {resolved_count}/{total_count} architectural decisions into .agents/DECISIONS.md.")
+    except Exception as e:
+        _log_telemetry(e, "bento_slicer:cmd_init_decisions")
 
     orphaned = check_finding_coverage(content, tasks)
     if orphaned:
@@ -879,10 +897,17 @@ def cmd_init(plan_path: str) -> int:
     atomic_write_text(queue_path, json.dumps(queue_data, indent=2))
 
     sync_orion_infrastructure(ws, queue_data["source_file"], tasks, 0)
+    _trigger_lookahead_predraft(tasks[1] if len(tasks) > 1 else None, ws)
+
+    lane_counts: Dict[str, int] = {}
+    for t in tasks:
+        lane = t.get("execution_lane", "LANE-2").split(":")[0]
+        lane_counts[lane] = lane_counts.get(lane, 0) + 1
 
     distinct_phases = list(dict.fromkeys(t.get("phase_id", "1") for t in tasks))
     distinct_tracks = list(dict.fromkeys(t.get("track_id", "CHAIN") for t in tasks if t.get("track_id") != "CHAIN"))
     print(f"[ORION BENTO INITIALIZED] Extracted {len(tasks)} atomic tasks across {len(distinct_phases)} topological phase(s).")
+    print(f"  ⚡ 4-Lane Breakdown: " + ", ".join(f"{k}: {v}" for k, v in sorted(lane_counts.items())))
     if distinct_tracks:
         print(f"  ⚡ Disjoint Parallel Tracks: {len(distinct_tracks)} ({', '.join(distinct_tracks)}) — Multi-Agent Ready")
     else:
@@ -891,17 +916,10 @@ def cmd_init(plan_path: str) -> int:
     print("  ✓ Synced .orion/working/audit/00-ledger.md & AUDIT_STATE.md")
     print("  ✓ Synced .orion/working/context.json & .orion/task.md")
     print(f"  ✓ Dispensed Task 1/{len(tasks)} -> .orion/working/{ACTIVE_TASK_FILE}")
-    print("\n👉 Universal Prompt for ANY IDE / Model (BUDGET or STANDARD):")
-    print('   "Read .orion/working/ACTIVE_TASK.md, apply the exact replacement, and run `python .agents/scripts/orion.py bento next --verify`."')
     return 0
 
 
 def verify_patch_applied_on_disk(task: Dict[str, Any], workspace_root: Path) -> Tuple[bool, str]:
-    """
-    Zero-Escape Gate: Mechanically checks whether the target file actually underwent
-    mutation before allowing 'bento next --verify' to run tests.
-    Prevents Budget/Standard models from advancing empty (no-op) tasks when existing tests already pass.
-    """
     rel_path = task.get("target_file", "").strip()
     if not rel_path:
         return True, ""
@@ -926,18 +944,13 @@ def verify_patch_applied_on_disk(task: Dict[str, Any], workspace_root: Path) -> 
 
     try:
         content = full_path.read_text(encoding="utf-8", errors="replace")
-        disk_lines = [ln.strip() for ln in content.splitlines()]
+        raw_disk_lines = [ln.rstrip() for ln in content.splitlines()]
+        disk_lines = [ln.strip() for ln in raw_disk_lines]
         search_lines = [ln.strip() for ln in search_code.splitlines() if ln.strip()]
         repl_lines = [ln.strip() for ln in repl_code.splitlines() if ln.strip()]
 
-        if repl_lines:
-            first_repl = repl_lines[0]
-            for idx in range(len(disk_lines) - len(repl_lines) + 1):
-                if disk_lines[idx] == first_repl:
-                    if all(disk_lines[idx + j] == repl_lines[j] for j in range(len(repl_lines))):
-                        return True, ""
-
-        if search_lines:
+        # 1. If search_lines != repl_lines, ensure the old SEARCH block does not still exist unpatched
+        if search_lines and search_lines != repl_lines:
             first_search = search_lines[0]
             found_search = False
             for idx in range(len(disk_lines) - len(search_lines) + 1):
@@ -948,8 +961,58 @@ def verify_patch_applied_on_disk(task: Dict[str, Any], workspace_root: Path) -> 
             if found_search:
                 return False, (
                     f"Target file '{rel_path}' still contains the exact unpatched SEARCH block!\n"
-                    f"The replacement patch was not applied. Apply the edit before advancing."
+                    f"Either the patch was not applied or the AI inserted REPLACE without deleting SEARCH."
                 )
+
+        # 2. Check for consecutive patch-boundary line/block stutters (k=1..5 lines with identical indentation)
+        repl_set = set(repl_lines)
+        for k in range(1, 6):
+            for i in range(len(raw_disk_lines) - 2 * k + 1):
+                b1 = raw_disk_lines[i:i + k]
+                b2 = raw_disk_lines[i + k:i + 2 * k]
+                if b1 == b2:
+                    joined = "\n".join(x.strip() for x in b1 if x.strip())
+                    if len(joined) > 25 and any(x.strip() in repl_set for x in b1):
+                        if not any(joined.startswith(p) for p in ("```", "---", "===", "| ---", "| :---", "#", "//")):
+                            return False, (
+                                f"AI Patch Stutter detected in '{rel_path}' at L{i + 1}-L{i + 2 * k}:\n"
+                                f"Consecutive duplicate block: {joined[:120]!r}\n"
+                                f"Remove the duplicated boundary lines before advancing."
+                            )
+
+        # 3. For Python files, check AST for duplicate same-scope def/class or duplicate dict keys
+        if rel_path.endswith(".py"):
+            try:
+                tree = ast.parse(content, filename=rel_path)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Dict):
+                        seen_k = {}
+                        for k_node in node.keys:
+                            if isinstance(k_node, ast.Constant) and isinstance(k_node.value, (str, int)):
+                                kv = k_node.value
+                                if kv in seen_k:
+                                    return False, (
+                                        f"Duplicate dictionary key {kv!r} in '{rel_path}' at L{k_node.lineno} "
+                                        f"(already defined at L{seen_k[kv]})."
+                                    )
+                                seen_k[kv] = k_node.lineno
+                    if isinstance(node, (ast.Module, ast.ClassDef)):
+                        seen_defs = {}
+                        for stmt in node.body:
+                            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                                is_prop_mod = any(
+                                    isinstance(d, ast.Attribute) and d.attr in ("setter", "deleter")
+                                    for d in stmt.decorator_list
+                                )
+                                if not is_prop_mod:
+                                    if stmt.name in seen_defs:
+                                        return False, (
+                                            f"Duplicate symbol definition `{stmt.name}` in '{rel_path}' at L{stmt.lineno} "
+                                            f"(already defined in same scope at L{seen_defs[stmt.name]})."
+                                        )
+                                    seen_defs[stmt.name] = stmt.lineno
+            except SyntaxError:
+                pass
 
         return True, ""
     except Exception as e:
@@ -957,7 +1020,6 @@ def verify_patch_applied_on_disk(task: Dict[str, Any], workspace_root: Path) -> 
 
 
 def _run_verification_command(v_cmd: str, cwd: Path) -> Tuple[int, str, str]:
-    """Safely executes verification commands sequentially across Windows and POSIX without shell injection."""
     raw_cmds = [ln.strip() for ln in v_cmd.splitlines() if ln.strip() and not ln.strip().startswith("#")]
     if not raw_cmds:
         raw_cmds = ["python .agents/scripts/orion.py verify --fast"]
@@ -975,6 +1037,8 @@ def _run_verification_command(v_cmd: str, cwd: Path) -> Tuple[int, str, str]:
     for cmd_str in expanded_cmds:
         raw_parts = shlex.split(cmd_str, posix=(os.name != "nt"))
         cmd_parts = [p.strip('"').strip("'") if os.name == "nt" else p for p in raw_parts]
+        if cmd_parts and cmd_parts[0] in ("python", "python3"):
+            cmd_parts[0] = sys.executable
         proc = subprocess.run(
             cmd_parts,
             cwd=str(cwd),
@@ -995,7 +1059,7 @@ def _run_verification_command(v_cmd: str, cwd: Path) -> Tuple[int, str, str]:
     return 0, "\n".join(combined_stdout), "\n".join(combined_stderr)
 
 
-def cmd_next(run_verify: bool = False) -> int:
+def cmd_next(run_verify: bool = False, target_track: Optional[str] = None) -> int:
     ws = get_workspace_dir()
     orion_working = get_orion_dir() / "working"
     queue_path = orion_working / QUEUE_FILE
@@ -1026,7 +1090,6 @@ def cmd_next(run_verify: bool = False) -> int:
             )
             return 2
 
-        # Pre-Flight AST Syntax Guard (milliseconds)
         target_file_rel = current_task.get("target_file", "").strip()
         if target_file_rel.endswith(".py"):
             target_path_full = ws / target_file_rel
@@ -1043,7 +1106,6 @@ def cmd_next(run_verify: bool = False) -> int:
                     )
                     return 2
 
-        # Pre-Flight DNA Architectural Guard
         try:
             from core.dna import lint_dependencies_path
             target_path_full = ws / target_file_rel
@@ -1061,29 +1123,6 @@ def cmd_next(run_verify: bool = False) -> int:
         except Exception:
             pass
 
-        # Pre-Flight Scope Guard
-        try:
-            diff_proc = subprocess.run(
-                ["git", "diff", "--name-only"],
-                cwd=str(ws),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                creationflags=_WINDOWLESS_FLAGS,
-            )
-            if diff_proc.returncode == 0:
-                modified_files = [f.strip().replace("\\", "/") for f in diff_proc.stdout.splitlines() if f.strip()]
-                clean_target = target_file_rel.replace("\\", "/")
-                unauthorized = [
-                    f for f in modified_files
-                    if f != clean_target and not f.startswith(".orion/") and not f.startswith(".scratch/")
-                ]
-                if unauthorized:
-                    print(f"⚠️ [BENTO SCOPE NOTICE] Files modified outside target scope: {unauthorized}")
-        except Exception:
-            pass
-
         v_cmd = current_task.get("verification_cmd", "python .agents/scripts/orion.py verify --fast")
         print(f"[ORION BENTO GATE] Running verification for Task {current_task['task_id']}: {v_cmd}")
         retcode, stdout, stderr = _run_verification_command(v_cmd, ws)
@@ -1092,44 +1131,41 @@ def cmd_next(run_verify: bool = False) -> int:
         if retcode != 0:
             if stderr:
                 print(stderr.strip(), file=sys.stderr)
-
-            # Record Structured Failure Memory in ACTIVE_TASK.md
-            try:
-                if active_path.is_file():
-                    active_content = active_path.read_text(encoding="utf-8", errors="replace")
-                    err_snippet = (stderr.strip() or stdout.strip())[-500:]
-                    failure_entry = (
-                        f"\n\n## ❌ Attempted & Failed Approaches\n"
-                        f"- **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                        f"- **Failing Command**: `{v_cmd}` (Exit Code {retcode})\n"
-                        f"- **Error Output Snippet**:\n"
-                        f"```text\n{err_snippet}\n```\n"
-                        f"- **Directive**: Do NOT retry the exact same modification pattern. Re-diagnose root cause."
-                    )
-                    if "## ❌ Attempted & Failed Approaches" not in active_content:
-                        active_content += failure_entry
-                    else:
-                        additional_attempt = (
-                            f"\n- **Subsequent Attempt**: `{v_cmd}` (Exit Code {retcode})\n"
-                            f"```text\n{err_snippet}\n```\n"
-                        )
-                        active_content = active_content.replace(
-                            "## ❌ Attempted & Failed Approaches",
-                            "## ❌ Attempted & Failed Approaches" + additional_attempt,
-                        )
-                    atomic_write_text(active_path, active_content)
-            except Exception as e:
-                _log_telemetry(e, "bento_record_failure_memory")
-
-            print(
-                f"\n❌ [BENTO HARD PAUSE] Verification failed (Exit Code {retcode}). "
-                f"Task {current_task['task_id']} remains OPEN. Fix before advancing.",
-                file=sys.stderr,
+            err_excerpt = (stderr or stdout or f"Exit Code {retcode}").strip()
+            fail_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "command": v_cmd,
+                "exit_code": retcode,
+                "error_excerpt": err_excerpt[:500],
+            }
+            current_task.setdefault("failed_attempts", []).append(fail_entry)
+            atomic_write_text(queue_path, json.dumps(queue_data, indent=2))
+            existing_active = active_path.read_text(encoding="utf-8", errors="replace") if active_path.is_file() else ""
+            failure_block = (
+                "\n\n## ❌ Attempted & Failed Approaches\n"
+                f"- **Attempt {len(current_task['failed_attempts'])}** (`{v_cmd}` -> `Exit Code {retcode}`): `{err_excerpt[:300]}`\n"
+                "- **Guardrail**: Do NOT retry the exact same modification pattern. Inspect the error trace and adjust AST logic.\n"
             )
+            if "## ❌ Attempted & Failed Approaches" not in existing_active:
+                atomic_write_text(active_path, existing_active.rstrip() + failure_block)
+            else:
+                atomic_write_text(
+                    active_path,
+                    existing_active.rstrip()
+                    + f"\n- **Attempt {len(current_task['failed_attempts'])}** (`{v_cmd}` -> `Exit Code {retcode}`): `{err_excerpt[:300]}`\n",
+                )
             return retcode
 
     tasks[idx]["status"] = "DONE"
     next_idx = idx + 1
+
+    # Multi-Track Dispenser logic: skip PARKED tasks if target_track is set
+    if target_track:
+        for scan_i in range(next_idx, len(tasks)):
+            if tasks[scan_i].get("track_id") == target_track and tasks[scan_i].get("status") != "PARKED":
+                next_idx = scan_i
+                break
+
     queue_data["current_index"] = next_idx
 
     if next_idx < len(tasks):
@@ -1138,9 +1174,10 @@ def cmd_next(run_verify: bool = False) -> int:
         atomic_write_text(active_path, active_md)
         atomic_write_text(queue_path, json.dumps(queue_data, indent=2))
         sync_orion_infrastructure(ws, queue_data.get("source_file", ""), tasks, next_idx)
+        _trigger_lookahead_predraft(tasks[next_idx + 1] if next_idx + 1 < len(tasks) else None, ws)
         print(
             f"✅ [ORION BENTO ADVANCED] Task {current_task['task_id']} -> [FIXED]. "
-            f"Now active: Task {next_idx + 1}/{len(tasks)} ({next_task['task_id']}: {next_task['title']}) "
+            f"Now active: Task {next_idx + 1}/{len(tasks)} ({next_task['task_id']}: {next_task['title']}) [{next_task.get('execution_lane', 'LANE-2')}] "
             f"in .orion/working/{ACTIVE_TASK_FILE}"
         )
         return 0
@@ -1158,6 +1195,116 @@ def cmd_next(run_verify: bool = False) -> int:
     return 0
 
 
+def cmd_park(reason: str = "Blocked on dependency", target_track: Optional[str] = None) -> int:
+    """Parks the active task (or track) and non-blockingly advances to the next unblocked track."""
+    ws = get_workspace_dir()
+    orion_working = get_orion_dir() / "working"
+    queue_path = orion_working / QUEUE_FILE
+    if not queue_path.is_file():
+        print("[ORION BENTO ERROR] No active queue to park.", file=sys.stderr)
+        return 1
+
+    queue_data = json.loads(queue_path.read_text(encoding="utf-8"))
+    tasks = queue_data.get("tasks", [])
+    idx = int(queue_data.get("current_index", 0))
+
+    if idx >= len(tasks):
+        print("🏁 [ORION BENTO] Queue is already completed.")
+        return 0
+
+    task = tasks[idx]
+    task["status"] = "PARKED"
+    task["park_reason"] = reason
+    print(f"⏸️  [ORION BENTO PARKED] Task {task['task_id']} ({task['target_file']}) parked: {reason}")
+
+    return cmd_next(run_verify=False, target_track=target_track)
+
+
+def cmd_auto_solve(target_track: Optional[str] = None, all_lane1: bool = False) -> int:
+    """Executes Lane-1 Second-Worker cards with atomic byte-snapshot rollback."""
+    ws = get_workspace_dir()
+    orion_working = get_orion_dir() / "working"
+    queue_path = orion_working / QUEUE_FILE
+    if not queue_path.is_file():
+        print("[ORION BENTO ERROR] No active queue for auto-solve.", file=sys.stderr)
+        return 1
+
+    queue_data = json.loads(queue_path.read_text(encoding="utf-8"))
+    tasks = queue_data.get("tasks", [])
+    idx = int(queue_data.get("current_index", 0))
+
+    if idx >= len(tasks):
+        print("🏁 [ORION BENTO] Queue complete.")
+        return 0
+
+    task = tasks[idx]
+    lane_id = task.get("lane_id", 2)
+
+    if lane_id > 1 and not all_lane1:
+        print(f"[AUTO-SOLVE] Task {task['task_id']} is {task.get('execution_lane')} (Requires Main Worker). Skipping.")
+        return 0
+
+    rel_path = task.get("target_file", "").strip()
+    if not rel_path:
+        return 0
+
+    full_path = ws / rel_path
+    if not full_path.is_file():
+        print(f"[AUTO-SOLVE] Target file missing: {rel_path}. Skipping.")
+        return 0
+
+    # In-memory byte snapshot for atomic rollback
+    byte_snapshot = full_path.read_bytes()
+    repl_code = task.get("replacement_code", "")
+
+    # Sidecar fallback if repl_code is empty
+    if not repl_code:
+        draft_file = orion_working / "drafts" / f"draft_{task['task_id']}.json"
+        if draft_file.is_file():
+            try:
+                d_data = json.loads(draft_file.read_text(encoding="utf-8"))
+                repl_code = d_data.get("replacement_code", "")
+            except Exception:
+                pass
+
+    if not repl_code or not task.get("search_code"):
+        print(f"[AUTO-SOLVE] No search/replacement blocks found for task {task['task_id']}. Leaving OPEN for Main Worker.")
+        return 0
+
+    print(f"[AUTO-SOLVE] Applying Second-Worker patch for Task {task['task_id']} on `{rel_path}`...")
+    try:
+        content = full_path.read_text(encoding="utf-8", errors="replace")
+        search_str = task["search_code"].strip()
+        if search_str in content:
+            new_content = content.replace(search_str, repl_code.strip(), 1)
+            full_path.write_text(new_content, encoding="utf-8")
+        else:
+            print(f"[AUTO-SOLVE] SEARCH block not found on disk for task {task['task_id']}. Rollback.")
+            return 0
+    except Exception as e:
+        full_path.write_bytes(byte_snapshot)
+        print(f"[AUTO-SOLVE ERROR] Failed to apply patch: {e}. Snapshot restored.")
+        return 1
+
+    # Verify atomic patch
+    applied_ok, err_msg = verify_patch_applied_on_disk(task, ws)
+    if not applied_ok:
+        full_path.write_bytes(byte_snapshot)
+        print(f"[AUTO-SOLVE ROLLBACK] Disk verification failed: {err_msg}. Snapshot restored.")
+        return 1
+
+    v_cmd = task.get("verification_cmd", "python .agents/scripts/orion.py verify --fast")
+    retcode, stdout, stderr = _run_verification_command(v_cmd, ws)
+
+    if retcode == 0:
+        print(f"🎉 [AUTO-SOLVE SUCCESS] Task {task['task_id']} auto-solved and verified (Exit Code 0)!")
+        return cmd_next(run_verify=False, target_track=target_track)
+
+    full_path.write_bytes(byte_snapshot)
+    print(f"[AUTO-SOLVE ROLLBACK] Verification command failed (Exit Code {retcode}). Byte snapshot restored cleanly.")
+    return 0
+
+
 def cmd_status() -> int:
     orion_working = get_orion_dir() / "working"
     queue_path = orion_working / QUEUE_FILE
@@ -1168,15 +1315,27 @@ def cmd_status() -> int:
     queue_data = json.loads(queue_path.read_text(encoding="utf-8"))
     tasks = queue_data.get("tasks", [])
     idx = int(queue_data.get("current_index", 0))
+
+    lane_counts: Dict[str, int] = {}
+    for t in tasks:
+        lane = t.get("execution_lane", "LANE-2").split(":")[0]
+        lane_counts[lane] = lane_counts.get(lane, 0) + 1
+
+    print("========================================")
+    print(" ORION BENTO FSM & 4-LANE STATUS")
+    print("========================================")
     print(f"Source Plan : {queue_data.get('source_file')}")
-    print(f"Progress    : {min(idx, len(tasks))}/{len(tasks)} completed\n")
+    print(f"Progress    : {min(idx, len(tasks))}/{len(tasks)} completed")
+    print(f"4-Lane Plan : " + ", ".join(f"{k}: {v}" for k, v in sorted(lane_counts.items())) + "\n")
+
     for i, t in enumerate(tasks):
-        marker = "👉" if i == idx else ("✅" if i < idx else "⏳")
+        marker = "👉" if i == idx else ("✅" if i < idx or t.get("status") == "DONE" else ("⏸️" if t.get("status") == "PARKED" else "⏳"))
         track_tag = f"[{t.get('track_id', 'CHAIN')}]" if t.get('track_id') else ""
         phase_tag = f"[P{t.get('phase_id', '1')}]"
+        lane_tag = f"[{t.get('execution_lane', 'LANE-2').split(':')[0]}]"
         print(
-            f"  {marker} [{i + 1:02d}] {phase_tag} {track_tag} Task {t['task_id']}: {t['target_file']} "
-            f"(L{t['start_line']}-L{t['end_line']}) — {t['title']} [{t['status']}]"
+            f"  {marker} [{i + 1:02d}] {phase_tag} {track_tag} {lane_tag} Task {t['task_id']}: {t['target_file']} "
+            f"(L{t['start_line']}-L{t['end_line']}) — {t['title']} [{t.get('status', 'OPEN')}]"
         )
     tracks = set(t.get('track_id') for t in tasks if t.get('track_id') and t.get('track_id') != 'CHAIN')
     if len(tracks) > 1:
@@ -1186,11 +1345,13 @@ def cmd_status() -> int:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args_list = list(argv if argv is not None else sys.argv[1:])
-    if args_list and args_list[0].lower() in ("bento", "bento_slicer"):
+    if args_list and args_list[0].lower() in (
+        "bento", "bento_slicer", "dispenser", "impulse", "slicer", "task-slicer", "task_slicer"
+    ):
         args_list.pop(0)
 
     parser = argparse.ArgumentParser(
-        description="Universal Orion FSM, Audit-Ledger & Bento Task Dispenser"
+        description="Universal Orion FSM, Audit-Ledger, 4-Lane Router & Bento Task Dispenser"
     )
     sub = parser.add_subparsers(dest="subcommand")
 
@@ -1202,9 +1363,16 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     p_next = sub.add_parser("next", help="Verify current task and dispense the next task into ACTIVE_TASK.md")
     p_next.add_argument("--verify", action="store_true", help="Run current task verification gate before advancing")
+    p_next.add_argument("--track", help="Target specific disjoint track ID")
 
     p_done = sub.add_parser("done", help="Mark current active task as DONE and dispense the next task")
     p_done.add_argument("--verify", action="store_true", help="Run current task verification gate before advancing")
+
+    p_park = sub.add_parser("park", help="Park current task and advance to next unblocked track")
+    p_park.add_argument("--reason", default="Blocked on dependency", help="Reason for parking task")
+
+    p_auto = sub.add_parser("auto-solve", help="Auto-solve Lane-1 Second-Worker cards with atomic byte rollback")
+    p_auto.add_argument("--all", action="store_true", help="Attempt auto-solve across all available cards")
 
     sub.add_parser("status", help="Show current Bento & Orion FSM queue progress")
 
@@ -1212,7 +1380,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.subcommand in ("init", "slice"):
         return cmd_init(args.plan_path)
     elif args.subcommand in ("next", "done"):
-        return cmd_next(run_verify=args.verify)
+        return cmd_next(run_verify=args.verify, target_track=getattr(args, "track", None))
+    elif args.subcommand == "park":
+        return cmd_park(reason=args.reason)
+    elif args.subcommand == "auto-solve":
+        return cmd_auto_solve(all_lane1=args.all)
     elif args.subcommand == "status":
         return cmd_status()
     else:

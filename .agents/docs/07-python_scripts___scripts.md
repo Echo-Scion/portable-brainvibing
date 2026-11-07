@@ -36,8 +36,8 @@ Centralized infrastructure utilities imported across the ecosystem:
 - **`core/accelerators.py`**: Tier 2 Ephemeral Accelerators providing isolated site-packages auto-bootstrap, orjson, rapidfuzz, and tree-sitter wrappers without polluting system environments.
 - **`core/db.py`**: Centralized SQLite3 connection manager and telemetry tracer. Mandates `PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;` across all database operations, and guards test runners (`unittest`/`pytest`) against writing telemetry into the production `.agents/OBSERVATIONS.md`.
 - **`core/memory.py`**: Virtual context manager and 3-tier Observational Memory engine. Manages dynamic token budgets (`max(3600, total // 2)`), ephemeral observation anchors (`[O1]`–`[On]`), zero-LLM generational rollover (`memory_generations` with millisecond-resolution `GEN-<count>-<ms>` IDs), `superseded_by` lineage, and on-demand anchor recall (`recall_anchor`).
-- **`core/capabilities.py`**: Single source of truth for the 4-Pillar capability matrix (Universal Local AI Coprocessor with multi-port auto-probe across Ollama, llama-server, LM Studio, and vLLM; RTK proxy stream filter; Bun static runtime engine) with 900s TTL cache in `.orion/working/capabilities.json`.
-- **`core/dna.py`**: Universal Project DNA sequencer classifying repository files across 5 architectural tiers (`contracts`, `domain`, `services`, `state`, `presentation`). Houses the Dynamic Polyglot Version Scanner (`DynamicVersionScanner`) detecting manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `build.gradle*`, `deno.json`, `composer.json`, `Makefile`, `CMakeLists.txt`), unconventional files (`version.txt`, `version.json`, `version.yaml`), `README.md` badges/headers, and atomic multi-sink synchronizer (`update_project_version`).
+- **`core/capabilities.py`**: Single source of truth for the 4-Pillar capability matrix (Universal Local AI Coprocessor with multi-port auto-probe across Ollama, llama-server, LM Studio, and vLLM; RTK proxy stream filter; Bun static runtime engine) with 900s TTL cache in `.orion/working/capabilities.json`. Houses the Dual-Worker Multi-Provider Cognitive Engine with remote API slot routing (`Chutes.ai`, `9Router` on `:20128`, `OpenRouter`, `Groq`), HTTPS validation, loopback allowances, and bearer token sanitization.
+- **`core/dna.py`**: Universal Project DNA sequencer classifying repository files across 5 architectural tiers (`contracts`, `domain`, `services`, `state`, `presentation`). Houses the Mathematical 5-Vector SemVer Gravity Engine (`quantify_semver_impact`, `evaluate_dna_semver`), Path-Agnostic Organ Discovery (`detect_feature_organs` with transparent wrapper peeling), outcome-centric Lessword changelog sanitizer (`sanitize_changelog_line`, `compact_changelog_entries`), Dynamic Polyglot Version Scanner (`DynamicVersionScanner`) detecting manifests (`package.json`, `pubspec.yaml`, `pyproject.toml`, `Cargo.toml`, `pom.xml`, `build.gradle*`, `deno.json`, `composer.json`, `Makefile`, `CMakeLists.txt`), unconventional files (`version.txt`, `version.json`, `version.yaml`), `README.md` badges/headers, and atomic multi-sink synchronizer (`update_project_version`).
 - **`core/design_harvester.py`**: Brownfield UI token harvester (`harvest_tokens`), heuristic and AI archetype inference (`infer_archetype_heuristic`, `build_ai_infer_prompt`), and `DESIGN.md` catalog flattener (`flatten_catalogs`).
 - **`core/spoke_mesh.py`**: Multi-project portfolio mesh (`Constellation`): discovers sibling repositories (`Stars`), harvests project metadata/DNA scorecards, tracks cache freshness, and exports a unified Obsidian portfolio vault.
 - **`core/paths.py`**: Deterministic path resolution and persistence anchors across the repository.
@@ -48,7 +48,7 @@ Centralized infrastructure utilities imported across the ecosystem:
 - **`core/platform_manifests.py`**: Universal 19-platform IDE manifest generator, instruction adapter builder, and `hooks.json` compiler.
 - **`core/harness/`**: Sovereign Skill Lifecycle & Code-As-Harness engine comprising 6 specialized modules:
   - `engine.py` (`HarnessEngine`): CLI orchestrator (`orion.py harness status|promote|lifecycle|curate|index|serve|record-tool`) and `synthesize_action_verifier()` generator for `.agents/canons/global/harnesses/<slug>_verifier.py`.
-  - `admission.py` (`SovereignPromoter`): 14-gate deterministic admission barrier (`HARNESS-FM-01..03`, `HARNESS-STR-01..04`, `HARNESS-T0-01`, `HARNESS-SIB-01`, `HARNESS-CUR-01`, `HARNESS-REF-01`, `HARNESS-SEC-01`, `HARNESS-VERIFY-01`, `HARNESS-CMT-01`).
+  - `admission.py` (`SovereignPromoter`): 17-gate deterministic admission barrier (`HARNESS-FM-01..03`, `HARNESS-STR-01..04`, `HARNESS-T0-01`, `HARNESS-SIB-01`, `HARNESS-CUR-01`, `HARNESS-REF-01`, `HARNESS-SEC-01`, `HARNESS-VERIFY-01`, `HARNESS-TRN-01`, `HARNESS-CMT-01`).
   - `capture.py` (`ToolQuantumCapture`, `SecretRedactor`): Opportunity-relative session quantum tracker and credential scrubber.
   - `staging.py` (`IntentQueue`, `StagedIntent`, `StagingServer`): Quarantine staging queue in `.orion/harness/intents/` and stdio JSON-RPC 2.0 MCP server (`stage_skill`).
   - `lifecycle.py` (`LifecycleManager`): Opportunity-relative skill maturity and archival evaluator (`maturity=100, capacity=50`).
@@ -58,15 +58,15 @@ Centralized infrastructure utilities imported across the ecosystem:
 
 ### 16.2. Cluster 1: Foundation & Deployment Engine
 - **`commands/foundation.py` (`orion.py setup`, `orion.py init`, `orion.py doctor`, `orion.py onboard`, `orion.py deploy`, `orion.py upgrade`, `orion.py design`, `orion.py dna semver`, `orion.py dna bump`, `foundation sync-ai`, `foundation push-upstream`)**: Unified interactive setup, onboarding, diagnostic, design contract management (`design select|infer`), and release engine. Features hardware RAM/VRAM inspection, hardware-fit model recommendations (Ollama / llama-server), 4-pillar toolchain doctor checks, project scaffolding, upstream synchronization, dynamic polyglot SemVer evaluation, and atomic multi-sink release bumping.
-- **`commands/constellation.py` (`orion.py constellation status`, `sync`, `export`)**: Multi-Project Portfolio Mesh (`Constellation`): discovers sibling spoke projects across your workspace directory, harvests living architectural scorecards, and projects a unified Obsidian second-brain vault.
+- **`commands/galaxy.py` (`orion.py constellation status`, `sync`, `export`)**: Multi-Project Portfolio Mesh (`Constellation`): discovers sibling spoke projects across your workspace directory, harvests living architectural scorecards, and projects a unified Obsidian second-brain vault.
 
 ---
 
 ### 16.3. Cluster 2: Cognitive Kernel & Local GraphRAG
 - **`commands/brain.py` (`orion.py brain sync "<query>"`, `orion.py brain rollover`, `orion.py brain recall <anchor_id>`, `orion_ops`, `raw_ingest`, `contradict`)**: Unified cognitive kernel facade, hardware discovery (`NanoBrain`), rule matrix compiler, generational memory rollover, anchor timeline recall, raw ingestion, and predicate collision management.
 - **`commands/rag.py` (`orion.py brain sync`, `diagnostics`)**: Local RAG & semantic retrieval engine combining FTS5 BM25 lexical ranking, packed float32 vector embeddings (`archival_vectors`), 1-hop canonical SQLite graph traversal (`entities`, `relations`), `superseded_by` anti-flashback filtering, wiki note resolution, and RAG diagnostic evaluations.
-- **`commands/vault.py` (`orion.py export-vault`)**: Obsidian graph vault export (`.orion/export/vault/`), second-brain 4-note brief generation, and vault mirror cache maintenance.
-- **`commands/reflexion.py` (`orion.py observe`, `orion.py resolve`, `orion.py linkify`, `record`, `consolidate`)**: Manages the 5-status `ObservationLedger` (`.agents/OBSERVATIONS.md` and `OBSERVATIONS.archive.md`), runs 2nd-violation Tier-0 barrier escalation (`check_rule_violations`), mines operator command habits (`mine_operator_habits`), injects `[[wikilinks]]`, and drives temporal pulse consolidation.
+- **`commands/observatory.py` (`orion.py observatory`, `orion.py vault`, `orion.py brain export-vault`)**: Obsidian graph vault export (`.orion/export/vault/`), second-brain 4-note brief generation, and vault mirror cache maintenance.
+- **`commands/pulsar.py` (`orion.py observe`, `orion.py resolve`, `orion.py linkify`, `record`, `consolidate`)**: Manages the 5-status `ObservationLedger` (`.agents/OBSERVATIONS.md` and `OBSERVATIONS.archive.md`), runs 2nd-violation Tier-0 barrier escalation (`check_rule_violations`), mines operator command habits (`mine_operator_habits`), injects `[[wikilinks]]`, and drives temporal pulse consolidation.
 
 ---
 
@@ -77,18 +77,18 @@ Centralized infrastructure utilities imported across the ecosystem:
 
 ---
 
-### 16.5. Cluster 4: Execution Resilience, Bento Slicer & Token Optimization
-- **`commands/bento_slicer.py` (`orion.py bento init <plan.md>`, `orion.py bento next --verify`, `orion.py bento status`, `orion.py bento reset`)**: Zero-escape sequential task slicer for Budget and Standard models. Parses implementation plans into atomic single-task cards (`.orion/working/ACTIVE_TASK.md`), splits multi-pair cards into sub-tasks (`1.1a`, `1.1b`), checks `TTP-*` finding coverage, sorts tasks by topological blast-radius ($T_0 \to T_5$) and bottom-up line order, recalibrates live disk line spans, auto-aligns `REPLACE` indentation, and enforces a post-condition disk mutation gate (`Exit Code 2` on unpatched files).
+### 16.5. Cluster 4: Execution Resilience, Task Slicer (Impulse Dispenser) & Token Optimization
+- **`commands/dispenser.py` (`orion.py dispenser`, `orion.py task-slicer`, `orion.py bento <init|slice|next|done|park|auto-solve|status>`)**: Zero-escape Sequential Task Slicer and Stage / Impulse Dispenser. Parses implementation plans into atomic single-task cards (`.orion/working/ACTIVE_TASK.md`), splits multi-pair cards into sub-tasks (`1.1a`, `1.1b`), checks `TTP-*` finding coverage, sorts tasks by topological blast-radius ($T_0 \to T_5$) and bottom-up line order, recalibrates live disk line spans, auto-aligns `REPLACE` indentation, and enforces a post-condition disk mutation gate (`Exit Code 2` on unpatched files). In Cosmic Space taxonomy, this functions as the Stage / Impulse Dispenser to propel discrete, verified execution increments without agent drift.
 - **`commands/state_machine.py` (`orion.py fsm` / `orion.py state_graph`, `amnesia`, `budget`)**: Formal state machine manager and superstep cyclic execution graph engine tracking active phases, channel reducers, Git-bound snapshots, rule eviction, and budget telemetry.
 - **`core/capabilities.py` (`orion.py rtk` / `orion.py bun`, PreToolUse Hook)**: Terminal token filter (RTK proxy), Bun static runtime engine, and fail-closed IDE tool execution interceptor with inline circuit breaker enforcement.
 - **`commands/compact.py` (`orion.py compact`, `shrink`, `distill`, `compress`)**: Unified token optimization engine providing 5-tier context compaction (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), AST/JSON/CSV payload shaping, stream elision, corpus surprisal pruning, episodic memory compression, and Ollama/heuristic distillation.
 - **`core/scanner.py` (`orion.py scan tokens|map|targets|audit-validate`)**: Codebase token analytics breakdown table, PageRank AST symbol skeletons, prioritized offensive audit targets, and pure Python zero-pip JSON findings schema validator (`audit-validate`).
-- **`utils/packer.py` (`orion.py pack [arch|hybrid|full|pr|diff|security|stats|<url>]`)**: Universal Project DNA context exporter bundling polyglot monorepo containers, AST skeletons, PageRank repo-maps, cross-bundle import routers, and static audit radars into at most 10 balanced Markdown bundles across isolated tier directories (`.orion/bundles/{arch,hybrid,full}/`). Also maintained as standalone CLI in `tools/digestpack/`.
+- **`utils/packer.py` (`orion.py pack [arch|hybrid|full|pr|diff|security|stats|zip|<url>]`)**: Universal Project DNA context exporter bundling polyglot monorepo containers, AST skeletons, PageRank repo-maps, cross-bundle import routers, and static audit radars into at most 10 balanced Markdown bundles across isolated tier directories (`.orion/bundles/{arch,hybrid,full}/`). Includes clean GitHub-push mirror ZIP archiving (`orion.py pack --zip [--out <path>]`). Also maintained as standalone CLI in `tools/digestpack/`.
 
 ---
 
 ### 16.6. Cluster 5: Temporal Evolution & Lifecycle Hooks
-- **`commands/reflexion.py` (`orion.py consolidate` / `orion.py record` / `orion.py observe` / `orion.py resolve`)**: Activity-based temporal pulse running Session Pulse, Milestone Synthesis, Epoch Consolidation, Observation Ledger governance, and operator habit mining.
+- **`commands/pulsar.py` (`orion.py consolidate` / `orion.py record` / `orion.py observe` / `orion.py resolve`)**: Activity-based temporal pulse running Session Pulse, Milestone Synthesis, Epoch Consolidation, Observation Ledger governance, and operator habit mining.
 - **`hooks/pre-agent-wake.py`**: Pre-invocation hook generating the cache-aware Omni-Buffer (`context.json`) with a 5-minute SHA-256 structural hash gate, active Bento task injection, and Darwinian evolution heartbeat evaluation.
 - **`evals/audit_aesthetics.py` (`orion.py eval`)**: Automated aesthetic validator auditing UI source code for design token compliance and micro-interactions.
 
@@ -108,18 +108,19 @@ Centralized infrastructure utilities imported across the ecosystem:
 ---
 
 ### 16.8. Automated Contract Test Suite Matrix (`.agents/scripts/tests/`)
-All 27 test suites in `.agents/scripts/tests/` run on standard library `unittest` without external test runners:
+All 28 test suites in `.agents/scripts/tests/` run on standard library `unittest` without external test runners:
 
 | Test Suite | Target Subsystem & Verified Contract |
 |:---|:---|
 | `test_autoharness_loop_contract.py` | Closed-loop autoharness generation, verification, and regression prevention |
 | `test_barrier_escalation.py` | Tier-0 to Tier-3 barrier escalations, circuit breakers, and mechanical catch gates |
-| `test_bento_slicer.py` | Bento task slicing, topological blast-radius sorting ($T_0 \to T_5$), disjoint partitioning, and bottom-up ordering |
+| `test_dispenser.py` | Bento task slicing, topological blast-radius sorting ($T_0 \to T_5$), disjoint partitioning, and bottom-up ordering |
 | `test_capability_contracts.py` | 4-Pillar capability contract (P1-P4 stdlib/rust/ollama/bun), tool discovery, and platform readiness probes |
 | `test_cli_deployment_contract.py` | Gateway CLI subcommand routing, exit codes, and cross-platform flag forwarding in `orion.py` |
 | `test_consequence_verifier.py` | Pre/post-action consequence analysis, side-effect prevention, and safety boundaries |
 | `test_core_ceiling_gate.py` | Gate 8 instruction language linting, English-first purity, and `SKILL.md` `core_max_lines` ceiling ratchet |
 | `test_dna_linter_contract.py` | Project DNA 5-tier strata classification, architecture boundary validation, and upward import layer violations |
+| `test_dna_semver_universal.py` | Universal 5-Vector SemVer gravity engine, organ wrapper peeling, changelog sanitization, and slot routing contracts |
 | `test_dna_trend.py` | Project DNA historical trend analytics, strata compliance scoring, and drift metrics |
 | `test_encoding_hygiene.py` | UTF-8 encoding mandate, zero raw `open()`, and subprocess encoding enforcement across platforms |
 | `test_habit_miner.py` | Habit miner frequency analysis, workflow pattern recognition, and procedural automation triggers |

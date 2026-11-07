@@ -1,5 +1,5 @@
 """
-ORION VAULT MODULE (commands/vault.py)
+ORION VAULT MODULE (commands/observatory.py)
 Encapsulates Obsidian Vault Export, Second Brain brief generation,
 and vault mirror maintenance for the Orion knowledge graph.
 """
@@ -145,6 +145,9 @@ def vault_main(argv=None) -> int:
         parser.print_help()
         return 0
 
+
+# Alias for direct module execution / imports
+main = vault_main
 
 if __name__ == "__main__":
     sys.exit(vault_main(sys.argv[1:]))

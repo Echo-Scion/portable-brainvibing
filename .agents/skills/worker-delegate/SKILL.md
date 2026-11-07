@@ -41,7 +41,7 @@ $$J(T_1, T_2) = \frac{|D(T_1) \cap D(T_2)|}{|D(T_1) \cup D(T_2)|}$$
 The Agent MUST NOT dispatch an LLM subagent to read unindexed files sequentially.
 1. The Agent MUST run `python .agents/scripts/orion.py scan map <target_dir>` or `rtk grep` to extract exact AST symbol spans `[Lstart-Lend]`.
 2. The Agent MUST pass the generated AST skeleton map into the subagent's task specification.
-3. The Subagent MUST inspect only the targeted `[Lstart-Lend]` spans using `read_file` rather than reading entire source files.
+3. The Agent MUST instruct the subagent to inspect only the targeted `[Lstart-Lend]` spans using `read_file` rather than reading entire source files.
 
 ### Gate 3: Prefix-Cache Aligned Sub-Agent Prompting (Cloud LLM Parallelism)
 When dispatching 2–3 subagents concurrently, the Agent MUST structure subagent prompts using an **Immutable Prefix + Variable Suffix** layout:
@@ -91,14 +91,19 @@ The Subagent MUST NOT write or edit files in the workspace. All file mutations b
   ```
 - **Execution**: The Main Agent reviews the patch specification and applies edits using native file-editing tools.
 
-### Archetype 3: `reviewer` (Isolated Reviewer)
-- **Role**: Stateless, read-only auditor evaluating diffs, technical blueprints (`context/00_Strategy/BLUEPRINT.md`), or architectural proposals (`context/03_Tech/ARCHITECTURE.md`) across 5 focused lenses:
+### Archetype 3: `reviewer` (Isolated Reviewer & 5-Lens Goldfish Swarm)
+- **Role**: Stateless, read-only auditor evaluating diffs, technical blueprints (`context/00_Strategy/BLUEPRINT.md`), or architectural proposals (`implementation_plan.md`) across 5 focused lenses:
   1. `simplicity-reuse`: High-altitude simplicity, YAGNI, anti-weeds, and codebase reuse.
   2. `comprehension`: Synthesizes what this proposes and how the existing system works; failure to synthesize = Blocker.
   3. `system-risks`: Probes scaling bottlenecks, unbacked assertions, and failure modes across the Triad.
   4. `implementation-readiness`: Enforces the Stage 5 Zero-Decision Check (zero design decisions left to implementers).
   5. `layer-boundaries`: Audits 5-tier layer boundaries and unidirectional dependency direction.
-- **Quota-Safe Down-Tiering Mandate**: When the Main Agent runs on a `PREMIUM` model (e.g. Gemini Thinking / Claude Opus), it MUST invoke read-only Isolated Reviewers using `Model: 'flash'` (BUDGET [High Effort]). Isolated Reviewers operate on pre-digested AST maps with Scaffolding Discount ($\gamma = 0.65$), preventing high-cost quota exhaustion while reserving the premium model for main-thread synthesis.
+- **Second-Worker-First Delegation Law (0% Primary IDE Quota)**:
+  - Dispatched via `python .agents/scripts/orion.py worker review --spec <path>` (aliased as `orion.py delegate`).
+  - Routes execution through the Dual-Engine Second Worker (OpenCode Go API in parallel `max_workers=3` or Local Ollama sequentially `max_workers=1`), consuming **0%** of the user's primary IDE cloud quota.
+- **Native Subagent Bounded Fallback**:
+  - Permitted ONLY if both API Worker and Local Ollama are offline AND host platform supports native subagents.
+  - When using native fallback, pass `Model: 'flash'` (BUDGET [High Effort]) down-tiered from `PREMIUM`, capped at $\le 2$ concurrent subagents.
 - **Output Contract**:
   ```
   path:line: <emoji> <severity>: <problem>. <fix>.
@@ -160,8 +165,8 @@ The `pre-agent-wake.py` hook automatically scans `.agents/working/delegations/re
 ## 6. Anti-Patterns & Operational Invariants
 
 - ❌ The Agent MUST NOT delegate tasks when $J(T_1, T_2) > 0.20$ via `delegate-check`.
-- ❌ The Agent MUST NOT delegate code modification (`write_file`, `edit_file`) to subagents.
-- ❌ The Subagent MUST NOT execute git worktree mutations for routine delegations.
+- ❌ In **Mode A (Main-Worktree Scout / Reviewer / Patch-Drafter)**, the Subagent MUST NOT modify source files (`write_file`, `edit_file`) or mutate git worktrees; only `.agents/working/delegations/result-{task_id}.md` may be written.
+- ❌ In **Mode B (`/teamwork` Isolated Branch Worktree)**, file mutations are permitted ONLY inside the seeded worktree (`orion.py worktree seed <path>`) when $J(T_1, T_2) \le 0.20$ and write-sets are strictly disjoint.
 - ❌ The Agent MUST NOT read worker output from raw stdout streams; the Agent MUST read `.agents/working/delegations/result-{task_id}.md`.
 - ❌ The Agent MUST NOT spawn more than 3 subagents concurrently. Always dispatch swarms in sequential batches of $\le 3$.
 - ❌ The Agent MUST NOT count a failed, timed-out, or unresponsive subagent reviewer as having "zero findings". If retry fails, its status MUST be recorded as `not run`.

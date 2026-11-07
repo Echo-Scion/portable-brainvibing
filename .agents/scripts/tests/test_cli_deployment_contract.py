@@ -75,7 +75,7 @@ class CliDeploymentContractTests(unittest.TestCase):
         self.assertIn("Usage: python rag.py", result.stdout)
 
     def test_vault_command_is_reachable(self):
-        vault = SCRIPTS_DIR / "commands" / "vault.py"
+        vault = SCRIPTS_DIR / "commands" / "observatory.py"
         result = run_script(vault, "--help")
 
         self.assertEqual(result.returncode, 0)

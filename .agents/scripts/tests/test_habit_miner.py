@@ -9,7 +9,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from commands.reflexion import mine_operator_habits
+from commands.pulsar import mine_operator_habits
 
 
 class TestHabitMiner(unittest.TestCase):

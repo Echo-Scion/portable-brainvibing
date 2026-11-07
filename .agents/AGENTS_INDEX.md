@@ -106,7 +106,7 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **telemetry-gate**: `.agents/skills/integrity-sentinel/references/telemetry-gate.md` (Pre-completion telemetry assertions)
 - **temporal-pulse**: `.agents/skills/self-evolve/references/temporal-pulse.md` (Activity-based session, milestone, and epoch synthesis)
 - **ui-testing-patterns**: `.agents/skills/integrity-sentinel/references/ui_testing_patterns.md` (Automated UI test recipes)
-- **ux-designer**: `.agents/skills/frontend-experience/references/ux-designer.md` (UX flows, interaction states, and accessibility checks)
+- **ux-designer**: `.agents/skills/frontend-experience/references/ux-designer.md` (Unified 5-Domain Interface Review, WCAG 2.2 & Considered-but-Rejected Protocol)
 - **viral-growth**: `.agents/skills/saas-strategist/references/viral_growth.md` (Viral loop architecture and retention)
 - **visual-engineering**: `.agents/skills/ui-finish/references/visual_engineering.md` (Restrained typography, layout, and visual craft)
 
@@ -139,7 +139,7 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 
 - **accelerators**: `.agents/scripts/core/accelerators.py` (Tier 2 Ephemeral Accelerators, fast JSON/fuzzy logic)
 - **audit_aesthetics**: `.agents/evals/audit_aesthetics.py` (Aesthetic, Craft & Contrast Evaluator)
-- **bento_slicer**: `.agents/scripts/commands/bento_slicer.py` (Atomic Bento Action Card Generator & DAG Parallel Partitioning)
+- **dispenser**: `.agents/scripts/commands/dispenser.py` (Stage / Impulse Dispenser & Plan Slicer; CLI: `slicer`, `dispenser`, `bento`)
 - **brain**: `.agents/scripts/commands/brain.py` (Unified Knowledge Kernel, Rule Matrix Compiler & Gateway Dispatcher)
 - **capabilities**: `.agents/scripts/core/capabilities.py` (4-Pillar Capability Matrix & Runtime Engine)
 - **compact**: `.agents/scripts/commands/compact.py` (5-Tier Context Compactor, Stream Elider & Distillation Engine)
@@ -149,12 +149,12 @@ activation: when navigating the ecosystem or seeking an overview of agent capabi
 - **packer**: `.agents/scripts/utils/packer.py` (Universal Context Packager & Multi-Model AI Audit Exporter)
 - **pre-agent-wake**: `.agents/hooks/pre-agent-wake.py` (Turn-1 Cold-Start Cognition Hook & Multi-IDE Auto-Pipe Detection)
 - **rag**: `.agents/scripts/commands/rag.py` (Local Vector Math, FTS5 Hybrid RAG & Retrieval Diagnostics)
-- **reflexion**: `.agents/scripts/commands/reflexion.py` (Verbal Reflection & Temporal Pulse)
+- **pulsar**: `.agents/scripts/commands/pulsar.py` (Pulsar Activity Cadence, Verbal Reflection & Observation Ledger; CLI: `reflexion`, `pulsar`)
 - **sandbox**: `.agents/scripts/core/sandbox.py` (AST-Gated & Home-Jailed Hermetic Scratchpad Runner)
 - **scanner**: `.agents/scripts/core/scanner.py` (AST/CST Skeletons, PageRank Repo-Map, Token Analytics & Offensive Audit Targets)
 - **sovereign_harness**: `.agents/scripts/core/harness/engine.py` (Self-Learning Skill Harness, Admission Gatekeeper & Lifecycle Engine)
 - **state_machine**: `.agents/scripts/commands/state_machine.py` (FSM Engine)
-- **vault**: `.agents/scripts/commands/vault.py` (Obsidian Vault Export & Second Brain Protocol Manager)
+- **observatory**: `.agents/scripts/commands/observatory.py` (Obsidian Vault Export & Second Brain Protocol Manager; CLI: `vault`, `observatory`)
 - **verify_agents**: `.agents/scripts/commands/verify_agents.py` (Mechanical & Security Verifier)
 
 ## 5. 📚 ARCHITECTURE & REFERENCE REGISTRIES

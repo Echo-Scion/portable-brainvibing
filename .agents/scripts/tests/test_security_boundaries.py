@@ -94,7 +94,7 @@ class SecurityBoundaryTests(unittest.TestCase):
         import sys
         if str(SCRIPTS_DIR) not in sys.path:
             sys.path.insert(0, str(SCRIPTS_DIR))
-        from commands.reflexion import PromptRuleCompiler
+        from commands.pulsar import PromptRuleCompiler
         compiler = PromptRuleCompiler()
         report = compiler.audit_rule_enforcement()
         self.assertIn("mechanical_coverage_pct", report)
@@ -254,6 +254,67 @@ class SecurityBoundaryTests(unittest.TestCase):
         self.assertTrue(len(rules) >= 1)
         self.assertIn("python", rules[0].get("languages", []))
         self.assertIn("javascript", rules[0].get("languages", []))
+
+    def test_validate_remote_api_url_https_enforcement(self):
+        """Enforces HTTPS on remote API endpoints while allowing loopback HTTP."""
+        from core.capabilities import validate_remote_api_url
+
+        # Valid HTTPS remote URLs
+        self.assertTrue(validate_remote_api_url("https://api.chutes.ai/v1"))
+        self.assertTrue(validate_remote_api_url("https://openrouter.ai/api/v1"))
+        self.assertTrue(validate_remote_api_url("https://api.groq.com/openai/v1"))
+
+        # Valid loopback HTTP URLs (9Router, Ollama, LiteLLM)
+        self.assertTrue(validate_remote_api_url("http://127.0.0.1:20128/v1"))
+        self.assertTrue(validate_remote_api_url("http://localhost:11434"))
+        self.assertTrue(validate_remote_api_url("http://[::1]:8080/v1"))
+
+        # Insecure remote HTTP URLs must be rejected
+        self.assertFalse(validate_remote_api_url("http://api.chutes.ai/v1"))
+        self.assertFalse(validate_remote_api_url("http://api.groq.com/openai/v1"))
+        self.assertFalse(validate_remote_api_url("http://api.openai.com/v1"))
+
+        # Credentials and fragments must be rejected
+        self.assertFalse(validate_remote_api_url("https://user:pass@api.chutes.ai/v1"))
+        self.assertFalse(validate_remote_api_url("https://api.chutes.ai/v1?redirect=evil.com"))
+
+    def test_provider_secret_redaction(self):
+        """Validates zero-leak redaction of multi-provider API keys."""
+        from core.security import sanitize_text
+
+        test_payload = (
+            "Chutes: " + "cpk_" + "1234567890abcdef1234567890abcdef\n"
+            "OpenRouter: " + "sk-or-v1-" + "abcdef1234567890abcdef1234567890\n"
+            "Groq: " + "gsk_" + "1234567890abcdef1234567890abcdef\n"
+            "Cerebras: " + "csk-" + "1234567890abcdef1234567890abcdef\n"
+            "HuggingFace: " + "hf_" + "1234567890abcdef1234567890abcdef1234\n"
+            "xAI: " + "xai-" + "1234567890abcdef1234567890abcdef\n"
+        )
+        sanitized, warnings = sanitize_text(test_payload)
+        self.assertNotIn("cpk_", sanitized)
+        self.assertNotIn("sk-or-v1-", sanitized)
+        self.assertNotIn("gsk_", sanitized)
+        self.assertNotIn("csk-", sanitized)
+        self.assertNotIn("hf_", sanitized)
+        self.assertNotIn("xai-", sanitized)
+        self.assertIn("[REDACTED_CHUTES_API_KEY]", sanitized)
+        self.assertIn("[REDACTED_OPENROUTER_API_KEY]", sanitized)
+        self.assertIn("[REDACTED_GROQ_API_KEY]", sanitized)
+        self.assertIn("[REDACTED_CEREBRAS_API_KEY]", sanitized)
+        self.assertIn("[REDACTED_HF_TOKEN]", sanitized)
+        self.assertIn("[REDACTED_XAI_API_KEY]", sanitized)
+
+    def test_gitignore_filter_blocks_dotenv(self):
+        """Validates that .env variants are blocked while .env.example is allowed."""
+        from core.paths import GitIgnoreFilter
+
+        gif = GitIgnoreFilter(".")
+        self.assertTrue(gif.is_ignored(".env"))
+        self.assertTrue(gif.is_ignored(".env.local"))
+        self.assertTrue(gif.is_ignored(".env.production"))
+        self.assertTrue(gif.is_ignored(".env.development"))
+        self.assertFalse(gif.is_ignored(".env.example"))
+        self.assertFalse(gif.is_ignored(".env.template"))
 
 
 if __name__ == "__main__":

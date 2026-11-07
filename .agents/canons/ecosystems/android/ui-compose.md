@@ -18,13 +18,24 @@ last_updated: 2026-10-29
 To enable zero-runtime visual iteration in Antigravity's **Android Compose Preview** sidecar without booting a full emulator, every user-facing Composable MUST define a paired `@Preview`:
 
 ```kotlin
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(name = "Dark Mode", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "1. Populated Light", showBackground = true)
+@Preview(name = "2. Populated Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-fun UserProfileScreenPreview() {
+fun UserProfilePopulatedPreview() {
     AppTheme {
         UserProfileContent(
             state = UserProfileUiState.Success(name = "Alice"),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(name = "3. Gremlin Long Text & Empty States", showBackground = true)
+@Composable
+fun UserProfileEdgeStatesPreview() {
+    AppTheme {
+        UserProfileContent(
+            state = UserProfileUiState.FilteredEmpty(query = "extremely_long_unbroken_enterprise_search_query_gremlin_001"),
             onAction = {}
         )
     }

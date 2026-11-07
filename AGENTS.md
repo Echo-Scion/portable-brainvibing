@@ -1,6 +1,6 @@
 # Workspace Rules & Mandates: {{PROJECT_NAME}}
 
-<!-- START FOUNDATION MANDATES (Version: 0.0.6 - English First & Built-In Lessword) -->
+<!-- START FOUNDATION MANDATES (Version: 0.1.0 - English First & Built-In Lessword) -->
 > **CRITICAL HABITAT NOTICE:** Master BIOS & Active Router. Defines operational constraints and Auto-Pilot knowledge routing for `{{PROJECT_NAME}}`.
 
 ## 1. CORE GUARDRAILS (Always Active)
@@ -9,9 +9,9 @@ These rules define the non-negotiable operational boundaries and core execution 
 
 - **Evidence Mandate**: Require Exit Code 0, stdout/stderr assertions, test counts, and state changes. Skipped checks or masked exceptions are failures. Functional test success is necessary but INSUFFICIENT; DNA architectural audit (`python .agents/scripts/orion.py dna audit`) must pass with 0 violations and score >= 90 before declaring task completion on application code features and structural refactors (`verify --fast` for lightweight config and documentation).
 - **Circuit Breaker**: If a specific tool call or test fails 3 times consecutively, STOP calling tools. Output error analysis and wait for human intervention.
-- **Native IDE Edit First & Scratch Power-Tool Policy**: Always use native file-editing tools (`edit_file`, `write_file`) as the primary default. Do not modify source files with raw shell string replacement (`python -c`, `sed`, `awk`). Temporary scripts in `.scratch/` are strictly for read-only diagnostics, complex programmatic/regex transformations, or unblocked fallbacks if a native tool encounters environment errors.
+- **Native IDE Edit First & Scratch Power-Tool Policy**: The Agent MUST always use native file-editing tools (`edit_file`, `write_file`) as the primary default. Do not modify source files with raw shell string replacement (`python -c`, `sed`, `awk`). Temporary scripts in `.scratch/` are strictly for read-only diagnostics, complex programmatic/regex transformations, or unblocked fallbacks if a native tool encounters environment errors.
 - **Anti-Hardcode Path**: Do not write absolute paths or `file://` schemes into source files. Use relative paths or `[[wikilinks]]`. Use `file://` links only in chat responses.
-- **Code Skeleton First (Zero Contiguous Paging)**: NEVER read files in contiguous sequential chunks (e.g., 1–60, 61–120). Files <=800 lines may be read directly with `read_file`. Before reading any file >800 lines: (1) Run `python .agents/scripts/orion.py scan map <target>` for exact symbol spans; (2) Call `read_file` with exact `StartLine`/`EndLine` parameters.
+- **Code Skeleton First (Zero Contiguous Paging)**: The Agent MUST NEVER read files in contiguous sequential chunks (e.g., 1–60, 61–120). Files <=800 lines may be read directly with `read_file`. Before reading any file >800 lines: (1) Run `python .agents/scripts/orion.py scan map <target>` for exact symbol spans; (2) Call `read_file` with exact `StartLine`/`EndLine` parameters.
 - **Direct Action Mandate (Antigravity Progressive Disclosure)**: Skills are concise procedural runbooks. When loading a skill via JIT routing, immediately execute its core instructions. Do NOT recursively load secondary references or canons upfront; reference files are strictly on-demand for specific edge cases.
 - **AST Expansion Protocol**: Before editing a function found through search, inspect its implementation block with an available file-reading tool. Do not infer logic from a skeleton.
 - **Anti-Affirmation (Triad Threat Probe)**: When reviewing an architectural proposal, treat it as flawed. Find up to 3 concrete gaps across the Triad (Boundary / Malformed Input, Resource / Concurrency, Silent Failure / Masked Fallback) and propose solutions. If 0 gaps exist, proceed.
@@ -116,6 +116,7 @@ DO NOT rely on your internal LLM memory for how to execute these tasks.
 | **Knowledge Extraction, Graph Triplet Ingestion** | `.agents/skills/brain-graph/references/knowledge-extraction.md` |
 | **Spec Drift, Documentation Drift, Blueprint-to-AST Parity** | `.agents/skills/integrity-sentinel/references/audit_vectors.md` |
 | **Documentation, Copywriting, Readme, PR Description, Anti-Slop, Prose** | `.agents/rules/prose-authenticity.md` |
+| **Platform Capabilities, Environment Scan, Native Slash Commands, orion env, /env** | `python .agents/scripts/orion.py env --platform` (Run it!) & `.agents/skills/app-lifecycle/references/platform-superpowers.md` |
 
 *Note: Once you load the file, you MUST physically execute any scripts or commands it asks you to run via your CLI/terminal tool. If a referenced canon file is missing (ghost routing), skip it and rely on generic protocols.*
 
@@ -182,7 +183,7 @@ Every implementation plan you create (`implementation_plan.md`) MUST include in 
    - **Bottom-Up Same-File Ordering**: Multiple edits within the same file MUST be ordered from highest line number to lowest line number.
 
 ---
-*Mandate Version: 0.0.6 (English First & Built-In Lessword)*
+*Mandate Version: 0.1.0 (English First & Built-In Lessword)*
 <!-- END FOUNDATION MANDATES -->
 
 ## PROJECT-SPECIFIC MANDATES

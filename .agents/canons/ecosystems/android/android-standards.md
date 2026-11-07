@@ -14,7 +14,7 @@ Android codebases MUST enforce unidirectional separation across three layers:
 - **Data Layer**: Repositories, Data Sources (Room, Retrofit/Ktor), and Data Mappers. Repositories expose immutable `Flow` or coroutine-backed results to the domain layer.
 
 ## 2. Asynchronous Programming & Concurrency
-- **Coroutines & Flow**: All background operations MUST execute on appropriate dispatchers:
+- **Coroutines & Flow**: All background operations MUST execute on explicit, designated dispatchers:
   - `Dispatchers.IO`: Disk, database, and network I/O.
   - `Dispatchers.Default`: CPU-intensive computations (JSON parsing, cryptography).
   - `Dispatchers.Main`: UI updates only.

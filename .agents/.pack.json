@@ -2,12 +2,11 @@
   "pinned_files": [
     "AGENTS.md",
     "README.md",
-    "DEPLOY_ME.md",
+    "VERSION",
     "GEMINI.md",
     ".agents/AGENTS_INDEX.md",
     ".agents/DEPLOY_ME.md",
     ".agents/hooks.json",
-    ".agents/version",
     ".agents/templates/ANDROID_STUDIO_EXECUTOR.prompt.md"
   ],
   "exclude_dirs_lean": [

@@ -272,7 +272,7 @@ class SampleService:
         """TEST-03: Route memory.py, reflexion.py, and state_machine.py to grav 4, foundation.py to grav 8, db.py to grav 2."""
         self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/core/memory.py")[0], 4)
         self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/core/orion_graph.py")[0], 4)
-        self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/commands/reflexion.py")[0], 4)
+        self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/commands/pulsar.py")[0], 4)
         self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/commands/state_machine.py")[0], 4)
         self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/commands/foundation.py")[0], 8)
         self.assertEqual(compute_file_gravity_and_cluster(".agents/scripts/core/db.py")[0], 2)
@@ -1178,6 +1178,104 @@ class TestProjectDNALivingSystem(unittest.TestCase):
             self.assertEqual(scaff_res["status"], "success")
             self.assertTrue(os.path.isdir(os.path.join(td, "lib", "services")))
             self.assertTrue(os.path.isdir(os.path.join(td, "lib", "presentation")))
+
+    def test_pack_repo_zip_clean_export(self):
+        """Verifies pack_repo_zip creates clean GitHub-push mirror zip respecting .gitignore."""
+        import zipfile
+        from utils.packer import ContextPacker, pack_repo_zip
+
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "src"))
+            os.makedirs(os.path.join(td, "node_modules", "pkg"))
+            os.makedirs(os.path.join(td, ".git"))
+            os.makedirs(os.path.join(td, ".orion", "cache"))
+            os.makedirs(os.path.join(td, "__pycache__"))
+
+            with open(os.path.join(td, ".gitignore"), "w", encoding="utf-8") as f:
+                f.write("node_modules/\n*.secret\nbuild/\n")
+            with open(os.path.join(td, "README.md"), "w", encoding="utf-8") as f:
+                f.write("# Sample Project")
+            with open(os.path.join(td, "package.json"), "w", encoding="utf-8") as f:
+                f.write('{"name": "test"}')
+            with open(os.path.join(td, "src", "index.ts"), "w", encoding="utf-8") as f:
+                f.write("console.log('hi');")
+            with open(os.path.join(td, "src", "logo.png"), "wb") as f:
+                f.write(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+            with open(os.path.join(td, "node_modules", "pkg", "index.js"), "w", encoding="utf-8") as f:
+                f.write("module.exports = {};")
+            with open(os.path.join(td, "key.secret"), "w", encoding="utf-8") as f:
+                f.write("super_secret_token")
+            with open(os.path.join(td, ".DS_Store"), "w", encoding="utf-8") as f:
+                f.write("junk")
+            with open(os.path.join(td, ".orion", "cache", "data.json"), "w", encoding="utf-8") as f:
+                f.write("{}")
+
+            out_zip = os.path.join(td, "github_export.zip")
+            res = pack_repo_zip(td, out_zip)
+
+            self.assertEqual(res["output_path"], os.path.abspath(out_zip))
+            self.assertTrue(os.path.isfile(out_zip))
+
+            with zipfile.ZipFile(out_zip, "r") as zf:
+                names = sorted(zf.namelist())
+                self.assertIn(".gitignore", names)
+                self.assertIn("README.md", names)
+                self.assertIn("package.json", names)
+                self.assertIn("src/index.ts", names)
+                self.assertIn("src/logo.png", names)
+
+                # Unimportant / ignored items MUST be excluded
+                self.assertNotIn("node_modules/pkg/index.js", names)
+                self.assertNotIn("key.secret", names)
+                self.assertNotIn(".DS_Store", names)
+                self.assertNotIn(".orion/cache/data.json", names)
+                self.assertNotIn("github_export.zip", names)
+
+    def test_pack_zip_prefix_and_self_exclusion(self):
+        """Verifies zip entry prefixing and self-exclusion when output resides in repo root."""
+        import zipfile
+        from utils.packer import ContextPacker
+
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, "file1.txt"), "w", encoding="utf-8") as f:
+                f.write("content 1")
+            with open(os.path.join(td, "file2.txt"), "w", encoding="utf-8") as f:
+                f.write("content 2")
+
+            packer = ContextPacker(td)
+            out_zip = os.path.join(td, "archive.zip")
+            res = packer.pack_zip(out_zip, prefix="my-app")
+
+            self.assertEqual(res["file_count"], 2)
+            with zipfile.ZipFile(out_zip, "r") as zf:
+                names = sorted(zf.namelist())
+                self.assertEqual(names, ["my-app/file1.txt", "my-app/file2.txt"])
+                self.assertNotIn("my-app/archive.zip", names)
+
+    def test_pack_zip_git_cli(self):
+        """Verifies packer CLI --zip export on target directory."""
+        import subprocess
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, "main.py"), "w", encoding="utf-8") as f:
+                f.write("def main(): pass\n")
+            with open(os.path.join(td, ".gitignore"), "w", encoding="utf-8") as f:
+                f.write("*.tmp\n")
+            with open(os.path.join(td, "temp.tmp"), "w", encoding="utf-8") as f:
+                f.write("temp data")
+
+            out_zip = os.path.join(td, "test_cli.zip")
+            packer_py = os.path.join(SCRIPT_DIR, "utils", "packer.py")
+            cmd = [sys.executable, "-X", "utf8", packer_py, "--dir", td, "--zip", "--out", out_zip]
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+            self.assertEqual(proc.returncode, 0)
+
+            with zipfile.ZipFile(out_zip, "r") as zf:
+                names = zf.namelist()
+                self.assertIn("main.py", names)
+                self.assertIn(".gitignore", names)
+                self.assertNotIn("temp.tmp", names)
 
 
 if __name__ == "__main__":

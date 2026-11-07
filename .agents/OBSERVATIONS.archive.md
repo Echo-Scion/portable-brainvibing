@@ -2292,3 +2292,2717 @@
 - **resolved**: 2026-11-04T04:47:38.534832
 - **resolution**: Rolled over into GEN-8-1793742458525
 - **superseded_by**: GEN-8-1793742458525
+
+## Observation 153: DNA compliance score regression (100 -> 64)
+- **id**: 153
+- **fingerprint**: 779314f4c4b2
+- **status**: actioned
+- **kind**: improve
+- **target**: core/dna.py
+- **rule_id**: DNA_COMPLIANCE_REGRESSION
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 7
+- **evidence**: Latest snapshot score 64 lower than previous 100
+- **created**: 2026-11-02T19:10:21.155785
+- **resolved**: 2026-11-05T23:28:16.196298
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 154: Propose skill for frequent action sequence: read_file -> replace_file_content -> run_shell_command
+- **id**: 154
+- **fingerprint**: f48507d408c3
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 7
+- **evidence**: Action sequence [read_file -> replace_file_content -> run_shell_command] repeated 3 times
+- **created**: 2026-11-02T19:10:21.513522
+- **resolved**: 2026-11-05T23:28:16.214246
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 155: Verify gate failure: GHOST - Invalid orion CLI subcommand: 'design'
+- **id**: 155
+- **fingerprint**: 0bc2142dbb9f
+- **status**: actioned
+- **kind**: violation
+- **target**: ..\README.md:82
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Invalid orion CLI subcommand: 'design'
+- **created**: 2026-11-02T19:47:13.506914
+- **resolved**: 2026-11-05T23:28:16.231116
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 156: Verify gate failure: GHOST - Ghost script reference: foo.py
+- **id**: 156
+- **fingerprint**: 9bfa2b2774e1
+- **status**: actioned
+- **kind**: violation
+- **target**: templates\CHANGELOG.template.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost script reference: foo.py
+- **created**: 2026-11-02T21:21:00.627400
+- **resolved**: 2026-11-05T23:28:16.250870
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 157: Verify gate failure: SECURITY - REMOTE_BOOTSTRAP: Remote shell script pipe execution (line 4
+- **id**: 157
+- **fingerprint**: fa0304a541f6
+- **status**: actioned
+- **kind**: violation
+- **target**: .agents/skills/integrity-sentinel/references/ai_llm_attacks.md
+- **rule_id**: VERIFY_GATE_SECURITY
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: REMOTE_BOOTSTRAP: Remote shell script pipe execution (line 43)
+- **created**: 2026-11-03T20:32:17.442339
+- **resolved**: 2026-11-05T23:28:16.268316
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 158: Tool failure in orion:brain (Exit Code 1)
+- **id**: 158
+- **fingerprint**: ac8b27d94c6b
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:brain
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Args: {'args': ['inject_triplets', '.orion/scratch/triplets.json'], 'exit_code': 1} | Args: {'args': ['handoff', 'show', 'handoff_1793805051_1'], 'exit_code': 1}
+- **created**: 2026-11-03T20:33:28.032051
+- **resolved**: 2026-11-05T23:28:16.285618
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 159: Verify gate failure: GHOST - Ghost skill reference: references/ai_llm_attacks.md
+- **id**: 159
+- **fingerprint**: 878f8a3ba470
+- **status**: actioned
+- **kind**: violation
+- **target**: skills\ai-engineer\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/ai_llm_attacks.md
+- **created**: 2026-11-03T21:34:20.318169
+- **resolved**: 2026-11-05T23:28:16.302491
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 160: Verify gate failure: GHOST - Ghost skill reference: references/skill_inspector.md
+- **id**: 160
+- **fingerprint**: 870fe6fe974a
+- **status**: actioned
+- **kind**: violation
+- **target**: skills\ai-engineer\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/skill_inspector.md
+- **created**: 2026-11-03T21:34:20.329677
+- **resolved**: 2026-11-05T23:28:16.318883
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 161: Verify gate failure: PROTOCOL - Exceeds Antigravity 24,000-byte per-file rule limit (24413 b
+- **id**: 161
+- **fingerprint**: 8adb57ba082a
+- **status**: actioned
+- **kind**: violation
+- **target**: AGENTS.md
+- **rule_id**: VERIFY_GATE_PROTOCOL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Exceeds Antigravity 24,000-byte per-file rule limit (24413 bytes)
+- **created**: 2026-11-03T22:12:59.188199
+- **resolved**: 2026-11-05T23:28:16.335394
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 162: Tool failure in orion:foundation (Exit Code 2)
+- **id**: 162
+- **fingerprint**: 7fe420bdfa99
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:foundation
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['deploy', '--all'], 'exit_code': 2}
+- **created**: 2026-11-03T22:31:52.381997
+- **resolved**: 2026-11-05T23:28:16.351949
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 163: Tool failure in orion:decisions (Exit Code 2)
+- **id**: 163
+- **fingerprint**: 2b8a39441dd8
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:decisions
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['record', 'C:/Users/USER/.gemini/antigravity/brain/d3b6bedd-fb3f-4079-811d-406912fc6bbb/implementation_plan.md'], 'exit_code': 2} | Args: {'args': ['help'], 'exit_code': 2}
+- **created**: 2026-11-04T08:01:55.625135
+- **resolved**: 2026-11-05T23:28:16.368941
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 164: Verify gate failure: INDEX_DRIFT - Tier-3 reference file on disk is not registered in AGENTS_IN
+- **id**: 164
+- **fingerprint**: 4ab53035d4ce
+- **status**: actioned
+- **kind**: violation
+- **target**: AGENTS_INDEX.md
+- **rule_id**: VERIFY_GATE_INDEX_DRIFT
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 584
+- **evidence**: Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-empty-pattern-hang-in-cli/references/evidence-eb868b35.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-empty-pattern-hang-in-cli/references/remediation.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-4c8cc76e.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/strict-tdd/references/evidence-b7874053.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-4ebac5e0.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-da2e06cc.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-e7dc8d72.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-9759f658.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-39ddf020.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-66a02255.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-5b6db56c.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-4f5d4096.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-0b9cced3.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-214770f9.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/strict-tdd/references/evidence-214770f9.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/systematic-debugging/references/evidence-32e28aa1.md'
+- **created**: 2026-11-04T08:45:09.286945
+- **resolved**: 2026-11-05T23:28:16.386114
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 165: Tool failure in orion:verify_agents (Exit Code 1)
+- **id**: 165
+- **fingerprint**: b123583fa637
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:verify_agents
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 11
+- **evidence**: Args: {'args': [], 'exit_code': 1}
+- **created**: 2026-11-04T08:45:09.336421
+- **resolved**: 2026-11-05T23:28:16.402703
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 166: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/skills/systemat
+- **id**: 166
+- **fingerprint**: c118b79974ab
+- **status**: actioned
+- **kind**: violation
+- **target**: .agents/skills/systematic-debugging/SKILL.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 116
+- **evidence**: Hardcoded user machine path found in .agents/skills/systematic-debugging/SKILL.md
+- **created**: 2026-11-04T08:48:09.030690
+- **resolved**: 2026-11-05T23:28:16.419546
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 167: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/skills/strict-t
+- **id**: 167
+- **fingerprint**: ebe6729700d8
+- **status**: actioned
+- **kind**: violation
+- **target**: .agents/skills/strict-tdd/SKILL.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Hardcoded user machine path found in .agents/skills/strict-tdd/SKILL.md
+- **created**: 2026-11-04T09:01:29.805224
+- **resolved**: 2026-11-05T23:28:16.436354
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 168: Tool failure in orion:setup (Exit Code 1)
+- **id**: 168
+- **fingerprint**: 0698eef57616
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:setup
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['setup', '--yes', '--target'], 'exit_code': 1}
+- **created**: 2026-11-04T19:20:05.629753
+- **resolved**: 2026-11-05T23:28:16.453330
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 169: Verify gate failure: GHOST - Invalid orion CLI subcommand: 'debug'
+- **id**: 169
+- **fingerprint**: 0f8bb7e288e7
+- **status**: actioned
+- **kind**: violation
+- **target**: skills\systematic-debugging\SKILL.md:2
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Invalid orion CLI subcommand: 'debug'
+- **created**: 2026-11-04T21:33:45.342711
+- **resolved**: 2026-11-05T23:28:16.476485
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 170: Verify gate failure: PROTOCOL - Exceeds Antigravity 24,000-byte per-file rule limit (24254 b
+- **id**: 170
+- **fingerprint**: 1d08a87edca3
+- **status**: actioned
+- **kind**: violation
+- **target**: AGENTS.md
+- **rule_id**: VERIFY_GATE_PROTOCOL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Exceeds Antigravity 24,000-byte per-file rule limit (24254 bytes)
+- **created**: 2026-11-05T02:32:34.367976
+- **resolved**: 2026-11-05T23:28:16.494123
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 171: Tool failure in orion:scan (Exit Code 1)
+- **id**: 171
+- **fingerprint**: 9c40799095d4
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:scan
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['security', '.'], 'exit_code': 1}
+- **created**: 2026-11-05T02:33:54.270477
+- **resolved**: 2026-11-05T23:28:16.511384
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 172: Propose skill for frequent action sequence: circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset
+- **id**: 172
+- **fingerprint**: 012e7d031386
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset] repeated 150 times
+- **created**: 2026-11-05T23:20:47.006672
+- **resolved**: 2026-11-05T23:28:16.528617
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 173: Propose skill for frequent action sequence: orion:verify -> orion:orion_ops -> orion:brain
+- **id**: 173
+- **fingerprint**: b59e02e798f4
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify -> orion:orion_ops -> orion:brain] repeated 3 times
+- **created**: 2026-11-05T23:20:47.019582
+- **resolved**: 2026-11-05T23:28:16.545374
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 174: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> run_command
+- **id**: 174
+- **fingerprint**: e3d56c23de2f
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> run_command] repeated 13 times
+- **created**: 2026-11-05T23:20:47.034385
+- **resolved**: 2026-11-05T23:28:16.562375
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 175: Propose skill for frequent action sequence: run_command -> run_command -> run_command
+- **id**: 175
+- **fingerprint**: 3d1ecc600dd5
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> run_command] repeated 454 times
+- **created**: 2026-11-05T23:20:47.045699
+- **resolved**: 2026-11-05T23:28:16.579937
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 176: Propose skill for frequent action sequence: run_command -> run_command -> orion:compile
+- **id**: 176
+- **fingerprint**: 6ff1d2d2a5d3
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:compile] repeated 10 times
+- **created**: 2026-11-05T23:20:47.057195
+- **resolved**: 2026-11-05T23:28:16.596509
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 177: Propose skill for frequent action sequence: run_command -> orion:compile -> orion:orion_ops
+- **id**: 177
+- **fingerprint**: cdfdd96c5ceb
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:compile -> orion:orion_ops] repeated 11 times
+- **created**: 2026-11-05T23:20:47.069857
+- **resolved**: 2026-11-05T23:28:16.613202
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 178: Propose skill for frequent action sequence: orion:compile -> orion:orion_ops -> run_command
+- **id**: 178
+- **fingerprint**: 36a7b5c3a05e
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:compile -> orion:orion_ops -> run_command] repeated 13 times
+- **created**: 2026-11-05T23:20:47.081853
+- **resolved**: 2026-11-05T23:28:16.630233
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 179: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> run_command
+- **id**: 179
+- **fingerprint**: 8035837d1b4d
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> run_command] repeated 8 times
+- **created**: 2026-11-05T23:20:47.092687
+- **resolved**: 2026-11-05T23:28:16.649669
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 180: Propose skill for frequent action sequence: run_command -> run_command -> orion:brain
+- **id**: 180
+- **fingerprint**: 508739c8b2e4
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:brain] repeated 6 times
+- **created**: 2026-11-05T23:20:47.103633
+- **resolved**: 2026-11-05T23:28:16.668556
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 181: Propose skill for frequent action sequence: run_command -> orion:brain -> run_command
+- **id**: 181
+- **fingerprint**: dd5cfcc3dce0
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> run_command] repeated 21 times
+- **created**: 2026-11-05T23:20:47.115909
+- **resolved**: 2026-11-05T23:28:16.686784
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 182: Propose skill for frequent action sequence: orion:brain -> run_command -> orion:brain
+- **id**: 182
+- **fingerprint**: 2f58ad09d49c
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> orion:brain] repeated 14 times
+- **created**: 2026-11-05T23:20:47.136115
+- **resolved**: 2026-11-05T23:28:16.703879
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 183: Propose skill for frequent action sequence: run_command -> orion:orion_ops -> orion:orion_ops
+- **id**: 183
+- **fingerprint**: da6b28e15783
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:orion_ops -> orion:orion_ops] repeated 5 times
+- **created**: 2026-11-05T23:20:47.149036
+- **resolved**: 2026-11-05T23:28:16.721129
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 184: Propose skill for frequent action sequence: orion:orion_ops -> orion:orion_ops -> orion:foundation
+- **id**: 184
+- **fingerprint**: b98d3a5c35df
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:orion_ops -> orion:foundation] repeated 12 times
+- **created**: 2026-11-05T23:20:47.160103
+- **resolved**: 2026-11-05T23:28:16.738305
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 185: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> run_command
+- **id**: 185
+- **fingerprint**: c0160c19b20f
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> run_command] repeated 5 times
+- **created**: 2026-11-05T23:20:47.174162
+- **resolved**: 2026-11-05T23:28:16.754964
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 186: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify_agents
+- **id**: 186
+- **fingerprint**: e5520721f43d
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify_agents] repeated 14 times
+- **created**: 2026-11-05T23:20:47.186503
+- **resolved**: 2026-11-05T23:28:16.772014
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 187: Propose skill for frequent action sequence: run_command -> orion:verify_agents -> run_command
+- **id**: 187
+- **fingerprint**: bd0c493711bd
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify_agents -> run_command] repeated 17 times
+- **created**: 2026-11-05T23:20:47.198503
+- **resolved**: 2026-11-05T23:28:16.789031
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 188: Propose skill for frequent action sequence: run_command -> orion:dna -> run_command
+- **id**: 188
+- **fingerprint**: 680c820ce658
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:dna -> run_command] repeated 5 times
+- **created**: 2026-11-05T23:20:47.211188
+- **resolved**: 2026-11-05T23:28:16.806930
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 189: Propose skill for frequent action sequence: orion:dna -> run_command -> run_command
+- **id**: 189
+- **fingerprint**: cd9b2559dfeb
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:dna -> run_command -> run_command] repeated 3 times
+- **created**: 2026-11-05T23:20:47.223922
+- **resolved**: 2026-11-05T23:28:16.823430
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 190: Propose skill for frequent action sequence: run_command -> run_command -> orion:decisions
+- **id**: 190
+- **fingerprint**: a2a9171ec16b
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:decisions] repeated 3 times
+- **created**: 2026-11-05T23:20:47.235648
+- **resolved**: 2026-11-05T23:28:16.840191
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 191: Propose skill for frequent action sequence: run_command -> orion:decisions -> run_command
+- **id**: 191
+- **fingerprint**: 679d85b3168b
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:decisions -> run_command] repeated 9 times
+- **created**: 2026-11-05T23:20:47.247541
+- **resolved**: 2026-11-05T23:28:16.856778
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 192: Propose skill for frequent action sequence: orion:decisions -> run_command -> orion:decisions
+- **id**: 192
+- **fingerprint**: 86a8398f0faa
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:decisions -> run_command -> orion:decisions] repeated 5 times
+- **created**: 2026-11-05T23:20:47.259477
+- **resolved**: 2026-11-05T23:28:16.874492
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 193: Propose skill for frequent action sequence: orion:foundation -> run_command -> run_command
+- **id**: 193
+- **fingerprint**: 912ebfd3d2e8
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> run_command] repeated 5 times
+- **created**: 2026-11-05T23:20:47.272101
+- **resolved**: 2026-11-05T23:28:16.891667
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 194: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> orion:gc
+- **id**: 194
+- **fingerprint**: 5e0d5750797e
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> orion:gc] repeated 3 times
+- **created**: 2026-11-05T23:20:47.284226
+- **resolved**: 2026-11-05T23:28:16.908818
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 195: Propose skill for frequent action sequence: run_command -> orion:gc -> run_command
+- **id**: 195
+- **fingerprint**: f12e2063698d
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:gc -> run_command] repeated 7 times
+- **created**: 2026-11-05T23:20:47.296292
+- **resolved**: 2026-11-05T23:28:16.925689
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 196: Propose skill for frequent action sequence: run_command -> orion:compress -> run_command
+- **id**: 196
+- **fingerprint**: 8ddfde768621
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:compress -> run_command] repeated 3 times
+- **created**: 2026-11-05T23:20:47.308269
+- **resolved**: 2026-11-05T23:28:16.942187
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 197: Propose skill for frequent action sequence: orion:brain -> run_command -> run_command
+- **id**: 197
+- **fingerprint**: 42b2b9dfdad8
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> run_command] repeated 12 times
+- **created**: 2026-11-05T23:20:47.320562
+- **resolved**: 2026-11-05T23:28:16.958825
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 198: Propose skill for frequent action sequence: run_command -> orion:brain -> orion:brain
+- **id**: 198
+- **fingerprint**: e47862af6729
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> orion:brain] repeated 5 times
+- **created**: 2026-11-05T23:20:47.332802
+- **resolved**: 2026-11-05T23:28:16.975999
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 199: Propose skill for frequent action sequence: orion:brain -> orion:brain -> run_command
+- **id**: 199
+- **fingerprint**: 1b4c1d3a8c33
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> orion:brain -> run_command] repeated 5 times
+- **created**: 2026-11-05T23:20:47.344738
+- **resolved**: 2026-11-05T23:28:16.994392
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 200: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> orion:brain
+- **id**: 200
+- **fingerprint**: 3c229694107b
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> orion:brain] repeated 4 times
+- **created**: 2026-11-05T23:20:47.356790
+- **resolved**: 2026-11-05T23:28:17.011765
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 201: Propose skill for frequent action sequence: run_command -> run_command -> orion:foundation
+- **id**: 201
+- **fingerprint**: 7de41340ebaf
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:foundation] repeated 4 times
+- **created**: 2026-11-05T23:20:47.368865
+- **resolved**: 2026-11-05T23:28:17.030786
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 202: Propose skill for frequent action sequence: run_command -> run_command -> orion:gc
+- **id**: 202
+- **fingerprint**: 5448f34bf8f4
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:gc] repeated 5 times
+- **created**: 2026-11-05T23:20:47.380930
+- **resolved**: 2026-11-05T23:28:17.047479
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 203: Propose skill for frequent action sequence: run_command -> orion:foundation -> run_command
+- **id**: 203
+- **fingerprint**: 2eef47416fe5
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:foundation -> run_command] repeated 5 times
+- **created**: 2026-11-05T23:20:47.393431
+- **resolved**: 2026-11-05T23:28:17.064252
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 204: Propose skill for frequent action sequence: orion:gc -> run_command -> run_command
+- **id**: 204
+- **fingerprint**: 1829bf9094ec
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:gc -> run_command -> run_command] repeated 3 times
+- **created**: 2026-11-05T23:20:47.406181
+- **resolved**: 2026-11-05T23:28:17.080676
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 205: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> orion:orion_ops
+- **id**: 205
+- **fingerprint**: ff0761758497
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> orion:orion_ops] repeated 7 times
+- **created**: 2026-11-05T23:20:47.418724
+- **resolved**: 2026-11-05T23:28:17.097921
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 206: Propose skill for frequent action sequence: orion:foundation -> orion:orion_ops -> orion:orion_ops
+- **id**: 206
+- **fingerprint**: b22810af784e
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> orion:orion_ops -> orion:orion_ops] repeated 7 times
+- **created**: 2026-11-05T23:20:47.431282
+- **resolved**: 2026-11-05T23:28:17.115643
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 207: Propose skill for frequent action sequence: run_command -> orion:scan -> run_command
+- **id**: 207
+- **fingerprint**: 13de35e1a382
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [run_command -> orion:scan -> run_command] repeated 4 times
+- **created**: 2026-11-05T23:20:47.443740
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 208: Verify gate failure: INDEX_DRIFT - Tier-3 reference file on disk is not registered in AGENTS_IN
+- **id**: 208
+- **fingerprint**: 4ab53035d4ce
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS_INDEX.md
+- **rule_id**: VERIFY_GATE_INDEX_DRIFT
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 56
+- **evidence**: Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-empty-pattern-hang-in-cli/references/remediation.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-graduated-observation-dna/references/remediation.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-graduated-observation-pro/references/remediation.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-graduated-observation-ver/references/remediation.md'
+- **created**: 2026-11-05T23:28:37.008103
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 209: Tool failure in orion:verify_agents (Exit Code 1)
+- **id**: 209
+- **fingerprint**: b123583fa637
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify_agents
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 5
+- **evidence**: Args: {'args': [], 'exit_code': 1}
+- **created**: 2026-11-05T23:28:37.065701
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 210: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/skills/systemat
+- **id**: 210
+- **fingerprint**: c118b79974ab
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/skills/systematic-debugging/SKILL.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Hardcoded user machine path found in .agents/skills/systematic-debugging/SKILL.md
+- **created**: 2026-11-05T23:30:02.912996
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 211: Verify gate failure: HYGIENE - Hardcoded user machine path found in .agents/skills/strict-t
+- **id**: 211
+- **fingerprint**: ebe6729700d8
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/skills/strict-tdd/SKILL.md
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Hardcoded user machine path found in .agents/skills/strict-tdd/SKILL.md
+- **created**: 2026-11-05T23:30:06.525003
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 212: Verify gate failure: GHOST - Ghost skill reference: references/ai_llm_attacks.md
+- **id**: 212
+- **fingerprint**: 878f8a3ba470
+- **status**: superseded
+- **kind**: violation
+- **target**: skills\rule-graduated-observation-ver\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Ghost skill reference: references/ai_llm_attacks.md
+- **created**: 2026-11-05T23:31:17.160936
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 213: Verify gate failure: GHOST - Ghost skill reference: references/skill_inspector.md
+- **id**: 213
+- **fingerprint**: 870fe6fe974a
+- **status**: superseded
+- **kind**: violation
+- **target**: skills\rule-graduated-observation-ver\SKILL.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Ghost skill reference: references/skill_inspector.md
+- **created**: 2026-11-05T23:31:36.786366
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 214: Verify gate failure: LINK - Broken backticked file reference: `skills/rule-graduated-obs
+- **id**: 214
+- **fingerprint**: 9502ef3b805a
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS_INDEX.md:49
+- **rule_id**: VERIFY_GATE_LINK
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 51
+- **evidence**: Broken backticked file reference: `skills/rule-graduated-observation-ver/SKILL.md`
+- **created**: 2026-11-05T23:33:16.187424
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 215: Verify gate failure: GHOST - Ghost skill reference: rule-graduated-observation-ver
+- **id**: 215
+- **fingerprint**: 27ed0cd5a99e
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS_INDEX.md
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 51
+- **evidence**: Ghost skill reference: rule-graduated-observation-ver
+- **created**: 2026-11-05T23:33:16.206896
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 216: Verify gate failure: GHOST - Ghost path reference: `skills/rule-graduated-observation-ver
+- **id**: 216
+- **fingerprint**: b836b2c3928a
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS_INDEX.md:49
+- **rule_id**: VERIFY_GATE_GHOST
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 51
+- **evidence**: Ghost path reference: `skills/rule-graduated-observation-ver/SKILL.md`
+- **created**: 2026-11-05T23:33:16.226113
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 217: Propose skill for frequent action sequence: orion:decisions -> run_command -> orion:decisions
+- **id**: 217
+- **fingerprint**: 86a8398f0faa
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:decisions -> run_command -> orion:decisions] repeated 4 times
+- **created**: 2026-11-06T00:04:41.226141
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 218: Propose skill for frequent action sequence: run_command -> orion:decisions -> run_command
+- **id**: 218
+- **fingerprint**: 679d85b3168b
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:decisions -> run_command] repeated 7 times
+- **created**: 2026-11-06T00:04:41.241135
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 219: Propose skill for frequent action sequence: run_command -> orion:verify_agents -> run_command
+- **id**: 219
+- **fingerprint**: bd0c493711bd
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify_agents -> run_command] repeated 16 times
+- **created**: 2026-11-06T00:04:41.261180
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 220: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> run_command
+- **id**: 220
+- **fingerprint**: e3d56c23de2f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> run_command] repeated 12 times
+- **created**: 2026-11-06T00:04:41.276329
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 221: Propose skill for frequent action sequence: run_command -> run_command -> run_command
+- **id**: 221
+- **fingerprint**: 3d1ecc600dd5
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> run_command] repeated 413 times
+- **created**: 2026-11-06T00:04:41.297142
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 222: Propose skill for frequent action sequence: run_command -> orion:orion_ops -> orion:orion_ops
+- **id**: 222
+- **fingerprint**: da6b28e15783
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:orion_ops -> orion:orion_ops] repeated 4 times
+- **created**: 2026-11-06T00:04:41.313385
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 223: Propose skill for frequent action sequence: orion:orion_ops -> orion:orion_ops -> orion:foundation
+- **id**: 223
+- **fingerprint**: b98d3a5c35df
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:orion_ops -> orion:foundation] repeated 11 times
+- **created**: 2026-11-06T00:04:41.327604
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 224: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> run_command
+- **id**: 224
+- **fingerprint**: c0160c19b20f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> run_command] repeated 4 times
+- **created**: 2026-11-06T00:04:41.342282
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 225: Propose skill for frequent action sequence: orion:foundation -> run_command -> run_command
+- **id**: 225
+- **fingerprint**: 912ebfd3d2e8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> run_command] repeated 5 times
+- **created**: 2026-11-06T00:04:41.357751
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 226: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify_agents
+- **id**: 226
+- **fingerprint**: e5520721f43d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify_agents] repeated 13 times
+- **created**: 2026-11-06T00:04:41.373143
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 227: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> orion:gc
+- **id**: 227
+- **fingerprint**: 5e0d5750797e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> orion:gc] repeated 3 times
+- **created**: 2026-11-06T00:04:41.388768
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 228: Propose skill for frequent action sequence: run_command -> orion:gc -> run_command
+- **id**: 228
+- **fingerprint**: f12e2063698d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:gc -> run_command] repeated 7 times
+- **created**: 2026-11-06T00:04:41.403860
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 229: Propose skill for frequent action sequence: run_command -> orion:dna -> run_command
+- **id**: 229
+- **fingerprint**: 680c820ce658
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:dna -> run_command] repeated 4 times
+- **created**: 2026-11-06T00:04:41.419302
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 230: Propose skill for frequent action sequence: orion:dna -> run_command -> run_command
+- **id**: 230
+- **fingerprint**: cd9b2559dfeb
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:dna -> run_command -> run_command] repeated 3 times
+- **created**: 2026-11-06T00:04:41.434528
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 231: Propose skill for frequent action sequence: run_command -> orion:compress -> run_command
+- **id**: 231
+- **fingerprint**: 8ddfde768621
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:compress -> run_command] repeated 3 times
+- **created**: 2026-11-06T00:04:41.448416
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 232: Propose skill for frequent action sequence: run_command -> run_command -> orion:compile
+- **id**: 232
+- **fingerprint**: 6ff1d2d2a5d3
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:compile] repeated 9 times
+- **created**: 2026-11-06T00:04:41.462161
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 233: Propose skill for frequent action sequence: run_command -> orion:compile -> orion:orion_ops
+- **id**: 233
+- **fingerprint**: cdfdd96c5ceb
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:compile -> orion:orion_ops] repeated 10 times
+- **created**: 2026-11-06T00:04:41.476916
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 234: Propose skill for frequent action sequence: orion:compile -> orion:orion_ops -> run_command
+- **id**: 234
+- **fingerprint**: 36a7b5c3a05e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:compile -> orion:orion_ops -> run_command] repeated 13 times
+- **created**: 2026-11-06T00:04:41.492212
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 235: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> run_command
+- **id**: 235
+- **fingerprint**: 8035837d1b4d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> run_command] repeated 8 times
+- **created**: 2026-11-06T00:04:41.507557
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 236: Propose skill for frequent action sequence: run_command -> orion:brain -> run_command
+- **id**: 236
+- **fingerprint**: dd5cfcc3dce0
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> run_command] repeated 20 times
+- **created**: 2026-11-06T00:04:41.523294
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 237: Propose skill for frequent action sequence: orion:brain -> run_command -> run_command
+- **id**: 237
+- **fingerprint**: 42b2b9dfdad8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> run_command] repeated 12 times
+- **created**: 2026-11-06T00:04:41.540699
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 238: Propose skill for frequent action sequence: run_command -> run_command -> orion:brain
+- **id**: 238
+- **fingerprint**: 508739c8b2e4
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:brain] repeated 6 times
+- **created**: 2026-11-06T00:04:41.556120
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 239: Propose skill for frequent action sequence: orion:brain -> run_command -> orion:brain
+- **id**: 239
+- **fingerprint**: 2f58ad09d49c
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> orion:brain] repeated 13 times
+- **created**: 2026-11-06T00:04:41.570485
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 240: Propose skill for frequent action sequence: run_command -> orion:brain -> orion:brain
+- **id**: 240
+- **fingerprint**: e47862af6729
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> orion:brain] repeated 5 times
+- **created**: 2026-11-06T00:04:41.585582
+- **resolved**: 2026-11-06T00:04:42.765878
+- **resolution**: Rolled over into GEN-9-1793898282743
+- **superseded_by**: GEN-9-1793898282743
+
+## Observation 241: Propose skill for frequent action sequence: orion:brain -> orion:brain -> run_command
+- **id**: 241
+- **fingerprint**: 1b4c1d3a8c33
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> orion:brain -> run_command] repeated 5 times
+- **created**: 2026-11-06T00:04:41.600669
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 242: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> orion:brain
+- **id**: 242
+- **fingerprint**: 3c229694107b
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> orion:brain] repeated 4 times
+- **created**: 2026-11-06T00:04:41.616153
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 243: Propose skill for frequent action sequence: run_command -> run_command -> orion:foundation
+- **id**: 243
+- **fingerprint**: 7de41340ebaf
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [run_command -> run_command -> orion:foundation] repeated 4 times | Action sequence [run_command -> run_command -> orion:foundation] repeated 6 times
+- **created**: 2026-11-06T00:04:41.631836
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 244: Propose skill for frequent action sequence: run_command -> run_command -> orion:gc
+- **id**: 244
+- **fingerprint**: 5448f34bf8f4
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [run_command -> run_command -> orion:gc] repeated 5 times | Action sequence [run_command -> run_command -> orion:gc] repeated 3 times
+- **created**: 2026-11-06T00:04:41.648267
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 245: Propose skill for frequent action sequence: run_command -> orion:foundation -> run_command
+- **id**: 245
+- **fingerprint**: 2eef47416fe5
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [run_command -> orion:foundation -> run_command] repeated 5 times | Action sequence [run_command -> orion:foundation -> run_command] repeated 11 times
+- **created**: 2026-11-06T00:04:41.666331
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 246: Propose skill for frequent action sequence: orion:gc -> run_command -> run_command
+- **id**: 246
+- **fingerprint**: 1829bf9094ec
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:gc -> run_command -> run_command] repeated 3 times
+- **created**: 2026-11-06T00:04:41.682422
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 247: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> orion:orion_ops
+- **id**: 247
+- **fingerprint**: ff0761758497
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> orion:orion_ops] repeated 7 times | Action sequence [orion:orion_ops -> orion:foundation -> orion:orion_ops] repeated 15 times
+- **created**: 2026-11-06T00:04:41.697582
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 248: Propose skill for frequent action sequence: orion:foundation -> orion:orion_ops -> orion:orion_ops
+- **id**: 248
+- **fingerprint**: b22810af784e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [orion:foundation -> orion:orion_ops -> orion:orion_ops] repeated 7 times | Action sequence [orion:foundation -> orion:orion_ops -> orion:orion_ops] repeated 15 times
+- **created**: 2026-11-06T00:04:41.711640
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 249: Propose skill for frequent action sequence: circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset
+- **id**: 249
+- **fingerprint**: 012e7d031386
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset] repeated 212 times
+- **created**: 2026-11-06T00:04:41.735900
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 250: Propose skill for frequent action sequence: orion:verify_agents -> orion:verify_agents -> orion:verify_agents
+- **id**: 250
+- **fingerprint**: 1f23b50eb0a9
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [orion:verify_agents -> orion:verify_agents -> orion:verify_agents] repeated 14 times
+- **created**: 2026-11-06T00:04:41.750904
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 251: Tool failure in orion:foundation (Exit Code 1)
+- **id**: 251
+- **fingerprint**: 1f92f4fe5abe
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:foundation
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['upgrade', '--force', '--target'], 'exit_code': 1}
+- **created**: 2026-11-06T02:12:17.434081
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 252: Verify gate failure: HYGIENE - subprocess.run() text mode missing explicit encoding='utf-8'
+- **id**: 252
+- **fingerprint**: 8790cc2fd2a5
+- **status**: superseded
+- **kind**: violation
+- **target**: scripts/tests/test_packer_universal.py
+- **rule_id**: VERIFY_GATE_HYGIENE
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: subprocess.run() text mode missing explicit encoding='utf-8' (scripts/tests/test_packer_universal.py:1271)
+- **created**: 2026-11-06T09:18:56.852961
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 253: Tool failure in orion:verify (Exit Code 1)
+- **id**: 253
+- **fingerprint**: 9768e55d0d77
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': [], 'exit_code': 1} | Args: {'args': ['--fast'], 'exit_code': 1}
+- **created**: 2026-11-06T09:18:56.886634
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 254: Tool failure in orion:bento (Exit Code 2)
+- **id**: 254
+- **fingerprint**: c321a4b0cd6e
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:bento
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['next', '--verify'], 'exit_code': 2}
+- **created**: 2026-11-06T09:47:29.970982
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 255: Tool failure in orion:bento (Exit Code 1)
+- **id**: 255
+- **fingerprint**: 3e32d83a7eca
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:bento
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['next', '--verify'], 'exit_code': 1}
+- **created**: 2026-11-06T09:55:09.974736
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 256: Verify gate failure: SECURITY - AST_CREDENTIAL_HARVESTING: Probing sensitive credential via
+- **id**: 256
+- **fingerprint**: 39094ea5ac43
+- **status**: superseded
+- **kind**: violation
+- **target**: .agents/scripts/core/capabilities.py
+- **rule_id**: VERIFY_GATE_SECURITY
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 5
+- **evidence**: AST_CREDENTIAL_HARVESTING: Probing sensitive credential via os.environ.get('ORION_API_KEY') (line 577) | AST_CREDENTIAL_HARVESTING: Probing sensitive credential via os.environ.get('ORION_API_KEY') (line 705) | AST_CREDENTIAL_HARVESTING: Probing sensitive credential via os.environ.get('ORION_API_KEY') (line 787) | AST_CREDENTIAL_HARVESTING: Probing sensitive credential via os.environ.get('ORION_API_KEY') (line 1156) | AST_CREDENTIAL_HARVESTING: Probing sensitive credential via os.environ.get('ORION_API_KEY') (line 1228)
+- **created**: 2026-11-06T10:01:22.893523
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 257: Tool failure in orion:decisions (Exit Code 2)
+- **id**: 257
+- **fingerprint**: 2b8a39441dd8
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:decisions
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['record', '--file', 'C:\\Users\\USER\\AppData\\Local\\Google\\AndroidStudio2026.2.2\\projects\\_foundation.f1b5085d\\.artifacts\\4e89ddb0-a6ce-4fd3-bd0c-ae1309276ea2\\implementation_plan.art
+- **created**: 2026-11-06T10:22:45.175871
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 258: Propose skill for frequent action sequence: run_command -> run_command -> run_command
+- **id**: 258
+- **fingerprint**: 3d1ecc600dd5
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> run_command] repeated 353 times
+- **created**: 2026-11-06T10:24:00.693730
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 259: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify_agents
+- **id**: 259
+- **fingerprint**: e5520721f43d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify_agents] repeated 14 times
+- **created**: 2026-11-06T10:24:00.712579
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 260: Propose skill for frequent action sequence: run_command -> orion:verify_agents -> run_command
+- **id**: 260
+- **fingerprint**: bd0c493711bd
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify_agents -> run_command] repeated 16 times
+- **created**: 2026-11-06T10:24:00.730810
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 261: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> run_command
+- **id**: 261
+- **fingerprint**: e3d56c23de2f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> run_command] repeated 12 times
+- **created**: 2026-11-06T10:24:00.746957
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 262: Propose skill for frequent action sequence: orion:compile -> orion:orion_ops -> run_command
+- **id**: 262
+- **fingerprint**: 36a7b5c3a05e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:compile -> orion:orion_ops -> run_command] repeated 6 times
+- **created**: 2026-11-06T10:24:00.765440
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 263: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> run_command
+- **id**: 263
+- **fingerprint**: 8035837d1b4d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> run_command] repeated 4 times
+- **created**: 2026-11-06T10:24:00.781989
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 264: Propose skill for frequent action sequence: run_command -> orion:gc -> run_command
+- **id**: 264
+- **fingerprint**: f12e2063698d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:gc -> run_command] repeated 4 times
+- **created**: 2026-11-06T10:24:00.799018
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 265: Propose skill for frequent action sequence: run_command -> run_command -> orion:brain
+- **id**: 265
+- **fingerprint**: 508739c8b2e4
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:brain] repeated 3 times
+- **created**: 2026-11-06T10:24:00.815995
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 266: Propose skill for frequent action sequence: run_command -> orion:brain -> run_command
+- **id**: 266
+- **fingerprint**: dd5cfcc3dce0
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> run_command] repeated 8 times
+- **created**: 2026-11-06T10:24:00.833378
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 267: Propose skill for frequent action sequence: orion:brain -> run_command -> run_command
+- **id**: 267
+- **fingerprint**: 42b2b9dfdad8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> run_command] repeated 9 times
+- **created**: 2026-11-06T10:24:00.849646
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 268: Propose skill for frequent action sequence: run_command -> orion:orion_ops -> orion:orion_ops
+- **id**: 268
+- **fingerprint**: da6b28e15783
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:orion_ops -> orion:orion_ops] repeated 5 times
+- **created**: 2026-11-06T10:24:00.893094
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 269: Propose skill for frequent action sequence: orion:orion_ops -> orion:orion_ops -> orion:foundation
+- **id**: 269
+- **fingerprint**: b98d3a5c35df
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:orion_ops -> orion:foundation] repeated 20 times
+- **created**: 2026-11-06T10:24:00.911144
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 270: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> run_command
+- **id**: 270
+- **fingerprint**: c0160c19b20f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> run_command] repeated 5 times
+- **created**: 2026-11-06T10:24:00.954096
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 271: Propose skill for frequent action sequence: orion:foundation -> run_command -> run_command
+- **id**: 271
+- **fingerprint**: 912ebfd3d2e8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> run_command] repeated 11 times
+- **created**: 2026-11-06T10:24:00.971442
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 272: Propose skill for frequent action sequence: run_command -> run_command -> orion:compile
+- **id**: 272
+- **fingerprint**: 6ff1d2d2a5d3
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:compile] repeated 4 times
+- **created**: 2026-11-06T10:24:00.990784
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 273: Propose skill for frequent action sequence: run_command -> run_command -> orion:orion_ops
+- **id**: 273
+- **fingerprint**: 7dcfce3c53df
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:orion_ops] repeated 3 times
+- **created**: 2026-11-06T10:24:01.019998
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 274: Propose skill for frequent action sequence: run_command -> orion:compile -> orion:orion_ops
+- **id**: 274
+- **fingerprint**: cdfdd96c5ceb
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:compile -> orion:orion_ops] repeated 3 times
+- **created**: 2026-11-06T10:24:01.037997
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 275: Propose skill for frequent action sequence: run_command -> orion:scan -> run_command
+- **id**: 275
+- **fingerprint**: 13de35e1a382
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:scan -> run_command] repeated 7 times
+- **created**: 2026-11-06T10:24:01.054586
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 276: Propose skill for frequent action sequence: orion:scan -> run_command -> run_command
+- **id**: 276
+- **fingerprint**: 8e48d5415fe7
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:scan -> run_command -> run_command] repeated 5 times
+- **created**: 2026-11-06T10:24:01.072144
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 277: Propose skill for frequent action sequence: run_command -> run_command -> orion:scan
+- **id**: 277
+- **fingerprint**: becc8122021b
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:scan] repeated 5 times
+- **created**: 2026-11-06T10:24:01.094488
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 278: Propose skill for frequent action sequence: run_command -> orion:dna -> run_command
+- **id**: 278
+- **fingerprint**: 680c820ce658
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:dna -> run_command] repeated 7 times
+- **created**: 2026-11-06T10:24:01.113424
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 279: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify
+- **id**: 279
+- **fingerprint**: 546c3c99188f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify] repeated 6 times
+- **created**: 2026-11-06T10:24:01.132565
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 280: Propose skill for frequent action sequence: run_command -> orion:verify -> orion:orion_ops
+- **id**: 280
+- **fingerprint**: 69fe91db4585
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify -> orion:orion_ops] repeated 5 times
+- **created**: 2026-11-06T10:24:01.150813
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 281: Propose skill for frequent action sequence: orion:verify -> orion:orion_ops -> orion:brain
+- **id**: 281
+- **fingerprint**: b59e02e798f4
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify -> orion:orion_ops -> orion:brain] repeated 5 times
+- **created**: 2026-11-06T10:24:01.168713
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 282: Propose skill for frequent action sequence: orion:orion_ops -> orion:brain -> run_command
+- **id**: 282
+- **fingerprint**: 78799a0de25e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:brain -> run_command] repeated 4 times
+- **created**: 2026-11-06T10:24:01.185774
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 283: Propose skill for frequent action sequence: orion:dna -> run_command -> run_command
+- **id**: 283
+- **fingerprint**: cd9b2559dfeb
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:dna -> run_command -> run_command] repeated 7 times
+- **created**: 2026-11-06T10:24:01.217107
+- **resolved**: 2026-11-06T10:30:46.172525
+- **resolution**: Rolled over into GEN-10-1793935846102
+- **superseded_by**: GEN-10-1793935846102
+
+## Observation 284: Propose skill for frequent action sequence: run_command -> run_command -> orion:bento
+- **id**: 284
+- **fingerprint**: 20a10b2c9c30
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:bento] repeated 8 times
+- **created**: 2026-11-06T10:24:01.249582
+- **resolved**: 2026-11-06T10:31:55.357180
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 285: Propose skill for frequent action sequence: run_command -> orion:bento -> run_command
+- **id**: 285
+- **fingerprint**: 853bc59fa616
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:bento -> run_command] repeated 11 times
+- **created**: 2026-11-06T10:24:01.268881
+- **resolved**: 2026-11-06T10:31:55.383840
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 286: Propose skill for frequent action sequence: orion:foundation -> run_command -> orion:foundation
+- **id**: 286
+- **fingerprint**: e09e6c678b9a
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> orion:foundation] repeated 5 times
+- **created**: 2026-11-06T10:24:01.289725
+- **resolved**: 2026-11-06T10:31:55.409648
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 287: Propose skill for frequent action sequence: run_command -> orion:pack -> run_command
+- **id**: 287
+- **fingerprint**: f3f516e11c30
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:pack -> run_command] repeated 7 times
+- **created**: 2026-11-06T10:24:01.309179
+- **resolved**: 2026-11-06T10:31:55.435619
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 288: Propose skill for frequent action sequence: orion:pack -> run_command -> orion:pack
+- **id**: 288
+- **fingerprint**: 173f4423bbc8
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:pack -> run_command -> orion:pack] repeated 5 times
+- **created**: 2026-11-06T10:24:01.331124
+- **resolved**: 2026-11-06T10:31:55.462694
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 289: Propose skill for frequent action sequence: run_command -> orion:verify -> run_command
+- **id**: 289
+- **fingerprint**: 137e5d0d604e
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify -> run_command] repeated 3 times
+- **created**: 2026-11-06T10:24:01.350439
+- **resolved**: 2026-11-06T10:31:55.489657
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 290: Propose skill for frequent action sequence: orion:foundation -> orion:foundation -> orion:foundation
+- **id**: 290
+- **fingerprint**: e88ca1283a64
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> orion:foundation -> orion:foundation] repeated 5 times
+- **created**: 2026-11-06T10:24:01.368206
+- **resolved**: 2026-11-06T10:31:55.516661
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 291: Propose skill for frequent action sequence: run_command -> run_command -> rtk
+- **id**: 291
+- **fingerprint**: fa8e337159a8
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> rtk] repeated 4 times
+- **created**: 2026-11-06T10:24:01.385408
+- **resolved**: 2026-11-06T10:31:55.544848
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 292: Propose skill for frequent action sequence: orion:bento -> run_command -> orion:bento
+- **id**: 292
+- **fingerprint**: 3100135584ea
+- **status**: actioned
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:bento -> run_command -> orion:bento] repeated 3 times
+- **created**: 2026-11-06T10:24:01.403290
+- **resolved**: 2026-11-06T10:31:55.572546
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 293: Propose skill for frequent action sequence: orion:bento -> run_command -> run_command
+- **id**: 293
+- **fingerprint**: 0ae998439159
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Action sequence [orion:bento -> run_command -> run_command] repeated 8 times | Action sequence [orion:bento -> run_command -> run_command] repeated 9 times
+- **created**: 2026-11-06T10:24:01.420967
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 294: Verify gate failure: INDEX_DRIFT - Tier-3 reference file on disk is not registered in AGENTS_IN
+- **id**: 294
+- **fingerprint**: 4ab53035d4ce
+- **status**: superseded
+- **kind**: violation
+- **target**: AGENTS_INDEX.md
+- **rule_id**: VERIFY_GATE_INDEX_DRIFT
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 4
+- **evidence**: Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-graduated-observation-ver/references/remediation.md' | Tier-3 reference file on disk is not registered in AGENTS_INDEX.md: '.agents/skills/rule-graduated-observation-pro/references/remediation.md'
+- **created**: 2026-11-06T10:33:00.411361
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 295: Tool failure in orion:verify_agents (Exit Code 1)
+- **id**: 295
+- **fingerprint**: b123583fa637
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify_agents
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': [], 'exit_code': 1}
+- **created**: 2026-11-06T10:33:00.508910
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 296: Tool failure in orion:verify (Exit Code 1)
+- **id**: 296
+- **fingerprint**: 9768e55d0d77
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:verify
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['--fast'], 'exit_code': 1}
+- **created**: 2026-11-07T03:31:27.795567
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 297: Tool failure in orion:decisions (Exit Code 2)
+- **id**: 297
+- **fingerprint**: 2b8a39441dd8
+- **status**: superseded
+- **kind**: violation
+- **target**: orion:decisions
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['record', 'Harmonize core_max_lines and 500-line cap as advisory soft gates in verify_agents.py to prevent false-red build blockers while maintaining anti-bloat progressive disclosure.', '--
+- **created**: 2026-11-07T03:42:55.678770
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 298: Propose skill for frequent action sequence: orion:dna -> run_command -> run_command
+- **id**: 298
+- **fingerprint**: cd9b2559dfeb
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:dna -> run_command -> run_command] repeated 9 times
+- **created**: 2026-11-07T03:45:08.124287
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 299: Propose skill for frequent action sequence: run_command -> run_command -> run_command
+- **id**: 299
+- **fingerprint**: 3d1ecc600dd5
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> run_command] repeated 251 times
+- **created**: 2026-11-07T03:45:08.140396
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 300: Propose skill for frequent action sequence: orion:compile -> orion:orion_ops -> run_command
+- **id**: 300
+- **fingerprint**: 36a7b5c3a05e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:compile -> orion:orion_ops -> run_command] repeated 6 times
+- **created**: 2026-11-07T03:45:08.156589
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 301: Propose skill for frequent action sequence: orion:orion_ops -> run_command -> run_command
+- **id**: 301
+- **fingerprint**: 8035837d1b4d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> run_command -> run_command] repeated 4 times
+- **created**: 2026-11-07T03:45:08.172692
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 302: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify_agents
+- **id**: 302
+- **fingerprint**: e5520721f43d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify_agents] repeated 7 times
+- **created**: 2026-11-07T03:45:08.190378
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 303: Propose skill for frequent action sequence: run_command -> orion:verify_agents -> run_command
+- **id**: 303
+- **fingerprint**: bd0c493711bd
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify_agents -> run_command] repeated 9 times
+- **created**: 2026-11-07T03:45:08.206766
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 304: Propose skill for frequent action sequence: orion:verify_agents -> run_command -> run_command
+- **id**: 304
+- **fingerprint**: e3d56c23de2f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> run_command -> run_command] repeated 7 times
+- **created**: 2026-11-07T03:45:08.222701
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 305: Propose skill for frequent action sequence: run_command -> orion:brain -> run_command
+- **id**: 305
+- **fingerprint**: dd5cfcc3dce0
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:brain -> run_command] repeated 5 times
+- **created**: 2026-11-07T03:45:08.239097
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 306: Propose skill for frequent action sequence: circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset
+- **id**: 306
+- **fingerprint**: 012e7d031386
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [circuit_breaker_reset -> circuit_breaker_reset -> circuit_breaker_reset] repeated 343 times
+- **created**: 2026-11-07T03:45:08.255750
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 307: Propose skill for frequent action sequence: orion:verify_agents -> orion:verify_agents -> orion:verify_agents
+- **id**: 307
+- **fingerprint**: 1f23b50eb0a9
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify_agents -> orion:verify_agents -> orion:verify_agents] repeated 14 times
+- **created**: 2026-11-07T03:45:08.272222
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 308: Propose skill for frequent action sequence: run_command -> run_command -> orion:bento
+- **id**: 308
+- **fingerprint**: 20a10b2c9c30
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:bento] repeated 9 times
+- **created**: 2026-11-07T03:45:08.289008
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 309: Propose skill for frequent action sequence: run_command -> orion:bento -> run_command
+- **id**: 309
+- **fingerprint**: 853bc59fa616
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:bento -> run_command] repeated 13 times
+- **created**: 2026-11-07T03:45:08.305712
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 310: Propose skill for frequent action sequence: orion:bento -> run_command -> orion:dna
+- **id**: 310
+- **fingerprint**: de208420ea5d
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:bento -> run_command -> orion:dna] repeated 3 times
+- **created**: 2026-11-07T03:45:08.323037
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 311: Propose skill for frequent action sequence: run_command -> orion:dna -> run_command
+- **id**: 311
+- **fingerprint**: 680c820ce658
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:dna -> run_command] repeated 10 times
+- **created**: 2026-11-07T03:45:08.340219
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 312: Propose skill for frequent action sequence: orion:dna -> run_command -> orion:verify_agents
+- **id**: 312
+- **fingerprint**: f49166ddf588
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:dna -> run_command -> orion:verify_agents] repeated 3 times
+- **created**: 2026-11-07T03:45:08.357406
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 313: Propose skill for frequent action sequence: run_command -> run_command -> orion:verify
+- **id**: 313
+- **fingerprint**: 546c3c99188f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:verify] repeated 12 times
+- **created**: 2026-11-07T03:45:08.374246
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 314: Propose skill for frequent action sequence: run_command -> orion:verify -> orion:orion_ops
+- **id**: 314
+- **fingerprint**: 69fe91db4585
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:verify -> orion:orion_ops] repeated 6 times
+- **created**: 2026-11-07T03:45:08.391432
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 315: Propose skill for frequent action sequence: orion:verify -> orion:orion_ops -> orion:brain
+- **id**: 315
+- **fingerprint**: b59e02e798f4
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:verify -> orion:orion_ops -> orion:brain] repeated 6 times
+- **created**: 2026-11-07T03:45:08.408706
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 316: Propose skill for frequent action sequence: orion:orion_ops -> orion:brain -> run_command
+- **id**: 316
+- **fingerprint**: 78799a0de25e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:brain -> run_command] repeated 4 times
+- **created**: 2026-11-07T03:45:08.425601
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 317: Propose skill for frequent action sequence: orion:brain -> run_command -> run_command
+- **id**: 317
+- **fingerprint**: 42b2b9dfdad8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:brain -> run_command -> run_command] repeated 4 times
+- **created**: 2026-11-07T03:45:08.443184
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 318: Propose skill for frequent action sequence: run_command -> run_command -> orion:deploy
+- **id**: 318
+- **fingerprint**: 1afe7670e64e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:deploy] repeated 3 times
+- **created**: 2026-11-07T03:45:08.460353
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 319: Propose skill for frequent action sequence: orion:foundation -> run_command -> run_command
+- **id**: 319
+- **fingerprint**: 912ebfd3d2e8
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> run_command] repeated 9 times
+- **created**: 2026-11-07T03:45:08.477504
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 320: Propose skill for frequent action sequence: run_command -> run_command -> orion:foundation
+- **id**: 320
+- **fingerprint**: 7de41340ebaf
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:foundation] repeated 4 times
+- **created**: 2026-11-07T03:45:08.495206
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 321: Propose skill for frequent action sequence: run_command -> orion:foundation -> run_command
+- **id**: 321
+- **fingerprint**: 2eef47416fe5
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:foundation -> run_command] repeated 10 times
+- **created**: 2026-11-07T03:45:08.512947
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 322: Propose skill for frequent action sequence: orion:foundation -> run_command -> orion:foundation
+- **id**: 322
+- **fingerprint**: e09e6c678b9a
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> run_command -> orion:foundation] repeated 5 times
+- **created**: 2026-11-07T03:45:08.530448
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 323: Propose skill for frequent action sequence: run_command -> orion:orion_ops -> orion:orion_ops
+- **id**: 323
+- **fingerprint**: da6b28e15783
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:orion_ops -> orion:orion_ops] repeated 10 times
+- **created**: 2026-11-07T03:45:08.549197
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 324: Propose skill for frequent action sequence: orion:orion_ops -> orion:orion_ops -> orion:foundation
+- **id**: 324
+- **fingerprint**: b98d3a5c35df
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:orion_ops -> orion:foundation] repeated 18 times
+- **created**: 2026-11-07T03:45:08.567115
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 325: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> run_command
+- **id**: 325
+- **fingerprint**: c0160c19b20f
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> run_command] repeated 10 times
+- **created**: 2026-11-07T03:45:08.584529
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 326: Propose skill for frequent action sequence: orion:orion_ops -> orion:foundation -> orion:orion_ops
+- **id**: 326
+- **fingerprint**: ff0761758497
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:orion_ops -> orion:foundation -> orion:orion_ops] repeated 8 times
+- **created**: 2026-11-07T03:45:08.602009
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 327: Propose skill for frequent action sequence: orion:foundation -> orion:orion_ops -> orion:orion_ops
+- **id**: 327
+- **fingerprint**: b22810af784e
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:foundation -> orion:orion_ops -> orion:orion_ops] repeated 8 times
+- **created**: 2026-11-07T03:45:08.619543
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 328: Propose skill for frequent action sequence: run_command -> run_command -> orion:scan
+- **id**: 328
+- **fingerprint**: becc8122021b
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> run_command -> orion:scan] repeated 3 times
+- **created**: 2026-11-07T03:45:08.637004
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 329: Propose skill for frequent action sequence: run_command -> orion:scan -> run_command
+- **id**: 329
+- **fingerprint**: 13de35e1a382
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:scan -> run_command] repeated 3 times
+- **created**: 2026-11-07T03:45:08.657149
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 330: Propose skill for frequent action sequence: orion:scan -> run_command -> run_command
+- **id**: 330
+- **fingerprint**: 8e48d5415fe7
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [orion:scan -> run_command -> run_command] repeated 3 times
+- **created**: 2026-11-07T03:45:08.675523
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 331: Propose skill for frequent action sequence: run_command -> orion:pack -> run_command
+- **id**: 331
+- **fingerprint**: f3f516e11c30
+- **status**: superseded
+- **kind**: habit
+- **target**: skills
+- **rule_id**: OPERATOR_HABIT_SKILL_PROPOSAL
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Action sequence [run_command -> orion:pack -> run_command] repeated 8 times
+- **created**: 2026-11-07T03:45:08.693544
+- **resolved**: 2026-11-07T05:10:05.235833
+- **resolution**: Rolled over into GEN-11-1794003005225
+- **superseded_by**: GEN-11-1794003005225
+
+## Observation 341: Tool failure in orion:instruction-lint (Exit Code 1)
+- **id**: 341
+- **fingerprint**: 5d98b9094972
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:instruction-lint
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **evidence**: Args: {'args': ['instruction-lint', '--strict'], 'exit_code': 1}
+- **created**: 2026-11-07T05:02:17.150600
+- **resolved**: 2026-11-07T06:36:28.447947
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 342: DNA compliance score regression (100 -> 64)
+- **id**: 342
+- **fingerprint**: 779314f4c4b2
+- **status**: actioned
+- **kind**: improve
+- **target**: core/dna.py
+- **rule_id**: DNA_COMPLIANCE_REGRESSION
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 3
+- **evidence**: Latest snapshot score 64 lower than previous 100
+- **created**: 2026-11-07T05:10:24.820178
+- **resolved**: 2026-11-07T06:36:28.472914
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 344: Tool failure in orion:observatory (Exit Code 1)
+- **id**: 344
+- **fingerprint**: a4e368065314
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:observatory
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['--help'], 'exit_code': 1}
+- **created**: 2026-11-07T05:19:00.343103
+- **resolved**: 2026-11-07T06:36:28.497642
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring
+
+## Observation 345: Tool failure in orion:pulsar (Exit Code 2)
+- **id**: 345
+- **fingerprint**: 41b89f31ecd2
+- **status**: actioned
+- **kind**: violation
+- **target**: orion:pulsar
+- **rule_id**: TOOL_EXIT_NONZERO
+- **siblings_checked**: true
+- **scope**: project
+- **count**: 2
+- **evidence**: Args: {'args': ['status'], 'exit_code': 2}
+- **created**: 2026-11-07T05:19:00.659565
+- **resolved**: 2026-11-07T06:36:28.523348
+- **resolution**: Graduated to LEARNINGS.md via detect_and_graduate_recurring

@@ -144,7 +144,7 @@ The pre-invocation hook (`hooks/pre-agent-wake.py`) evaluates editor state, acti
   "active_bento_task": {
     "task_id": "2.1",
     "title": "Add Post-Condition Disk Mutation Gate",
-    "target_file": ".agents/scripts/commands/bento_slicer.py"
+    "target_file": ".agents/scripts/commands/dispenser.py"
   },
   "temporal_gap_marker": null
 }
@@ -239,23 +239,31 @@ State bypasses are locked against accidental or adversarial greenwashing:
 - **10-Minute TTL Expiration**: Transient flags such as `.orion/working/adversarial.json` and `TDD_RED` expire after 10 minutes, preventing stale error suppressions.
 - **Verified Test Gating**: Failure counters in `failures.log` can only be reset by a verified test suite pass (`Exit Code 0`), preventing benign commands like `git status` from clearing failure streaks.
 
-### 6.4. Zero-Escape Bento Task Slicer (`commands/bento_slicer.py`)
-To prevent Budget and Standard models in IDE chat sessions from skipping multi-file tasks or hallucinating line offsets:
-- **Topological Blast-Radius Sorting ($T_0 \to T_5$) & Bottom-Up File Ordering**: `orion.py bento init <plan.md>` parses implementation plans into atomic tasks, splits multi-pair cards into sub-tasks (`1.1a`, `1.1b`), checks `TTP-*` finding coverage, sorts tasks by architectural tier, and orders same-file edits from highest line number to lowest.
+### 6.4. Sequential Task Slicer & Stage Impulse Dispenser (`commands/dispenser.py`)
+To prevent Budget and Standard models in IDE chat sessions from skipping multi-file tasks or hallucinating line offsets, `.agents` implements a triple-strata task propulsion engine:
+- **Functional Engineering Role (Sequential Task Slicer)**: Slices high-level plans into atomic Action Cards (`.orion/working/ACTIVE_TASK.md`) with topological blast-radius sorting ($T_0 \to T_5$), live AST anchor recalibration, leading whitespace alignment, and a post-condition disk mutation gate (`Exit Code 2`).
+- **Cosmic Space Taxonomy Role (Stage / Impulse Dispenser)**: Dispenses quantized task impulses from the macro architectural blueprint down to execution runtime, guaranteeing that autonomous turns do not diverge from the plan.
+- **Legacy Backward Compatibility ("Bento Slicer")**: Retains full compatibility with existing `orion bento <init|slice|next|done|park|auto-solve|status>` commands, while enabling clean first-class invocation via `orion task-slicer` and `orion dispenser`.
+- **Topological Blast-Radius Sorting ($T_0 \to T_5$) & Bottom-Up File Ordering**: `orion.py task-slicer init <plan.md>` (or `bento init`) parses implementation plans into atomic tasks, splits multi-pair cards into sub-tasks (`1.1a`, `1.1b`), checks `TTP-*` finding coverage, sorts tasks by architectural tier, and orders same-file edits from highest line number to lowest.
 - **Live AST Anchor Recalibration & Whitespace Alignment**: Before rendering `.orion/working/ACTIVE_TASK.md`, the engine locates the exact `SEARCH` block on disk, populates `## 3. Verbatim SEARCH Block` with the exact disk window (`raw_window`), and shifts `## 4. Exact Drop-In REPLACE Block` by the exact leading whitespace delta.
-- **Post-Condition Disk Mutation Gate**: `orion.py bento next --verify` inspects the target file on disk before running tests. If the `SEARCH` block is still unpatched and `REPLACE` is absent, progression is rejected with `Exit Code 2 ([BENTO NO-OP REJECTED])`. Multi-line verification commands execute sequentially.
+- **Post-Condition Disk Mutation Gate**: `orion.py task-slicer next --verify` (or `bento next --verify`) inspects the target file on disk before running tests. If the `SEARCH` block is still unpatched and `REPLACE` is absent, progression is rejected with `Exit Code 2 ([BENTO NO-OP REJECTED])`. Multi-line verification commands execute sequentially.
 
 ### 6.5. Modular Gateway CLI Architecture (`commands/`)
-The CLI execution layer in `.agents/scripts/commands/` is organized into 9 focused Gateway CLI engines routed through `orion.py`:
-- **`commands/brain.py`**: Unified cognitive facade, Ollama hardware discovery (`NanoBrain`), rule matrix compilation, and contradiction management.
-- **`commands/bento_slicer.py`**: Topological Bento task slicer, live AST anchor recalibrator, disk indentation aligner, and post-condition disk mutation gate (`bento init|next|status|reset`).
+The CLI execution layer in `.agents/scripts/commands/` is organized into 14 focused Gateway CLI engines routed through `orion.py`:
+- **`commands/dispenser.py`** *(CLI aliases: `dispenser`, `impulse`, `task-slicer`, `slicer`, `bento`)*: Sequential Task Slicer & Stage Impulse Dispenser, live AST anchor recalibrator, disk indentation aligner, and post-condition disk mutation gate (`init|slice|next|done|park|auto-solve|status`).
+- **`commands/brain.py`** *(alias: `codex`)*: Unified cognitive facade, Ollama hardware discovery (`NanoBrain`), rule matrix compilation, and contradiction management.
 - **`commands/compact.py`**: 5-tier context compaction (`lite`, `stream`, `full`, `aggressive`, `ultra`, `pipeline`), stream elision, and Lessword protocol execution.
-- **`commands/rag.py`**: Local hybrid retrieval combining SQLite FTS5 BM25, packed float32 vector embeddings, 1-hop graph neighbor expansion, and `superseded_by` filtering.
-- **`commands/vault.py`**: Obsidian-compatible graph vault export and 4-note Second Brain briefing generation.
+- **`commands/galaxy.py`** *(CLI aliases: `galaxy`, `constellation`, `portfolio`)*: Multi-project portfolio mesh, living DNA scorecard harvester, and cross-repo Obsidian graph projection (`constellation` or `galaxy status|sync|export`).
+- **`commands/decisions.py`**: Immutable architectural decision records ledger (`DECISIONS.md`).
 - **`commands/foundation.py`**: Interactive setup wizard, 4-pillar capability doctor, Hub-and-Spoke deployment (`deploy`, `sync-ai`, `push-upstream`), and project initialization.
+- **`commands/polluter_finder.py`**: Test pollution isolation and shared state leak detection.
+- **`commands/rag.py`**: Local hybrid retrieval combining SQLite FTS5 BM25, packed float32 vector embeddings, 1-hop graph neighbor expansion, and `superseded_by` filtering.
+- **`commands/pulsar.py`** *(CLI aliases: `pulsar`, `reflexion`)*: 5-status Observation Ledger (`OBSERVATIONS.md`), Pulsar Temporal Pulse consolidation, operator habit mining, and wikilink injection (`reflexion` or `pulsar record|list|consolidate`).
 - **`commands/state_machine.py`**: Formal state machine (`fsm`), Git-bound checkpoint rollback, and budget telemetry.
-- **`commands/reflexion.py`**: 5-status Observation Ledger (`OBSERVATIONS.md`), Temporal Pulse consolidation, operator habit mining, and wikilink injection.
+- **`commands/observatory.py`** *(CLI aliases: `observatory`, `vault`)*: Observatory Obsidian-compatible graph vault export and 4-note Second Brain briefing generation (`vault` or `observatory export|second-brain|clean`).
 - **`commands/verify_agents.py`**: 8-gate mechanical verifier, structural ceiling gatekeeper (`core_max_lines`), preflight auditor, and delta-scoped AST mutation engine.
+- **`commands/worker.py`**: Subagent worker dispatcher and dependency overlap checker (`delegate-check`).
+- **`commands/worktree.py`**: Declarative Git worktree seeder and subagent isolation environment manager.
 
 ### 6.6. Universal Project DNA & Multi-Workspace Packer Engine (`utils/packer.py`)
 To enable multi-model frontier code audits without file upload limit friction or context explosion:
@@ -274,6 +282,7 @@ To enable multi-model frontier code audits without file upload limit friction or
   - *CLI Entrypoint Preservation*: Preserves executable entrypoints in `bin/` (e.g. `bin/flutterin.mjs`).
   - *Symlink Loop Protection*: Enforces realpath containment and disables recursive symlink traversal.
 - **Balanced Subtree Bin-Packing**: Uses `balance_into_k_bundles()` with an overflow penalty to partition repository volume into at most 10 balanced Markdown files (`.md`) across isolated tier subfolders (`.orion/bundles/{arch,hybrid,full}/`).
+- **GitHub-Push Mirror ZIP Archiving (`pack_zip` / `--zip`)**: Creates clean repository ZIP archives matching the exact state of what would be pushed to GitHub. Uses fast `git ls-files` (`--cached` + unignored untracked files) with a transparent pure-Python `os.walk` + `GitIgnoreFilter` fallback outside Git. Strictly excludes `.git/`, `.orion/`, caches, and `.gitignore` patterns while preserving binaries, images, configs, and lockfiles.
 
 ### 6.7. Sovereign & Mechanical Exception Boundaries (`@sovereign_catch` & `@mechanical_catch` in `core/db.py`)
 To eliminate silent failures and mutable fallback corruption across the Python engine, `core/db.py` provides two deterministic exception decorators:
@@ -284,10 +293,21 @@ To eliminate silent failures and mutable fallback corruption across the Python e
 - **`@sovereign_catch(fallback_fn, context, severity)`**:
   Executes a dynamic `fallback_fn(*args, **kwargs)` recovery path while recording structured diagnostics to `.orion/working/mechanical_catches.jsonl` and surfacing `[SOVEREIGN_CATCH]` warnings when `ORION_DEBUG=1`.
 
-### 6.8. Living Architectural DNA Engine (`core/dna.py`)
-Every workspace is continuously sequenced by `core/dna.py` (`orion.py dna scan|verify|discover|trend`) and persisted in `.agents/.dna.json`:
-1. **6-Strata Architectural Classification**: Classifies every source file into one of 6 canonical tiers: `0_pillars_and_manifests`, `1_contracts_and_schemas`, `2_domain_and_models`, `3_services_and_repositories`, `4_state_and_controllers`, `5_presentation_and_ui`, and `6_tests_and_evals` (plus `other_unclassified`).
+### 6.8. Living Architectural DNA & 5-Vector SemVer Gravity Engine (`core/dna.py`)
+Every workspace is continuously sequenced by `core/dna.py` (`orion.py dna scan|verify|discover|trend|semver|bump`) and persisted in `.agents/.dna.json`:
+1. **Canonic Strata Architectural Classification**: Classifies source files into canonical strata: `0_pillars_and_manifests`, `1_contracts`, `2_domain`, `3_services`, `4_state`, `5_presentation`, `8_native_and_cli`, and `9_verification` (plus `other_unclassified`).
 2. **Genomic Lifecycle State (`BORN` vs `MUTATING`)**: New workspaces start in `BORN` state (discovery mode) and transition to `MUTATING` once the architectural baseline is locked.
 3. **Non-Destructive Folder Mapping (`epigenetic_aliases`)**: Rather than forcing existing brownfield repositories to rename directories to match rigid framework templates, `orion.py dna discover` inspects actual directory trees and binds project-specific folder names (e.g., `adapters/`, `handlers/`, `screens/`) to canonical strata in `.dna.json`.
-4. **Directional Import Layer Enforcement**: Static AST/regex import analysis verifies that lower-level strata (`1_contracts_and_schemas`, `2_domain_and_models`) never import upward from `5_presentation_and_ui`.
+4. **Directional Import Layer Enforcement**: Static AST/regex import analysis verifies that lower-level strata (`1_contracts`, `2_domain`) never import upward from `5_presentation`.
 5. **DNA Compliance Score (`0`–`100`) & Trend Telemetry**: Computes a composite health score penalized only by real structural violations (`unclassified_ratio`, upward layer violations, and files exceeding line ceilings) and records historical snapshots in `.orion/dna_history.jsonl`.
+6. **Path-Agnostic Organ Discovery (`detect_feature_organs`)**: Recursively peels wrapper directories (`src`, `lib`, `app`, `internal`, `pkg`, `.agents`, `ecosystems`) to map polyglot monorepo and micro-framework files to functional organs, preventing Path Organ Blindness.
+7. **Mathematical 5-Vector SemVer Gravity Engine (`quantify_semver_impact`)**: Quantifies release impact via $S_{\text{impact}} = S_{\text{strata}} + S_{\text{organ}} + S_{\text{ast}} + S_{\text{commit}}$ with logarithmic strata scaling, topological entropy ($9.0 \cdot k$), additive commit verbs, maintenance damping ($0.45\times$), and single-file guard ($\le 29.0$). Maps $S_{\text{impact}} \ge 35.0 \to \text{MINOR}$ and $B_{\text{breaking}} \ge 50.0 \to \text{MAJOR}$.
+8. **Outcome-Centric Lessword Changelog Synthesis (`compact_changelog_entries`)**: Sanitizes developer trace paths, commit hashes, and PR numbers into concise, outcome-oriented release notes across 5 universal domain tiers (`Contracts & Architecture`, `Cognitive & Security`, `Execution & Tooling`, `Performance & State`, `UI & Developer Experience`).
+
+### 6.9. Turn-by-Turn Operational Cadence Matrix
+To prevent token bloat and terminal latency, execution operations are partitioned across a 5-tier cadence:
+- **Tier A (Turn 0/1 - Cold-Start / Session Wakeup)**: `pre-agent-wake.py` hook (<5ms SHA-256 prompt-cache gate), checking `ACTIVE_TASK.md` / `handoff.md`, JIT skill `read_file` (1x per session), and `orion.py brain sync` (PREMIUM tasks only).
+- **Tier B (Every Turn - Per-Action Delta)**: `orion.py scan map` (strictly for files >800 lines Standard / >350 Budget), `rtk` proxying, delta verification (`bento next --verify` or `dna-lint` or `verify --fast`), and Unified Response Footer.
+- **Tier C (Milestone Pre-Commit - Feature Complete)**: Full test suite, `orion.py dna audit`, `orion.py scan security .`, aesthetic audits, and full `orion.py verify`.
+- **Tier D (Turn Akhir - Session Offload)**: Sequential offload pipeline: `orion.py gc`, context ingestion, `orion.py dna semver`, `orion.py compress`, `orion.py harness promote`, updating `handoff.md`, and `orion.py consolidate session`.
+- **Tier E (Rare Lifecycle Only)**: Heavy hydration (`orion.py brain hydrate`), version release stamping (`orion.py dna bump`), and platform doctor diagnostics.

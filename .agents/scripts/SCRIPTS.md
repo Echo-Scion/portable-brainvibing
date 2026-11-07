@@ -1,6 +1,6 @@
 # 🚀 Scripts & Automation Index
 
-This directory contains the central engine and automation scripts for the **Portable Brainvibing** infrastructure.
+This directory contains the central engine and automation scripts for the **OrionCortex** infrastructure.
 
 ## Modular CLI: `orion.py`
 
@@ -17,18 +17,21 @@ python .agents/scripts/orion.py <command> [args...]
 | `context "<intent>"` | Orion-powered unified RAG context retrieval (alias of brain sync). | `commands/rag.py` (via `commands/brain.py`) |
 | `ingest <paths...>` | Ingests files and structural code triplets into brain graph. | `commands/brain.py` |
 | `gc` / `clean` | Garbage collects orphaned caches, stale test backups, loose vault mirrors, and vacuums SQLite orion.db. | `commands/brain.py` |
-| `brain export-vault` | Generates the Obsidian-compatible graph projection under `.orion/vault/` without modifying authored `context/` or `.agents/` sources. | `commands/vault.py` (via `commands/brain.py`) |
+| `brain export-vault` | Generates the Obsidian-compatible graph projection under `.orion/vault/` without modifying authored `context/` or `.agents/` sources. | `commands/observatory.py` (via `commands/brain.py`) |
 | `orion_ops init` | Initializes `.orion/` database and companion schemas. | `commands/brain.py` |
 | `orion_ops ingest` | Ingests rules, configs, and triplets into the `.orion/` knowledge store. | `commands/brain.py` |
 | `orion_ops resolve <query>`| Resolves wikilink nodes and returns graph neighborhood context. | `commands/brain.py` |
 | `graph <action>` | Direct interface to Pure-Python Louvain Modularity & Dual-Level GraphRAG. | `core/orion_graph.py` |
-| `linkify` | Auto-injects wikilinks across context and agent files. | `commands/reflexion.py` |
+| `linkify` | Auto-injects wikilinks across context and agent files. | `commands/pulsar.py` |
 | `compile` | Compiles Markdown rules into dense JSON matrices in `.orion/matrix/`. | `commands/brain.py` |
 | `matrix <query>` | Queries compiled JSON rule matrices. | `commands/brain.py` |
 | `contradict` | Detects and resolves colliding triplet predicates. | `commands/brain.py` |
 | `raw_ingest` | Ingests unstructured files in `context/raw/` into markdown wiki nodes. | `commands/brain.py` |
 | `diagnostics` | Evaluates RAG retrieval relevance, context grounding, and latency metrics. | `commands/rag.py` |
-| `constellation <action>` | Supervisory Multi-Project Knowledge Mesh & Second Brain (`status`, `sync`, `export`). | `commands/constellation.py` |
+| `constellation <action>` | Supervisory Multi-Project Knowledge Mesh & Second Brain (`status`, `sync`, `export`, `add`, `remove`). | `commands/galaxy.py` |
+| `galaxy <action>` | Dual-Layer Cosmic-Neuro supervisory Multi-Project Portfolio Mesh (alias for `constellation`). | `commands/galaxy.py` |
+| `observatory` / `vault` | Dual-Layer Cosmic-Neuro Observatory: exports Obsidian-compatible graph projection under `.orion/vault/`. | `commands/observatory.py` |
+| `codex "<intent>"` | Dual-Layer Cosmic-Neuro Core Codex hybrid RAG gateway. | `commands/brain.py` |
 
 ### 2. Quality Enforcement & Security Gatekeepers
 | Command | Purpose | Target Script |
@@ -53,7 +56,8 @@ python .agents/scripts/orion.py <command> [args...]
 | Command | Purpose | Target Script |
 | :--- | :--- | :--- |
 | `fsm <action>` | Crash-proof formal state machine tracker with Git-bound checkpoint rollbacks (`--restore-code`). | `commands/state_machine.py` |
-| `bento <action>` | Universal atomic task dispenser & plan slicer with live line recalibration (`slice`, `next`, `status`, `done`). | `commands/bento_slicer.py` |
+| `bento <action>` / `task-slicer` | Sequential Task Slicer: universal atomic task dispenser & plan slicer with live line recalibration (`slice`, `next`, `status`, `done`). | `commands/dispenser.py` |
+| `dispenser <action>` / `impulse` | Dual-Layer Cosmic-Neuro Stage / Impulse Dispenser: macro task propulsion dispenser (alias for `task-slicer`). | `commands/dispenser.py` |
 | `decisions <action>` | Architectural Decision Ledger & plan resolution tracker (`record`, `list`, `resolve`, `audit`). | `commands/decisions.py` |
 | `state_graph` | Superstep cyclic execution graph engine with channel reducers. | `commands/state_machine.py` |
 | `harness` | Sovereign autonomous evolution harness engine. | `core/harness/engine.py` |
@@ -61,18 +65,19 @@ python .agents/scripts/orion.py <command> [args...]
 | `bun` | Probes Bun standalone runtime and JS/TS execution capabilities. | `core/capabilities.py` |
 | `telemetry` | Structured span and execution trace telemetry logger. | `core/db.py` |
 | `sandbox` | Provides ephemeral isolated execution scratchpads for command safety. | `core/sandbox.py` |
-| `accelerators` | Tier 2 ephemeral Python accelerators (orjson, rapidfuzz, tree-sitter) in isolated cache. | `core/accelerators.py` |
+| `env` / `env --platform` | Probes host platform, OS environment, native slash commands, and accelerator status. | `core/platform_inspector.py` |
 
 ### 4. Memory Hygiene & Context Evolution
 | Command | Purpose | Target Script |
 | :--- | :--- | :--- |
 | `compress` | Compresses episodic memory into English Lessword format. | `commands/compact.py` (via `commands/brain.py`) |
-| `consolidate` | Activity-based temporal pulse knowledge synthesis. | `commands/reflexion.py` |
-| `record` | Verbal reflective learning and failure invariant logging. | `commands/reflexion.py` |
-| `observe` | Logs a raw signal/observation entry into `.agents/OBSERVATIONS.md`. | `commands/reflexion.py` |
-| `observations` | Lists and filters active observations from `.agents/OBSERVATIONS.md`. | `commands/reflexion.py` |
-| `resolve` | Resolves an observation and moves it to `.agents/OBSERVATIONS.archive.md`. | `commands/reflexion.py` |
-| `habits` | Mines operator habits and action n-gram patterns into `operator_profile.json`. | `commands/reflexion.py` |
+| `consolidate` | Activity-based temporal pulse knowledge synthesis. | `commands/pulsar.py` |
+| `pulsar <action>` | Dual-Layer Cosmic-Neuro Pulsar: activity-based temporal pulse knowledge synthesis and reflexive self-correction. | `commands/pulsar.py` |
+| `record` | Verbal reflective learning and failure invariant logging. | `commands/pulsar.py` |
+| `observe` | Logs a raw signal/observation entry into `.agents/OBSERVATIONS.md`. | `commands/pulsar.py` |
+| `observations` | Lists and filters active observations from `.agents/OBSERVATIONS.md`. | `commands/pulsar.py` |
+| `resolve` | Resolves an observation and moves it to `.agents/OBSERVATIONS.archive.md`. | `commands/pulsar.py` |
+| `habits` | Mines operator habits and action n-gram patterns into `operator_profile.json`. | `commands/pulsar.py` |
 | `amnesia` | Rule eviction mechanism (usage-based pruning). | `commands/state_machine.py` |
 | `compact` | Native 5-tier context compactor (`orion compact <lite|full|aggressive|ultra|pipeline>` or `<shrink|distill|fts5|stopword>`). | `commands/compact.py` |
 | `memory` | Virtual Core Memory & Archival store manager. | `commands/brain.py` |
@@ -93,6 +98,7 @@ python .agents/scripts/orion.py <command> [args...]
 | `design <select\|infer>` | Design contract manager: harvests brownfield UI tokens, infers archetypes heuristically or via AI prompt, and flattens `DESIGN.md` catalog tables (`orion design select <archetype>`). | `commands/foundation.py` (via `core/design_harvester.py`) |
 | `pack` | Universal context packager & multi-platform AI audit exporter with auto-intent vibe coding (`orion pack [audit|arch|hybrid|pr|diff|security|stats|<url>]`). | `utils/packer.py` |
 | `worktree` | Declarative Git worktree seeder & workspace manager (`orion worktree <seed|add|list>`). Ports `.worktreeinclude` assets into isolated sub-agent workspaces. | `commands/worktree.py` (via `core/worktree.py`) |
+| `env` | Scans host AI platform (Antigravity, Claude, Cursor), OS, 4-Pillars, and outputs native slash command & tool cheat sheet (`orion env [--platform\|--json]`). | `core/platform_inspector.py` |
 
 ---
 

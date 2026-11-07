@@ -25,7 +25,7 @@ When modifying any file inside `.agents/` (e.g., adding a new rule or modifying 
 - **The Four Anchored Pillars Mandate (Strict Prerequisites)**: All framework components, tools, and ingested skills must strictly align with the Four Anchored Pillars architecture (see `.agents/rules/four-pillars-architecture.md`):
   1. **Python 3 (Pure Standard Library)**: The universal core runtime for scripts, hooks, and linters (`re`, `ast`, `sqlite3`, `hashlib`, `urllib`). Zero mandatory `pip` packages.
   2. **Cargo / Rust**: The native high-performance layer for zero-latency CLI proxying and token hollowing (`rtk`).
-  3. **Ollama**: The local LLM coprocessor for offline embeddings, binary classification, and pre-distillation (`127.0.0.1:11434`). Parameter Guidelines: Requires $\ge 8\text{B}$ (e.g., Qwen 2.5 7B/14B, Llama 3.1 8B) for reliable embeddings and semantic classification; models $\le 3\text{B}$ operate strictly in degraded fallback mode for lexical/AST checks.
+  3. **Ollama**: The local LLM coprocessor for offline embeddings, binary classification, and pre-distillation (`127.0.0.1:11434`). Operates across the Elastic Continuum: light models (0.5B–3B) for fast classification/triplet extraction; $\ge 7\text{B}$ for deep reasoning.
   4. **Bun (Optional Static Engine)**: Fast zero-config TypeScript/JavaScript runtime for standalone AST tasks and script runners without npm bloat.
   *FORBIDDEN*: Heavy background HTTP daemons or arbitrary mandatory external package bloat. Any absorbed capability must align with graceful degradation across the Four Pillars.
 - **Modularity vs Cohesion (Critical Evaluation)**: Do not blindly separate files. 59 files are better for JIT loading (Skills/Rules), BUT core engine components (like `brain.py`, `compact.py`, `rag.py`) demand cohesion. Always evaluate: *Does separating this script cause unnecessary bash overhead and fragment the core memory engine?* If yes, preserve cohesive boundaries with unified facade re-exports.
@@ -71,8 +71,8 @@ When auditing the `.agents/` ecosystem, evaluate these core layers:
 4. **Knowledge Store (`.orion/` & `context/`)**: SQLite database (`orion.db` with FTS5 lexical search, binary float32 vector cosine similarity, and 1-hop graph neighbor traversal) and 4 Lean Pillars (`BLUEPRINT.md`, `ROADMAP.md`, `STYLE_GUIDE.md`, `ARCHITECTURE.md`).
 5. **Self-Evolution Loops (`.agents/skills/self-evolve/SKILL.md`, `LEARNINGS.md`)**: Reflection loops extracting operational lessons into permanent rules without policy drift.
 
-## Your Audit Directives (The 8 Mechanical Gates)
-When auditing the `.agents` ecosystem, execute these 8 gates in sequence (see full protocol in `.agents/skills/meta-agent-admin/references/meta-agent-audit.md`):
+## Your Audit Directives (The 9 Audit Gates)
+When auditing the `.agents` ecosystem, execute these 9 gates in sequence (see full protocol in `.agents/skills/meta-agent-admin/references/meta-agent-audit.md`):
 
 1. **Gate 1: Path & Hygiene Integrity (Zero Hardcode Mandate)**:
    Scan recursively across `.agents/` for forbidden machine-specific paths, raw `file://` schemes, or encoding leaks:

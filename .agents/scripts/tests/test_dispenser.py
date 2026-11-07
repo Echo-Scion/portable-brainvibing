@@ -10,7 +10,7 @@ _scripts_dir = Path(__file__).resolve().parents[1]
 if str(_scripts_dir) not in sys.path:
     sys.path.insert(0, str(_scripts_dir))
 
-from commands.bento_slicer import (
+from commands.dispenser import (
     extract_fenced_code_blocks,
     parse_action_cards,
     read_live_target_window,
@@ -309,7 +309,7 @@ primary_color = '#fff'
             self.assertEqual(tracks, {"TRACK-A", "TRACK-B"})
 
     def test_verify_patch_applied_on_disk_rejection(self):
-        from commands.bento_slicer import verify_patch_applied_on_disk
+        from commands.dispenser import verify_patch_applied_on_disk
         with tempfile.TemporaryDirectory() as td:
             temp_path = Path(td)
             f = temp_path / "sample.py"
@@ -328,7 +328,7 @@ primary_color = '#fff'
             self.assertTrue(ok)
 
     def test_align_replacement_indentation(self):
-        from commands.bento_slicer import _align_replacement_indentation
+        from commands.dispenser import _align_replacement_indentation
         raw_disk = "        def inner_func():\n            return 1"
         md_search = "    def inner_func():\n        return 1"
         md_repl = "    def inner_func():\n        return 999"
@@ -362,7 +362,7 @@ new_part_2 = False
         self.assertEqual(cards[1]["search_code"], "old_part_2 = False")
 
     def test_check_finding_coverage(self):
-        from commands.bento_slicer import check_finding_coverage
+        from commands.dispenser import check_finding_coverage
         content = """
 ## Threat Table
 | ID | Description |

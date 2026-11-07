@@ -31,13 +31,15 @@ export const useCounter = create<State>((set) => ({ count: 0, inc: () => set((s)
 // Consumption: const count = useCounter((s) => s.count);
 ```
 
-## 4. 4-State Presentation Pattern
+## 4. State-Complete Presentation Pattern (Skeleton, Instructional Error, Orientation Empty)
 ```tsx
-export function View() {
-  const { data, isLoading, isError, error } = useUsers();
-  if (isLoading) return <div aria-busy="true" className="animate-pulse">Loading...</div>;
-  if (isError) return <div role="alert">Error: {(error as Error).message}</div>;
-  if (!data?.length) return <div>No records found.</div>;
-  return <ul>{data.map((u) => <li key={u.id}>{u.name}</li>)}</ul>;
+export function View({ query = "", onReset, onCreate }: { query?: string; onReset?: () => void; onCreate?: () => void }) {
+  const { data, isLoading, isError, refetch } = useUsers();
+  if (isLoading) return <div aria-busy="true" className="h-10 animate-pulse rounded-md bg-slate-200 dark:bg-slate-800" />;
+  if (isError) return <div role="alert">Unable to load users. <button type="button" onClick={() => refetch()}>Retry</button></div>;
+  if (!data?.length) return <div><p>No users yet</p><button type="button" onClick={onCreate}>Create user</button></div>;
+  const visible = query ? data.filter((u) => u.name.toLowerCase().includes(query.toLowerCase())) : data;
+  if (!visible.length) return <div><p>No results for "{query}"</p><button type="button" onClick={onReset}>Clear filters</button></div>;
+  return <ul>{visible.map((u) => <li key={u.id} className="truncate">{u.name}</li>)}</ul>;
 }
 ```

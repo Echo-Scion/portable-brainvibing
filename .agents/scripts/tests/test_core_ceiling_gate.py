@@ -38,8 +38,9 @@ class TestCoreCeilingGate(unittest.TestCase):
         with patch("commands.verify_agents.SKILLS_DIR", self.skills_dir):
             check_protocol_compliance(res, verbose=False)
 
-        err_msgs = [e["message"] for e in res.errors]
-        self.assertTrue(any("exceeds declared ceiling core_max_lines" in m for m in err_msgs))
+        warn_msgs = [w["message"] for w in res.warnings]
+        self.assertTrue(any("exceeds declared ceiling core_max_lines" in m for m in warn_msgs))
+        self.assertEqual(len(res.errors), 0)
 
     def test_core_max_lines_ratchet_warning(self):
         skill_dir = os.path.join(self.skills_dir, "test-skill-ratchet")

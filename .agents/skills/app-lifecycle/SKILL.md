@@ -52,24 +52,24 @@ This is the standard engineering pipeline. It operates as a **State Machine**, n
 - **Next Phase**: On blueprint approval, transition to Phase 3 (TDD) via `.agents/skills/strict-tdd/SKILL.md`.
 
 ### Phase 3: Test-Driven Development (TDD)
-- **Trigger**: Run `view_file .agents/skills/strict-tdd/SKILL.md` or `view_file .agents/skills/app-lifecycle/references/app-builder.md`
+- **Trigger**: The Agent MUST execute `view_file` on `.agents/skills/strict-tdd/SKILL.md` or `.agents/skills/app-lifecycle/references/app-builder.md`.
 - **Action**: Implement domain logic following strict RED-GREEN-REFACTOR cycles.
 - **Output Required**: Test execution logs showing `[PASS]`.
 - **Next Phase**: After logic tests pass, transition to Phase 4 (UI Polish) via `.agents/skills/ui-finish/SKILL.md`.
 
 ### Phase 4: Aesthetic & UI Polish (Visual Engineering)
-- **Trigger**: Run `view_file .agents/skills/ui-finish/SKILL.md`
+- **Trigger**: The Agent MUST execute `view_file` on `.agents/skills/ui-finish/SKILL.md`.
 - **Action**: Load `DESIGN.md` for project aesthetic direction and tokens. Enforce purposeful visual hierarchy, touch target ergonomics, and complete state triad (Loading/Empty/Error). Verify contrast via `python .agents/evals/audit_aesthetics.py --contrast "<fg_hex>" "<bg_hex>"`.
 - **Next Phase**: On UI completion, transition to Phase 5 (Security Audit) via `.agents/skills/integrity-sentinel/SKILL.md`.
 
 ### Phase 5: Security & Optimization Audit
-- **Trigger**: Run `view_file .agents/skills/code-review/SKILL.md` & `view_file .agents/skills/integrity-sentinel/SKILL.md`
+- **Trigger**: The Agent MUST execute `view_file` on `.agents/skills/code-review/SKILL.md` and `.agents/skills/integrity-sentinel/SKILL.md`.
 - **Action**: Perform adversarial review and static AST security verification.
 - **Output Required**: Verify with `python .agents/scripts/orion.py verify --fast`.
 - **Next Phase**: On green audit, transition to Phase 6 (Session Offload) via `.agents/skills/session-offload/SKILL.md`.
 
 ### Phase 6: Session Offload
-- **Trigger**: Run `view_file .agents/skills/session-offload/SKILL.md`
+- **Trigger**: The Agent MUST execute `view_file` on `.agents/skills/session-offload/SKILL.md`.
 - **Action**: Clean up worktree, compress memory, and generate session handoff state.
 
 ## 📚 Mandatory Knowledge Routing (JIT References)
@@ -82,4 +82,5 @@ This is the standard engineering pipeline. It operates as a **State Machine**, n
 | **Legacy Migration / Brownfield** | .agents/skills/app-lifecycle/references/project-migrate.md |
 | **Feature Construction** | .agents/skills/app-lifecycle/references/app-builder.md |
 | **Feature Sunsetting** | .agents/skills/app-lifecycle/references/feature-sunset.md |
+| **Platform Capabilities / Slash Tools** | .agents/skills/app-lifecycle/references/platform-superpowers.md |
 

@@ -36,7 +36,7 @@ This template defines the complete `.github/` directory structure that will be c
 │   ├── verify-agents.yml           # Verify structural integrity (required)
 │   ├── deploy-foundation.yml       # Deploy foundation to new projects (required)
 │   ├── check-staleness.yml         # Detect stale/deprecated files (required)
-│   ├── publish-foundation.yml      # Sync to portable brainvibing (required)
+│   ├── publish-foundation.yml      # Sync to orioncortex (required)
 │   └── custom/                     # Project-specific custom workflows (optional)
 │       └── .gitkeep
 │

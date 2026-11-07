@@ -30,6 +30,9 @@ from core.dna import (
     compact_changelog_entries,
     evaluate_dna_semver,
     classify_file_to_tier,
+    quantify_semver_impact,
+    detect_feature_organs,
+    sanitize_changelog_line,
 )
 
 
@@ -190,6 +193,18 @@ class TestDNASemVerUniversal(unittest.TestCase):
             )
             self.assertEqual(eval_patch["recommended_bump"], "PATCH")
             self.assertEqual(eval_patch["target_version"], "1.0.1")
+
+            # 7. Cumulative feature commits unlock MINOR even without milestone tag
+            eval_cumulative_feat = evaluate_dna_semver(
+                td,
+                file_list=[".agents/scripts/commands/galaxy.py", ".agents/scripts/core/spoke_mesh.py"],
+                commit_messages=[
+                    "feat(constellation): arbitrary spoke discovery",
+                    "feat(worker): swarm harness multi-model router",
+                ],
+            )
+            self.assertEqual(eval_cumulative_feat["recommended_bump"], "MINOR")
+            self.assertEqual(eval_cumulative_feat["target_version"], "1.1.0")
 
     def test_lessword_changelog_compaction(self):
         """Verifies that compact_changelog_entries condenses raw bullet points into dense domain lines."""
@@ -410,11 +425,11 @@ class TestDNASemVerUniversal(unittest.TestCase):
             self.assertFalse(os.path.exists(os.path.join(td, "VERSION")))
 
     def test_subfolder_repo_and_anti_framework_filter(self):
-        """Verifies subfolder repo discovery and ignoring AI framework config (portable-brainvibing)."""
+        """Verifies subfolder repo discovery and ignoring AI framework config (orioncortex)."""
         with tempfile.TemporaryDirectory() as td:
             # 1. Root contains foundation gemini-extension.json
             with open(os.path.join(td, "gemini-extension.json"), "w", encoding="utf-8") as f:
-                json.dump({"name": "portable-brainvibing", "version": "0.0.3"}, f)
+                json.dump({"name": "orioncortex", "version": "0.0.6"}, f)
 
             # 2. Subfolder contains cloned repo hermes-agent with pyproject.toml
             sub_dir = os.path.join(td, "hermes-agent")
@@ -551,6 +566,89 @@ class TestDNASemVerUniversal(unittest.TestCase):
             joined_commits = "\n".join(res["unreleased_commits"])
             self.assertIn("feat(ai-adapter): unify canonical AGENTS.md", joined_commits)
             self.assertIn("feat(design): add brownfield token harvester", joined_commits)
+
+    def test_quantify_semver_impact_natural_features_triggers_minor(self):
+        """Verifies tag-free natural feature commits with cross-organ impact exceed MINOR threshold (>= 35.0)."""
+        changed_files = [
+            "src/payment/processor.py",
+            "src/payment/gateway.py",
+            "src/auth/token_service.py",
+            "src/inventory/stock.py",
+        ]
+        commits = [
+            "Implement multi-provider billing gateway support",
+            "Introduce inventory stock reservation engine",
+            "Add public TokenVerifier interface for auth federation",
+        ]
+        ast_delta = {
+            "added_symbols": ["ProcessPayment", "ReserveStock", "TokenVerifier"],
+            "removed_symbols": [],
+            "modified_symbols": ["ValidateUser"],
+        }
+        res = quantify_semver_impact(
+            changed_files=changed_files,
+            commits=commits,
+            ast_delta=ast_delta,
+            added_files=["src/payment/gateway.py", "src/inventory/stock.py"],
+            deleted_files=[],
+        )
+        self.assertGreaterEqual(res["impact_score"], 35.0)
+        self.assertEqual(res["recommended_bump"], "minor")
+        self.assertIn("payment", res["organs_affected"])
+        self.assertIn("inventory", res["organs_affected"])
+
+    def test_quantify_semver_impact_single_file_maintenance_guard(self):
+        """Verifies single-file bugfix is damped <= 29.0, preventing spurious MINOR bumps."""
+        changed_files = ["src/auth/session.py"]
+        commits = [
+            "fix(auth): handle expired refresh token race condition",
+        ]
+        ast_delta = {
+            "added_symbols": [],
+            "removed_symbols": [],
+            "modified_symbols": ["RefreshSession"],
+        }
+        res = quantify_semver_impact(
+            changed_files=changed_files,
+            commits=commits,
+            ast_delta=ast_delta,
+            added_files=[],
+            deleted_files=[],
+        )
+        self.assertLessEqual(res["impact_score"], 29.0)
+        self.assertEqual(res["recommended_bump"], "patch")
+
+    def test_detect_feature_organs_peeling_and_headless(self):
+        """Verifies wrapper peeling on packages/, internal/, lib/ and adaptive headless detection."""
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "packages", "billing", "src"), exist_ok=True)
+            os.makedirs(os.path.join(td, "packages", "shipping", "src"), exist_ok=True)
+            os.makedirs(os.path.join(td, "internal", "auth"), exist_ok=True)
+
+            with open(os.path.join(td, "packages", "billing", "src", "invoice.py"), "w", encoding="utf-8") as f:
+                f.write("class Invoice: pass\n")
+            with open(os.path.join(td, "packages", "shipping", "src", "label.py"), "w", encoding="utf-8") as f:
+                f.write("class Label: pass\n")
+            with open(os.path.join(td, "internal", "auth", "session.py"), "w", encoding="utf-8") as f:
+                f.write("class Session: pass\n")
+
+            organs = detect_feature_organs(td)
+            organ_names = [o["name"] for o in organs]
+            self.assertIn("billing", organ_names)
+            self.assertIn("shipping", organ_names)
+            self.assertIn("auth", organ_names)
+
+    def test_sanitize_changelog_line_lessword(self):
+        """Verifies internal debugging, commits hashes, PR numbers are stripped from changelog lines."""
+        raw_1 = "feat(auth): add OAuth2 provider support (#123) [commit 7f3a9b1]"
+        san_1 = sanitize_changelog_line(raw_1)
+        self.assertNotIn("#123", san_1)
+        self.assertNotIn("7f3a9b1", san_1)
+        self.assertIn("OAuth2 provider", san_1)
+
+        raw_2 = "fix: resolve deadlock in cache invalidation. Fixed bug in dev test."
+        san_2 = sanitize_changelog_line(raw_2)
+        self.assertIn("Resolve deadlock in cache invalidation", san_2)
 
 
 if __name__ == "__main__":

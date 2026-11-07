@@ -8,7 +8,7 @@
 ## 1. The Core Principle: Continuous Execution
 
 When the user commands **"Execute"** or approves an implementation plan:
-- **Execute all plan tasks without stopping**: Do NOT pause between tasks to ask "Should I proceed to step 2?". Complete the work.
+- **Execute all plan tasks without stopping**: The Agent MUST NOT pause between tasks to ask permission to proceed to step 2. Complete the work.
 - **Rulings, Not Stalls**: A running plan does not park on a human question for minor edge cases or ambiguities. Decide them decisively.
   - Record each decision as: `Ruling: <decision> — <rationale> — <rework cost if wrong>`.
   - Keep going. A wrong ruling costs minor rework that can be reviewed; parking the session costs human time and stalls momentum.

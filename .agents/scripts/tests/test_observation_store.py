@@ -8,7 +8,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from commands.reflexion import ObservationLedger
+from commands.pulsar import ObservationLedger
 
 
 class TestObservationStore(unittest.TestCase):

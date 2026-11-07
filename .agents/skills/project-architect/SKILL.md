@@ -43,22 +43,19 @@ When designing a data model, use this tree:
 Q1. Does the data have strict relational integrity? (YES -> Postgres Relational Tables, NO -> Q2)
 Q2. Is the data highly unstructured or document-like? (YES -> Postgres `jsonb` columns, NO -> Relational Tables)
 
-### Supabase Row Level Security (MANDATORY TEMPLATE)
-NEVER create a table in Supabase without applying RLS.
+### Database Access Control & Row-Level Security (When Using Postgres / Supabase)
+When the target stack uses Postgres or Supabase, NEVER expose a public table without applying Row Level Security (RLS):
 ```sql
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public profiles are viewable by everyone." ON public.posts FOR SELECT USING ( is_public = true OR auth.uid() = user_id );
 CREATE POLICY "Users can insert their own posts." ON public.posts FOR INSERT WITH CHECK ( auth.uid() = user_id );
 ```
 
-## 8. Architecture Trade-Off Gate (User Decision)
+## 8. Architecture Trade-Off Gate & `(Recommended)` Mandate
 When an architectural decision has more than one defensible choice (e.g., data schema, component boundaries, storage engine, protocols):
-1. **Present Options**: Present up to three options. For each option, outline:
-   - Concrete mechanism.
-   - Trade-offs (pros and cons).
-   - Failure conditions (under what constraints this option breaks down).
-2. **Never Rank or Pick Silently**: Do not select an architectural path without human sign-off.
-3. **Handle "Just Pick One"**: If the user asks you to decide for them, restate the critical trade-off and failure condition, and prompt for confirmation. (Mechanical choices with only one defensible answer, such as file formatting, should be decided directly).
+1. **Present Options & Tag `(Recommended)`**: Present up to three options outlining the concrete mechanism, trade-offs, and failure conditions. In accordance with `AGENTS.md §1 (Ambiguity Halt & Zero-Debt Decision Mandate)`, tag the strongest engineering option with `(Recommended)` unless the choice is a true 50/50 product fork.
+2. **Approval & Decision Ledger**: Never pick an architectural fork silently during discovery. Once the user approves the plan (`"Proceed"`), execute the `(Recommended)` path to 100% completion and record the choice in `.agents/DECISIONS.md` (`python .agents/scripts/orion.py decisions record`).
+3. **Handle "Just Pick One"**: If the user asks the Agent to decide, execute the `(Recommended)` option, state the critical trade-off in one line, and record it in `.agents/DECISIONS.md`.
 
 ## 9. Upstream 6-Vector Pre-Blueprint Interrogation
 When exploring raw feature hypotheses before drafting blueprints, stress-test the concept against the 6 Pre-Blueprint Stress-Test Lenses (see `references/strategic_rigor.md`):

@@ -21,18 +21,19 @@ Evaluate the idea against three absolute realities:
 2. **The Competitor Reality (Why Big Money Wins):** Giants (Google, Canva, etc.) win due to *default distribution* and *zero-friction*. Your surface visual features (UI/text) **will** be cloned by them in 2 weeks once your idea validates the market.
 3. **The Vibe-Coding Reality (Fast Cloning):** In the era of AI-driven coding agents, basic CRUD apps and thin API wrappers are reverse-engineered and recreated overnight. How do you prevent binary/prompt theft?
 
-### B. The Viability Scorecard (Critical Assessment)
-Calculate a score (1-5 for each dimension) before making a decision.
-1. **Defensibility (The Moat):** 1 (Easily copied via CSS/LLM prompt) ➔ 5 (Proprietary data, local-first engine, hardware-level platform superpowers).
-2. **Anti-Clone Hardening Posture:** 1 (Exposed client credentials, clean un-obfuscated bytecode, trivial MITM scraping) ➔ 5 (AOT obfuscation/symbol splitting, hardware Keystore/BYOK, certificate pinning, hardware attestation).
-3. **Platform Superpower Leverage:** 1 (Generic webview wrapper or standard CRUD ignoring platform strengths) ➔ 5 (Aggressively exploits native hardware, e.g. Impeller 120Hz shaders, SIMD compute, OS background daemons, zero-latency streaming).
-4. **Distribution (Cost of Acquisition):** 1 (Must pay for expensive ads with no network effect) ➔ 5 (Viral B2B organic growth, highly vocal specific niche utility).
-5. **Margin (Cost of Goods Sold/Compute):** 1 (Expensive centralized cloud models, burning server cash in month 1) ➔ 5 (On-device BYOK compute, client-side processing, zero-cloud idle cost).
+### B. The 6-Dimension Viability Scorecard (Unified 60-Point Scale)
+Calculate a score (**1–10 for each of the 6 canonical dimensions**, matching `saas-strategist/SKILL.md`) before making a decision:
+1. **Technical Complexity & Margin Efficiency (1–10):** 1 (Expensive cloud LLM wrapper burning server cash) ➔ 10 (Lean local-first/BYOK compute, zero idle cloud cost).
+2. **Market Saturation & Defensibility Moat (1–10):** 1 (100+ identical CRUD clones) ➔ 10 (Proprietary data, deep workflow lock-in, blue-ocean niche).
+3. **Monetization Ease & Distribution (1–10):** 1 (High CAC ads with low willingness to pay) ➔ 10 (Clear B2B/prosumer pain point with organic viral loop).
+4. **Solo-Dev Feasibility (1–10):** 1 (Requires multi-team enterprise ops) ➔ 10 (Shippable MVP in < 1 month with `.agents` scaffolding).
+5. **Platform Superpower Leverage (1–10):** 1 (Generic web wrapper ignoring native capabilities) ➔ 10 (Exploits Impeller 120Hz shaders, SIMD/WASM, Rust CLI, or OS daemons).
+6. **Anti-Clone Hardening Posture (1–10):** 1 (Exposed client keys, trivial decompilation) ➔ 10 (AOT symbol splitting, R8 obfuscation, hardware Keystore/BYOK, cert pinning).
 
-**Decision Thresholds (Out of 25):**
-- **Total Score < 13 ➔ DROP:** Fatally flawed or easily cloned idea. Cancel this project right now to save time.
-- **Total Score 13 - 18 ➔ PIVOT:** Exploit platform-native superpowers or harden defensibility architecture.
-- **Total Score > 18 ➔ FIGHT:** Apply "The Underdog Playbook".
+**Decision Thresholds (Out of 60):**
+- **Total Score < 30 ➔ DROP:** Fatally flawed or trivially cloned idea. Cancel this project now to save time.
+- **Total Score 30 – 35 ➔ PIVOT:** Reduce scope, exploit platform-native superpowers, or harden defensibility before writing code.
+- **Total Score >= 36 ➔ FIGHT:** Viable candidate. Apply "The Underdog Playbook" and append the scorecard to `context/00_Strategy/BLUEPRINT.md`.
 
 ### C. The Underdog Playbook (Beating "Big Money" & Clone Armies)
 If the evaluation result is FIGHT, you must present this survival strategy:
@@ -41,10 +42,10 @@ If the evaluation result is FIGHT, you must present this survival strategy:
 3. **Exploit Platform Superpowers:** Build where web views cannot go (Impeller hardware shaders, local SIMD/WASM, native background OS pipes).
 4. **Harden the Perimeter:** Enforce AOT obfuscation, symbol splitting, hardware keystore storage, and certificate pinning so decompiling the binary yields zero actionable keys.
 
-### D. The Recursive Viability Engine (Path to 25/25)
-If the score is below 25/25 and the user wishes to iterate, enforce the **Recursive Viability Loop**:
+### D. The Recursive Viability Engine (Path to 60/60)
+If the score is below 60/60 and the user wishes to iterate, enforce the **Recursive Viability Loop**:
 1. **Lock the Vision Invariant:** Define the *one core problem* and *target outcome* that cannot change. Everything else (product form, persona, distribution, pricing, tech stack) is mutable.
-2. **Diagnose Bottlenecks:** Identify the lowest scoring dimensions (Defensibility, Hardening, Superpowers, Distribution, Margin).
+2. **Diagnose Bottlenecks:** Identify the lowest scoring dimensions.
 3. **Generate Radical Pivots:** Propose 3 extreme pivots that fix the bottlenecks while obeying the Vision Invariant.
 4. **Forecast & Select:** Estimate the new score for each pivot. Select the highest score.
 5. **Recursive Re-score:** Run the scorecard again. Do not stop until the product model mathematically supports a high score or the user forces a build.
@@ -62,7 +63,7 @@ Use the following format as the structure for the *output artifact* at the end o
 
 ## 1. Verdict & Confidence
 - **Decision:** [DROP / PIVOT / FIGHT]
-- **Viability Confidence Score:** [X/25]
+- **Viability Confidence Score:** [X/60]
 - **Target Demographic:** [Who actually cares about this?]
 
 ## 2. Top 3 Fatal Flaws (The Brutal Truth)
@@ -71,11 +72,12 @@ Use the following format as the structure for the *output artifact* at the end o
 3. [Vibe-Coding / Clone Vulnerability 3]
 
 ## 3. Scorecard Breakdown
-- **Defensibility (The Moat):** [Score/5] - [Brief Reason]
-- **Anti-Clone Hardening Posture:** [Score/5] - [Brief Reason]
-- **Platform Superpower Leverage:** [Score/5] - [Brief Reason]
-- **Distribution:** [Score/5] - [Brief Reason]
-- **Margin / Compute:** [Score/5] - [Brief Reason]
+- **Technical Complexity & Margin Efficiency:** [Score/10] - [Brief Reason]
+- **Market Saturation & Defensibility Moat:** [Score/10] - [Brief Reason]
+- **Monetization Ease & Distribution:** [Score/10] - [Brief Reason]
+- **Solo-Dev Feasibility:** [Score/10] - [Brief Reason]
+- **Platform Superpower Leverage:** [Score/10] - [Brief Reason]
+- **Anti-Clone Hardening Posture:** [Score/10] - [Brief Reason]
 
 ## 4. Recommended Action (Pivot/Playbook Path)
 [If Drop: Absolute reason for termination]

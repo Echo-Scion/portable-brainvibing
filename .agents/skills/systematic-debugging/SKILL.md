@@ -62,3 +62,21 @@ Execute these four phases sequentially for ANY bug, test failure, crash, or unex
 - **Condition-Based Waiting**: [references/condition-based-waiting.md](references/condition-based-waiting.md) (Eliminate flaky sleeps in async tests).
 - **4-Layer Defense-in-Depth**: [references/defense-in-depth.md](references/defense-in-depth.md) (Entry, Domain, Sandbox, and Telemetry layers).
 - **Test Pollution Bisector**: Run `python .agents/scripts/orion.py polluter <leak_target> <test_pattern>` to isolate tests that leak state or files.
+
+## 💡 Continuous Learnings
+<!-- LEARNED_START -->
+- Recurring Mechanical Catch in scanner.py:ast_symbol_cache_read: Enforce boundary invariant guard on scanner.py:ast_symbol_cache_read
+- Recurring Mechanical Catch in generate_completion:openai:qwen2.5-coder:3b-lite: Enforce boundary invariant guard on generate_completion:openai:qwen2.5-coder:3b-lite
+- Recurring Mechanical Catch in orion:record_tool_quantum: Enforce boundary invariant guard on orion:record_tool_quantum
+- Recurring Mechanical Catch in capabilities:record_tool_call: Enforce boundary invariant guard on capabilities:record_tool_call
+- Recurring Mechanical Catch in packer.py:_call_local_llm_for_taxonomy: Enforce boundary invariant guard on packer.py:_call_local_llm_for_taxonomy
+- Recurring Mechanical Catch in pre_wake:record_turn: Enforce boundary invariant guard on pre_wake:record_turn
+- Recurring Mechanical Catch in multi_layer_memory_pre_wake: Enforce boundary invariant guard on multi_layer_memory_pre_wake
+- Recurring Mechanical Catch in brain.py:gc_ep_file:session_20261019_160740.md: Enforce boundary invariant guard on brain.py:gc_ep_file:session_20261019_160740.md
+- Recurring Mechanical Catch in brain.py:gc_obs_rollover: Enforce boundary invariant guard on brain.py:gc_obs_rollover
+- Recurring Mechanical Catch in rag:filter_overlapping_context: Enforce boundary invariant guard on rag:filter_overlapping_context
+- Recurring Mechanical Catch in probe_local_ollama_for_vision: Enforce boundary invariant guard on probe_local_ollama_for_vision
+- Recurring Mechanical Catch in brain.py:classify_file:dna: Enforce boundary invariant guard on brain.py:classify_file:dna
+- Recurring Mechanical Catch in auto_sync_compile: Enforce boundary invariant guard on auto_sync_compile
+- Graduated Observation: Verify gate failure: GHOST - Invalid orion CLI subcommand: 'debug': Enforce deterministic verifier for Verify gate failure: GHOST - Invalid orion CLI sub
+<!-- LEARNED_END -->

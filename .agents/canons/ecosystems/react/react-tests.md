@@ -81,18 +81,31 @@ describe("ActionButton", () => {
 });
 ```
 
-## 3. Playwright E2E Test Smoke Spec
+## 3. Playwright E2E, State-Transition & Production Gremlin Spec
+
+Always test goal-driven user scenarios across state transitions (Loading -> Populated -> Filtered-to-Empty -> Recovery) and Production Gremlins (120-char unbroken strings, 0 items, keyboard-only navigation):
 
 ```typescript
 import { test, expect } from "@playwright/test";
 
-test.describe("App Navigation & Smoke Test", () => {
-  test("loads landing page and verifies navigation", async ({ page }) => {
+test.describe("Goal-Driven Journey, State Transitions & Gremlins", () => {
+  test("completes keyboard-only flow, recovers from filtered-empty state, and survives long-text gremlins", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/My React App/i);
+    await page.waitForLoadState("networkidle");
 
-    const mainHeading = page.locator("h1");
-    await expect(mainHeading).toBeVisible();
+    // 1. Keyboard-only modal focus trap & focus restoration (WCAG 2.4.3 / 2.4.7)
+    const createTrigger = page.getByRole("button", { name: /^create item$/i });
+    await createTrigger.focus();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(createTrigger).toBeFocused();
+
+    // 2. Filtered-to-Empty state recovery transition
+    const searchInput = page.getByRole("searchbox");
+    await searchInput.fill("nonexistent_gremlin_query_999");
+    await expect(page.getByText(/no results for "nonexistent_gremlin_query_999"/i)).toBeVisible();
+    await page.getByRole("button", { name: /^clear filters$/i }).click();
+    await expect(searchInput).toHaveValue("");
   });
 });
 ```

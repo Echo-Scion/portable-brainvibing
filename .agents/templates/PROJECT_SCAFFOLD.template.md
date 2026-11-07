@@ -93,9 +93,9 @@
 **Stack**: {{tech_stack}}
 **UI Aesthetic**: {{visual_aesthetic}}
 **Strategic Tiering**: 
-- Architecture: **Premium** (High-Rigor)
-- Logic & Data: **Standard** (Reliability)
-- UI & Assets: **Budget** (Speed)
+- Architecture & Multi-Lens Discovery: **Premium** (5-Advisor Stress-Test & 2-Hypothesis Layout Exploration)
+- Logic, State Machine & UI Craft: **Standard** (6-Family State Completeness, Concentric Geometry & WCAG 2.2 AA)
+- Isolated Copy & Config Tweaks: **Budget** (Surgical <50-line Micro-Polish)
 
 **Database Schema**: 
 {{database_schema_detail}}
@@ -251,7 +251,7 @@ Contains files related to Development, Infrastructure, and Testing.
 <!-- </saas-registry-matrix> -->
 
 ---
-*Portable Brainvibing Infrastructure - Unified Context Registry*
+*OrionCortex Infrastructure - Unified Context Registry*
 
 ## Core Pillar Mapping
 # Bi-directional Mapping: Lean (Master) ↔ SaaS (Surgical Detail)
@@ -282,5 +282,5 @@ When "downgrading" or simplifying:
 1.  **Condense**: AI reads all Prefix files and summarizes them back into the 4 Master files.
 
 ---
-*Portable Brainvibing Infrastructure - Unified Context Mapping Protocol*
+*OrionCortex Infrastructure - Unified Context Mapping Protocol*
 

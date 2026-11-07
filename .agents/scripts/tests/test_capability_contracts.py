@@ -74,6 +74,46 @@ class CapabilityContractTests(unittest.TestCase):
                             self.assertEqual(statuses["pillars"]["pillar_3"]["available"], ollama_on)
                             self.assertEqual(statuses["pillars"]["pillar_4"]["available"], bun_on)
 
+    def test_parse_dotenv_value_hygiene(self):
+        """Verifies robust parsing of .env values with quotes and comments."""
+        from core.capabilities import _parse_dotenv_value
+
+        self.assertEqual(_parse_dotenv_value('"https://llm.chutes.ai/v1"'), "https://llm.chutes.ai/v1")
+        self.assertEqual(_parse_dotenv_value("'secret_key_123'"), "secret_key_123")
+        self.assertEqual(_parse_dotenv_value("sk-test-1234 # inline comment"), "sk-test-1234")
+        self.assertEqual(_parse_dotenv_value('"val with # inside quotes"'), "val with # inside quotes")
+        self.assertEqual(_parse_dotenv_value(""), "")
+
+    def test_resolve_api_slot_config(self):
+        """Verifies multi-provider slot resolution for Chutes and 9Router loopback."""
+        import os
+        from core.capabilities import resolve_api_slot_config
+
+        # 1. Chutes slot configuration
+        dummy_chutes_key = "cpk_" + "test1234567890abcdef"
+        with patch.dict(os.environ, {
+            "ORION_API_URL": "https://llm.chutes.ai/v1",
+            "CHUTES_API_KEY": dummy_chutes_key,
+            "ORION_API_MODEL_COUNCIL": "Qwen/Qwen2.5-Coder-32B-Instruct",
+        }, clear=False):
+            cfg = resolve_api_slot_config("council")
+            self.assertEqual(cfg["base_url"], "https://llm.chutes.ai/v1")
+            self.assertEqual(cfg["api_key"], dummy_chutes_key)
+            self.assertEqual(cfg["model"], "Qwen/Qwen2.5-Coder-32B-Instruct")
+            self.assertTrue(cfg["has_api"])
+
+        # 2. 9Router loopback keyless resolution
+        with patch.dict(os.environ, {
+            "ORION_API_URL": "http://127.0.0.1:20128/v1",
+            "ORION_API_KEY": "",
+            "CHUTES_API_KEY": "",
+            "OPENROUTER_API_KEY": "",
+        }, clear=False):
+            cfg = resolve_api_slot_config("fast")
+            self.assertEqual(cfg["base_url"], "http://127.0.0.1:20128/v1")
+            self.assertTrue(cfg["has_api"])
+            self.assertTrue(cfg["api_key"])  # Placeholder key for loopback
+
 
 if __name__ == "__main__":
     unittest.main()

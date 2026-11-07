@@ -1002,7 +1002,7 @@ def recall_anchor(anchor_query: str, direction: str = "after", limit: int = 3) -
     # Cross-reference ObservationLedger archive if anchor ID matches an observation
     obs_match = None
     try:
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
         ledger = ObservationLedger()
         for e in ledger.get_archive_observations():
             e_id = e.get("id")

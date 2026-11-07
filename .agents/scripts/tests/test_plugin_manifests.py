@@ -80,7 +80,7 @@ class TestPluginManifests(unittest.TestCase):
 
                 if file_path.suffix == ".json":
                     data = json.loads(content)
-                    self.assertEqual(data.get("name"), "portable-brainvibing")
+                    self.assertEqual(data.get("name"), "orioncortex")
                     version_file = Path(__file__).resolve().parents[3] / "VERSION"
                     expected_ver = version_file.read_text(encoding="utf-8").strip() if version_file.exists() else "0.0.3"
                     self.assertEqual(data.get("version"), expected_ver)

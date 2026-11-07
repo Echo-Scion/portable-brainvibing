@@ -33,4 +33,4 @@ setUp(() async {
 - **Explicit Selectors**: ALWAYS use `data-testid` or explicit `key` values for reliable automation.
 
 ---
-*Preserved from Portable Brainvibing Infrastructure - Quality Suite (Upgraded with Anti-Flake Protocols)*
+*Preserved from OrionCortex Infrastructure - Quality Suite (Upgraded with Anti-Flake Protocols)*

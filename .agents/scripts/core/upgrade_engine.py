@@ -319,7 +319,7 @@ def _safe_remove_dir(target_dir: Path) -> None:
 class TransactionalUpgrader:
     """Coordinates two-phase transactional staging, verification, and rollback."""
 
-    DEFAULT_UPSTREAM_REPO = "Echo-Scion/portable-brainvibing"
+    DEFAULT_UPSTREAM_REPO = "Echo-Scion/orioncortex"
 
     def __init__(self, workspace_root: Path):
         self.workspace_root = workspace_root.resolve()
@@ -489,14 +489,23 @@ class TransactionalUpgrader:
                 local_bios = self.workspace_root / bios_name
                 upstream_bios = src_dir / bios_name
                 if local_bios.is_file() and upstream_bios.is_file():
-                    spliced_content = SurgicalBiosSplicer.splice(
-                        local_bios.read_text(encoding="utf-8"),
-                        upstream_bios.read_text(encoding="utf-8")
-                    )
-                    stage_bios = self.stage_dir / bios_name
-                    stage_bios.write_text(spliced_content, encoding="utf-8")
-                    if bios_name not in changed:
-                        changed.append(bios_name)
+                    # GEMINI.md is a thin adapter; only splice if upstream contains mandate markers
+                    upstream_text = upstream_bios.read_text(encoding="utf-8")
+                    if SurgicalBiosSplicer.START_DELIMITER_REGEX.search(upstream_text):
+                        spliced_content = SurgicalBiosSplicer.splice(
+                            local_bios.read_text(encoding="utf-8"),
+                            upstream_text
+                        )
+                        stage_bios = self.stage_dir / bios_name
+                        stage_bios.write_text(spliced_content, encoding="utf-8")
+                        if bios_name not in changed:
+                            changed.append(bios_name)
+                    else:
+                        # Upstream is a thin adapter without delimiters (e.g. GEMINI.md), copy upstream cleanly
+                        stage_bios = self.stage_dir / bios_name
+                        stage_bios.write_text(upstream_text, encoding="utf-8")
+                        if bios_name not in changed:
+                            changed.append(bios_name)
 
             # 4. Snapshot current files for rollback
             self.backup_dir.mkdir(parents=True, exist_ok=True)

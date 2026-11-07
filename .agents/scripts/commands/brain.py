@@ -1605,9 +1605,9 @@ def resolve(contradiction_id, resolution, evidence=""):
 
 
 def contradict_main(argv=None):
-    if not argv:
+    if not argv or argv[0].lower() in ('-h', '--help', 'help'):
         print("Usage: orion.py contradict <detect|list|resolve> [...]")
-        return 1
+        return 0 if argv and argv[0].lower() in ('-h', '--help', 'help') else 1
     action = argv[0].lower()
     if action == 'detect':
         detect_contradictions()
@@ -3344,7 +3344,7 @@ def orion_ops_main(argv=None):
 
 # ============================================================================
 # SECTION 9: CONTEXT RETRIEVAL, BRAIN SYNC & OBSIDIAN VAULT
-# Delegated to commands/rag.py and commands/vault.py
+# Delegated to commands/rag.py and commands/observatory.py
 # ============================================================================
 from commands.rag import (  # noqa: F401
     extract_keywords,
@@ -3354,7 +3354,7 @@ from commands.rag import (  # noqa: F401
     sync,
     page_context,
 )
-from commands.vault import (  # noqa: F401
+from commands.observatory import (  # noqa: F401
     export_vault,
     build_second_brain,
     clean_vault_mirrors,
@@ -3722,7 +3722,7 @@ def gc_main(argv=None):
 
     # 4f. Check if active observations require generational rollover
     try:
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
         ledger = ObservationLedger()
         active_obs = ledger.get_all_observations()
         if len(active_obs) > 20:
@@ -3990,7 +3990,9 @@ def handoff_main(sub_args: List[str]) -> int:
 
 def main():
     argv = sys.argv[1:]
-    if not argv:
+    if argv and argv[0].lower() in ("brain", "codex", "orion_ops", "orion"):
+        argv = argv[1:]
+    if not argv or argv[0].lower() in ("-h", "--help", "help"):
         print("Orion Brain & Unified Knowledge Engine")
         print("Usage: orion.py brain <subcommand> [args...]")
         print("Subcommands:")
@@ -4124,7 +4126,7 @@ def main():
         from commands.rag import rag_main
         return rag_main(["recall"] + sub_args)
     elif cmd in ("rollover", "rollover-observations"):
-        from commands.reflexion import ObservationLedger
+        from commands.pulsar import ObservationLedger
         ledger = ObservationLedger()
         res = ledger.rollover_generation(max_active_keep=10)
         print(json.dumps(res, indent=2))

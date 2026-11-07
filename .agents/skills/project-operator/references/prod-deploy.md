@@ -4,8 +4,8 @@
 Do NOT proceed to deployment steps until all these automated checks return [PASS]. Run these commands directly:
 
 ```pwsh
-# 1. Secret Leak Check
-python .agents/canons/global/harnesses/secrets_scan_verifier.py --path .
+# 1. Polyglot AST & Secret Leak Check
+python .agents/scripts/orion.py scan security .
 
 # 2. Migration Safety Check (if applying DB changes)
 python .agents/canons/global/harnesses/migration_verifier.py --file supabase/migrations/<latest_migration.sql>

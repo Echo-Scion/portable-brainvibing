@@ -140,7 +140,7 @@ When auditing the agent infrastructure, the Agent MUST evaluate code against the
 - Hooks MUST avoid recursive self-invocation loops.
 
 ### Vector 3: Ingest, Linkify & Graph Integrity
-- Regex substitutions in `commands/reflexion.py` MUST escape special characters (`[`, `]`, `(`, `)`) to prevent wikilink corruption.
+- Regex substitutions in `commands/pulsar.py` MUST escape special characters (`[`, `]`, `(`, `)`) to prevent wikilink corruption.
 - SQLite FTS5 synchronization routines MUST maintain consistency between `pages` and `pages_fts`.
 - Edge deletion MUST NOT cascade into deleting referenced shared entity nodes.
 

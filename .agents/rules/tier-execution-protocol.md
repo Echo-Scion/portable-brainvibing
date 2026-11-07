@@ -2,7 +2,7 @@
 description: Protocol for selecting the correct model tier and the enforced workflows per tier (Bento Box, Auto-router).
 activation: model_decision
 
-version: 0.0.6
+version: 0.1.0
 last_updated: 2026-09-26
 ---
 
@@ -88,15 +88,18 @@ To preserve the main thread's token context during long sessions, use subagents 
 - **Lessword Rule**: When delegating to subagents (e.g., `research` or `self`), ALWAYS instruct them to return their final output in the compressed **Lessword Format** (terse, no fluff). 
 - **Why**: Subagent tool results are injected into the main context verbatim. A 2k token prose response eats 2k tokens of main budget. A lessword response cuts this by ~60%, allowing the main session to last longer.
 
-### Subagent Reviewer Quota Guard (Multi-Reviewer & Model Down-Tiering)
-To prevent cloud quota exhaustion from spawning multiple subagents on `PREMIUM` models:
-1. **Complexity-Governed Reviewer Count**: The number of parallel subagent reviewers dispatched is strictly bounded by $S_{\text{effective}}$:
-   - **$S_{\text{effective}} \le 2.5$ (`BUDGET`)**: **0 subagents.** The Main Agent conducts the 7-check plan verification (`plan-checklist.md`) in-thread. Spawning subagents is forbidden.
+### Subagent Reviewer Quota Guard (Second-Worker-First Delegation Law)
+To prevent cloud quota exhaustion from spawning multiple subagents on primary `PREMIUM` models:
+1. **Second-Worker-First Law (0% Primary IDE Quota)**:
+   - Read-only 5-Lens Goldfish spec reviews, codebase scouts, and patch pre-drafts MUST be dispatched first via `python .agents/scripts/orion.py worker review --spec <path>` (aliased as `orion.py delegate`).
+   - This routes reviews through the Dual-Engine Second Worker (OpenCode Go API in parallel `max_workers=3` or Local Ollama sequentially `max_workers=1`), consuming **0%** of the user's IDE cloud quota.
+2. **Native Subagent Bounded Fallback**:
+   - Native `invoke_subagent` calls are permitted ONLY if both API Worker and Local Ollama are offline AND the host IDE platform explicitly supports native subagents.
+   - When using native fallback, the Main Agent **MUST** down-tier to `Model: 'flash'`, capped at $\le 2$ concurrent subagents.
+3. **Complexity-Governed Reviewer Count**:
+   - **$S_{\text{effective}} \le 2.5$ (`BUDGET`)**: **0 subagents.** The Main Agent conducts the plan verification in-thread.
    - **$2.5 < S_{\text{effective}} \le 5.0$ (`STANDARD`)**: At most **1–2 Isolated Reviewers** (`simplicity-reuse` and `implementation-readiness`).
-   - **$S_{\text{effective}} > 5.0$ (`PREMIUM`)**: Up to **5 Isolated Reviewers** (`simplicity-reuse`, `comprehension`, `system-risks`, `implementation-readiness`, `layer-boundaries`), dispatched in sequential batches of $\le 3$ concurrent.
-2. **Mandatory Model Down-Tiering (`Model: 'flash'`)**:
-   - When the Main Agent operates on `PREMIUM` (Gemini Thinking / Claude Opus), it **MUST** invoke read-only Isolated Reviewers using `Model: 'flash'` (BUDGET [High Effort]) rather than inheriting `PREMIUM`.
-   - *Rationale*: Isolated Reviewers operate on pre-digested AST maps with Scaffolding Discount ($\gamma = 0.65 \implies S_{\text{eff}} \le 2.5$). Running 3–5 subagents on `PREMIUM` burns through user rate limits in a single turn. Down-tiering to `flash` cuts token expenditure by ~80% while reserving `PREMIUM` for high-level main-thread synthesis.
+   - **$S_{\text{effective}} > 5.0$ (`PREMIUM`)**: Up to **5 Isolated Reviewers** (`simplicity-reuse`, `comprehension`, `system-risks`, `implementation-readiness`, `layer-boundaries`).
 ## 7. Deterministic Tier Fallback & Scaffolding Discount (Anti-Subjectivity)
 When classification is ambiguous, compute the raw complexity score:
 $$S_{\text{raw}} = (1.0 \cdot N_{\text{files}}) + (2.0 \cdot N_{\text{domains}}) + C_{\text{risk}}$$
@@ -132,7 +135,7 @@ When an execution is performed by a **BUDGET** tier model, static *multitasking*
 
 1. **Three-File Rule:** The agent may manipulate at most 1 primary logic file (maximum 3 files total including accompanying test/scaffolding) per iteration.
 2. **Hard Pause:** After one iteration is completed, the agent must trigger an evaluation/lint/test for the changes.
-3. **No Heavy Batching:** Do not fire >3 `write_file` or `edit_file` *tool calls* in parallel if the task affects architectural logic. (Except for deterministic renaming refactors).
+3. **No Heavy Batching:** The Agent MUST NOT fire >3 `write_file` or `edit_file` *tool calls* in parallel if the task affects architectural logic. (Except for deterministic renaming refactors).
 
 ## 3. Sequential Execution
 Divide the task into isolated compartments (Bento-Box):

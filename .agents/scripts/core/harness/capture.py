@@ -113,7 +113,7 @@ class ToolQuantumCapture:
             ec = args.get("exit_code") if "exit_code" in args else args.get("exitCode")
             if ec is not None and isinstance(ec, int) and ec > 0:
                 try:
-                    from commands.reflexion import ObservationLedger, BASE_DIR as _REFLEXION_BASE
+                    from commands.pulsar import ObservationLedger, BASE_DIR as _REFLEXION_BASE
                     norm_state = os.path.abspath(self.state_dir)
                     ws_root = os.path.abspath(os.path.dirname(_REFLEXION_BASE))
                     if norm_state.startswith(ws_root):
@@ -173,7 +173,7 @@ class ToolQuantumCapture:
         self.save_session(state)
         # Flush observations on watermark boundary
         try:
-            from commands.reflexion import ObservationLedger
+            from commands.pulsar import ObservationLedger
             ObservationLedger().get_digest()
         except Exception as _e:
             _log_telemetry(_e, "capture.py:reset_reflection_watermark:flush_obs")

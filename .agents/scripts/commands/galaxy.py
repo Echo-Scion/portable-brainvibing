@@ -1,5 +1,5 @@
 """
-ORION CONSTELLATION MODULE (commands/constellation.py)
+ORION CONSTELLATION MODULE (commands/galaxy.py)
 Encapsulates Multi-Project Spoke Discovery, Knowledge Mesh Synchronization,
 and Foundation-Level Obsidian Vault Export for Orion.
 Pure Python standard library implementation.
@@ -30,6 +30,9 @@ from core.spoke_mesh import (
     save_constellation_cache,
     is_star_dirty,
     SpokeStar,
+    inspect_spoke_dir,
+    load_constellation_registry,
+    save_constellation_registry,
 )
 from core.memory import ConstellationVaultExporter
 
@@ -49,10 +52,15 @@ def cmd_status(search_root: Optional[str] = None) -> int:
     spokes = discover_spokes(search_root=search_root)
     ws = get_workspace_dir()
     cache = load_constellation_cache(str(ws))
+    reg = load_constellation_registry(str(ws))
 
     print("\n🌌 ORION CONSTELLATION — MULTI-PROJECT KNOWLEDGE MESH")
     print("=" * 82)
     print(f"Hub Location : {ws}")
+    if reg.get("search_roots"):
+        print(f"Custom Roots : {', '.join(reg['search_roots'])}")
+    if reg.get("spokes"):
+        print(f"Custom Spokes: {', '.join(reg['spokes'])}")
     print(f"Total Stars  : {len(spokes)} discovered project(s)")
     print("-" * 82)
 
@@ -73,6 +81,73 @@ def cmd_status(search_root: Optional[str] = None) -> int:
 
     print("=" * 82)
     return 0
+
+
+def cmd_add(path_str: str, as_root: bool = False) -> int:
+    """Registers an arbitrary directory as a constellation search root or explicit spoke."""
+    abs_path = os.path.abspath(os.path.expanduser(path_str))
+    if not os.path.isdir(abs_path):
+        print(f"[ERROR] Directory not found: {abs_path}")
+        return 1
+
+    ws = get_workspace_dir()
+    reg = load_constellation_registry(str(ws))
+
+    if as_root:
+        if abs_path in reg.get("search_roots", []):
+            print(f"[INFO] Search root already registered: {abs_path}")
+            return 0
+        reg.setdefault("search_roots", []).append(abs_path)
+        save_constellation_registry(reg, str(ws))
+        print(f"[SUCCESS] Registered search root: {abs_path}")
+    else:
+        star = inspect_spoke_dir(abs_path)
+        if not star:
+            print(f"[WARNING] Directory does not currently match standard project indicators (.agents, context, manifest, or AGENTS.md): {abs_path}")
+            print(f"[INFO] Adding anyway as explicit spoke.")
+        if abs_path in reg.get("spokes", []):
+            print(f"[INFO] Spoke already registered: {abs_path}")
+            return 0
+        reg.setdefault("spokes", []).append(abs_path)
+        save_constellation_registry(reg, str(ws))
+        star_name = star.name if star else os.path.basename(abs_path)
+        print(f"[SUCCESS] Registered spoke: {star_name} ({abs_path})")
+
+    return 0
+
+
+def cmd_remove(path_str: str) -> int:
+    """Removes a path from constellation search roots or explicit spokes."""
+    abs_path = os.path.abspath(os.path.expanduser(path_str))
+    ws = get_workspace_dir()
+    reg = load_constellation_registry(str(ws))
+
+    removed_root = False
+    removed_spoke = False
+
+    roots = reg.get("search_roots", [])
+    if abs_path in roots:
+        roots.remove(abs_path)
+        removed_root = True
+
+    spokes = reg.get("spokes", [])
+    target_spokes = [s for s in spokes if os.path.abspath(s) == abs_path or os.path.basename(s).lower() == path_str.lower()]
+    for s in target_spokes:
+        spokes.remove(s)
+        removed_spoke = True
+
+    if removed_root or removed_spoke:
+        save_constellation_registry(reg, str(ws))
+        msg = []
+        if removed_root:
+            msg.append(f"search root ({abs_path})")
+        if removed_spoke:
+            msg.append(f"spoke ({path_str})")
+        print(f"[SUCCESS] Removed from registry: {', '.join(msg)}")
+        return 0
+    else:
+        print(f"[WARNING] Not found in constellation registry: {path_str}")
+        return 1
 
 
 def cmd_export(out_dir: Optional[str] = None, search_root: Optional[str] = None, include_graph: bool = True) -> int:
@@ -173,6 +248,13 @@ def main(args: Optional[List[str]] = None) -> int:
     p_sync.add_argument("--search-root", default=None, help="Custom search directory for sibling projects")
     p_sync.add_argument("--no-graph", action="store_true", help="Skip deep SQLite knowledge graph export")
 
+    p_add = subparsers.add_parser("add", help="Register an arbitrary directory or search root into Constellation")
+    p_add.add_argument("path", help="Directory path to spoke project or search root")
+    p_add.add_argument("--root", action="store_true", help="Register as a multi-project search root instead of a single spoke")
+
+    p_remove = subparsers.add_parser("remove", help="Remove a directory or spoke from Constellation registry")
+    p_remove.add_argument("path", help="Directory path or spoke name to remove")
+
     parsed = parser.parse_args(args)
 
     if parsed.subcommand == "status":
@@ -181,6 +263,10 @@ def main(args: Optional[List[str]] = None) -> int:
         return cmd_export(out_dir=parsed.out, search_root=parsed.search_root, include_graph=not getattr(parsed, "no_graph", False))
     elif parsed.subcommand == "sync":
         return cmd_sync(search_root=parsed.search_root, include_graph=not getattr(parsed, "no_graph", False))
+    elif parsed.subcommand == "add":
+        return cmd_add(path_str=parsed.path, as_root=getattr(parsed, "root", False))
+    elif parsed.subcommand == "remove":
+        return cmd_remove(path_str=parsed.path)
     else:
         # Default action: status
         return cmd_status()

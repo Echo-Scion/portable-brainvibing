@@ -1,7 +1,7 @@
 ---
 description: Mandatory and optional prerequisites for the agent ecosystem and their explicit fallback strategies.
 activation: when a tool or command fails
-version: 0.0.6
+version: 0.1.0
 ---
 
 # 🛠️ Prerequisites & Graceful Fallbacks
@@ -59,9 +59,9 @@ To maintain a "plug and play" environment while avoiding brittle failures, this 
   - **`tree-sitter`**: Degrade to Python standard library `ast` and regex scanner.
 
 ## 6. Subagent Orchestration
-- **Role**: Spawning isolated sub-agents via `invoke_subagent` or MCP tools.
-- **Execution Invariant**: Use subagents strictly for **Context-Isolating Scouts** with $<10\%$ context overlap. Do not fracture interdependent code construction tasks ($\ge 20\%$ shared context) across subagents.
-- **Fallback**: If `invoke_subagent` is unavailable in the active runtime, execute tasks sequentially in the main thread with continuous execution and surgical file reads.
+- **Role**: Spawning isolated sub-agents via `orion.py worker` (`Second-Worker-First`), `invoke_subagent`, or MCP tools.
+- **Execution Invariant**: The Agent MUST use subagents strictly for **Context-Isolating Scouts, Patch-Spec Drafters, or Partitioned Auditors** with $\le 20\%$ Jaccard dependency overlap ($J \le 0.20$ verified via `python .agents/scripts/orion.py delegate-check`). Do not fracture interdependent code construction tasks ($J > 0.20$) across subagents.
+- **Fallback**: If subagent delegation is unavailable in the active runtime, the Agent MUST execute tasks sequentially in the main thread with continuous execution and surgical file reads.
 
 ## 7. Shared Runtime Contract
 - Graph, memory, state checkpoints, and telemetry share `.orion/orion.db` by default.

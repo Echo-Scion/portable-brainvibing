@@ -267,7 +267,7 @@ Conflicting directives across absorbed files (e.g., File A recommends Riverpod, 
 - Detected collisions write to the `contradictions` SQL table.
 - Agents resolve conflicts algorithmically by adjusting edge confidence weights (0.0 to 1.0) rather than deleting historical notes.
 
-### 9.4. Activity-Based Temporal Pulse (`commands/reflexion.py`)
+### 9.4. Activity-Based Temporal Pulse (`commands/pulsar.py`)
 Rather than relying on calendar cron jobs, the ecosystem advances memory across activity-based intervals:
 1. **Session Pulse**: Triggered on `/session-offload`. Summarizes the immediate working turn, mines operator habits, and evaluates observation promotions.
 2. **Milestone Synthesis**: Evaluated every 5 completed sessions, distilling micro-steps into milestone records.

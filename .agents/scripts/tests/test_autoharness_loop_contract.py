@@ -20,7 +20,7 @@ from core.capabilities import (
     _extract_json_payload,
     resolve_elastic_execution_plan,
 )
-from commands.reflexion import ReflexionEngine, ReflexionLoop
+from commands.pulsar import ReflexionEngine, ReflexionLoop
 from core.harness.engine import HarnessEngine
 
 

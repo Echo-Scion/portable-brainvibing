@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 
 
+## [0.1.0] - 2026-11-07
+
+### Added
+- **Mathematical 5-Vector SemVer Gravity Engine**: Integrated logarithmic strata scaling, topological organ entropy ($9.0 \cdot k$), public AST symbol surface delta, and additive commit momentum to deterministically quantify release impact ($S_{\text{impact}} \ge 35.0$ / $B_{\text{breaking}} \ge 50.0$) with maintenance damping and single-file guards.
+- **Path-Agnostic Organ Discovery**: Added transparent wrapper peeling (`src`, `lib`, `app`, `internal`, `pkg`, `.agents`, `ecosystems`) and adaptive Full-Stack UI vs Headless/Engine detection, discovering Bounded Context modules across arbitrary project layouts.
+- **Dual-Worker Multi-Provider API Architecture**: Added multi-provider cloud API slot resolution (`Chutes.ai`, `9Router`, `OpenRouter`, `Groq`) with HTTPS URL validation, loopback allowances, quote/comment sanitization, and 3-route neuro-symbolic SLM adjudication.
+- **Universal Provider Secret Redaction**: Added zero-leak secret detection and redaction patterns across multi-provider API keys (`cpk_`, `sk-or-v1-`, `gsk_`, `csk-`, `hf_`, `xai-`).
+- **Universal Multi-Root Spoke Discovery**: Added arbitrary-location project spoke registration to the Orion Constellation knowledge mesh, enabling spoke repositories located anywhere across the filesystem or user agent directories to be registered, audited, and synchronized via `constellation add` and `constellation remove` with persistent registry caching.
+- **Ecosystem Anti-Contradiction Verification Engine**: Added a deterministic, zero-pip cross-artifact invariant auditor and second-level CLI subcommand validator in repository verification, continuously verifying numerical thresholds, delegation overlap bounds, and CLI argument validity across all rules, skills, and documentation.
+- **Canonical Ecosystem Invariants Registry**: Established a machine-readable Single Source of Truth (SSOT) locking cross-framework numerical boundaries, UI state models, viability scorecard dimensions, active IDE hooks, and the Dual-Layer Cosmic-Neuro taxonomy.
+- **Dual-Layer Cosmic-Neuro Architecture Facades**: Added dedicated first-class modules and CLI dispatch routing aligning Macro Cosmic Space (Orion, Constellation/Galaxy, Observatory, Pulsar, Impulse Dispenser, Core Codex) and Micro Neuro-Cognitive strata without breaking backward compatibility or unit test imports.
+- **Sequential Task Slicer Triple-Strata Architecture**: Introduced unified entrypoints bridging engineering task slicing, cosmic impulse dispensing, and legacy action card execution with disk mutation verification gates and live whitespace recalibration.
+- **Task-First Layout Models & Concentric Geometry**: Added layout primitives by primary user task (Data Table, Split-View, Action List, Command Surface) and mathematical concentric border radius (`outerRadius = innerRadius + padding`) with optical icon alignment across templates, design canons, and aesthetic evaluators.
+- **6-Family Screen State Machine & Production Gremlins**: Upgraded presentation recipes and test specs across React, Flutter, and Android Compose to handle full 6-family state transitions (Loading Skeleton, First-Time Empty vs. Filtered-to-Empty, Truncation-Safe Populated, Instructional Error Retry, and Long-Text Gremlins).
+- **5-Lens Discovery & 5-Advisor Adversarial Panel**: Added creative discovery expansion on Turn 1 with structural UI alternatives (`Alt A` vs. `Alt B`) and adversarial 5-advisor stress-testing with explicit stances and cross-rebuttals.
+- **10-Role Sovereign Autonomous Swarm Harness**: Added a multi-model orchestration engine classifying engineering intent across 10 specialized subagent role harnesses with role-scoped KV-cache session affinity, turn limits, independent second-opinion council arbitration, and automated sequential pipeline routing.
+- **Dual-Engine Second Worker Subsystem**: Integrated native support for local Ollama instances and remote OpenAI-compatible API providers to dynamically offload execution, 5-lens blind audits, and patch drafting without burning primary agent cloud quotas.
+- **Platform & Environment Capability Discovery**: Added a unified environment inspector profiling host AI platforms, active terminal shells, toolchain availability, and active slash commands with contextual cheat sheets.
+- **Living Bento Task DAG & Multi-Track Dispenser**: Added disjoint parallel track partitioning, lookahead pre-drafting, non-blocking task parking, and automated second-worker auto-solving with atomic byte-snapshot rollback.
+- **Deterministic 4-Lane Execution Router**: Added 4-lane classification mapping tasks across mechanical scripts, second-worker API/Ollama instances, budget workers, and standard/premium main workers based on effective complexity scores.
+
+### Changed
+- **Outcome-Centric Lessword Changelog Consolidation**: Release notes now automatically strip internal developer trace paths, commit hashes, and PR numbers, synthesizing deliverables across 5 clean universal domain tiers.
+- **Tag-Free Episodic Memory Harvesting**: Pulsar now harvests observations from Conventional Commits, natural-language engineering statements, and Markdown section headers without requiring bracketed tags.
+- **Canonical Cosmic Architecture**: Eliminated redundant proxy shims across the command engine, consolidating core logic directly into sovereign cosmic modules while preserving direct, intuitive CLI commands for AI agents.
+- **AI-Friendly Decoupled CLI Routing**: Gateway routing now translates developer/agent intent into canonical execution engines without indirection or symbol redefinition overhead.
+- **Cross-Artifact Policy & Metric Harmonization**: Standardized code skeleton direct-read limits (800 lines standard/premium, 350 lines budget), subagent delegation Jaccard overlap (<= 20%, max 3 agents), decision autonomy protocols, 5 core view data states, 60-point SaaS viability evaluations, and platform metrics across all rules, templates, and documentation volumes.
+- **Soft-Gate Invariant Harmonization**: Formalized `core_max_lines` and the 500-line Progressive Disclosure cap as advisory soft gates emitting warnings rather than hard build-failing errors, preserving full upstream Antigravity specification compatibility.
+- **Design Token & Harvester Neutral Defaults**: Replaced default dark-industrial monoculture and Bento/glassmorphism bias in template generators with modern minimal neutral foundations and 7-vector design DNA analysis.
+- **Sovereign Harness Evolution Loop**: The self-learning mechanism is now 100% closed-loop, automatically graduating recurring signal friction and observations into permanent rule records and tracking genome traits without requiring manual intervention.
+- **Second-Worker-First Delegation Discipline**: Aligned delegation protocols to prioritize local and API second workers for read-only audits and code scouts, reserving primary cloud model quotas for complex core feature synthesis while restricting subagent spawns on constrained platforms.
+- **Pre-Wake Telemetry**: Hook triggers now automatically surface system health warnings (cognitive drift thresholds, DNA violations, pending staging intents) and evaluate intent queues natively before passing context to the agent.
+- **Cross-Platform CLI Compatibility**: The mechanical runner pipeline now normalizes Python binary resolution cross-platform, eliminating execution failures on systems lacking default python symlinks.
+
+### Fixed
+- **Cloud Model Parameter Routing Collision**: Cloud models with parameter counts in their names (e.g. `-32B`, `-70B`) now correctly route to the API worker rather than erroneously falling through to local Ollama.
+- **Dotenv Quote and Comment Contamination**: Fixed environment loading to strip enclosing quotes and trailing inline comments (`# comment`) from `.env` values.
+- **Deterministic 3-Stage Anti-Duplicate Patch Defense**: Hardened task slicing with an Inverted Search-Residual Check, boundary stutter detection (k=1..5), and AST Duplicate Symbol / Dict-Key Scanner to prevent AI duplicate line insertions.
+- **Subdirectory Workspace Hoist & Isolation Guard**: Added normalization to command security guards, preventing accidental duplicate configuration directories when commands are invoked from subshells.
+- **Cross-Engine Unit Test Parity**: Migrated unit tests to direct module imports, maintaining 100% test passing parity across all test cases.
+- **Harness & Evolution Hygiene**: Cleaned leaked test traces from skill references, restored active foundation manifest parity, hardened task step failure memory, and eliminated blind string truncation in recurring signal graduation.
+- **IDE Pre-Tool Hook Resilience**: Fixed hook decision payload serialization to prevent IDE tool call lockouts under Antigravity during circuit breaker trip evaluations.
+- **Observatory CLI Entrypoint Dispatch**: Fixed runtime crash when invoking `orion observatory --help`.
+- **Codex & Reflexion CLI Diagnostics**: Added dedicated status inspection and prevented CLI help flags from triggering unintended graph RAG queries.
+- **Plugin Manifest Distribution**: Ensured plugin metadata and configurations are preserved across Git operations and distribution archive packaging.
+- **Anti-Contradiction Verification**: Hardened repository integrity audits to fail closed on specification contradictions, ghost subcommands, or invalid task list syntax.
+- **Sovereign Evolution Admission Safety**: Enforced strict anti-truncation validation in the self-evolution skill graduation pipeline.
+- **Architectural Reference Synchronization**: Synchronized architectural documentation with 5-Tier DNA strata definitions and removed redundant system references.
+- **Episodic Observation Ledger Pruning**: Prevented duplicate habit proposals from cluttering episodic memory ledgers.
+
 ## [0.0.6] - 2026-11-05
 
 ### Added
@@ -88,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2026-03-09
 
 ### Added
-- Initial release of Portable Brainvibing (`.agents`) multi-platform agent governance framework.
+- Initial release of OrionCortex (formerly Portable Brainvibing) (`.agents`) multi-platform agent governance framework.
 - Unified zero-pip CLI dispatcher (`orion.py`) built strictly on Python 3.10+ standard library.
 - Four sovereign operational pillars integrating Python stdlib, Rust companion binaries, local Ollama models, and Bun runtime.
 - Hybrid local knowledge graph and RAG indexing combining SQLite WAL, FTS5 full-text search, and semantic triplets.

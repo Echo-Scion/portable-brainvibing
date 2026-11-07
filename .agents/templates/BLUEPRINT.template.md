@@ -27,5 +27,5 @@
 - **Primary Stack**: {{primary_stack}}
 - **Architectural Pattern**: {{arch_framework}}
 - **Persistence Layer**: {{backend_persistence}}
-- **Core Invariants**: Deterministic verification gates, zero-drift state management, resource efficiency, and defense-in-depth hardening.
+- **Core Invariants**: Deterministic verification gates, zero-drift state management, 6-Family UI State Machine completeness (`DESIGN.md` contract parity), 5-Advisor stress-tested trade-offs, resource efficiency, and defense-in-depth hardening.
 <!-- END FOUNDATION:blueprint-baseline -->

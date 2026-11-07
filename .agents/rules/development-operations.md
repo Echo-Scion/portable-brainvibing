@@ -33,7 +33,7 @@ activation: model_decision
 
 ### 1.1. Release Commits (Trunk Discipline Invariant)
 When committing or squashing a release milestone on `main` (e.g. `chore(release): ...`), the commit message MUST NOT be an opaque generic stub like `chore(release): sync foundation vX.Y.Z`.
-- **Thematic Macro Summary**: The commit message MUST summarize the core breakthroughs and deliverables of that version from `CHANGELOG.md` in 1 cohesive, high-signal sentence (e.g. `chore(release): v0.0.6 - HippoRAG GraphRAG engine, zero-trust command guard, Dual-Loop Git, and BIOS rules rationalization`).
+- **Thematic Macro Summary**: The commit message MUST summarize the core breakthroughs and deliverables of that version from `CHANGELOG.md` in 1 cohesive, high-signal sentence (e.g. `chore(release): v0.1.0 - Mathematical 5-Vector SemVer Gravity Engine, Path-Agnostic Organ Discovery, Dual-Worker Multi-Provider API Architecture, and Universal Provider Secret Redaction`).
 - **Release Exemption to 72-Char Cap**: Release commit messages are explicitly exempt from the 72-character ceiling so that the version's macro deliverables can be stated clearly in a single sentence.
 
 ## 1.5. Changelog Integrity & Public Neutrality
@@ -145,7 +145,7 @@ Rigorous verification (via `orion.py verify --fast`, language linters, or determ
 
 - **Zero Inline Quoting Traps (`python -c`)**: On Windows PowerShell, NEVER run inline `python -c` snippets that contain complex regex, quotes (`\"`, `\'`), or square brackets (`[` / `]`). Use temporary diagnostic scratch files or native file tools to prevent PowerShell quote stripping and syntax errors.
 - **Mandatory `-X utf8` on Windows CLI**: To prevent `UnicodeEncodeError: 'charmap' codec can't encode character...` (Windows legacy `cp1252` default), all one-off Python terminal executions reading/printing UTF-8 or emoji MUST pass `python -X utf8` or set `PYTHONUTF8=1`.
-- **Automatic Post-Action Hook**: In Antigravity IDE, `hooks.json` automatically runs `post-agent-action.py` via `PostToolUse` after file changes. Do not invoke it manually via `run_command`.
+- **Automatic Session-Start Wake Hook**: Across supported IDE platforms, native lifecycle manifests (`.cursor/hooks.json`, `.gemini/settings.json`, `.claude/settings.json`) automatically invoke `.agents/hooks/pre-agent-wake.py` on `SessionStart` / `UserPromptSubmit` with a 5-minute SHA-256 prompt-cache gate. Do not invoke `.agents/hooks/pre-agent-wake.py` manually via `run_command`.
 
 
 

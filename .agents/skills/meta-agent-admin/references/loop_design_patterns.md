@@ -20,4 +20,4 @@
 - **Human-in-the-loop**: Mandatory for destructive actions (`DROP`, `DELETE`).
 
 ---
-*Preserved from Portable Brainvibing Infrastructure*
+*Preserved from OrionCortex Infrastructure*

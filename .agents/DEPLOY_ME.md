@@ -1,10 +1,10 @@
-# 🚀 Agentic Deployment (Plug & Play Across 18 AI Platforms)
+# 🚀 Agentic Deployment (Plug & Play Across 19 AI Platforms)
 
-This document provides explicit instructions for **any AI Agent** (Antigravity, Claude Code, Cursor, Copilot, Codex, Devin, Gemini CLI, Kimi, Hermes, Muse, Droid, Grok, OpenCode, Pi, Qwen, MiniMax, MiMo, Windsurf, Cline) to deploy and adapt the Foundation into a new project—either using the automated Python engine or via **direct native instruction synthesis** when scripts cannot be executed.
+This document provides explicit instructions for **any AI Agent** across all **19 supported platforms** (Google Antigravity, Android Studio, VS Code / Copilot, Claude Code, Cursor, OpenAI Codex App, OpenAI Codex CLI, Devin CLI, Gemini CLI, Kimi Code, Hermes Agent, Muse Coding Agent, Factory Droid, Grok Build CLI, OpenCode, Pi Coding Agent, Qwen Code, MiniMax, Xiaomi MiMo) to deploy and adapt the Foundation into a new project—either using the automated Python engine or via **direct native instruction synthesis** when scripts cannot be executed.
 
 ## 🤖 Instructions for the AI Agent
 
-If a user asks you to **"Setup portable-brainvibing"**, **"Deploy the foundation"**, **"Initialize .agents"**, or invokes **`/setup`**, follow this **2-Step Auto-Detected Protocol**:
+If a user asks you to **"Setup orioncortex"**, **"Deploy the foundation"**, **"Initialize .agents"**, or invokes **`/setup`**, follow this **2-Step Auto-Detected Protocol**:
 
 ### Step 1: Run Non-Interactive Diagnostic Inspector (Zero-Guessing)
 Do NOT ask the user questions that the script can detect automatically. First, execute the JSON inspector in the terminal:
@@ -83,7 +83,7 @@ Each AI coding environment has its native discovery mechanism. The Foundation su
 | 2 | **Android Studio (Gemini)** | `GEMINI.md` | `.idea/gemini.json` | Studio Bot session wake |
 | 3 | **VS Code / Copilot** | `AGENTS.md` / `.github/copilot-instructions.md` | `.copilot-plugin/plugin.json` | Project launch |
 | 4 | **Claude Code** | `CLAUDE.md` / `AGENTS.md` | `.claude-plugin/plugin.json` | `.claude/settings.json` (`SessionStart`) |
-| 5 | **Cursor** | `.cursor/rules/portable-brainvibing.mdc` | `.cursor-plugin/plugin.json` | `.cursor/hooks.json` (`sessionStart`) |
+| 5 | **Cursor** | `.cursor/rules/orioncortex.mdc` | `.cursor-plugin/plugin.json` | `.cursor/hooks.json` (`sessionStart`) |
 | 6 | **OpenAI Codex App** | `AGENTS.md` | `.codex-plugin/plugin.json` | App session load |
 | 7 | **OpenAI Codex CLI** | `AGENTS.md` | `.codex-plugin/plugin.json` | CLI wake trigger |
 | 8 | **Devin CLI** | `AGENTS.md` | `.devin-plugin/plugin.json` | Devin environment boot |
@@ -110,15 +110,15 @@ Read `.agents/templates/AGENTS.template.md`, replace `{project_name}` with the t
 - `AGENTS.md` (universal for Copilot, Codex, Devin, Kimi, Hermes, Muse, Droid, Grok, OpenCode, Pi, Qwen).
 - `GEMINI.md` (for Antigravity and Gemini CLI).
 - `CLAUDE.md` (for Claude Code).
-- `.cursor/rules/portable-brainvibing.mdc` (for Cursor).
+- `.cursor/rules/orioncortex.mdc` (for Cursor).
 - `MINIMAX.md` (for MiniMax) or `MIMO.md` (for Xiaomi MiMo).
 
 #### Step 2: Create Lightweight Plugin Manifest (`< 10` lines)
 For the active AI platform, create its manifest in the target project root pointing skills to `.agents/skills`:
 ```json
 {
-  "name": "portable-brainvibing",
-  "version": "0.0.6",
+  "name": "orioncortex",
+  "version": "0.1.0",
   "description": "Turnkey Auto-Vibe Coding Brain Ecosystem",
   "skills": ".agents/skills"
 }
@@ -216,5 +216,5 @@ when unavailable.
 
 ---
 > [!NOTE]
-> **Version**: 0.0.6 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
-> All 18 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.
+> **Version**: 0.1.0 (Script-Enforced Gateway & AI Direct Instruction Protocol)  
+> All 19 AI coding platforms are supported natively with zero lock-in, zero cloud daemons, and zero pip dependencies.

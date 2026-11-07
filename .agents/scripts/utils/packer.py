@@ -32,6 +32,7 @@ import math
 import hashlib
 import argparse
 import subprocess
+import zipfile
 import ast as _ast
 import urllib.request
 import urllib.error
@@ -142,6 +143,18 @@ except ImportError:
             should_traverse_dir,
             get_workspace_files,
         )
+
+try:
+    from core.capabilities import validate_remote_api_url
+except ImportError:
+    try:
+        from .capabilities import validate_remote_api_url
+    except (ImportError, ValueError):
+        try:
+            from capabilities import validate_remote_api_url
+        except ImportError:
+            def validate_remote_api_url(url: str) -> str:
+                return url
 
 DEFAULT_TEXT_EXTENSIONS = {
     ".py", ".dart", ".kt", ".kts", ".java", ".rs", ".ts", ".tsx", ".js", ".jsx",
@@ -302,13 +315,22 @@ def is_foundation_root(root_dir: str) -> bool:
     Returns False if ANY host application indicator (pubspec, package.json, Cargo.toml, lib/, src/, etc.) is present.
     """
     abs_root = os.path.abspath(root_dir)
+    if os.path.basename(abs_root) == "_foundation":
+        return True
     if os.path.basename(abs_root) == ".agents":
         return True
+
+    cur = abs_root
+    while cur and os.path.dirname(cur) != cur:
+        if os.path.basename(cur) == ".agents":
+            parent = os.path.dirname(cur)
+            if os.path.basename(parent) == "_foundation":
+                return True
+        cur = os.path.dirname(cur)
 
     app_indicators = [
         "package.json", "pubspec.yaml", "Cargo.toml", "go.mod", "tsconfig.json",
         "pom.xml", "build.gradle", "build.gradle.kts", "CMakeLists.txt",
-        "src", "lib", "app", "apps", "services", "packages", "crates", "ios", "android"
     ]
     for ind in app_indicators:
         if os.path.exists(os.path.join(abs_root, ind)):
@@ -1397,6 +1419,174 @@ class ContextPacker:
         )
         return digest_header + "".join(content_sections)
 
+    def collect_repo_files(
+        self,
+        target_dir: Optional[str] = None,
+        include_untracked: bool = True,
+    ) -> List[str]:
+        """
+        Collects clean repository files mirroring what would be pushed to GitHub.
+        Strictly respects .gitignore, excludes .git/, caches, and OS junk.
+        Uses fast git ls-files if inside a git worktree, with transparent pure-Python
+        os.walk + GitIgnoreFilter fallback outside git.
+        """
+        base = os.path.abspath(target_dir or self.root_dir)
+        exclude_agent_tools = should_exclude_agent_tooling(self.root_dir, target_dir, include_agents=self.include_agents)
+        collected: List[str] = []
+
+        # 1. Fast Git-native query if available
+        try:
+            cmd = ["git", "ls-files"]
+            if include_untracked:
+                cmd.extend(["--cached", "--others", "--exclude-standard"])
+            else:
+                cmd.extend(["--cached"])
+
+            proc = subprocess.run(
+                cmd,
+                cwd=base,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10.0,
+                shell=False,
+                creationflags=_WINDOWLESS_FLAGS,
+            )
+            if proc.returncode == 0:
+                for line in proc.stdout.splitlines():
+                    rel_p = line.strip().replace("\\", "/").strip("/")
+                    if not rel_p:
+                        continue
+                    if exclude_agent_tools and is_agent_tooling_path(rel_p, self.root_dir):
+                        continue
+                    full_p = os.path.join(base, rel_p)
+                    if os.path.isfile(full_p):
+                        if base != self.root_dir:
+                            final_rel = os.path.relpath(full_p, self.root_dir).replace("\\", "/")
+                        else:
+                            final_rel = rel_p
+                        collected.append(final_rel)
+                return sorted(list(dict.fromkeys(collected)))
+        except Exception as _e:
+            _log_telemetry(_e, "collect_repo_files:git_ls_files")
+
+        # 2. Pure filesystem walk fallback using GitIgnoreFilter
+        for root, dirs, files in os.walk(base):
+            rel_root = os.path.relpath(root, self.root_dir).replace("\\", "/")
+            if rel_root == ".":
+                rel_root = ""
+
+            if exclude_agent_tools and rel_root and is_agent_tooling_path(rel_root, self.root_dir):
+                dirs[:] = []
+                continue
+
+            dirs[:] = [
+                d for d in sorted(dirs)
+                if should_traverse_dir(d, self.gi, rel_path=f"{rel_root}/{d}".strip("/"), allow_agents=not exclude_agent_tools)
+            ]
+
+            for file in sorted(files):
+                if file.lower() in {".ds_store", "thumbs.db", "desktop.ini"}:
+                    continue
+                rel_file = f"{rel_root}/{file}".lstrip("/") if rel_root else file
+                if exclude_agent_tools and is_agent_tooling_path(rel_file, self.root_dir):
+                    continue
+                if self.gi.is_ignored(rel_file, is_dir=False):
+                    continue
+                full_p = os.path.join(root, file)
+                if os.path.isfile(full_p):
+                    collected.append(rel_file)
+
+        return sorted(list(dict.fromkeys(collected)))
+
+    def pack_zip(
+        self,
+        output_path: str,
+        files: Optional[List[str]] = None,
+        include_untracked: bool = True,
+        prefix: str = "",
+        compress_level: int = 9,
+    ) -> Dict[str, Any]:
+        """
+        Packs repository files into a clean ZIP archive matching GitHub push contents.
+        Respects .gitignore, excludes .git, caches, and unnecessary temp files.
+        """
+        abs_out = os.path.abspath(output_path)
+        out_dir = os.path.dirname(abs_out)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+
+        if files is None:
+            files_to_pack = self.collect_repo_files(include_untracked=include_untracked)
+        else:
+            files_to_pack = files
+
+        total_uncompressed = 0
+        added_files = []
+
+        compression = zipfile.ZIP_DEFLATED
+        try:
+            import zlib
+        except ImportError:
+            compression = zipfile.ZIP_STORED
+
+        kwargs: Dict[str, Any] = {"compression": compression}
+        if compression == zipfile.ZIP_DEFLATED:
+            kwargs["compresslevel"] = compress_level
+
+        with zipfile.ZipFile(abs_out, "w", **kwargs) as zf:
+            for rel_p in files_to_pack:
+                full_p = os.path.join(self.root_dir, rel_p)
+                if os.path.abspath(full_p) == abs_out:
+                    continue
+                if not os.path.isfile(full_p):
+                    continue
+
+                arcname = f"{prefix.strip('/')}/{rel_p}".lstrip("/") if prefix else rel_p
+                arcname = arcname.replace("\\", "/")
+
+                try:
+                    zf.write(full_p, arcname=arcname)
+                    f_size = os.path.getsize(full_p)
+                    total_uncompressed += f_size
+                    added_files.append((rel_p, f_size))
+                except OSError as _err:
+                    _log_telemetry(_err, f"pack_zip:write:{rel_p}")
+
+        compressed_size = os.path.getsize(abs_out) if os.path.exists(abs_out) else 0
+
+        return {
+            "output_path": abs_out,
+            "file_count": len(added_files),
+            "uncompressed_bytes": total_uncompressed,
+            "compressed_bytes": compressed_size,
+            "files": [f[0] for f in added_files],
+        }
+
+
+def pack_repo_zip(
+    root_dir: str = ".",
+    output_path: Optional[str] = None,
+    include_agents: bool = False,
+    include_untracked: bool = True,
+    prefix: str = "",
+    files: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Top-level helper to generate a clean GitHub-ready repository zip archive."""
+    packer = ContextPacker(root_dir, include_agents=include_agents)
+    if not output_path:
+        repo_base = os.path.splitext(os.path.basename(os.path.abspath(root_dir)))[0]
+        if not repo_base or repo_base in (".", "/"):
+            repo_base = "repository"
+        output_path = f"{repo_base}.zip"
+    return packer.pack_zip(
+        output_path=output_path,
+        files=files,
+        include_untracked=include_untracked,
+        prefix=prefix,
+    )
+
 
 @dataclass
 class ModuleBucket:
@@ -1466,7 +1656,7 @@ def compute_file_gravity_and_cluster(rel_path: str, dna: Optional[ProjectDNA] = 
 
     # 4: Core Engine / Scripts / State Machine
     if (
-        norm_lower.endswith(("reflexion.py", "state_machine.py", "memory.py", "orion_graph.py"))
+        norm_lower.endswith(("pulsar.py", "reflexion.py", "state_machine.py", "memory.py", "orion_graph.py"))
         or any(seg in {"engine", "reflexion", "state_machine"} for seg in norm_lower.split("/"))
     ):
         return (4, "core_engine", "Core Engine & Coordination")
@@ -1739,12 +1929,13 @@ def _build_llm_architect_prompt(root_dir: str, buckets: Dict[str, ModuleBucket],
 
 def _call_cloud_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional[Tuple[Dict[str, Any], str]]:
     """
-    Optional Zero-Pip Cloud LLM call if GEMINI_API_KEY or OPENAI_API_KEY is available in environment.
-    Uses pure Python urllib.request.
+    Optional Zero-Pip Cloud LLM call if GEMINI_API_KEY, OPENAI_API_KEY, or other supported
+    provider keys are available in environment.
+    Uses pure Python urllib.request with strict HTTPS and header authentication.
     """
     gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if gemini_key:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -1756,7 +1947,10 @@ def _call_cloud_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": gemini_key,
+                },
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -1766,10 +1960,49 @@ def _call_cloud_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional
         except Exception as _e:
             _log_telemetry(_e, "packer.py:_call_cloud_llm_for_taxonomy:gemini")
 
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    if openai_key:
-        url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/chat/completions"
-        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    api_key = (
+        os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("ORION_API_KEY")
+        or os.environ.get("ORION_API_KEY_COUNCIL")
+        or os.environ.get("CHUTES_API_KEY")
+        or os.environ.get("OPENROUTER_API_KEY")
+        or os.environ.get("GROQ_API_KEY")
+        or os.environ.get("DEEPSEEK_API_KEY")
+        or os.environ.get("CEREBRAS_API_KEY")
+        or os.environ.get("TOGETHER_API_KEY")
+        or os.environ.get("FIREWORKS_API_KEY")
+    )
+    raw_base_url = (
+        os.environ.get("OPENAI_BASE_URL")
+        or os.environ.get("ORION_API_URL")
+        or os.environ.get("ORION_API_URL_COUNCIL")
+        or os.environ.get("CHUTES_API_URL")
+        or os.environ.get("OPENROUTER_API_URL")
+        or os.environ.get("GROQ_API_URL")
+        or "https://api.openai.com/v1"
+    )
+    if api_key or "127.0.0.1" in raw_base_url or "localhost" in raw_base_url:
+        if not validate_remote_api_url(raw_base_url):
+            _log_telemetry(None, f"packer.py:_call_cloud_llm_for_taxonomy:insecure_url:{raw_base_url}")
+            return None
+
+        url = raw_base_url.rstrip("/") + "/chat/completions"
+        model = (
+            os.environ.get("OPENAI_MODEL")
+            or os.environ.get("ORION_API_MODEL_COUNCIL")
+            or os.environ.get("ORION_API_MODEL")
+            or os.environ.get("CHUTES_API_MODEL")
+            or os.environ.get("OPENROUTER_API_MODEL")
+            or os.environ.get("GROQ_API_MODEL")
+            or "gpt-4o-mini"
+        )
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+            if "openrouter.ai" in url:
+                headers["HTTP-Referer"] = "https://github.com/orion-cortex"
+                headers["X-Title"] = "OrionCortex"
+
         payload = {
             "model": model,
             "messages": [
@@ -1783,18 +2016,15 @@ def _call_cloud_llm_for_taxonomy(prompt: str, timeout: float = 20.0) -> Optional
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {openai_key}",
-                },
+                headers=headers,
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = data["choices"][0]["message"]["content"]
-                return json.loads(text.strip()), "openai_cloud_api"
+                return json.loads(text.strip()), "cloud_api"
         except Exception as _e:
-            _log_telemetry(_e, "packer.py:_call_cloud_llm_for_taxonomy:openai")
+            _log_telemetry(_e, "packer.py:_call_cloud_llm_for_taxonomy:cloud_api")
 
     return None
 
@@ -3567,7 +3797,10 @@ def export_audit_bundles(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Universal Dynamic Context Packager & Multi-Model Audit Exporter")
     parser.add_argument("--dir", default=".", help="Root directory to pack (default: current directory)")
-    parser.add_argument("--format", choices=["xml", "digest", "markdown"], default="xml", help="Output format for single-file packing")
+    parser.add_argument("--format", choices=["xml", "digest", "markdown", "zip"], default="xml", help="Output format for single-file packing or repository ZIP")
+    parser.add_argument("--zip", action="store_true", help="Export clean repository ZIP archive mirroring latest GitHub push state (respecting .gitignore)")
+    parser.add_argument("--prefix", type=str, default="", help="Optional root folder prefix inside the ZIP archive")
+    parser.add_argument("--tracked-only", "--committed-only", dest="tracked_only", action="store_true", help="Only include committed/tracked files (exclude untracked non-ignored files)")
     parser.add_argument("--budget", "--max-tokens", dest="budget", type=int, default=1000000, help="Maximum token budget")
     parser.add_argument("--max-size-kb", type=int, default=2048, help="Max individual file size in KB")
     parser.add_argument("--out", "--output", dest="out", help="Output destination file or bundle directory")
@@ -3625,9 +3858,12 @@ def main() -> None:
             args.universal = True
         elif tok.startswith(("http://", "https://", "git@", "ssh://")):
             remote_repo_url = tok
+        elif tok_lower.endswith(".zip"):
+            args.out = tok
+            vibe_intent = "zip"
         elif os.path.exists(tok):
             detected_dir = tok
-        elif tok_lower in ("audit", "code-audit", "pr", "review", "diff", "changes", "security", "sec", "stats", "tokens", "summary", "megabundle", "mega", "auto"):
+        elif tok_lower in ("audit", "code-audit", "pr", "review", "diff", "changes", "security", "sec", "stats", "tokens", "summary", "megabundle", "mega", "auto", "zip", "archive", "repo-zip", "github-zip", "github"):
             vibe_intent = tok_lower
         else:
             vibe_intent = tok_lower
@@ -3739,10 +3975,18 @@ def main() -> None:
         args.line_numbers = True
         if not args.out:
             args.out = os.path.join(orion_bundles_dir, "full")
+    elif vibe_intent in ("zip", "archive", "repo-zip", "github-zip", "github") or getattr(args, "zip", False) or args.format == "zip":
+        args.zip = True
+        if not args.out:
+            repo_base = os.path.splitext(os.path.basename(abs_target))[0]
+            if not repo_base or repo_base in (".", "/"):
+                repo_base = "repository"
+            args.out = os.path.join(orion_bundles_dir, f"{repo_base}.zip")
     elif (vibe_intent in ("auto", "")
           and not any([
               args.audit, args.audit_all, args.audit_ast, args.bundle is not None,
-              args.megabundle, args.git_diff is not None, args.git_staged
+              args.megabundle, args.git_diff is not None, args.git_staged,
+              getattr(args, "zip", False), args.format == "zip"
           ])):
         staged = collect_git_diff_files(target_root, staged_only=True)
         if staged:
@@ -3763,6 +4007,52 @@ def main() -> None:
                 args.skeleton = True
                 args.line_numbers = True
                 args.out = os.path.join(orion_bundles_dir, "arch")
+
+    if getattr(args, "zip", False) or args.format == "zip":
+        repo_base = os.path.splitext(os.path.basename(abs_target))[0]
+        if not repo_base or repo_base in (".", "/"):
+            repo_base = "repository"
+        out_zip = args.out or os.path.join(orion_bundles_dir, f"{repo_base}.zip")
+        if os.path.isdir(out_zip):
+            out_zip = os.path.join(out_zip, f"{repo_base}.zip")
+
+        packer = ContextPacker(target_root, include_agents=getattr(args, "include_agents", False))
+
+        if args.git_staged:
+            diff_files = collect_git_diff_files(target_root, staged_only=True)
+            res = packer.pack_zip(
+                output_path=out_zip,
+                files=diff_files,
+                prefix=getattr(args, "prefix", ""),
+            )
+        elif args.git_diff is not None:
+            diff_files = collect_git_diff_files(target_root, diff_ref=args.git_diff or None)
+            res = packer.pack_zip(
+                output_path=out_zip,
+                files=diff_files,
+                prefix=getattr(args, "prefix", ""),
+            )
+        else:
+            include_untracked = not getattr(args, "tracked_only", False)
+            res = packer.pack_zip(
+                output_path=out_zip,
+                include_untracked=include_untracked,
+                prefix=getattr(args, "prefix", ""),
+            )
+
+        uncompressed_kb = res["uncompressed_bytes"] / 1024.0
+        compressed_kb = res["compressed_bytes"] / 1024.0
+        print(f"[PACKER] Created clean GitHub-ready repository archive:")
+        print(f"  Archive: {res['output_path']}")
+        print(f"  Files:   {res['file_count']} files")
+        print(f"  Size:    {compressed_kb:.1f} KB (uncompressed: {uncompressed_kb:.1f} KB)")
+
+        if temp_dir_obj:
+            try:
+                temp_dir_obj.cleanup()
+            except OSError:
+                pass
+        return
 
     mode = "all" if (args.audit_all or vibe_intent in ("all", "full")) else "lean"
     is_domain_bundle_export = (

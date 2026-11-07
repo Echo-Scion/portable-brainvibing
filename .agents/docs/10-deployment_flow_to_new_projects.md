@@ -198,7 +198,7 @@ When a spoke project needs to pull core engine and framework improvements from t
 python .agents/scripts/orion.py upgrade --check
 
 # Execute surgical upgrade from upstream git repository or local hub
-python .agents/scripts/orion.py upgrade --source https://github.com/Echo-Scion/portable-brainvibing.git
+python .agents/scripts/orion.py upgrade --source https://github.com/Echo-Scion/orioncortex.git
 ```
 
 **Key Architectural Invariants**:

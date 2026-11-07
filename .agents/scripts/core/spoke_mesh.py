@@ -180,74 +180,170 @@ def _harvest_context(repo_dir: str) -> Tuple[Optional[str], Dict[str, str], floa
     return os.path.abspath(context_dir), files_map, latest_mtime
 
 
+def inspect_spoke_dir(dir_path: str) -> Optional[SpokeStar]:
+    """Inspects a directory and returns a SpokeStar if it qualifies as an Orion-compatible project."""
+    full_entry_path = os.path.abspath(dir_path)
+    if not os.path.isdir(full_entry_path):
+        return None
+
+    # Check if directory resembles a project
+    has_agents = os.path.isdir(os.path.join(full_entry_path, ".agents"))
+    has_context = os.path.isdir(os.path.join(full_entry_path, "context"))
+    has_manifest = any(
+        os.path.isfile(os.path.join(full_entry_path, f))
+        for f in ("pubspec.yaml", "package.json", "pyproject.toml", "Cargo.toml", "build.gradle", "build.gradle.kts")
+    )
+    has_agents_md = os.path.isfile(os.path.join(full_entry_path, "AGENTS.md")) or os.path.isfile(os.path.join(full_entry_path, "GEMINI.md"))
+
+    if not (has_agents or has_context or has_manifest or has_agents_md):
+        return None
+
+    # Extract project name
+    p_name = os.path.basename(full_entry_path)
+    manifest_path = os.path.join(full_entry_path, ".agents", ".project_manifest.json")
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                p_name = json.load(mf).get("project_name") or p_name
+        except Exception:
+            pass
+
+    stack, detected_arch = _detect_stack(full_entry_path)
+    dna_state, dna_score, dna_arch = _read_dna_metadata(full_entry_path)
+    archetype = dna_arch if dna_arch != "Software Repository" else detected_arch
+    ctx_dir, ctx_files, latest_mtime = _harvest_context(full_entry_path)
+
+    return SpokeStar(
+        name=p_name,
+        root_path=full_entry_path,
+        stack=stack,
+        archetype=archetype,
+        dna_state=dna_state,
+        dna_score=dna_score,
+        context_dir=ctx_dir,
+        context_files=ctx_files,
+        latest_mtime=latest_mtime,
+    )
+
+
+def get_well_known_spoke_paths() -> List[str]:
+    """Returns well-known global agent directories on the host operating system."""
+    paths: List[str] = []
+    if sys.platform == "win32":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            paths.append(os.path.join(local_app_data, "hermes"))
+    else:
+        home = os.path.expanduser("~")
+        paths.append(os.path.join(home, ".local", "share", "hermes"))
+        paths.append(os.path.join(home, ".hermes"))
+    return [os.path.abspath(p) for p in paths if os.path.isdir(p)]
+
+
+def get_constellation_registry_path(workspace_root: Optional[str] = None) -> str:
+    """Returns the persistent registry path for custom constellation roots and spokes."""
+    root = workspace_root or str(get_workspace_dir())
+    cache_dir = os.path.join(root, ".orion", "working")
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, "constellation_registry.json")
+
+
+def load_constellation_registry(workspace_root: Optional[str] = None) -> Dict[str, List[str]]:
+    """Loads custom search roots and explicit spoke paths from the registry."""
+    p = get_constellation_registry_path(workspace_root)
+    if os.path.isfile(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return {
+                    "search_roots": data.get("search_roots", []),
+                    "spokes": data.get("spokes", []),
+                }
+        except Exception as _e:
+            _log_telemetry(_e, "spoke_mesh:load_registry")
+    return {"search_roots": [], "spokes": []}
+
+
+def save_constellation_registry(registry_data: Dict[str, List[str]], workspace_root: Optional[str] = None) -> None:
+    """Saves custom search roots and explicit spoke paths to the registry."""
+    p = get_constellation_registry_path(workspace_root)
+    atomic_write_text(p, json.dumps(registry_data, indent=2))
+
+
 def discover_spokes(
     search_root: Optional[str] = None,
     current_project_dir: Optional[str] = None,
     include_self: bool = False,
+    include_well_known: bool = True,
+    extra_spokes: Optional[List[str]] = None,
 ) -> List[SpokeStar]:
     """
-    Discovers sibling spoke repositories ('Stars') around current_project_dir.
-    Searches search_root (defaulting to parent of current project).
+    Discovers spoke repositories ('Stars') across workspace roots and registered paths.
+    Freely aggregates spokes from:
+      1. Default sibling parent directory (or custom search_root)
+      2. Configured search_roots and explicit spokes in constellation_registry.json
+      3. Well-known global agent paths (e.g. %LOCALAPPDATA%/hermes)
     """
     cur_ws = os.path.abspath(str(current_project_dir or get_workspace_dir()))
-    root = os.path.abspath(str(search_root or Path(cur_ws).parent))
+    registry = load_constellation_registry(cur_ws)
 
+    # 1. Collect all root search directories
+    roots_to_scan: Set[str] = set()
+    if search_root:
+        roots_to_scan.add(os.path.abspath(search_root))
+    else:
+        parent_dir = str(Path(cur_ws).parent)
+        if os.path.isdir(parent_dir):
+            roots_to_scan.add(os.path.abspath(parent_dir))
+        for r in registry.get("search_roots", []):
+            if os.path.isdir(r):
+                roots_to_scan.add(os.path.abspath(r))
+
+    # 2. Collect candidate candidate directory paths
+    candidate_paths: Set[str] = set()
+
+    for r in roots_to_scan:
+        try:
+            for entry in sorted(os.listdir(r)):
+                full_entry_path = os.path.join(r, entry)
+                if not os.path.isdir(full_entry_path):
+                    continue
+                if entry.startswith(".") or entry in DEFAULT_IGNORE_DIRS or entry.lower() in DEFAULT_IGNORE_DIRS:
+                    continue
+                candidate_paths.add(os.path.abspath(full_entry_path))
+        except OSError:
+            pass
+
+    # 3. Add explicit spokes from registry
+    for sp in registry.get("spokes", []):
+        if os.path.isdir(sp):
+            candidate_paths.add(os.path.abspath(sp))
+
+    # 4. Add caller-provided extra_spokes
+    if extra_spokes:
+        for sp in extra_spokes:
+            if os.path.isdir(sp):
+                candidate_paths.add(os.path.abspath(sp))
+
+    # 5. Add well-known global agent paths (e.g. hermes)
+    if include_well_known:
+        for wk in get_well_known_spoke_paths():
+            candidate_paths.add(os.path.abspath(wk))
+
+    # 6. Inspect candidate paths and build SpokeStars
     spokes: List[SpokeStar] = []
+    seen_names: Set[str] = set()
 
-    if not os.path.isdir(root):
-        return spokes
-
-    for entry in sorted(os.listdir(root)):
-        full_entry_path = os.path.join(root, entry)
-        if not os.path.isdir(full_entry_path):
+    for path in sorted(candidate_paths):
+        if not include_self and os.path.abspath(path) == cur_ws:
             continue
-
-        # Skip self unless explicitly requested
-        if not include_self and os.path.abspath(full_entry_path) == cur_ws:
-            continue
-
-        # Ignore hidden and blacklisted directories
-        if entry.startswith(".") or entry in DEFAULT_IGNORE_DIRS or entry.lower() in DEFAULT_IGNORE_DIRS:
-            continue
-
-        # Check if directory resembles a project
-        has_agents = os.path.isdir(os.path.join(full_entry_path, ".agents"))
-        has_context = os.path.isdir(os.path.join(full_entry_path, "context"))
-        has_manifest = any(
-            os.path.isfile(os.path.join(full_entry_path, f))
-            for f in ("pubspec.yaml", "package.json", "pyproject.toml", "Cargo.toml", "build.gradle", "build.gradle.kts")
-        )
-
-        if not (has_agents or has_context or has_manifest):
-            continue
-
-        # Extract project name
-        p_name = entry
-        manifest_path = os.path.join(full_entry_path, ".agents", ".project_manifest.json")
-        if os.path.isfile(manifest_path):
-            try:
-                with open(manifest_path, "r", encoding="utf-8") as mf:
-                    p_name = json.load(mf).get("project_name") or entry
-            except Exception:
-                pass
-
-        stack, detected_arch = _detect_stack(full_entry_path)
-        dna_state, dna_score, dna_arch = _read_dna_metadata(full_entry_path)
-        archetype = dna_arch if dna_arch != "Software Repository" else detected_arch
-        ctx_dir, ctx_files, latest_mtime = _harvest_context(full_entry_path)
-
-        star = SpokeStar(
-            name=p_name,
-            root_path=full_entry_path,
-            stack=stack,
-            archetype=archetype,
-            dna_state=dna_state,
-            dna_score=dna_score,
-            context_dir=ctx_dir,
-            context_files=ctx_files,
-            latest_mtime=latest_mtime,
-        )
-        spokes.append(star)
+        star = inspect_spoke_dir(path)
+        if star:
+            if star.name in seen_names:
+                # Disambiguate duplicate project names if located in different folders
+                star.name = f"{star.name} ({os.path.basename(os.path.dirname(star.root_path))})"
+            seen_names.add(star.name)
+            spokes.append(star)
 
     return sorted(spokes, key=lambda s: s.name.lower())
 

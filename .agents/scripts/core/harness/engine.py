@@ -9,7 +9,7 @@ import json
 import argparse
 import uuid
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 _scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
@@ -317,6 +317,19 @@ class HarnessEngine:
                 })
                 # Update live skills state
                 live_skills[intent.name] = {"name": intent.name, "created_by": "agent"}
+                try:
+                    act_type = "promote_skill" if intent.action == "create" else "patch_skill"
+                    self._update_genome_and_log(
+                        action_type=act_type,
+                        item_name=intent.name,
+                        extra_info={
+                            "tier": getattr(intent, "level", "project"),
+                            "reason": getattr(intent, "reason", ""),
+                            "evidence": getattr(intent, "evidence", "")
+                        }
+                    )
+                except Exception as _evo_err:
+                    _log_telemetry(_evo_err, "promote_pending_queue:record_evolution")
             else:
                 rejected.append({
                     "id": intent.id,
@@ -341,6 +354,54 @@ class HarnessEngine:
             "rejected": rejected,
             "total_processed": len(pending)
         }
+
+    @staticmethod
+    def _update_genome_and_log(action_type: str, item_name: str, extra_info: Dict[str, Any]) -> None:
+        import datetime
+        try:
+            from core.paths import get_agents_dir
+            agents_dir = Path(get_agents_dir())
+        except Exception:
+            agents_dir = Path(FOUNDATION_ROOT) / ".agents"
+
+        genome_path = agents_dir / ".genome.json"
+        log_path = agents_dir / "EVOLUTION_LOG.jsonl"
+
+        genome_data: Dict[str, Any] = {"evolution_count": 0, "daily_mutation_cap": 10}
+        if genome_path.exists():
+            try:
+                genome_data = json.loads(genome_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+        genome_data["evolution_count"] = int(genome_data.get("evolution_count", 0)) + 1
+
+        if action_type in ("promote_skill", "patch_skill"):
+            evolved_skills = set(genome_data.get("evolved_skills", []))
+            evolved_skills.add(item_name)
+            genome_data["evolved_skills"] = sorted(list(evolved_skills))
+        elif action_type == "promote_rule":
+            evolved_rules = set(genome_data.get("evolved_rules", []))
+            evolved_rules.add(item_name)
+            genome_data["evolved_rules"] = sorted(list(evolved_rules))
+        elif action_type == "archive_skill":
+            pruned_assets = set(genome_data.get("pruned_assets", []))
+            pruned_assets.add(item_name)
+            genome_data["pruned_assets"] = sorted(list(pruned_assets))
+
+        _atomic_write_text(str(genome_path), json.dumps(genome_data, indent=2))
+
+        log_entry = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "action": action_type,
+            "target": item_name,
+            **extra_info
+        }
+        try:
+            with open(log_path, "a", encoding="utf-8") as lf:
+                lf.write(json.dumps(log_entry) + "\n")
+        except Exception as _log_err:
+            _log_telemetry(_log_err, "engine:_update_genome_and_log:append")
 
     def evaluate_lifecycle(
         self,
@@ -368,6 +429,15 @@ class HarnessEngine:
                 skills_dir=self.skills_dir,
                 skill_names=result.archived
             )
+            for sk_name in result.archived:
+                try:
+                    self._update_genome_and_log(
+                        action_type="archive_skill",
+                        item_name=sk_name,
+                        extra_info={"reason": "lifecycle_archival"}
+                    )
+                except Exception as _arch_evo_err:
+                    _log_telemetry(_arch_evo_err, "evaluate_lifecycle:record_evolution")
 
         return {
             "request_count": request_count,

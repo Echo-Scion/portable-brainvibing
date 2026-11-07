@@ -1,4 +1,4 @@
-# Portable Brainvibing Agent Adapter
+# OrionCortex Agent Adapter
 
 @AGENTS.md
 

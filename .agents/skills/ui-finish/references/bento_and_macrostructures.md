@@ -13,7 +13,7 @@ A bento grid organizes heterogeneous features into an interconnected typographic
 - **Rule 2: Visual Anchor (Hero Cell)**:
   - Exactly ONE cell must act as the primary visual anchor, taking $\ge 50\%$ width or spanning multiple rows (`col-span-1 md:col-span-2 row-span-2`).
 - **Rule 3: Internal Asymmetry**:
-  - Adjacent cells must vary in content density. A text-dense list cell should sit next to a visual or interactive canvas cell.
+  - Adjacent cells must vary in content density. A text-dense list cell MUST sit next to a visual or interactive canvas cell.
 - **Rule 4: Outer Boundary Alignment**:
   - While internal cell sizes vary, the outer bounding perimeter of the bento grid must align cleanly to the page grid.
 

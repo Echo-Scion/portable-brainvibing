@@ -381,6 +381,41 @@ class ReflexionEngine:
         except Exception as _ce:
             _log_telemetry(_ce, "reflexion.py:drain_catches_to_learnings")
 
+        # 2. Bridge open observations from ObservationLedger (count >= 3 or forced_tier0 == True) into LEARNINGS.md
+        try:
+            obs_ledger = ObservationLedger()
+            open_obs = obs_ledger.list_observations(status="open")
+            for obs in open_obs:
+                count = int(obs.get("count", 1))
+                rule_id = obs.get("rule_id", "")
+                rule_check = obs_ledger.check_rule_violations(rule_id) if rule_id else {"forced_tier0": False}
+
+                if obs.get("kind") == "habit" or rule_id == "OPERATOR_HABIT_SKILL_PROPOSAL":
+                    continue
+                if count >= 3 or rule_check.get("forced_tier0", False):
+                    obs_title = obs.get("title", "Recurring Signal").strip()
+                    obs_evidence = obs.get("evidence", "") or obs.get("seen_in", "")
+                    obs_target = obs.get("target", "")
+
+                    self.record_learning(
+                        title=f"Graduated Observation: {obs_title}",
+                        root_cause=f"Recurring friction observed {count} time(s) on target '{obs_target}' (Rule: {rule_id or 'N/A'})",
+                        fix_applied=f"Synthesized from ObservationLedger #{obs.get('id')}",
+                        self_evolve_rule=f"Enforce deterministic verifier for {obs_title}",
+                        trigger=f"Use when operating on {obs_target or 'workspace components'}",
+                        evidence=f"Observation #{obs.get('id')}: {obs_evidence[:200]}",
+                        intervention=f"Apply structured pattern validation on {obs_target or 'target'}",
+                        guard="Prevent recurring tool/execution friction",
+                        resting_tier="TIER-0" if rule_check.get("forced_tier0") else "TIER-1",
+                    )
+                    obs_ledger.resolve_observation(
+                        obs_id=obs["id"],
+                        resolution="Graduated to LEARNINGS.md via detect_and_graduate_recurring",
+                        status="actioned"
+                    )
+        except Exception as _obs_err:
+            _log_telemetry(_obs_err, "reflexion.py:detect_and_graduate_recurring:observations")
+
         learnings = self.list_learnings()
         graduated = []
         seen_norms = set()
@@ -870,19 +905,6 @@ def mine_operator_habits(workspace_dir: Optional[str] = None, profile_path: Opti
                 "proposes_skill": f"propose_skill_{'_and_'.join(gram)}"
             })
 
-            try:
-                ledger = ObservationLedger()
-                pattern_str = " -> ".join(gram)
-                ledger.add_observation(
-                    title=f"Propose skill for frequent action sequence: {pattern_str}",
-                    kind="habit",
-                    target="skills",
-                    rule_id="OPERATOR_HABIT_SKILL_PROPOSAL",
-                    evidence=f"Action sequence [{pattern_str}] repeated {cnt} times"
-                )
-            except Exception:
-                pass
-
     catches_file = os.path.join(orion_working, "mechanical_catches.json")
     if os.path.exists(catches_file):
         try:
@@ -942,7 +964,9 @@ def backfill_historical_observations(workspace_dir: Optional[str] = None) -> Dic
                 if not line_s.startswith(("-", "*")):
                     continue
                 lower_l = line_s.lower()
-                if any(m in lower_l for m in ("[bugfix]", "[fix]", "[friction]", "[error]", "[learning]", "[deviation]", "[gap]")):
+                has_tag = any(m in lower_l for m in ("[bugfix]", "[fix]", "[friction]", "[error]", "[learning]", "[deviation]", "[gap]"))
+                has_semantic = any(k in lower_l for k in ("fix:", "fixed", "root cause", "regression", "workaround", "gotcha", "resolved", "error:"))
+                if has_tag or has_semantic:
                     clean_title = re.sub(r"^[-*]\s*(\[[A-Za-z0-9_-]+\]\s*)?", "", line_s).strip()
                     if len(clean_title) > 10:
                         ledger.add_observation(
@@ -1469,6 +1493,26 @@ def parse_transcript_observations(transcript_path=None):
                         if target_list and val not in observations[target_list]:
                             observations[target_list].append(val)
 
+                    # Tag-free semantic line pattern extraction
+                    for line in content.splitlines():
+                        l_s = line.strip()
+                        if not l_s or l_s.startswith(("#", "```", "<")):
+                            continue
+                        l_clean = re.sub(r"^[-*+•]\s*", "", l_s).strip()
+                        m_sem = re.match(r'^(?:(?:feat(?:\([^)]+\))?|feature|implemented|introduce)\s*:\s*(.+)|(?:fix|fixed|bugfix|bug|regression|root cause)\s*:\s*(.+)|(?:refactor|cleanup|hardened)\s*:\s*(.+)|(?:decided to|chosen to|architectural decision)\s*:\s*(.+)|(?:todo|open loop|deferred)\s*:\s*(.+))', l_clean, re.IGNORECASE)
+                        if m_sem:
+                            g = m_sem.groups()
+                            if g[0] and g[0] not in observations["features"]:
+                                observations["features"].append(g[0][:150])
+                            elif g[1] and g[1] not in observations["bugfixes"]:
+                                observations["bugfixes"].append(g[1][:150])
+                            elif g[2] and g[2] not in observations["refactors"]:
+                                observations["refactors"].append(g[2][:150])
+                            elif g[3] and g[3] not in observations["decisions"]:
+                                observations["decisions"].append(g[3][:150])
+                            elif g[4] and g[4] not in observations["open_loops"]:
+                                observations["open_loops"].append(g[4][:150])
+
                 tool_calls = entry.get("tool_calls", [])
                 if isinstance(tool_calls, list):
                     for tc in tool_calls:
@@ -1643,7 +1687,19 @@ def consolidate_session(transcript_path=None):
     if obs["open_loops"]:
         obs_blocks.append("### Open Loops & Deferred Debt (`[open_loop]`)\n" + "\n".join(f"- {ol}" for ol in obs["open_loops"][:8]))
 
-    observations_section = "\n\n".join(obs_blocks) if obs_blocks else "- _(no explicit tagged observations detected)_"
+    habits_section = ""
+    try:
+        habits_data = mine_operator_habits(WORKSPACE_DIR)
+        top_tools = habits_data.get("top_tools", [])
+        top_ngrams = habits_data.get("top_n_grams", [])
+        if top_tools or top_ngrams:
+            top_tools_str = ", ".join(f"{t}: {c}" for t, c in top_tools[:5]) if top_tools else "none"
+            top_ngrams_str = ", ".join(f"{g}: {c}" for g, c in top_ngrams[:3]) if top_ngrams else "none"
+            habits_section = f"\n### Mined Operator Habits & Workflow Sequences\n- **Top Tools**: {top_tools_str}\n- **Top Action Sequences**: {top_ngrams_str}\n"
+    except Exception as _he:
+        _log_telemetry(_he, "consolidate_session:mine_habits")
+
+    observations_section = ("\n\n".join(obs_blocks) if obs_blocks else "- _(no explicit tagged observations detected)_") + habits_section
 
     pulse = f"""# Session Pulse — {timestamp}
 
@@ -1695,7 +1751,7 @@ _Generated by Temporal Pulse Engine at {datetime.now().isoformat()}_
 
 
 def _extract_tagged_observations(text: str) -> Dict[str, List[str]]:
-    """Extract and deduplicate tagged observations: [decision], [bugfix], [feature], [open_loop], [lesson]."""
+    """Extract and deduplicate tagged observations: [decision], [bugfix], [feature], [open_loop], [lesson], with markdown section header context tracking."""
     obs = {
         "decision": [],
         "bugfix": [],
@@ -1705,10 +1761,27 @@ def _extract_tagged_observations(text: str) -> Dict[str, List[str]]:
         "other": []
     }
     seen = set()
+    current_section = None
     for line in text.splitlines():
         line_clean = line.strip()
-        if not line_clean or line_clean.startswith("#"):
+        if not line_clean:
             continue
+        if line_clean.startswith("#"):
+            hdr_low = line_clean.lower()
+            if "decision" in hdr_low:
+                current_section = "decision"
+            elif "bugfix" in hdr_low or "fix" in hdr_low or "root cause" in hdr_low:
+                current_section = "bugfix"
+            elif "feature" in hdr_low or "capabilit" in hdr_low:
+                current_section = "feature"
+            elif "open loop" in hdr_low or "deferred" in hdr_low:
+                current_section = "open_loop"
+            elif "lesson" in hdr_low or "learning" in hdr_low:
+                current_section = "lesson"
+            else:
+                current_section = None
+            continue
+
         line_lower = line_clean.lower()
         matched_tag = None
         for tag in ["decision", "bugfix", "feature", "open_loop", "lesson"]:
@@ -1723,6 +1796,8 @@ def _extract_tagged_observations(text: str) -> Dict[str, List[str]]:
 
         if matched_tag:
             obs[matched_tag].append(line_clean)
+        elif current_section:
+            obs[current_section].append(line_clean)
         elif line_clean.startswith(("-", "*", "•")):
             obs["other"].append(line_clean)
     return obs
@@ -2151,11 +2226,12 @@ def linkify_workspace():
 # ==============================================================================
 
 def main():
-    if len(sys.argv) >= 2 and sys.argv[1].lower() == "reflexion":
+    if len(sys.argv) >= 2 and sys.argv[1].lower() in ("reflexion", "pulsar"):
         sys.argv.pop(1)
     if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help"]:
         print("Usage: reflexion.py <command> [args...]")
         print("\nCommands:")
+        print("  status           Display Observation Ledger & Pulsar digest status")
         print("  record           Record a failure reflection in LEARNINGS.md")
         print("  list             List all recorded self-evolution learnings")
         print("  audit            Audit declarative rule enforcement coverage")
@@ -2168,8 +2244,16 @@ def main():
 
     cmd = sys.argv[1].lower()
 
+    if cmd == "status":
+        ledger = ObservationLedger()
+        print(f"[PULSAR STATUS] {ledger.get_digest()}")
+        sys.exit(0)
+
     if cmd == "consolidate" or cmd in ["session", "milestone", "epoch", "daily", "weekly", "monthly"]:
         args = sys.argv[2:] if cmd == "consolidate" else sys.argv[1:]
+        if args and args[0].lower() in ("-h", "--help", "help"):
+            print("Usage: orion.py consolidate [session|milestone|epoch|daily|weekly|monthly] [--transcript <path>]")
+            sys.exit(0)
         action = args[0].lower() if args else "session"
         transcript_arg = None
         if "--transcript" in args:

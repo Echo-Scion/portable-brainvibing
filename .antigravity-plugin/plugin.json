@@ -1,0 +1,7 @@
+{
+  "name": "orioncortex",
+  "displayName": "OrionCortex",
+  "version": "0.1.0",
+  "description": "Turnkey Auto-Vibe Coding Brain Ecosystem: memory, verification gates, and TDD runtime for coding agents.",
+  "skills": ".agents/skills"
+}

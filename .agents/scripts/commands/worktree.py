@@ -17,7 +17,7 @@ import os
 import sys
 import argparse
 import subprocess
-from typing import List
+from typing import List, Optional
 
 _WINDOWLESS_FLAGS = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) if sys.platform == "win32" else 0
 

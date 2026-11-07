@@ -9,7 +9,7 @@ The `.agents` infrastructure exists because Large Language Models—regardless o
 ```
 Probabilistic LLM Failures              Deterministic System Mitigations
 ──────────────────────────              ─────────────────────────────────
-1. Context Degradation ("Lost Middle") ──► Just-In-Time (JIT) Router + Bento Slicer
+1. Context Degradation ("Lost Middle") ──► Just-In-Time (JIT) Router + Task Slicer (Impulse Dispenser)
 2. Host & IDE Fragmentation            ──► IDE-Agnostic Tooling Directives
 3. Politeness Tax & Semantic Bloat     ──► Lessword Mode + Prose Authenticity
 4. Hallucination & Masked Failures     ──► Strict TDD + Post-Condition Mutation Gate
@@ -28,9 +28,9 @@ When LLMs process large contexts (>30,000 tokens) or multi-file implementation p
 **Failure Pattern:**
 In a 100-page monolithic ruleset, rule #14 mandates *"Never use raw database connections; always route through connection pool `get_db()`."* During a 400-line controller implementation, the agent's attention focuses on immediate syntax and local variable scoping. Rule #14 degrades in recall, causing the agent to instantiate raw client connections that leak file descriptors.
 
-**Deterministic Solution: Just-In-Time (JIT) Routing & Topological Bento Slicing**
+**Deterministic Solution: Just-In-Time (JIT) Routing & Sequential Task Slicing**
 - **JIT Router (`AGENTS.md §4`)**: Forbids loading the entire knowledge base at once. Prompts concerning databases load only `project-architect` and `data-logic`; UI prompts load only `ui-finish` and `palette`.
-- **Zero-Escape Bento Task Slicer (`commands/bento_slicer.py`)**: Slices multi-step plans into a single atomic task file (`.orion/working/ACTIVE_TASK.md`) sorted by topological blast-radius ($T_0 \to T_5$) and bottom-up line order, recalibrating live disk line spans before each turn.
+- **Zero-Escape Task Slicer & Stage Impulse Dispenser (`commands/dispenser.py`)**: Slices multi-step implementation plans into a single atomic task card (`.orion/working/ACTIVE_TASK.md`) sorted by topological blast-radius ($T_0 \to T_5$) and bottom-up line order, recalibrating live disk line spans before each turn. Known historically as the Bento Slicer (from compartmentalized "bento" action cards) and operating in Cosmic Space taxonomy as the Stage / Impulse Dispenser, it constrains LLM focus strictly to one verifiable task unit at a time.
 
 ---
 
@@ -73,7 +73,7 @@ LLMs tend to fabricate missing APIs, mask errors with empty catch blocks (`catch
 
 **Deterministic Solution: Strict TDD, Iron Evidence Law & Disk Mutation Gate**
 - **Iron Evidence Mandate**: `Exit Code 0` is required, but never trusted alone. Agents must verify stdout/stderr assertions, test counts, and state changes to ensure no exceptions were swallowed.
-- **Post-Condition Disk Mutation Gate (`bento_slicer.py`)**: Before running tests on `orion.py bento next --verify`, the engine checks the physical file on disk. If the `SEARCH` block remains unpatched, progression is rejected with `Exit Code 2 ([BENTO NO-OP REJECTED])`.
+- **Post-Condition Disk Mutation Gate (`commands/dispenser.py`)**: Before running tests on `orion.py bento next --verify`, the engine checks the physical file on disk. If the `SEARCH` block remains unpatched, progression is rejected with `Exit Code 2 ([BENTO NO-OP REJECTED])`.
 - **Strict TDD** (`skills/strict-tdd/SKILL.md`): Mandatory RED-GREEN-REFACTOR gate. If an agent writes implementation code before producing a verified failing test (`Exit Code > 0`), the harness enforces a mechanical rollback (`git stash`).
 
 ---
@@ -125,7 +125,7 @@ When exporting multi-file codebase bundles for external review, target source fi
 The `.agents` engine consolidates patterns across context engineering, formal verification, and cognitive memory into five core layers:
 
 1. **Context & Prompt Engineering**: Distilled into Master BIOS (`AGENTS.md`), JIT routing tables, and `rules/`.
-2. **Quality Assurance & Execution Harnesses**: Distilled into `bento_slicer.py`, `strict-tdd`, `systematic-debugging`, and `integrity-sentinel/references/audit_vectors.md`.
+2. **Quality Assurance & Execution Harnesses**: Distilled into `commands/dispenser.py`, `strict-tdd`, `systematic-debugging`, and `integrity-sentinel/references/audit_vectors.md`.
 3. **GraphRAG & Observational Memory**: Distilled into SQLite3 FTS5 BM25, pure-Python Louvain community clustering (`core/orion_graph.py`), generational rollover (`core/memory.py`), and Ollama embedding pipelines.
 4. **Token & Performance Optimization**: Distilled into RTK terminal filtering, Lessword mode, and AST hollowing.
 5. **Ecosystem & Framework Canons**: Distilled into `canons/ecosystems/` (Flutter, React, Python) and `canons/global/`.
